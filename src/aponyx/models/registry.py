@@ -25,7 +25,7 @@ class SignalMetadata:
         Name of the compute function in signals module (e.g., "compute_cdx_etf_basis").
     data_requirements : dict[str, str]
         Mapping from market data keys to required column names.
-        Example: {"cdx": "spread", "etf": "close"}
+        Example: {"cdx": "spread", "etf": "spread"}
     arg_mapping : list[str]
         Ordered list of data keys to pass as positional arguments to compute function.
         Example: ["cdx", "etf"] means call compute_fn(market_data["cdx"], market_data["etf"], config)

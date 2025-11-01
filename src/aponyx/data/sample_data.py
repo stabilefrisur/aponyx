@@ -118,7 +118,7 @@ def generate_vix_sample(
     Returns
     -------
     pd.DataFrame
-        VIX data with columns: date, close
+        VIX data with columns: date, level
 
     Notes
     -----
@@ -150,11 +150,11 @@ def generate_vix_sample(
     df = pd.DataFrame(
         {
             "date": dates,
-            "close": vix_close,
+            "level": vix_close,
         }
     )
 
-    logger.debug("Generated VIX sample: mean=%.2f", df["close"].mean())
+    logger.debug("Generated VIX sample: mean=%.2f", df["level"].mean())
     return df
 
 
@@ -187,7 +187,7 @@ def generate_etf_sample(
     Returns
     -------
     pd.DataFrame
-        ETF data with columns: date, close, ticker
+        ETF data with columns: date, spread, ticker
 
     Notes
     -----
@@ -206,12 +206,12 @@ def generate_etf_sample(
     df = pd.DataFrame(
         {
             "date": dates,
-            "close": price,
+            "spread": price,
             "ticker": [ticker] * periods,
         }
     )
 
-    logger.debug("Generated ETF sample: mean_price=%.2f", df["close"].mean())
+    logger.debug("Generated ETF sample: mean_price=%.2f", df["spread"].mean())
     return df
 
 

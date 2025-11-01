@@ -76,7 +76,7 @@ def test_validate_vix_schema_valid() -> None:
     df = pd.DataFrame(
         {
             "date": pd.date_range("2024-01-01", periods=10),
-            "close": [15.0, 16.5, 14.8, 17.2, 16.0, 18.5, 17.8, 19.2, 18.0, 20.1],
+            "level": [15.0, 16.5, 14.8, 17.2, 16.0, 18.5, 17.8, 19.2, 18.0, 20.1],
         }
     )
 
@@ -84,7 +84,7 @@ def test_validate_vix_schema_valid() -> None:
 
     assert isinstance(validated.index, pd.DatetimeIndex)
     assert len(validated) == 10
-    assert "close" in validated.columns
+    assert "level" in validated.columns
 
 
 def test_validate_vix_schema_invalid_values() -> None:
@@ -92,7 +92,7 @@ def test_validate_vix_schema_invalid_values() -> None:
     df = pd.DataFrame(
         {
             "date": pd.date_range("2024-01-01", periods=10),
-            "close": [250.0] * 10,  # Above max_vix
+            "level": [250.0] * 10,  # Above max_vix
         }
     )
 
@@ -105,7 +105,7 @@ def test_validate_etf_schema_valid() -> None:
     df = pd.DataFrame(
         {
             "date": pd.date_range("2024-01-01", periods=10),
-            "close": [80.0, 80.5, 79.8, 81.2, 80.9, 82.1, 81.8, 83.0, 82.5, 84.2],
+            "spread": [80.0, 80.5, 79.8, 81.2, 80.9, 82.1, 81.8, 83.0, 82.5, 84.2],
             "security": ["hyg"] * 10,
         }
     )
@@ -114,7 +114,7 @@ def test_validate_etf_schema_valid() -> None:
 
     assert isinstance(validated.index, pd.DatetimeIndex)
     assert len(validated) == 10
-    assert "close" in validated.columns
+    assert "spread" in validated.columns
 
 
 def test_validate_etf_schema_missing_columns() -> None:
@@ -122,7 +122,7 @@ def test_validate_etf_schema_missing_columns() -> None:
     df = pd.DataFrame(
         {
             "date": pd.date_range("2024-01-01", periods=10),
-            # Missing 'close' column (required)
+            # Missing 'spread' column (required)
         }
     )
 
@@ -135,7 +135,7 @@ def test_validate_etf_schema_invalid_prices() -> None:
     df = pd.DataFrame(
         {
             "date": pd.date_range("2024-01-01", periods=10),
-            "close": [-10.0] * 10,  # Negative prices are invalid
+            "spread": [-10.0] * 10,  # Negative prices are invalid
             "ticker": ["HYG"] * 10,
         }
     )

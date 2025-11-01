@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 # Bloomberg field mappings for different instrument types
 BLOOMBERG_FIELDS = {
     "cdx": ["PX_LAST"],  # CDX spread only
-    "vix": ["PX_LAST"],  # VIX close only
-    "etf": ["PX_LAST"],  # ETF close only
+    "vix": ["PX_LAST"],  # VIX level only
+    "etf": ["YAS_ISPREAD"],  # ETF I-spread only
 }
 
 # Mapping from Bloomberg field names to schema column names
@@ -28,10 +28,10 @@ FIELD_MAPPING = {
         "PX_LAST": "spread",
     },
     "vix": {
-        "PX_LAST": "close",
+        "PX_LAST": "level",
     },
     "etf": {
-        "PX_LAST": "close",
+        "YAS_ISPREAD": "spread",
     },
 }
 
@@ -84,8 +84,8 @@ def fetch_from_bloomberg(
 
     Returned DataFrame columns are mapped to project schemas:
     - CDX: spread, security
-    - VIX: close
-    - ETF: close, security
+    - VIX: level
+    - ETF: spread, security
 
     Example tickers:
     - CDX: 'CDX IG CDSI GEN 5Y Corp'

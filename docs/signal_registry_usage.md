@@ -23,8 +23,8 @@ registry = SignalRegistry("src/aponyx/models/signal_catalog.json")
 # Prepare market data
 market_data = {
     "cdx": cdx_df,  # Must have 'spread' column
-    "vix": vix_df,  # Must have 'close' column
-    "etf": etf_df,  # Must have 'close' column
+    "vix": vix_df,  # Must have 'level' column
+    "etf": etf_df,  # Must have 'spread' column
 }
 
 # Compute all enabled signals
@@ -128,7 +128,7 @@ print(f"Sharpe Ratio: {result.metrics['sharpe_ratio']:.2f}")
   "compute_function_name": "compute_cdx_etf_basis",
   "data_requirements": {
     "cdx": "spread",
-    "etf": "close"
+    "etf": "spread"
   },
   "arg_mapping": ["cdx", "etf"],
   "enabled": true
@@ -353,7 +353,7 @@ logging.basicConfig(level=logging.DEBUG)
 def compute_my_signal(cdx_df, etf_df, config=None):
     logger.info("Computing signal...")
     
-    raw_diff = cdx_df['spread'] - etf_df['close']
+    raw_diff = cdx_df['spread'] - etf_df['spread']
     logger.debug("Raw diff range: %.2f to %.2f", raw_diff.min(), raw_diff.max())
     
     zscore = (raw_diff - raw_diff.rolling(20).mean()) / raw_diff.rolling(20).std()
@@ -370,7 +370,7 @@ import numpy as np
 
 dates = pd.date_range('2024-01-01', periods=100)
 cdx_df = pd.DataFrame({'spread': np.arange(100)}, index=dates)
-etf_df = pd.DataFrame({'close': np.arange(100) * 0.5}, index=dates)
+etf_df = pd.DataFrame({'spread': np.arange(100) * 0.5}, index=dates)
 
 # Signal should produce predictable pattern
 signal = compute_my_signal(cdx_df, etf_df)

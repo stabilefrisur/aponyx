@@ -28,9 +28,9 @@ class VIXSchema:
     """Schema for VIX volatility index data."""
 
     date_col: str = "date"
-    close_col: str = "close"
+    level_col: str = "level"
 
-    required_cols: tuple[str, ...] = ("date", "close")
+    required_cols: tuple[str, ...] = ("date", "level")
 
     # Validation constraints
     min_vix: float = 0.0
@@ -42,10 +42,10 @@ class ETFSchema:
     """Schema for credit ETF data (HYG, LQD)."""
 
     date_col: str = "date"
-    close_col: str = "close"
+    spread_col: str = "spread"
     security_col: str = "security"  # e.g., "hyg", "lqd"
 
-    required_cols: tuple[str, ...] = ("date", "close")
+    required_cols: tuple[str, ...] = ("date", "spread")
 
     # Validation constraints
     min_price: float = 0.0

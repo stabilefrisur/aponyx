@@ -57,10 +57,10 @@ def main() -> None:
     logger.info("CDX IG fetched: %d rows, spread_mean=%.2f", len(cdx_ig), cdx_ig["spread"].mean())
 
     vix = fetch_vix(source)
-    logger.info("VIX fetched: %d rows, vix_mean=%.2f", len(vix), vix["close"].mean())
+    logger.info("VIX fetched: %d rows, vix_mean=%.2f", len(vix), vix["level"].mean())
 
     hyg = fetch_etf(source, security="hyg")
-    logger.info("HYG fetched: %d rows, price_mean=%.2f", len(hyg), hyg["close"].mean())
+    logger.info("HYG fetched: %d rows, price_mean=%.2f", len(hyg), hyg["spread"].mean())
 
     # Demonstrate caching by fetching again
     logger.info("\nDemonstrating cache functionality...")
@@ -82,19 +82,19 @@ def main() -> None:
                 len(vix),
                 vix.index.min().date(),
                 vix.index.max().date())
-    logger.info("  close: mean=%.2f, min=%.2f, max=%.2f",
-                vix["close"].mean(),
-                vix["close"].min(),
-                vix["close"].max())
+    logger.info("  level: mean=%.2f, min=%.2f, max=%.2f",
+                vix["level"].mean(),
+                vix["level"].min(),
+                vix["level"].max())
 
     logger.info("HYG ETF: %d rows, date_range=%s to %s",
                 len(hyg),
                 hyg.index.min().date(),
                 hyg.index.max().date())
-    logger.info("  close: mean=%.2f, min=%.2f, max=%.2f",
-                hyg["close"].mean(),
-                hyg["close"].min(),
-                hyg["close"].max())
+    logger.info("  spread: mean=%.2f, min=%.2f, max=%.2f",
+                hyg["spread"].mean(),
+                hyg["spread"].min(),
+                hyg["spread"].max())
 
     # Validate data integrity
     logger.info("\nData Integrity Checks:")

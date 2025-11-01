@@ -32,7 +32,7 @@ def compute_cdx_etf_basis(
     cdx_df : pd.DataFrame
         CDX spread data with DatetimeIndex and 'spread' column.
     etf_df : pd.DataFrame
-        ETF price data with DatetimeIndex and 'close' column.
+        ETF spread data with DatetimeIndex and 'spread' column.
     config : SignalConfig | None
         Configuration parameters. Uses defaults if None.
 
@@ -59,7 +59,7 @@ def compute_cdx_etf_basis(
 
     # Align data to common dates
     cdx_spread = cdx_df["spread"]
-    etf_spread = etf_df["close"].reindex(cdx_df.index, method="ffill")
+    etf_spread = etf_df["spread"].reindex(cdx_df.index, method="ffill")
 
     # Compute raw basis
     raw_basis = cdx_spread - etf_spread
@@ -99,7 +99,7 @@ def compute_cdx_vix_gap(
     cdx_df : pd.DataFrame
         CDX spreads with DatetimeIndex and 'spread' column.
     vix_df : pd.DataFrame
-        VIX levels with DatetimeIndex and 'close' column.
+        VIX levels with DatetimeIndex and 'level' column.
     config : SignalConfig | None
         Configuration parameters. Uses defaults if None.
 
@@ -127,7 +127,7 @@ def compute_cdx_vix_gap(
 
     # Align data to common dates
     cdx = cdx_df["spread"]
-    vix = vix_df["close"].reindex(cdx_df.index, method="ffill")
+    vix = vix_df["level"].reindex(cdx_df.index, method="ffill")
 
     # Compute deviations from rolling means
     cdx_deviation = (

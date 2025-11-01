@@ -25,10 +25,10 @@ def mock_market_data() -> dict[str, pd.DataFrame]:
             "spread": 100 + np.random.randn(50) * 5,
         }, index=dates),
         "etf": pd.DataFrame({
-            "close": 50 + np.random.randn(50) * 2,
+            "spread": 50 + np.random.randn(50) * 2,
         }, index=dates),
         "vix": pd.DataFrame({
-            "close": 15 + np.random.randn(50) * 3,
+            "level": 15 + np.random.randn(50) * 3,
         }, index=dates),
     }
 
@@ -77,7 +77,7 @@ def test_compute_registered_signals_with_disabled(mock_market_data: dict[str, pd
             "name": "disabled_signal",
             "description": "Disabled",
             "compute_function_name": "compute_cdx_etf_basis",
-            "data_requirements": {"cdx": "spread", "etf": "close"},
+            "data_requirements": {"cdx": "spread", "etf": "spread"},
             "arg_mapping": ["cdx", "etf"],
             "enabled": False,
         },
@@ -106,7 +106,7 @@ def test_compute_registered_signals_missing_data_key() -> None:
             "name": "test_signal",
             "description": "Test",
             "compute_function_name": "compute_cdx_etf_basis",
-            "data_requirements": {"cdx": "spread", "etf": "close"},
+            "data_requirements": {"cdx": "spread", "etf": "spread"},
             "arg_mapping": ["cdx", "etf"],
             "enabled": True,
         },
@@ -136,7 +136,7 @@ def test_compute_registered_signals_missing_column() -> None:
             "name": "test_signal",
             "description": "Test",
             "compute_function_name": "compute_cdx_etf_basis",
-            "data_requirements": {"cdx": "spread", "etf": "close"},
+            "data_requirements": {"cdx": "spread", "etf": "spread"},
             "arg_mapping": ["cdx", "etf"],
             "enabled": True,
         },
@@ -150,13 +150,13 @@ def test_compute_registered_signals_missing_column() -> None:
         registry = SignalRegistry(catalog_path)
         config = SignalConfig()
         
-        # ETF data missing 'close' column
+        # ETF data missing 'spread' column
         market_data = {
             "cdx": pd.DataFrame({"spread": [100, 101, 102]}),
             "etf": pd.DataFrame({"price": [50, 51, 52]}),  # Wrong column name
         }
         
-        with pytest.raises(ValueError, match="requires column 'close'"):
+        with pytest.raises(ValueError, match="requires column 'spread'"):
             compute_registered_signals(registry, market_data, config)
 
 
@@ -195,13 +195,13 @@ def test_validate_data_requirements_success() -> None:
         name="test",
         description="Test",
         compute_function_name="compute_test",
-        data_requirements={"cdx": "spread", "vix": "close"},
+        data_requirements={"cdx": "spread", "vix": "level"},
         arg_mapping=["cdx", "vix"],
     )
     
     market_data = {
         "cdx": pd.DataFrame({"spread": [100, 101]}),
-        "vix": pd.DataFrame({"close": [15, 16]}),
+        "vix": pd.DataFrame({"level": [15, 16]}),
     }
     
     # Should not raise

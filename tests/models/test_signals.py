@@ -29,7 +29,7 @@ def sample_vix_data() -> pd.DataFrame:
     dates = pd.date_range("2024-01-01", periods=100, freq="D")
     np.random.seed(43)
     vix = 15 + np.cumsum(np.random.randn(100) * 0.5)
-    return pd.DataFrame({"close": vix}, index=dates)
+    return pd.DataFrame({"level": vix}, index=dates)
 
 
 @pytest.fixture
@@ -38,7 +38,7 @@ def sample_etf_data() -> pd.DataFrame:
     dates = pd.date_range("2024-01-01", periods=100, freq="D")
     np.random.seed(44)
     spreads = 95 + np.cumsum(np.random.randn(100) * 1.8)
-    return pd.DataFrame({"close": spreads}, index=dates)
+    return pd.DataFrame({"spread": spreads}, index=dates)
 
 
 def test_compute_cdx_etf_basis_returns_series(
@@ -114,8 +114,8 @@ def test_signals_handle_insufficient_data() -> None:
     """Test signals gracefully handle insufficient data."""
     dates = pd.date_range("2024-01-01", periods=5, freq="D")
     cdx_df = pd.DataFrame({"spread": [100, 101, 102, 103, 104]}, index=dates)
-    vix_df = pd.DataFrame({"close": [15, 16, 15, 17, 16]}, index=dates)
-    etf_df = pd.DataFrame({"close": [95, 96, 97, 98, 99]}, index=dates)
+    vix_df = pd.DataFrame({"level": [15, 16, 15, 17, 16]}, index=dates)
+    etf_df = pd.DataFrame({"spread": [95, 96, 97, 98, 99]}, index=dates)
 
     config = SignalConfig(lookback=20, min_periods=10)
 

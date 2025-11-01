@@ -93,7 +93,7 @@ class TestFetchFromBloomberg:
             # Verify DataFrame structure
             assert isinstance(result, pd.DataFrame)
             assert len(result) == 5
-            assert "close" in result.columns
+            assert "level" in result.columns
             assert "security" not in result.columns  # VIX has no metadata
 
     def test_fetch_etf_success(self, mock_xbbg_response):
@@ -110,7 +110,7 @@ class TestFetchFromBloomberg:
             # Verify DataFrame structure
             assert isinstance(result, pd.DataFrame)
             assert len(result) == 5
-            assert "close" in result.columns
+            assert "spread" in result.columns
             assert "security" in result.columns
             assert result["security"].iloc[0] == "hyg"
 
@@ -217,16 +217,16 @@ class TestMapBloombergFields:
         df = pd.DataFrame({"PX_LAST": [20.0, 21.0]})
         result = _map_bloomberg_fields(df, "vix", "VIX Index")
 
-        assert "close" in result.columns
+        assert "level" in result.columns
         assert "PX_LAST" not in result.columns
 
     def test_map_etf_fields(self):
         """Test field mapping for ETF data."""
-        df = pd.DataFrame({"PX_LAST": [85.0, 86.0]})
+        df = pd.DataFrame({"YAS_ISPREAD": [85.0, 86.0]})
         result = _map_bloomberg_fields(df, "etf", "HYG US Equity")
 
-        assert "close" in result.columns
-        assert "PX_LAST" not in result.columns
+        assert "spread" in result.columns
+        assert "YAS_ISPREAD" not in result.columns
 
     def test_flatten_multiindex_columns(self):
         """Test flattening xbbg multi-index columns."""
@@ -278,7 +278,7 @@ class TestAddMetadataColumns:
 
     def test_add_etf_metadata(self):
         """Test ETF metadata with security parameter."""
-        df = pd.DataFrame({"close": [85.0, 86.0]})
+        df = pd.DataFrame({"spread": [85.0, 86.0]})
         result = _add_metadata_columns(df, "etf", "HYG US Equity", security="hyg")
 
         assert "security" in result.columns
@@ -286,7 +286,7 @@ class TestAddMetadataColumns:
 
     def test_add_etf_metadata_reverse_lookup(self):
         """Test ETF metadata with reverse lookup."""
-        df = pd.DataFrame({"close": [120.0]})
+        df = pd.DataFrame({"spread": [120.0]})
         result = _add_metadata_columns(df, "etf", "LQD US Equity")
 
         assert "security" in result.columns
@@ -294,11 +294,11 @@ class TestAddMetadataColumns:
 
     def test_vix_no_metadata(self):
         """Test VIX data has no metadata columns added."""
-        df = pd.DataFrame({"close": [20.0, 21.0]})
+        df = pd.DataFrame({"level": [20.0, 21.0]})
         result = _add_metadata_columns(df, "vix", "VIX Index", security="vix")
 
-        # Should only have close column
-        assert list(result.columns) == ["close"]
+        # Should only have level column
+        assert list(result.columns) == ["level"]
         assert "security" not in result.columns
 
     def test_unregistered_ticker(self):
@@ -310,7 +310,7 @@ class TestAddMetadataColumns:
 
     def test_etf_unregistered_ticker(self):
         """Test error when ETF ticker not in registry."""
-        df = pd.DataFrame({"close": [85.0]})
+        df = pd.DataFrame({"spread": [85.0]})
 
         with pytest.raises(ValueError, match="Cannot determine security identifier"):
             _add_metadata_columns(df, "etf", "UNKNOWN US Equity")
@@ -357,14 +357,14 @@ class TestIntegration:
                 security="vix",
             )
 
-            assert set(result.columns) == {"close"}
-            assert result["close"].iloc[0] == 20.0
+            assert set(result.columns) == {"level"}
+            assert result["level"].iloc[0] == 20.0
             assert isinstance(result.index, pd.DatetimeIndex)
 
     def test_full_etf_workflow(self):
         """Test complete ETF fetch with all transformations."""
         mock_response = pd.DataFrame(
-            {"PX_LAST": [85.0, 86.0, 87.0]},
+            {"YAS_ISPREAD": [85.0, 86.0, 87.0]},
             index=pd.date_range("2023-01-01", periods=3, freq="D"),
         )
 
@@ -375,6 +375,6 @@ class TestIntegration:
                 security="hyg",
             )
 
-            assert set(result.columns) == {"close", "security"}
-            assert result["close"].iloc[0] == 85.0
+            assert set(result.columns) == {"spread", "security"}
+            assert result["spread"].iloc[0] == 85.0
             assert result["security"].iloc[0] == "hyg"

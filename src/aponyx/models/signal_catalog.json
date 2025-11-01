@@ -5,7 +5,7 @@
     "compute_function_name": "compute_cdx_etf_basis",
     "data_requirements": {
       "cdx": "spread",
-      "etf": "close"
+      "etf": "spread"
     },
     "arg_mapping": ["cdx", "etf"],
     "enabled": true
@@ -16,7 +16,7 @@
     "compute_function_name": "compute_cdx_vix_gap",
     "data_requirements": {
       "cdx": "spread",
-      "vix": "close"
+      "vix": "level"
     },
     "arg_mapping": ["cdx", "vix"],
     "enabled": true

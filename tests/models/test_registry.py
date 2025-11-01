@@ -27,7 +27,7 @@ def sample_catalog_data() -> list[dict]:
             "name": "test_signal_b",
             "description": "Test signal B",
             "compute_function_name": "compute_test_b",
-            "data_requirements": {"cdx": "spread", "vix": "close"},
+            "data_requirements": {"cdx": "spread", "vix": "level"},
             "arg_mapping": ["cdx", "vix"],
             "enabled": True,
         },

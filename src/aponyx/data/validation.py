@@ -152,8 +152,8 @@ def validate_vix_schema(df: pd.DataFrame, schema: VIXSchema = VIXSchema()) -> pd
         raise ValueError(f"Missing required columns: {missing_cols}")
 
     # Validate VIX bounds
-    if not df[schema.close_col].between(schema.min_vix, schema.max_vix).all():
-        invalid = df[~df[schema.close_col].between(schema.min_vix, schema.max_vix)]
+    if not df[schema.level_col].between(schema.min_vix, schema.max_vix).all():
+        invalid = df[~df[schema.level_col].between(schema.min_vix, schema.max_vix)]
         logger.warning(
             "Found %d invalid VIX values outside [%.1f, %.1f]",
             len(invalid),
@@ -208,8 +208,8 @@ def validate_etf_schema(df: pd.DataFrame, schema: ETFSchema = ETFSchema()) -> pd
         raise ValueError(f"Missing required columns: {missing_cols}")
 
     # Validate price bounds
-    if not df[schema.close_col].between(schema.min_price, schema.max_price).all():
-        invalid = df[~df[schema.close_col].between(schema.min_price, schema.max_price)]
+    if not df[schema.spread_col].between(schema.min_price, schema.max_price).all():
+        invalid = df[~df[schema.spread_col].between(schema.min_price, schema.max_price)]
         logger.warning(
             "Found %d invalid price values outside [%.1f, %.1f]",
             len(invalid),

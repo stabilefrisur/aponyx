@@ -105,8 +105,8 @@ def generate_example_data(
         "Generated %d days: CDX mean=%.1f, VIX mean=%.1f, ETF mean=%.1f",
         len(cdx_df),
         cdx_df["spread"].mean(),
-        vix_df["close"].mean(),
-        etf_df["close"].mean(),
+        vix_df["level"].mean(),
+        etf_df["spread"].mean(),
     )
 
     return cdx_df, vix_df, etf_df
@@ -169,6 +169,6 @@ def generate_persistence_data(
     return {
         "cdx_ig_5y": cdx_ig[["spread"]],
         "cdx_hy_5y": cdx_hy[["spread"]],
-        "vix": vix[["close"]],
-        "hyg_etf": hyg[["close"]],
+        "vix": vix[["level"]],
+        "hyg_etf": hyg[["spread"]],
     }
