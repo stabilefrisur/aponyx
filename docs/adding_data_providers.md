@@ -13,8 +13,18 @@ The data layer uses a **provider pattern** to support multiple data sources (fil
 | Provider | Module | Status | Use Case |
 |----------|--------|--------|----------|
 | `FileSource` | `providers/file.py` | ✅ Implemented | Local Parquet/CSV files |
-| `BloombergSource` | `providers/bloomberg.py` | ✅ Implemented | Bloomberg Terminal data |
+| `BloombergSource` | `providers/bloomberg.py` | ✅ Implemented | Bloomberg Terminal data (requires manual `blpapi` install) |
 | `APISource` | *(not yet created)* | ❌ Not implemented | REST API endpoints |
+
+### Bloomberg Provider Setup
+
+The Bloomberg provider requires manual installation of the `blpapi` library:
+
+1. Download `blpapi` from Bloomberg's developer portal
+2. Install manually: `pip install path/to/blpapi-*.whl`
+3. Install aponyx with Bloomberg support: `uv pip install aponyx[bloomberg]`
+
+The `xbbg` wrapper is included in the `bloomberg` optional dependency, but `blpapi` itself must be installed separately due to Bloomberg's proprietary distribution.
 
 ### Provider Interface
 

@@ -6,7 +6,7 @@
 
 A modular Python framework for developing and backtesting systematic credit strategies.
 
-> **⚠️ Bloomberg Terminal Required**: Data loading via `BloombergSource` requires an active Bloomberg Terminal session. File-based alternatives (`FileSource`) are also supported.
+> **⚠️ Bloomberg Terminal Required**: Data loading via `BloombergSource` requires an active Bloomberg Terminal session and manual installation of the `blpapi` library. See installation instructions below. File-based alternatives (`FileSource`) are also supported.
 
 ## Quick Start
 
@@ -17,6 +17,9 @@ pip install aponyx
 
 # Optional: visualization dependencies
 pip install aponyx[viz]
+
+# Optional: Bloomberg Terminal support (requires manual blpapi install, see below)
+pip install aponyx[bloomberg]
 ```
 
 ### Installation from Source
@@ -38,9 +41,29 @@ uv sync
 # Install visualization dependencies (optional)
 uv sync --extra viz
 
+# Install Bloomberg support (optional, requires manual blpapi install)
+uv sync --extra bloomberg
+
 # Run examples
 uv run python examples/backtest_demo.py
 ```
+
+### Bloomberg Terminal Setup (Optional)
+
+To use the Bloomberg data provider:
+
+1. **Install `blpapi` manually** (not available on PyPI):
+   - Download from Bloomberg's API Library
+   - Install: `pip install path/to/blpapi-*.whl`
+
+2. **Install Bloomberg extra**:
+   ```bash
+   pip install aponyx[bloomberg]
+   # or with uv
+   uv sync --extra bloomberg
+   ```
+
+3. **Ensure active Terminal session** before fetching data
 
 ### Basic Usage
 
@@ -53,7 +76,7 @@ from aponyx.backtest import run_backtest, BacktestConfig
 cdx_df = fetch_cdx(FileSource("data/raw/cdx_data.parquet"), index_name="CDX_IG_5Y")
 etf_df = fetch_etf(FileSource("data/raw/etf_data.parquet"), ticker="HYG")
 
-# Or use Bloomberg Terminal (requires active session and xbbg package)
+# Or use Bloomberg Terminal (requires active session, manual blpapi install, and aponyx[bloomberg])
 # source = BloombergSource()
 # cdx_df = fetch_cdx(source, index_name="CDX_IG", tenor="5Y")
 # etf_df = fetch_etf(source, ticker="HYG")
@@ -119,7 +142,7 @@ aponyx/
 ✅ **Interactive visualization** with Plotly charts (equity, signals, drawdown)  
 ✅ **Parquet-based persistence** with JSON metadata registry  
 ✅ **Comprehensive logging** with run metadata tracking  
-✅ **Bloomberg Terminal integration** via xbbg wrapper (included by default, requires active Terminal session)
+✅ **Bloomberg Terminal integration** via xbbg wrapper (optional `bloomberg` extra, requires manual `blpapi` install)
 
 **Planned Features:**
 - 🔜 Streamlit dashboard (stub exists, not yet implemented)
