@@ -73,13 +73,13 @@ from aponyx.models import compute_cdx_etf_basis, SignalConfig
 from aponyx.backtest import run_backtest, BacktestConfig
 
 # Load market data with validation (file-based)
-cdx_df = fetch_cdx(FileSource("data/raw/cdx_data.parquet"), index_name="CDX_IG_5Y")
-etf_df = fetch_etf(FileSource("data/raw/etf_data.parquet"), ticker="HYG")
+cdx_df = fetch_cdx(FileSource("data/raw/cdx_data.parquet"), security="cdx_ig_5y")
+etf_df = fetch_etf(FileSource("data/raw/etf_data.parquet"), security="hyg")
 
 # Or use Bloomberg Terminal (requires active session, manual blpapi install, and aponyx[bloomberg])
 # source = BloombergSource()
-# cdx_df = fetch_cdx(source, index_name="CDX_IG", tenor="5Y")
-# etf_df = fetch_etf(source, ticker="HYG")
+# cdx_df = fetch_cdx(source, security="cdx_ig_5y")
+# etf_df = fetch_etf(source, security="hyg")
 
 # Generate signal
 signal_config = SignalConfig(lookback=20, min_periods=10)

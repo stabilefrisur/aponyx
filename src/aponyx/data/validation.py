@@ -221,11 +221,11 @@ def validate_etf_schema(df: pd.DataFrame, schema: ETFSchema = ETFSchema()) -> pd
     # Convert to DatetimeIndex and sort
     df = _ensure_datetime_index(df, schema.date_col)
 
-    # Check for duplicates per ticker
-    if schema.ticker_col in df.columns:
-        for ticker in df[schema.ticker_col].unique():
-            ticker_df = df[df[schema.ticker_col] == ticker]
-            _check_duplicate_dates(ticker_df, context=f"ticker {ticker}")
+    # Check for duplicates per security
+    if schema.security_col in df.columns:
+        for security in df[schema.security_col].unique():
+            security_df = df[df[schema.security_col] == security]
+            _check_duplicate_dates(security_df, context=f"security {security}")
 
     logger.debug("ETF validation passed: date_range=%s to %s", df.index.min(), df.index.max())
     return df

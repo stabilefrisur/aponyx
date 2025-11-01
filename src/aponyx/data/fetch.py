@@ -10,6 +10,7 @@ import logging
 import pandas as pd
 
 from ..config import DATA_DIR, CACHE_ENABLED, CACHE_TTL_DAYS, DEFAULT_DATA_SOURCES
+from ..config.bloomberg_tickers import get_bloomberg_ticker
 from ..persistence.registry import DataRegistry, REGISTRY_PATH
 from .cache import get_cached_data, save_to_cache
 from .sources import DataSource, FileSource, BloombergSource, resolve_provider
@@ -46,8 +47,8 @@ def _get_provider_fetch_function(source: DataSource):
 
 def fetch_cdx(
     source: DataSource | None = None,
-    index_name: str | None = None,
-    tenor: str | None = None,
+    security: str | None = None,
+    bloomberg_ticker: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
     use_cache: bool = CACHE_ENABLED,
@@ -60,10 +61,12 @@ def fetch_cdx(
     ----------
     source : DataSource or None
         Data source. If None, uses default from config.
-    index_name : str or None
-        Filter to specific index (e.g., "CDX_IG", "CDX_HY").
-    tenor : str or None
-        Filter to specific tenor (e.g., "5Y", "10Y").
+    security : str or None
+        Security identifier (e.g., "cdx_ig_5y", "cdx_hy_5y").
+        Used for Bloomberg ticker lookup and metadata.
+    bloomberg_ticker : str or None
+        Optional Bloomberg ticker override for ad-hoc research.
+        If provided, bypasses registry lookup.
     start_date : str or None
         Start date in YYYY-MM-DD format.
     end_date : str or None
@@ -78,13 +81,14 @@ def fetch_cdx(
     pd.DataFrame
         Validated CDX data with DatetimeIndex and columns:
         - spread: CDX spread in basis points
-        - index: Index identifier (if present)
-        - tenor: Tenor identifier (if present)
+        - security: Security identifier (if present)
 
     Examples
     --------
-    >>> from aponyx.data import fetch_cdx, FileSource
-    >>> df = fetch_cdx(FileSource("data/raw/cdx.parquet"), tenor="5Y")
+    >>> from aponyx.data import fetch_cdx, FileSource, BloombergSource
+    >>> df = fetch_cdx(FileSource("data/raw/cdx.parquet"), security="cdx_ig_5y")
+    >>> df = fetch_cdx(BloombergSource(), security="cdx_ig_5y")
+    >>> df = fetch_cdx(BloombergSource(), bloomberg_ticker="CDX IG CDSI GEN 5Y Corp")
     """
     source = source or DEFAULT_DATA_SOURCES.get("cdx")
     if source is None:
@@ -102,16 +106,13 @@ def fetch_cdx(
             start_date=start_date,
             end_date=end_date,
             ttl_days=CACHE_TTL_DAYS.get(instrument),
-            index_name=index_name,
-            tenor=tenor,
+            security=security,
         )
         if cached is not None:
             df = cached
-            # Apply filters if needed
-            if index_name is not None and "index" in df.columns:
-                df = df[df["index"] == index_name]
-            if tenor is not None and "tenor" in df.columns:
-                df = df[df["tenor"] == tenor]
+            # Apply filter if needed
+            if security is not None and "security" in df.columns:
+                df = df[df["security"] == security]
             return df
 
     # Fetch from source
@@ -126,13 +127,23 @@ def fetch_cdx(
             end_date=end_date,
         )
     elif isinstance(source, BloombergSource):
-        # Construct Bloomberg ticker from filters
-        ticker = _build_cdx_ticker(index_name, tenor)
+        # Get Bloomberg ticker from registry or use override
+        if bloomberg_ticker is not None:
+            ticker = bloomberg_ticker
+            logger.debug("Using Bloomberg ticker override: %s", ticker)
+        elif security is not None:
+            ticker = get_bloomberg_ticker(security)
+            logger.debug("Resolved security '%s' to Bloomberg ticker: %s", security, ticker)
+        else:
+            raise ValueError(
+                "Either 'security' or 'bloomberg_ticker' required for Bloomberg CDX fetch"
+            )
         df = fetch_fn(
             ticker=ticker,
             instrument=instrument,
             start_date=start_date,
             end_date=end_date,
+            security=security,
         )
     else:
         raise ValueError(f"Unsupported source type: {type(source)}")
@@ -140,18 +151,12 @@ def fetch_cdx(
     # Validate schema
     df = validate_cdx_schema(df)
 
-    # Apply filters
-    if index_name is not None:
-        if "index" not in df.columns:
-            raise ValueError("Cannot filter by index_name: 'index' column not found")
-        df = df[df["index"] == index_name]
-        logger.debug("Filtered to index=%s: %d rows", index_name, len(df))
-
-    if tenor is not None:
-        if "tenor" not in df.columns:
-            raise ValueError("Cannot filter by tenor: 'tenor' column not found")
-        df = df[df["tenor"] == tenor]
-        logger.debug("Filtered to tenor=%s: %d rows", tenor, len(df))
+    # Apply security filter
+    if security is not None:
+        if "security" not in df.columns:
+            raise ValueError("Cannot filter by security: 'security' column not found")
+        df = df[df["security"] == security]
+        logger.debug("Filtered to security=%s: %d rows", security, len(df))
 
     # Cache if enabled
     if use_cache:
@@ -164,8 +169,7 @@ def fetch_cdx(
             registry=registry,
             start_date=start_date,
             end_date=end_date,
-            index_name=index_name,
-            tenor=tenor,
+            security=security,
         )
 
     logger.info("Fetched CDX data: %d rows, %s to %s", len(df), df.index.min(), df.index.max())
@@ -238,11 +242,13 @@ def fetch_vix(
             end_date=end_date,
         )
     elif isinstance(source, BloombergSource):
+        ticker = get_bloomberg_ticker("vix")
         df = fetch_fn(
-            ticker="VIX Index",
+            ticker=ticker,
             instrument=instrument,
             start_date=start_date,
             end_date=end_date,
+            security="vix",
         )
     else:
         raise ValueError(f"Unsupported source type: {type(source)}")
@@ -269,7 +275,8 @@ def fetch_vix(
 
 def fetch_etf(
     source: DataSource | None = None,
-    ticker: str | None = None,
+    security: str | None = None,
+    bloomberg_ticker: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
     use_cache: bool = CACHE_ENABLED,
@@ -282,8 +289,12 @@ def fetch_etf(
     ----------
     source : DataSource or None
         Data source. If None, uses default from config.
-    ticker : str or None
-        Filter to specific ticker (e.g., "HYG", "LQD").
+    security : str or None
+        Security identifier (e.g., "hyg", "lqd").
+        Used for Bloomberg ticker lookup and metadata.
+    bloomberg_ticker : str or None
+        Optional Bloomberg ticker override for ad-hoc research.
+        If provided, bypasses registry lookup.
     start_date : str or None
         Start date in YYYY-MM-DD format.
     end_date : str or None
@@ -298,12 +309,14 @@ def fetch_etf(
     pd.DataFrame
         Validated ETF data with DatetimeIndex and columns:
         - close: Closing price
-        - ticker: ETF ticker symbol (if present)
+        - security: Security identifier (if present)
 
     Examples
     --------
-    >>> from aponyx.data import fetch_etf, FileSource
-    >>> df = fetch_etf(FileSource("data/raw/etf.parquet"), ticker="HYG")
+    >>> from aponyx.data import fetch_etf, FileSource, BloombergSource
+    >>> df = fetch_etf(FileSource("data/raw/etf.parquet"), security="hyg")
+    >>> df = fetch_etf(BloombergSource(), security="hyg")
+    >>> df = fetch_etf(BloombergSource(), bloomberg_ticker="HYG US Equity")
     """
     source = source or DEFAULT_DATA_SOURCES.get("etf")
     if source is None:
@@ -321,12 +334,12 @@ def fetch_etf(
             start_date=start_date,
             end_date=end_date,
             ttl_days=CACHE_TTL_DAYS.get(instrument),
-            ticker=ticker,
+            security=security,
         )
         if cached is not None:
             df = cached
-            if ticker is not None and "ticker" in df.columns:
-                df = df[df["ticker"] == ticker]
+            if security is not None and "security" in df.columns:
+                df = df[df["security"] == security]
             return df
 
     # Fetch from source
@@ -341,13 +354,23 @@ def fetch_etf(
             end_date=end_date,
         )
     elif isinstance(source, BloombergSource):
-        if ticker is None:
-            raise ValueError("ticker required for Bloomberg ETF fetch")
+        # Get Bloomberg ticker from registry or use override
+        if bloomberg_ticker is not None:
+            ticker = bloomberg_ticker
+            logger.debug("Using Bloomberg ticker override: %s", ticker)
+        elif security is not None:
+            ticker = get_bloomberg_ticker(security)
+            logger.debug("Resolved security '%s' to Bloomberg ticker: %s", security, ticker)
+        else:
+            raise ValueError(
+                "Either 'security' or 'bloomberg_ticker' required for Bloomberg ETF fetch"
+            )
         df = fetch_fn(
-            ticker=f"{ticker} US Equity",
+            ticker=ticker,
             instrument=instrument,
             start_date=start_date,
             end_date=end_date,
+            security=security,
         )
     else:
         raise ValueError(f"Unsupported source type: {type(source)}")
@@ -355,12 +378,12 @@ def fetch_etf(
     # Validate schema
     df = validate_etf_schema(df)
 
-    # Apply ticker filter
-    if ticker is not None:
-        if "ticker" not in df.columns:
-            raise ValueError("Cannot filter by ticker: 'ticker' column not found")
-        df = df[df["ticker"] == ticker]
-        logger.debug("Filtered to ticker=%s: %d rows", ticker, len(df))
+    # Apply security filter
+    if security is not None:
+        if "security" not in df.columns:
+            raise ValueError("Cannot filter by security: 'security' column not found")
+        df = df[df["security"] == security]
+        logger.debug("Filtered to security=%s: %d rows", security, len(df))
 
     # Cache if enabled
     if use_cache:
@@ -373,38 +396,11 @@ def fetch_etf(
             registry=registry,
             start_date=start_date,
             end_date=end_date,
-            ticker=ticker,
+            security=security,
         )
 
     logger.info("Fetched ETF data: %d rows, %s to %s", len(df), df.index.min(), df.index.max())
     return df
 
 
-def _build_cdx_ticker(index_name: str | None, tenor: str | None) -> str:
-    """
-    Construct Bloomberg ticker from CDX index and tenor.
 
-    Parameters
-    ----------
-    index_name : str or None
-        Index name (e.g., "CDX_IG", "CDX_HY").
-    tenor : str or None
-        Tenor (e.g., "5Y", "10Y").
-
-    Returns
-    -------
-    str
-        Bloomberg ticker.
-    """
-    if index_name is None or tenor is None:
-        raise ValueError("index_name and tenor required for Bloomberg CDX fetch")
-
-    # Example: CDX_IG_5Y -> "CDX.NA.IG.5Y Index"
-    parts = index_name.split("_")
-    if len(parts) >= 2:
-        index_type = parts[1]  # IG, HY, XO
-        ticker = f"CDX.NA.{index_type}.{tenor} Index"
-    else:
-        ticker = f"{index_name}.{tenor} Index"
-
-    return ticker

@@ -53,18 +53,18 @@ def main() -> None:
     # Fetch individual data sources
     logger.info("\nFetching data from Bloomberg Terminal...")
 
-    cdx_ig = fetch_cdx(source, index_name="CDX_IG", tenor="5Y")
+    cdx_ig = fetch_cdx(source, security="cdx_ig_5y")
     logger.info("CDX IG fetched: %d rows, spread_mean=%.2f", len(cdx_ig), cdx_ig["spread"].mean())
 
     vix = fetch_vix(source)
     logger.info("VIX fetched: %d rows, vix_mean=%.2f", len(vix), vix["close"].mean())
 
-    hyg = fetch_etf(source, ticker="HYG")
+    hyg = fetch_etf(source, security="hyg")
     logger.info("HYG fetched: %d rows, price_mean=%.2f", len(hyg), hyg["close"].mean())
 
     # Demonstrate caching by fetching again
     logger.info("\nDemonstrating cache functionality...")
-    cdx_ig_cached = fetch_cdx(source, index_name="CDX_IG", tenor="5Y")
+    cdx_ig_cached = fetch_cdx(source, security="cdx_ig_5y")
     logger.info("CDX IG from cache: %d rows", len(cdx_ig_cached))
 
     # Display summary statistics

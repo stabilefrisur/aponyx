@@ -14,12 +14,9 @@ class CDXSchema:
 
     date_col: str = "date"
     spread_col: str = "spread"
-    index_col: str = "index"  # e.g., "CDX_IG_5Y"
-    tenor_col: str = "tenor"  # e.g., "5Y", "10Y"
-    series_col: str = "series"  # CDX series number
+    security_col: str = "security"  # e.g., "cdx_ig_5y", "cdx_hy_5y"
 
-    required_cols: tuple[str, ...] = ("date", "spread", "index")
-    optional_cols: tuple[str, ...] = ("tenor", "series")
+    required_cols: tuple[str, ...] = ("date", "spread")
 
     # Validation constraints
     min_spread: float = 0.0  # Spreads in basis points
@@ -34,7 +31,6 @@ class VIXSchema:
     close_col: str = "close"
 
     required_cols: tuple[str, ...] = ("date", "close")
-    optional_cols: tuple[str, ...] = ()
 
     # Validation constraints
     min_vix: float = 0.0
@@ -47,10 +43,9 @@ class ETFSchema:
 
     date_col: str = "date"
     close_col: str = "close"
-    ticker_col: str = "ticker"
+    security_col: str = "security"  # e.g., "hyg", "lqd"
 
-    required_cols: tuple[str, ...] = ("date", "close", "ticker")
-    optional_cols: tuple[str, ...] = ()
+    required_cols: tuple[str, ...] = ("date", "close")
 
     # Validation constraints
     min_price: float = 0.0

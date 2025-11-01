@@ -16,14 +16,17 @@ REGISTRY_PATH: Final[Path] = DATA_DIR / "registry.json"
 LOGS_DIR: Final[Path] = PROJECT_ROOT / "logs"
 
 # Instrument universe for CDX overlay strategy
-CDX_INSTRUMENTS: Final[dict[str, list[str]]] = {
-    "IG": ["5Y", "10Y"],  # Investment Grade
-    "HY": ["5Y"],  # High Yield
-    "XO": ["5Y"],  # Crossover
-}
+# Security identifiers for use with Bloomberg ticker registry
+CDX_SECURITIES: Final[list[str]] = [
+    "cdx_ig_5y",
+    "cdx_ig_10y",
+    "cdx_hy_5y",
+    "itrx_xover_5y",
+    "itrx_eur_5y",
+]
 
-# ETF proxies for signal generation (not direct trading)
-ETF_TICKERS: Final[list[str]] = ["HYG", "LQD"]
+# ETF securities for signal generation (not direct trading)
+ETF_SECURITIES: Final[list[str]] = ["hyg", "lqd"]
 
 # Market data identifiers
 MARKET_DATA_TICKERS: Final[dict[str, str]] = {

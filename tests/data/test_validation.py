@@ -106,7 +106,7 @@ def test_validate_etf_schema_valid() -> None:
         {
             "date": pd.date_range("2024-01-01", periods=10),
             "close": [80.0, 80.5, 79.8, 81.2, 80.9, 82.1, 81.8, 83.0, 82.5, 84.2],
-            "ticker": ["HYG"] * 10,
+            "security": ["hyg"] * 10,
         }
     )
 
@@ -122,8 +122,7 @@ def test_validate_etf_schema_missing_columns() -> None:
     df = pd.DataFrame(
         {
             "date": pd.date_range("2024-01-01", periods=10),
-            "close": [80.0] * 10,
-            # Missing 'ticker' column
+            # Missing 'close' column (required)
         }
     )
 

@@ -1,5 +1,4 @@
-"""
-Bloomberg Terminal/API data provider.
+"""Bloomberg Terminal/API data provider.
 
 Fetches market data using Bloomberg's Python API via xbbg wrapper.
 Requires active Bloomberg Terminal session.
@@ -10,6 +9,8 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import pandas as pd
+
+from ...config.bloomberg_tickers import get_security_from_ticker
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ def fetch_from_bloomberg(
     instrument: str,
     start_date: str | None = None,
     end_date: str | None = None,
+    security: str | None = None,
     **params: Any,
 ) -> pd.DataFrame:
     """
@@ -48,13 +50,16 @@ def fetch_from_bloomberg(
     Parameters
     ----------
     ticker : str
-        Bloomberg ticker (e.g., 'CDX.NA.IG.5Y Index', 'VIX Index', 'HYG US Equity').
+        Bloomberg ticker (e.g., 'CDX IG CDSI GEN 5Y Corp', 'VIX Index', 'HYG US Equity').
     instrument : str
         Instrument type for field mapping ('cdx', 'vix', 'etf').
     start_date : str or None, default None
         Start date in YYYY-MM-DD format. Defaults to 5 years ago.
     end_date : str or None, default None
         End date in YYYY-MM-DD format. Defaults to today.
+    security : str or None, default None
+        Internal security identifier (e.g., 'cdx_ig_5y', 'hyg').
+        If provided, used directly for metadata. Otherwise, reverse lookup from ticker.
     **params : Any
         Additional Bloomberg request parameters passed to xbbg.
 
@@ -78,12 +83,12 @@ def fetch_from_bloomberg(
     automatically by xbbg wrapper.
 
     Returned DataFrame columns are mapped to project schemas:
-    - CDX: spread, index, tenor
+    - CDX: spread, security
     - VIX: close
-    - ETF: close, ticker
+    - ETF: close, security
 
     Example tickers:
-    - CDX: 'CDX.NA.IG.5Y Index'
+    - CDX: 'CDX IG CDSI GEN 5Y Corp'
     - VIX: 'VIX Index'
     - ETFs: 'HYG US Equity', 'LQD US Equity'
     """
@@ -148,8 +153,8 @@ def fetch_from_bloomberg(
     # Map Bloomberg field names to schema columns
     df = _map_bloomberg_fields(df, instrument, ticker)
 
-    # Add metadata columns (index, tenor, ticker)
-    df = _add_metadata_columns(df, instrument, ticker)
+    # Add metadata columns (security identifier)
+    df = _add_metadata_columns(df, instrument, ticker, security)
 
     logger.info("Successfully fetched %d rows with columns: %s", len(df), list(df.columns))
 
@@ -201,6 +206,7 @@ def _add_metadata_columns(
     df: pd.DataFrame,
     instrument: str,
     ticker: str,
+    security: str | None = None,
 ) -> pd.DataFrame:
     """
     Add metadata columns required by schemas.
@@ -212,7 +218,9 @@ def _add_metadata_columns(
     instrument : str
         Instrument type ('cdx', 'vix', 'etf').
     ticker : str
-        Bloomberg ticker string to parse for metadata.
+        Bloomberg ticker string.
+    security : str or None
+        Internal security identifier. If None, reverse lookup from ticker.
 
     Returns
     -------
@@ -222,45 +230,32 @@ def _add_metadata_columns(
     Raises
     ------
     ValueError
-        If ticker format cannot be parsed.
+        If security not provided and ticker not found in registry.
 
     Notes
     -----
-    Extracts metadata from ticker strings:
-    - CDX: 'CDX.NA.IG.5Y Index' -> index='CDX_IG', tenor='5Y'
-    - ETF: 'HYG US Equity' -> ticker='HYG'
-    - VIX: No metadata needed
+    For CDX and ETF instruments, adds 'security' column with internal identifier.
+    VIX doesn't require metadata columns.
     """
-    if instrument == "cdx":
-        # Parse CDX ticker: 'CDX.NA.IG.5Y Index' or 'CDX.NA.HY.5Y Index'
-        parts = ticker.split(".")
-        if len(parts) < 4 or not ticker.endswith(" Index"):
-            raise ValueError(
-                f"Invalid CDX ticker format: {ticker}. "
-                "Expected format: 'CDX.NA.{{IG|HY|XO}}.{{tenor}} Index'"
-            )
+    if instrument in ("cdx", "etf"):
+        # Get security identifier from parameter or reverse lookup
+        if security is not None:
+            sec_id = security
+            logger.debug("Using provided security identifier: %s", sec_id)
+        else:
+            # Reverse lookup from Bloomberg ticker
+            try:
+                sec_id = get_security_from_ticker(ticker)
+                logger.debug("Reverse lookup: %s -> %s", ticker, sec_id)
+            except ValueError as e:
+                logger.error("Failed to resolve security from ticker: %s", ticker)
+                raise ValueError(
+                    f"Cannot determine security identifier for ticker '{ticker}'. "
+                    "Either provide 'security' parameter or ensure ticker is in registry."
+                ) from e
 
-        index_type = parts[2]  # IG, HY, XO
-        tenor_part = parts[3].split()[0]  # '5Y' from '5Y Index'
-
-        df["index"] = f"CDX_{index_type}"
-        df["tenor"] = tenor_part
-
-        logger.debug("Added CDX metadata: index=%s, tenor=%s", df["index"].iloc[0], df["tenor"].iloc[0])
-
-    elif instrument == "etf":
-        # Parse ETF ticker: 'HYG US Equity' or 'LQD US Equity'
-        parts = ticker.split()
-        if len(parts) < 2 or parts[-1] != "Equity":
-            raise ValueError(
-                f"Invalid ETF ticker format: {ticker}. "
-                "Expected format: '{{ticker}} US Equity'"
-            )
-
-        etf_ticker = parts[0]
-        df["ticker"] = etf_ticker
-
-        logger.debug("Added ETF metadata: ticker=%s", etf_ticker)
+        df["security"] = sec_id
+        logger.debug("Added security metadata: %s", sec_id)
 
     # VIX doesn't need metadata columns
     elif instrument == "vix":
