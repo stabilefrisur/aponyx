@@ -1,0 +1,26 @@
+{
+  "cdx": {
+    "description": "CDX credit default swap indices",
+    "bloomberg_fields": ["PX_LAST"],
+    "field_mapping": {
+      "PX_LAST": "spread"
+    },
+    "requires_security_metadata": true
+  },
+  "vix": {
+    "description": "CBOE Volatility Index",
+    "bloomberg_fields": ["PX_LAST"],
+    "field_mapping": {
+      "PX_LAST": "level"
+    },
+    "requires_security_metadata": false
+  },
+  "etf": {
+    "description": "Credit ETFs (high yield and investment grade)",
+    "bloomberg_fields": ["YAS_ISPREAD"],
+    "field_mapping": {
+      "YAS_ISPREAD": "spread"
+    },
+    "requires_security_metadata": true
+  }
+}

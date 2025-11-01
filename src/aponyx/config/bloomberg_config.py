@@ -1,0 +1,254 @@
+"""Bloomberg instrument and security registry.
+
+Centralizes Bloomberg configuration in JSON catalogs including instrument
+specifications, field mappings, and security-to-ticker mappings.
+"""
+
+import json
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+logger = logging.getLogger(__name__)
+
+_INSTRUMENTS_PATH = Path(__file__).parent / "bloomberg_instruments.json"
+_SECURITIES_PATH = Path(__file__).parent / "bloomberg_securities.json"
+_INSTRUMENTS_CATALOG: dict[str, Any] | None = None
+_SECURITIES_CATALOG: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
+class BloombergInstrumentSpec:
+    """Bloomberg instrument specification with field mappings."""
+
+    instrument_type: str
+    description: str
+    bloomberg_fields: tuple[str, ...]
+    field_mapping: dict[str, str]
+    requires_security_metadata: bool
+
+
+@dataclass(frozen=True)
+class BloombergSecuritySpec:
+    """Bloomberg security specification with ticker mapping."""
+
+    security_id: str
+    description: str
+    bloomberg_ticker: str
+    instrument_type: str
+
+
+def _load_instruments_catalog() -> dict[str, Any]:
+    """Load Bloomberg instruments catalog from JSON file."""
+    global _INSTRUMENTS_CATALOG
+    if _INSTRUMENTS_CATALOG is None:
+        with open(_INSTRUMENTS_PATH, encoding="utf-8") as f:
+            _INSTRUMENTS_CATALOG = json.load(f)
+        logger.debug("Loaded Bloomberg instruments catalog from %s", _INSTRUMENTS_PATH)
+    return _INSTRUMENTS_CATALOG
+
+
+def _load_securities_catalog() -> dict[str, Any]:
+    """Load Bloomberg securities catalog from JSON file."""
+    global _SECURITIES_CATALOG
+    if _SECURITIES_CATALOG is None:
+        with open(_SECURITIES_PATH, encoding="utf-8") as f:
+            _SECURITIES_CATALOG = json.load(f)
+        logger.debug("Loaded Bloomberg securities catalog from %s", _SECURITIES_PATH)
+    return _SECURITIES_CATALOG
+
+
+def get_instrument_spec(instrument_type: str) -> BloombergInstrumentSpec:
+    """
+    Get Bloomberg instrument specification.
+
+    Parameters
+    ----------
+    instrument_type : str
+        Instrument type identifier ('cdx', 'vix', 'etf').
+
+    Returns
+    -------
+    BloombergInstrumentSpec
+        Specification with field mappings and metadata requirements.
+
+    Raises
+    ------
+    ValueError
+        If instrument type not found in catalog.
+    """
+    catalog = _load_instruments_catalog()
+
+    if instrument_type not in catalog:
+        available = ", ".join(sorted(catalog.keys()))
+        raise ValueError(
+            f"Unknown instrument type: {instrument_type}. "
+            f"Available: {available}"
+        )
+
+    spec_data = catalog[instrument_type]
+    return BloombergInstrumentSpec(
+        instrument_type=instrument_type,
+        description=spec_data["description"],
+        bloomberg_fields=tuple(spec_data["bloomberg_fields"]),
+        field_mapping=spec_data["field_mapping"],
+        requires_security_metadata=spec_data["requires_security_metadata"],
+    )
+
+
+def get_security_spec(security_id: str) -> BloombergSecuritySpec:
+    """
+    Get Bloomberg security specification.
+
+    Parameters
+    ----------
+    security_id : str
+        Internal security identifier (e.g., 'cdx_ig_5y', 'hyg').
+
+    Returns
+    -------
+    BloombergSecuritySpec
+        Security specification with Bloomberg ticker and instrument type.
+
+    Raises
+    ------
+    ValueError
+        If security not found in catalog.
+    """
+    catalog = _load_securities_catalog()
+
+    if security_id not in catalog:
+        available = ", ".join(sorted(catalog.keys()))
+        raise ValueError(
+            f"Security '{security_id}' not found in catalog. "
+            f"Available: {available}"
+        )
+
+    spec_data = catalog[security_id]
+    return BloombergSecuritySpec(
+        security_id=security_id,
+        description=spec_data["description"],
+        bloomberg_ticker=spec_data["bloomberg_ticker"],
+        instrument_type=spec_data["instrument_type"],
+    )
+
+
+def get_bloomberg_ticker(security_id: str) -> str:
+    """
+    Get Bloomberg ticker for a security.
+
+    Parameters
+    ----------
+    security_id : str
+        Internal security identifier (e.g., 'cdx_ig_5y', 'hyg').
+
+    Returns
+    -------
+    str
+        Bloomberg Terminal ticker string.
+
+    Raises
+    ------
+    ValueError
+        If security not found in catalog.
+
+    Examples
+    --------
+    >>> get_bloomberg_ticker("cdx_ig_5y")
+    'CDX IG CDSI GEN 5Y Corp'
+    >>> get_bloomberg_ticker("hyg")
+    'HYG US Equity'
+    """
+    spec = get_security_spec(security_id)
+    return spec.bloomberg_ticker
+
+
+def get_security_from_ticker(bloomberg_ticker: str) -> str:
+    """
+    Reverse lookup: get security ID from Bloomberg ticker.
+
+    Parameters
+    ----------
+    bloomberg_ticker : str
+        Bloomberg Terminal ticker string.
+
+    Returns
+    -------
+    str
+        Internal security identifier.
+
+    Raises
+    ------
+    ValueError
+        If Bloomberg ticker not found in catalog.
+
+    Examples
+    --------
+    >>> get_security_from_ticker("CDX IG CDSI GEN 5Y Corp")
+    'cdx_ig_5y'
+    >>> get_security_from_ticker("HYG US Equity")
+    'hyg'
+    """
+    catalog = _load_securities_catalog()
+
+    # Build reverse lookup
+    for sec_id, spec_data in catalog.items():
+        if spec_data["bloomberg_ticker"] == bloomberg_ticker:
+            return sec_id
+
+    raise ValueError(
+        f"Bloomberg ticker '{bloomberg_ticker}' not found in catalog. "
+        "Ticker may not be configured for use in aponyx."
+    )
+
+
+def list_instrument_types() -> list[str]:
+    """
+    Return list of available instrument types.
+
+    Returns
+    -------
+    list[str]
+        Instrument type identifiers.
+    """
+    catalog = _load_instruments_catalog()
+    return list(catalog.keys())
+
+
+def list_securities(instrument_type: str | None = None) -> list[str]:
+    """
+    Return list of available securities.
+
+    Parameters
+    ----------
+    instrument_type : str or None, default None
+        If provided, filter to securities of this instrument type.
+
+    Returns
+    -------
+    list[str]
+        List of security identifiers.
+    """
+    catalog = _load_securities_catalog()
+
+    if instrument_type is None:
+        return list(catalog.keys())
+
+    return [
+        sec_id
+        for sec_id, spec_data in catalog.items()
+        if spec_data["instrument_type"] == instrument_type
+    ]
+
+
+__all__ = [
+    "BloombergInstrumentSpec",
+    "BloombergSecuritySpec",
+    "get_instrument_spec",
+    "get_security_spec",
+    "get_bloomberg_ticker",
+    "get_security_from_ticker",
+    "list_instrument_types",
+    "list_securities",
+]

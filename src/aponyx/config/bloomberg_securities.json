@@ -1,0 +1,42 @@
+{
+  "cdx_ig_5y": {
+    "description": "CDX North America Investment Grade 5Y",
+    "bloomberg_ticker": "CDX IG CDSI GEN 5Y Corp",
+    "instrument_type": "cdx"
+  },
+  "cdx_ig_10y": {
+    "description": "CDX North America Investment Grade 10Y",
+    "bloomberg_ticker": "CDX IG CDSI GEN 10Y Corp",
+    "instrument_type": "cdx"
+  },
+  "cdx_hy_5y": {
+    "description": "CDX North America High Yield 5Y",
+    "bloomberg_ticker": "CDX HY CDSI GEN 5Y SPRD Corp",
+    "instrument_type": "cdx"
+  },
+  "itrx_xover_5y": {
+    "description": "iTraxx Europe Crossover 5Y",
+    "bloomberg_ticker": "ITRX XOVER CDSI GEN 5Y Corp",
+    "instrument_type": "cdx"
+  },
+  "itrx_eur_5y": {
+    "description": "iTraxx Europe Main 5Y",
+    "bloomberg_ticker": "ITRX EUR CDSI GEN 5Y Corp",
+    "instrument_type": "cdx"
+  },
+  "hyg": {
+    "description": "iShares iBoxx High Yield Corporate Bond ETF",
+    "bloomberg_ticker": "HYG US Equity",
+    "instrument_type": "etf"
+  },
+  "lqd": {
+    "description": "iShares iBoxx Investment Grade Corporate Bond ETF",
+    "bloomberg_ticker": "LQD US Equity",
+    "instrument_type": "etf"
+  },
+  "vix": {
+    "description": "CBOE Volatility Index",
+    "bloomberg_ticker": "VIX Index",
+    "instrument_type": "vix"
+  }
+}

@@ -10,30 +10,13 @@ from typing import Any
 
 import pandas as pd
 
-from ...config.bloomberg_tickers import get_security_from_ticker
+from ...config.bloomberg_config import (
+    BloombergInstrumentSpec,
+    get_instrument_spec,
+    get_security_from_ticker,
+)
 
 logger = logging.getLogger(__name__)
-
-
-# Bloomberg field mappings for different instrument types
-BLOOMBERG_FIELDS = {
-    "cdx": ["PX_LAST"],  # CDX spread only
-    "vix": ["PX_LAST"],  # VIX level only
-    "etf": ["YAS_ISPREAD"],  # ETF I-spread only
-}
-
-# Mapping from Bloomberg field names to schema column names
-FIELD_MAPPING = {
-    "cdx": {
-        "PX_LAST": "spread",
-    },
-    "vix": {
-        "PX_LAST": "level",
-    },
-    "etf": {
-        "YAS_ISPREAD": "spread",
-    },
-}
 
 
 def fetch_from_bloomberg(
@@ -92,12 +75,8 @@ def fetch_from_bloomberg(
     - VIX: 'VIX Index'
     - ETFs: 'HYG US Equity', 'LQD US Equity'
     """
-    # Validate instrument type
-    if instrument not in BLOOMBERG_FIELDS:
-        raise ValueError(
-            f"Unknown instrument type: {instrument}. "
-            f"Must be one of {list(BLOOMBERG_FIELDS.keys())}"
-        )
+    # Get instrument specification from registry
+    spec = get_instrument_spec(instrument)
 
     # Default to 5-year lookback if dates not provided
     if end_date is None:
@@ -128,11 +107,10 @@ def fetch_from_bloomberg(
         )
 
     # Fetch historical data using xbbg
-    fields = BLOOMBERG_FIELDS[instrument]
     try:
         df = blp.bdh(
             tickers=ticker,
-            flds=fields,
+            flds=spec.bloomberg_fields,
             start_date=bbg_start,
             end_date=bbg_end,
             **params,
@@ -151,10 +129,11 @@ def fetch_from_bloomberg(
     logger.debug("Fetched %d rows from Bloomberg", len(df))
 
     # Map Bloomberg field names to schema columns
-    df = _map_bloomberg_fields(df, instrument, ticker)
+    df = _map_bloomberg_fields(df, spec)
 
     # Add metadata columns (security identifier)
-    df = _add_metadata_columns(df, instrument, ticker, security)
+    if spec.requires_security_metadata:
+        df = _add_security_metadata(df, ticker, security)
 
     logger.info("Successfully fetched %d rows with columns: %s", len(df), list(df.columns))
 
@@ -163,8 +142,7 @@ def fetch_from_bloomberg(
 
 def _map_bloomberg_fields(
     df: pd.DataFrame,
-    instrument: str,
-    ticker: str,
+    spec: BloombergInstrumentSpec,
 ) -> pd.DataFrame:
     """
     Map Bloomberg field names to schema-expected column names.
@@ -173,10 +151,8 @@ def _map_bloomberg_fields(
     ----------
     df : pd.DataFrame
         Raw DataFrame from xbbg with Bloomberg field names.
-    instrument : str
-        Instrument type for field mapping.
-    ticker : str
-        Bloomberg ticker (used for multi-ticker responses).
+    spec : BloombergInstrumentSpec
+        Instrument specification with field mappings.
 
     Returns
     -------
@@ -194,29 +170,29 @@ def _map_bloomberg_fields(
         df.columns = df.columns.get_level_values(1)
 
     # Rename columns according to mapping
-    field_map = FIELD_MAPPING[instrument]
-    df = df.rename(columns=field_map)
+    df = df.rename(columns=spec.field_mapping)
 
-    logger.debug("Mapped fields: %s -> %s", list(field_map.keys()), list(field_map.values()))
+    logger.debug(
+        "Mapped fields: %s -> %s",
+        list(spec.field_mapping.keys()),
+        list(spec.field_mapping.values()),
+    )
 
     return df
 
 
-def _add_metadata_columns(
+def _add_security_metadata(
     df: pd.DataFrame,
-    instrument: str,
     ticker: str,
     security: str | None = None,
 ) -> pd.DataFrame:
     """
-    Add metadata columns required by schemas.
+    Add security metadata column.
 
     Parameters
     ----------
     df : pd.DataFrame
         DataFrame with mapped field columns.
-    instrument : str
-        Instrument type ('cdx', 'vix', 'etf').
     ticker : str
         Bloomberg ticker string.
     security : str or None
@@ -225,40 +201,30 @@ def _add_metadata_columns(
     Returns
     -------
     pd.DataFrame
-        DataFrame with added metadata columns.
+        DataFrame with added 'security' column.
 
     Raises
     ------
     ValueError
         If security not provided and ticker not found in registry.
-
-    Notes
-    -----
-    For CDX and ETF instruments, adds 'security' column with internal identifier.
-    VIX doesn't require metadata columns.
     """
-    if instrument in ("cdx", "etf"):
-        # Get security identifier from parameter or reverse lookup
-        if security is not None:
-            sec_id = security
-            logger.debug("Using provided security identifier: %s", sec_id)
-        else:
-            # Reverse lookup from Bloomberg ticker
-            try:
-                sec_id = get_security_from_ticker(ticker)
-                logger.debug("Reverse lookup: %s -> %s", ticker, sec_id)
-            except ValueError as e:
-                logger.error("Failed to resolve security from ticker: %s", ticker)
-                raise ValueError(
-                    f"Cannot determine security identifier for ticker '{ticker}'. "
-                    "Either provide 'security' parameter or ensure ticker is in registry."
-                ) from e
+    # Get security identifier from parameter or reverse lookup
+    if security is not None:
+        sec_id = security
+        logger.debug("Using provided security identifier: %s", sec_id)
+    else:
+        # Reverse lookup from Bloomberg ticker
+        try:
+            sec_id = get_security_from_ticker(ticker)
+            logger.debug("Reverse lookup: %s -> %s", ticker, sec_id)
+        except ValueError as e:
+            logger.error("Failed to resolve security from ticker: %s", ticker)
+            raise ValueError(
+                f"Cannot determine security identifier for ticker '{ticker}'. "
+                "Either provide 'security' parameter or ensure ticker is in registry."
+            ) from e
 
-        df["security"] = sec_id
-        logger.debug("Added security metadata: %s", sec_id)
-
-    # VIX doesn't need metadata columns
-    elif instrument == "vix":
-        pass
+    df["security"] = sec_id
+    logger.debug("Added security metadata: %s", sec_id)
 
     return df

@@ -21,8 +21,119 @@ sys.modules["xbbg.blp"] = mock_blp
 from aponyx.data.providers.bloomberg import (
     fetch_from_bloomberg,
     _map_bloomberg_fields,
-    _add_metadata_columns,
+    _add_security_metadata,
 )
+from aponyx.config.bloomberg_config import (
+    get_instrument_spec,
+    get_security_spec,
+    get_bloomberg_ticker,
+    get_security_from_ticker,
+    list_instrument_types,
+    list_securities,
+)
+
+logger = logging.getLogger(__name__)
+
+
+class TestBloombergCatalog:
+    """Test Bloomberg catalog registry functions."""
+
+    def test_get_instrument_spec_cdx(self):
+        """Test getting CDX instrument specification."""
+        spec = get_instrument_spec("cdx")
+
+        assert spec.instrument_type == "cdx"
+        assert spec.description == "CDX credit default swap indices"
+        assert spec.bloomberg_fields == ("PX_LAST",)
+        assert spec.field_mapping == {"PX_LAST": "spread"}
+        assert spec.requires_security_metadata is True
+
+    def test_get_instrument_spec_vix(self):
+        """Test getting VIX instrument specification."""
+        spec = get_instrument_spec("vix")
+
+        assert spec.instrument_type == "vix"
+        assert spec.bloomberg_fields == ("PX_LAST",)
+        assert spec.field_mapping == {"PX_LAST": "level"}
+        assert spec.requires_security_metadata is False
+
+    def test_get_instrument_spec_etf(self):
+        """Test getting ETF instrument specification."""
+        spec = get_instrument_spec("etf")
+
+        assert spec.instrument_type == "etf"
+        assert spec.bloomberg_fields == ("YAS_ISPREAD",)
+        assert spec.field_mapping == {"YAS_ISPREAD": "spread"}
+        assert spec.requires_security_metadata is True
+
+    def test_get_instrument_spec_invalid(self):
+        """Test error on invalid instrument type."""
+        with pytest.raises(ValueError, match="Unknown instrument type"):
+            get_instrument_spec("invalid")
+
+    def test_get_security_spec(self):
+        """Test getting security specification."""
+        spec = get_security_spec("cdx_ig_5y")
+
+        assert spec.security_id == "cdx_ig_5y"
+        assert spec.bloomberg_ticker == "CDX IG CDSI GEN 5Y Corp"
+        assert spec.instrument_type == "cdx"
+        assert "Investment Grade" in spec.description
+
+    def test_get_security_spec_invalid(self):
+        """Test error on invalid security ID."""
+        with pytest.raises(ValueError, match="not found in catalog"):
+            get_security_spec("invalid_security")
+
+    def test_get_bloomberg_ticker(self):
+        """Test getting Bloomberg ticker from security ID."""
+        assert get_bloomberg_ticker("cdx_ig_5y") == "CDX IG CDSI GEN 5Y Corp"
+        assert get_bloomberg_ticker("hyg") == "HYG US Equity"
+        assert get_bloomberg_ticker("vix") == "VIX Index"
+
+    def test_get_security_from_ticker(self):
+        """Test reverse lookup from Bloomberg ticker."""
+        assert get_security_from_ticker("CDX IG CDSI GEN 5Y Corp") == "cdx_ig_5y"
+        assert get_security_from_ticker("HYG US Equity") == "hyg"
+        assert get_security_from_ticker("VIX Index") == "vix"
+
+    def test_get_security_from_ticker_invalid(self):
+        """Test error on unregistered Bloomberg ticker."""
+        with pytest.raises(ValueError, match="not found in catalog"):
+            get_security_from_ticker("INVALID TICKER")
+
+    def test_list_instrument_types(self):
+        """Test listing all instrument types."""
+        types = list_instrument_types()
+
+        assert isinstance(types, list)
+        assert "cdx" in types
+        assert "vix" in types
+        assert "etf" in types
+
+    def test_list_securities_all(self):
+        """Test listing all securities."""
+        securities = list_securities()
+
+        assert isinstance(securities, list)
+        assert len(securities) == 8
+        assert "cdx_ig_5y" in securities
+        assert "hyg" in securities
+        assert "vix" in securities
+
+    def test_list_securities_by_instrument(self):
+        """Test listing securities filtered by instrument type."""
+        cdx_securities = list_securities(instrument_type="cdx")
+        etf_securities = list_securities(instrument_type="etf")
+        vix_securities = list_securities(instrument_type="vix")
+
+        assert "cdx_ig_5y" in cdx_securities
+        assert "cdx_hy_5y" in cdx_securities
+        assert "hyg" in etf_securities
+        assert "lqd" in etf_securities
+        assert "vix" in vix_securities
+        assert len(vix_securities) == 1
+
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +144,17 @@ def mock_xbbg_response():
     dates = pd.date_range("2023-01-01", periods=5, freq="D")
     df = pd.DataFrame(
         {"PX_LAST": [100.0, 101.0, 102.0, 103.0, 104.0]},
+        index=dates,
+    )
+    return df
+
+
+@pytest.fixture
+def mock_xbbg_etf_response():
+    """Create mock xbbg response DataFrame for ETF data."""
+    dates = pd.date_range("2023-01-01", periods=5, freq="D")
+    df = pd.DataFrame(
+        {"YAS_ISPREAD": [85.0, 86.0, 87.0, 88.0, 89.0]},
         index=dates,
     )
     return df
@@ -67,7 +189,7 @@ class TestFetchFromBloomberg:
             # Verify blp.bdh called with correct arguments
             mock_bdh.assert_called_once_with(
                 tickers="CDX IG CDSI GEN 5Y Corp",
-                flds=["PX_LAST"],
+                flds=("PX_LAST",),
                 start_date="20230101",
                 end_date="20230105",
             )
@@ -96,9 +218,9 @@ class TestFetchFromBloomberg:
             assert "level" in result.columns
             assert "security" not in result.columns  # VIX has no metadata
 
-    def test_fetch_etf_success(self, mock_xbbg_response):
+    def test_fetch_etf_success(self, mock_xbbg_etf_response):
         """Test successful ETF data fetch."""
-        with patch("xbbg.blp.bdh", return_value=mock_xbbg_response) as mock_bdh:
+        with patch("xbbg.blp.bdh", return_value=mock_xbbg_etf_response) as mock_bdh:
             result = fetch_from_bloomberg(
                 ticker="HYG US Equity",
                 instrument="etf",
@@ -206,7 +328,8 @@ class TestMapBloombergFields:
     def test_map_cdx_fields(self):
         """Test field mapping for CDX data."""
         df = pd.DataFrame({"PX_LAST": [100.0, 101.0]})
-        result = _map_bloomberg_fields(df, "cdx", "CDX IG CDSI GEN 5Y Corp")
+        spec = get_instrument_spec("cdx")
+        result = _map_bloomberg_fields(df, spec)
 
         assert "spread" in result.columns
         assert "PX_LAST" not in result.columns
@@ -215,7 +338,8 @@ class TestMapBloombergFields:
     def test_map_vix_fields(self):
         """Test field mapping for VIX data."""
         df = pd.DataFrame({"PX_LAST": [20.0, 21.0]})
-        result = _map_bloomberg_fields(df, "vix", "VIX Index")
+        spec = get_instrument_spec("vix")
+        result = _map_bloomberg_fields(df, spec)
 
         assert "level" in result.columns
         assert "PX_LAST" not in result.columns
@@ -223,7 +347,8 @@ class TestMapBloombergFields:
     def test_map_etf_fields(self):
         """Test field mapping for ETF data."""
         df = pd.DataFrame({"YAS_ISPREAD": [85.0, 86.0]})
-        result = _map_bloomberg_fields(df, "etf", "HYG US Equity")
+        spec = get_instrument_spec("etf")
+        result = _map_bloomberg_fields(df, spec)
 
         assert "spread" in result.columns
         assert "YAS_ISPREAD" not in result.columns
@@ -236,7 +361,8 @@ class TestMapBloombergFields:
         )
         assert isinstance(df.columns, pd.MultiIndex)
 
-        result = _map_bloomberg_fields(df, "cdx", "CDX IG CDSI GEN 5Y Corp")
+        spec = get_instrument_spec("cdx")
+        result = _map_bloomberg_fields(df, spec)
 
         # Should be flattened and renamed
         assert not isinstance(result.columns, pd.MultiIndex)
@@ -244,12 +370,12 @@ class TestMapBloombergFields:
 
 
 class TestAddMetadataColumns:
-    """Test _add_metadata_columns function."""
+    """Test _add_security_metadata function."""
 
     def test_add_cdx_metadata_with_security(self):
         """Test CDX metadata with security parameter."""
         df = pd.DataFrame({"spread": [100.0, 101.0]})
-        result = _add_metadata_columns(df, "cdx", "CDX IG CDSI GEN 5Y Corp", security="cdx_ig_5y")
+        result = _add_security_metadata(df, "CDX IG CDSI GEN 5Y Corp", security="cdx_ig_5y")
 
         assert "security" in result.columns
         assert result["security"].iloc[0] == "cdx_ig_5y"
@@ -257,7 +383,7 @@ class TestAddMetadataColumns:
     def test_add_cdx_metadata_reverse_lookup(self):
         """Test CDX metadata with reverse lookup from ticker."""
         df = pd.DataFrame({"spread": [100.0, 101.0]})
-        result = _add_metadata_columns(df, "cdx", "CDX IG CDSI GEN 5Y Corp")
+        result = _add_security_metadata(df, "CDX IG CDSI GEN 5Y Corp")
 
         assert "security" in result.columns
         assert result["security"].iloc[0] == "cdx_ig_5y"
@@ -273,13 +399,13 @@ class TestAddMetadataColumns:
         ]
 
         for ticker, expected_security in test_cases:
-            result = _add_metadata_columns(df, "cdx", ticker)
+            result = _add_security_metadata(df, ticker)
             assert result["security"].iloc[0] == expected_security
 
     def test_add_etf_metadata(self):
         """Test ETF metadata with security parameter."""
         df = pd.DataFrame({"spread": [85.0, 86.0]})
-        result = _add_metadata_columns(df, "etf", "HYG US Equity", security="hyg")
+        result = _add_security_metadata(df, "HYG US Equity", security="hyg")
 
         assert "security" in result.columns
         assert result["security"].iloc[0] == "hyg"
@@ -287,33 +413,24 @@ class TestAddMetadataColumns:
     def test_add_etf_metadata_reverse_lookup(self):
         """Test ETF metadata with reverse lookup."""
         df = pd.DataFrame({"spread": [120.0]})
-        result = _add_metadata_columns(df, "etf", "LQD US Equity")
+        result = _add_security_metadata(df, "LQD US Equity")
 
         assert "security" in result.columns
         assert result["security"].iloc[0] == "lqd"
-
-    def test_vix_no_metadata(self):
-        """Test VIX data has no metadata columns added."""
-        df = pd.DataFrame({"level": [20.0, 21.0]})
-        result = _add_metadata_columns(df, "vix", "VIX Index", security="vix")
-
-        # Should only have level column
-        assert list(result.columns) == ["level"]
-        assert "security" not in result.columns
 
     def test_unregistered_ticker(self):
         """Test error when ticker not in registry."""
         df = pd.DataFrame({"spread": [100.0]})
 
         with pytest.raises(ValueError, match="Cannot determine security identifier"):
-            _add_metadata_columns(df, "cdx", "INVALID TICKER Corp")
+            _add_security_metadata(df, "INVALID TICKER Corp")
 
     def test_etf_unregistered_ticker(self):
         """Test error when ETF ticker not in registry."""
         df = pd.DataFrame({"spread": [85.0]})
 
         with pytest.raises(ValueError, match="Cannot determine security identifier"):
-            _add_metadata_columns(df, "etf", "UNKNOWN US Equity")
+            _add_security_metadata(df, "UNKNOWN US Equity")
 
 
 class TestIntegration:
