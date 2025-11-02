@@ -59,6 +59,58 @@ def _load_securities_catalog() -> dict[str, Any]:
     return _SECURITIES_CATALOG
 
 
+def validate_bloomberg_registry() -> tuple[dict[str, Any], dict[str, Any]]:
+    """
+    Load and validate Bloomberg instrument and security registries.
+
+    Ensures all securities reference valid instrument types defined in the
+    instruments catalog. This validates the configuration integrity at startup.
+
+    Returns
+    -------
+    tuple[dict[str, Any], dict[str, Any]]
+        (instruments, securities) dictionaries.
+
+    Raises
+    ------
+    ValueError
+        If any security references an undefined instrument type.
+
+    Examples
+    --------
+    >>> instruments, securities = validate_bloomberg_registry()
+    >>> len(instruments)
+    3
+    >>> len(securities)
+    8
+    """
+    instruments = _load_instruments_catalog()
+    securities = _load_securities_catalog()
+
+    # Validate all securities reference valid instrument types
+    valid_types = set(instruments.keys())
+    invalid_refs = []
+
+    for sec_id, sec_config in securities.items():
+        inst_type = sec_config.get("instrument_type")
+        if inst_type not in valid_types:
+            invalid_refs.append((sec_id, inst_type))
+
+    if invalid_refs:
+        error_msg = "Securities reference undefined instrument types:\n"
+        for sec_id, inst_type in invalid_refs:
+            error_msg += f"  - '{sec_id}' references '{inst_type}'\n"
+        error_msg += f"Valid instrument types: {', '.join(sorted(valid_types))}"
+        raise ValueError(error_msg)
+
+    logger.info(
+        "Bloomberg registry validated: %d instruments, %d securities",
+        len(instruments),
+        len(securities),
+    )
+    return instruments, securities
+
+
 def get_instrument_spec(instrument_type: str) -> BloombergInstrumentSpec:
     """
     Get Bloomberg instrument specification.
@@ -251,4 +303,5 @@ __all__ = [
     "get_security_from_ticker",
     "list_instrument_types",
     "list_securities",
+    "validate_bloomberg_registry",
 ]

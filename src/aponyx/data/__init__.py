@@ -13,6 +13,7 @@ Supports multiple data providers: local files, Bloomberg Terminal, APIs.
 from .fetch import fetch_cdx, fetch_vix, fetch_etf
 from .sources import FileSource, BloombergSource, APISource, DataSource
 from .validation import validate_cdx_schema, validate_vix_schema, validate_etf_schema
+from .bloomberg_config import validate_bloomberg_registry
 
 __all__ = [
     # Fetch functions
@@ -28,4 +29,5 @@ __all__ = [
     "validate_cdx_schema",
     "validate_vix_schema",
     "validate_etf_schema",
+    "validate_bloomberg_registry",
 ]
