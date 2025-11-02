@@ -24,9 +24,8 @@ Key Features:
 """
 
 import logging
-import sys
-from datetime import datetime
-from pathlib import Path
+
+import pandas as pd
 
 from example_data import generate_example_data
 from aponyx.data import (
@@ -76,13 +75,13 @@ def create_sample_files() -> None:
     print(f"  OK HYG ETF: {len(etf_df)} rows -> {raw_dir / 'hyg_etf.parquet'}")
 
 
-def demonstrate_fetch_operations() -> tuple:
+def demonstrate_fetch_operations() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Demonstrate fetch operations with Bloomberg (primary) or FileSource (fallback).
     
     Returns
     -------
-    tuple
+    tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
         (cdx_df, vix_df, etf_df) DataFrames with DatetimeIndex.
     """
     global _using_bloomberg
@@ -140,7 +139,7 @@ def demonstrate_fetch_operations() -> tuple:
         if "blpapi" in error_str or "could not import" in error_str or "skipped" in error_type:
             logger.warning("Bloomberg Terminal not available: blpapi module missing")
             print("  ! Bloomberg Terminal not installed")
-            print(f"    Reason: Missing blpapi module")
+            print("    Reason: Missing blpapi module")
         else:
             logger.warning("Bloomberg Terminal connection failed: %s", e)
             print("  ! Bloomberg Terminal not running or authentication failed")
@@ -189,7 +188,11 @@ def demonstrate_fetch_operations() -> tuple:
     return cdx_df, vix_df, etf_df
 
 
-def demonstrate_validation(cdx_df, vix_df, etf_df) -> None:
+def demonstrate_validation(
+    cdx_df: pd.DataFrame,
+    vix_df: pd.DataFrame,
+    etf_df: pd.DataFrame,
+) -> None:
     """
     Demonstrate schema validation.
     
@@ -257,7 +260,7 @@ def demonstrate_caching() -> None:
             logger.info("Second fetch complete: %d rows (from cache)", len(cdx_second))
             print(f"  OK Retrieved {len(cdx_second)} rows from cache")
             
-        except BaseException as e:
+        except BaseException:
             logger.warning("Cache demo failed with Bloomberg, falling back to FileSource")
             _using_bloomberg = False
     
@@ -278,7 +281,6 @@ def demonstrate_caching() -> None:
         print(f"  OK Retrieved {len(cdx_second)} rows from cache")
     
     # Verify data consistency
-    import pandas as pd
     if cdx_first.equals(cdx_second):
         print("\n  OK Cache consistency verified (DataFrames identical)")
     else:
@@ -292,7 +294,11 @@ def demonstrate_caching() -> None:
     print("  OK Transparent to user code (same API)")
 
 
-def demonstrate_data_quality(cdx_df, vix_df, etf_df) -> None:
+def demonstrate_data_quality(
+    cdx_df: pd.DataFrame,
+    vix_df: pd.DataFrame,
+    etf_df: pd.DataFrame,
+) -> None:
     """
     Show data quality metrics and statistics.
     
