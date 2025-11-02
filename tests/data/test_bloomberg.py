@@ -23,7 +23,7 @@ from aponyx.data.providers.bloomberg import (
     _map_bloomberg_fields,
     _add_security_metadata,
 )
-from aponyx.config.bloomberg_config import (
+from aponyx.data.bloomberg_config import (
     get_instrument_spec,
     get_security_spec,
     get_bloomberg_ticker,

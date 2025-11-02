@@ -10,7 +10,7 @@ from typing import Any
 
 import pandas as pd
 
-from ...config.bloomberg_config import (
+from ..bloomberg_config import (
     BloombergInstrumentSpec,
     get_instrument_spec,
     get_security_from_ticker,

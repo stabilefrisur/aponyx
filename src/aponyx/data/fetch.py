@@ -10,7 +10,7 @@ import logging
 import pandas as pd
 
 from ..config import DATA_DIR, CACHE_ENABLED, CACHE_TTL_DAYS, DEFAULT_DATA_SOURCES
-from ..config.bloomberg_config import get_bloomberg_ticker
+from .bloomberg_config import get_bloomberg_ticker
 from ..persistence.registry import DataRegistry, REGISTRY_PATH
 from .cache import get_cached_data, save_to_cache
 from .sources import DataSource, FileSource, BloombergSource, resolve_provider
