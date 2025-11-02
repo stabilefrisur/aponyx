@@ -7,13 +7,14 @@ specifications, field mappings, and security-to-ticker mappings.
 import json
 import logging
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
+
+from ..config import BLOOMBERG_SECURITIES_PATH, BLOOMBERG_INSTRUMENTS_PATH
 
 logger = logging.getLogger(__name__)
 
-_INSTRUMENTS_PATH = Path(__file__).parent / "bloomberg_instruments.json"
-_SECURITIES_PATH = Path(__file__).parent / "bloomberg_securities.json"
+_INSTRUMENTS_PATH = BLOOMBERG_INSTRUMENTS_PATH
+_SECURITIES_PATH = BLOOMBERG_SECURITIES_PATH
 _INSTRUMENTS_CATALOG: dict[str, Any] | None = None
 _SECURITIES_CATALOG: dict[str, Any] | None = None
 

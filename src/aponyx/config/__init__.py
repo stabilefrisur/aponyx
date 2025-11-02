@@ -17,17 +17,27 @@ LOGS_DIR: Final[Path] = PROJECT_ROOT / "logs"
 # Cache configuration
 CACHE_ENABLED: Final[bool] = True
 CACHE_TTL_DAYS: Final[int] = 1  # Daily refresh for market data
+CACHE_DIR: Final[Path] = DATA_DIR / "cache"
+
+# Catalog paths
+SIGNAL_CATALOG_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/models/signal_catalog.json"
+STRATEGY_CATALOG_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/backtest/strategy_catalog.json"
+
+# Bloomberg configuration paths
+BLOOMBERG_SECURITIES_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/data/bloomberg_securities.json"
+BLOOMBERG_INSTRUMENTS_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/data/bloomberg_instruments.json"
 
 
 def ensure_directories() -> None:
     """
     Create required directories if they don't exist.
 
-    Creates data, logs, and other necessary directories for the project.
+    Creates data, logs, cache, and other necessary directories for the project.
     Safe to call multiple times.
     """
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
     (DATA_DIR / "raw").mkdir(exist_ok=True)
     (DATA_DIR / "processed").mkdir(exist_ok=True)
 

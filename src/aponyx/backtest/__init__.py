@@ -17,6 +17,7 @@ from .config import BacktestConfig
 from .engine import run_backtest, BacktestResult
 from .metrics import compute_performance_metrics, PerformanceMetrics
 from .protocols import BacktestEngine, PerformanceCalculator
+from .registry import StrategyRegistry, StrategyMetadata
 
 __all__ = [
     "BacktestConfig",
@@ -26,4 +27,6 @@ __all__ = [
     "PerformanceMetrics",
     "BacktestEngine",
     "PerformanceCalculator",
+    "StrategyRegistry",
+    "StrategyMetadata",
 ]

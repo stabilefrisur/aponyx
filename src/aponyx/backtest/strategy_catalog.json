@@ -1,0 +1,30 @@
+[
+  {
+    "name": "conservative",
+    "description": "Conservative thresholds for low-turnover, high-conviction trades",
+    "entry_threshold": 2.0,
+    "exit_threshold": 1.0,
+    "enabled": true
+  },
+  {
+    "name": "balanced",
+    "description": "Balanced thresholds for moderate turnover and signal filtering",
+    "entry_threshold": 1.5,
+    "exit_threshold": 0.75,
+    "enabled": true
+  },
+  {
+    "name": "aggressive",
+    "description": "Aggressive thresholds for high-turnover, responsive trading",
+    "entry_threshold": 1.0,
+    "exit_threshold": 0.5,
+    "enabled": true
+  },
+  {
+    "name": "experimental",
+    "description": "Experimental thresholds for research and testing",
+    "entry_threshold": 0.75,
+    "exit_threshold": 0.25,
+    "enabled": false
+  }
+]
