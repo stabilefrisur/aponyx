@@ -1,7 +1,7 @@
 [project]
 name = "aponyx"
 description = "Systematic research framework for tactical credit strategies"
-version = "0.1.2"
+version = "0.1.3"
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
@@ -41,6 +41,16 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 # optional overrides; defaults expect a single module under src/<name>
 module-root = "src"
+
+# Include JSON catalog files and type marker in package distribution
+# These files are part of the package and must be available at runtime
+include-package-data = [
+    "aponyx/py.typed",
+    "aponyx/models/signal_catalog.json",
+    "aponyx/backtest/strategy_catalog.json",
+    "aponyx/data/bloomberg_securities.json",
+    "aponyx/data/bloomberg_instruments.json",
+]
 
 [project.optional-dependencies]
 bloomberg = [

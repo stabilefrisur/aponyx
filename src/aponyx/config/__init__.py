@@ -7,9 +7,15 @@ Defines project-wide constants including data paths and caching configuration.
 from pathlib import Path
 from typing import Final
 
-# Project root and data directories
+# Package root (where this config module is installed)
+# From src/aponyx/config/__init__.py -> src/aponyx
+PACKAGE_ROOT: Final[Path] = Path(__file__).parent.parent
+
+# Project root for development (when working in repo)
 # From src/aponyx/config/__init__.py -> src/aponyx -> src -> project_root
 PROJECT_ROOT: Final[Path] = Path(__file__).parent.parent.parent.parent
+
+# Data directories (project-level, not package-level)
 DATA_DIR: Final[Path] = PROJECT_ROOT / "data"
 REGISTRY_PATH: Final[Path] = DATA_DIR / "registry.json"
 LOGS_DIR: Final[Path] = PROJECT_ROOT / "logs"
@@ -19,13 +25,13 @@ CACHE_ENABLED: Final[bool] = True
 CACHE_TTL_DAYS: Final[int] = 1  # Daily refresh for market data
 CACHE_DIR: Final[Path] = DATA_DIR / "cache"
 
-# Catalog paths
-SIGNAL_CATALOG_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/models/signal_catalog.json"
-STRATEGY_CATALOG_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/backtest/strategy_catalog.json"
+# Catalog paths (package-relative, included in distribution)
+SIGNAL_CATALOG_PATH: Final[Path] = PACKAGE_ROOT / "models/signal_catalog.json"
+STRATEGY_CATALOG_PATH: Final[Path] = PACKAGE_ROOT / "backtest/strategy_catalog.json"
 
-# Bloomberg configuration paths
-BLOOMBERG_SECURITIES_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/data/bloomberg_securities.json"
-BLOOMBERG_INSTRUMENTS_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/data/bloomberg_instruments.json"
+# Bloomberg configuration paths (package-relative, included in distribution)
+BLOOMBERG_SECURITIES_PATH: Final[Path] = PACKAGE_ROOT / "data/bloomberg_securities.json"
+BLOOMBERG_INSTRUMENTS_PATH: Final[Path] = PACKAGE_ROOT / "data/bloomberg_instruments.json"
 
 
 def ensure_directories() -> None:

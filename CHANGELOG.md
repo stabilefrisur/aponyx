@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2025-11-02
+
+### Fixed
+- Package data paths now use package-relative resolution instead of project-relative
+- JSON catalog files (signals, strategies, Bloomberg config) now correctly located in installed package
+- Added explicit package data inclusion in `pyproject.toml` for JSON catalogs and `py.typed` marker
+- Resolved `FileNotFoundError` when accessing Bloomberg configuration after pip installation
+
+### Changed
+- Config module now distinguishes between `PACKAGE_ROOT` (installed location) and `PROJECT_ROOT` (development location)
+- Catalog paths (`SIGNAL_CATALOG_PATH`, `STRATEGY_CATALOG_PATH`, `BLOOMBERG_SECURITIES_PATH`, `BLOOMBERG_INSTRUMENTS_PATH`) now reference `PACKAGE_ROOT` for distribution compatibility
+- Data paths (`DATA_DIR`, `REGISTRY_PATH`, `LOGS_DIR`, `CACHE_DIR`) remain project-relative for user data management
+
 ## [0.1.2] - 2025-11-02
 
 ### Added
@@ -129,6 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.3]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.3
 [0.1.2]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.2
 [0.1.1]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.1
 [0.1.0]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.0
