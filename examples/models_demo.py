@@ -2,7 +2,7 @@
 Models Layer Demonstration - Registry-Based Signal Workflow
 
 Demonstrates signal generation using SignalRegistry for governance:
-1. Generate synthetic market data (CDX, VIX, ETF)
+1. Fetch market data from Bloomberg Terminal (primary) or synthetic fallback
 2. Initialize SignalRegistry from JSON catalog
 3. Query enabled signals and inspect metadata
 4. Compute all signals in batch using compute_registered_signals()
@@ -23,9 +23,11 @@ Note: All signals follow the convention:
 """
 
 import logging
+import sys
 from pathlib import Path
 
 from example_data import generate_example_data
+from aponyx.data import fetch_cdx, fetch_vix, fetch_etf
 from aponyx.models import (
     SignalRegistry,
     SignalConfig,
@@ -39,25 +41,76 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Global flag to track data source
+_using_bloomberg = False
+
 
 def main() -> None:
     """Run the models layer demonstration with registry pattern."""
+    global _using_bloomberg
+    
     print("=" * 70)
     print("MODELS LAYER DEMONSTRATION")
     print("Registry-Based Signal Workflow")
     print("=" * 70)
 
-    # Generate synthetic data
+    # Fetch market data - try Bloomberg first
     print("\n" + "=" * 70)
-    print("PART 1: Generate Market Data")
+    print("PART 1: Fetch Market Data")
     print("=" * 70)
     
-    cdx_df, vix_df, etf_df = generate_example_data(periods=252)
-    logger.info("Generated %d days of market data", len(cdx_df))
-    
-    print(f"  OK CDX IG 5Y: {len(cdx_df)} rows, spread mean={cdx_df['spread'].mean():.2f} bps")
-    print(f"  OK VIX: {len(vix_df)} rows, level mean={vix_df['level'].mean():.2f}")
-    print(f"  OK HYG ETF: {len(etf_df)} rows, spread mean={etf_df['spread'].mean():.2f}")
+    print("\nAttempting Bloomberg Terminal connection...")
+    try:
+        from aponyx.data import BloombergSource
+        
+        source = BloombergSource()
+        logger.info("Bloomberg Terminal connection established")
+        print("  OK Bloomberg Terminal available")
+        print("  Fetching data from 2024-01-01 to present...")
+        _using_bloomberg = True
+        
+        cdx_df = fetch_cdx(source, security="cdx_ig_5y", start_date="2024-01-01")
+        vix_df = fetch_vix(source, start_date="2024-01-01")
+        etf_df = fetch_etf(source, security="hyg", start_date="2024-01-01")
+        
+        logger.info("Fetched market data from Bloomberg: %d days", len(cdx_df))
+        print(f"  OK CDX IG 5Y: {len(cdx_df)} rows, spread mean={cdx_df['spread'].mean():.2f} bps")
+        print(f"  OK VIX: {len(vix_df)} rows, level mean={vix_df['level'].mean():.2f}")
+        print(f"  OK HYG ETF: {len(etf_df)} rows, spread mean={etf_df['spread'].mean():.2f}")
+        
+    except (ImportError, ModuleNotFoundError) as e:
+        logger.warning("Bloomberg Terminal not available: missing xbbg or blpapi module")
+        print("  ! Bloomberg Terminal not installed")
+        print(f"    Reason: {e}")
+        print("\n  Falling back to synthetic data...")
+        _using_bloomberg = False
+        
+        cdx_df, vix_df, etf_df = generate_example_data(periods=252)
+        logger.info("Generated %d days of synthetic data", len(cdx_df))
+        print(f"  OK CDX IG 5Y: {len(cdx_df)} rows, spread mean={cdx_df['spread'].mean():.2f} bps")
+        print(f"  OK VIX: {len(vix_df)} rows, level mean={vix_df['level'].mean():.2f}")
+        print(f"  OK HYG ETF: {len(etf_df)} rows, spread mean={etf_df['spread'].mean():.2f}")
+        
+    except BaseException as e:
+        # Catch pytest.Skipped and other xbbg errors
+        error_str = str(e).lower()
+        error_type = str(type(e).__name__).lower()
+        if "blpapi" in error_str or "could not import" in error_str or "skipped" in error_type:
+            logger.warning("Bloomberg Terminal not available: blpapi module missing")
+            print("  ! Bloomberg Terminal not installed")
+        else:
+            logger.warning("Bloomberg Terminal connection failed: %s", e)
+            print("  ! Bloomberg Terminal not running or authentication failed")
+            print(f"    Reason: {type(e).__name__}: {e}")
+        
+        print("\n  Falling back to synthetic data...")
+        _using_bloomberg = False
+        
+        cdx_df, vix_df, etf_df = generate_example_data(periods=252)
+        logger.info("Generated %d days of synthetic data", len(cdx_df))
+        print(f"  OK CDX IG 5Y: {len(cdx_df)} rows, spread mean={cdx_df['spread'].mean():.2f} bps")
+        print(f"  OK VIX: {len(vix_df)} rows, level mean={vix_df['level'].mean():.2f}")
+        print(f"  OK HYG ETF: {len(etf_df)} rows, spread mean={etf_df['spread'].mean():.2f}")
 
     # Initialize signal registry
     print("\n" + "=" * 70)
@@ -175,10 +228,17 @@ def main() -> None:
         print(f"  Neutral ({-threshold} to {threshold}): {neutral_signals:4d} ({neutral_signals/total:5.1%})")
 
     # Summary
+    data_source = "Bloomberg Terminal" if _using_bloomberg else "Synthetic data"
     print("\n" + "=" * 70)
     print("DEMONSTRATION COMPLETE")
     print("=" * 70)
+    print(f"\nData source used: {data_source}")
     print("\nKey Features Demonstrated:")
+    if _using_bloomberg:
+        print("  OK Real market data from Bloomberg Terminal")
+        print("  OK Signals computed on live credit/equity data")
+    else:
+        print("  OK Graceful fallback when Bloomberg unavailable")
     print("  OK SignalRegistry initialization from JSON catalog")
     print("  OK Query enabled signals and inspect metadata")
     print("  OK Batch signal computation via compute_registered_signals()")
@@ -188,6 +248,8 @@ def main() -> None:
     print("=" * 70)
     
     print("\nNext steps:")
+    if not _using_bloomberg:
+        print("  -> Install Bloomberg Terminal and xbbg to use real data")
     print("  -> See backtest_demo.py for strategy evaluation")
     print("  -> Edit signal_catalog.json to enable/disable signals")
     print("  -> Adjust SignalConfig parameters for different lookbacks")

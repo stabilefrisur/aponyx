@@ -2,7 +2,7 @@
 Persistence Layer Demonstration - Data I/O and Registry Management
 
 Demonstrates Parquet and JSON I/O operations with DataRegistry:
-1. Generate synthetic market data for multiple instruments
+1. Fetch market data from Bloomberg Terminal (primary) or generate synthetic fallback
 2. Save datasets to Parquet files with automatic directory creation
 3. Register datasets in central JSON registry with metadata
 4. Query registry by instrument type and date range
@@ -21,14 +21,16 @@ Key Features:
   - DatasetEntry dataclass with to_dict()/from_dict() conversion
   - Selective loading with column and date filtering
   - JSON I/O with datetime and Path serialization support
+  - Real data ingestion workflow from Bloomberg Terminal
 """
 
 import logging
+import sys
 from datetime import datetime
 from pathlib import Path
 
 from example_data import generate_persistence_data
-from aponyx.data import DataRegistry, DatasetEntry
+from aponyx.data import DataRegistry, DatasetEntry, fetch_cdx, fetch_vix, fetch_etf
 from aponyx.persistence import save_parquet, load_parquet, save_json, load_json
 from aponyx.config import DATA_DIR, REGISTRY_PATH, LOGS_DIR
 
@@ -40,33 +42,92 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Global flag to track data source
+_using_bloomberg = False
+
 
 def demonstrate_parquet_io() -> dict[str, Path]:
     """
-    Demonstrate Parquet save/load operations.
+    Demonstrate Parquet save/load operations with Bloomberg or synthetic data.
     
     Returns
     -------
     dict[str, Path]
         Mapping of instrument names to file paths.
     """
+    global _using_bloomberg
+    
     print("\n" + "=" * 70)
     print("PART 1: Parquet I/O Operations")
     print("=" * 70)
     
-    # Generate sample data
-    print("\nGenerating sample data...")
-    datasets = generate_persistence_data(periods=209)
-    print(f"  OK Generated {len(datasets)} instruments")
+    # Try Bloomberg Terminal first
+    print("\nAttempting Bloomberg Terminal connection...")
+    try:
+        from aponyx.data import BloombergSource
+        
+        source = BloombergSource()
+        logger.info("Bloomberg Terminal connection established")
+        print("  OK Bloomberg Terminal available")
+        print("  Fetching data from 2024-01-01 to present...")
+        _using_bloomberg = True
+        
+        # Fetch from Bloomberg and create datasets dict
+        cdx_ig = fetch_cdx(source, security="cdx_ig_5y", start_date="2024-01-01")
+        cdx_hy = fetch_cdx(source, security="cdx_hy_5y", start_date="2024-01-01")
+        vix = fetch_vix(source, start_date="2024-01-01")
+        hyg = fetch_etf(source, security="hyg", start_date="2024-01-01")
+        
+        datasets = {
+            "cdx_ig_5y": cdx_ig,
+            "cdx_hy_5y": cdx_hy,
+            "vix": vix,
+            "hyg_etf": hyg,
+        }
+        
+        logger.info("Fetched %d datasets from Bloomberg", len(datasets))
+        print(f"  OK Fetched {len(datasets)} instruments from Bloomberg")
+        
+    except (ImportError, ModuleNotFoundError) as e:
+        logger.warning("Bloomberg Terminal not available: missing xbbg or blpapi module")
+        print("  ! Bloomberg Terminal not installed")
+        print(f"    Reason: {e}")
+        print("\n  Falling back to synthetic data...")
+        _using_bloomberg = False
+        
+        datasets = generate_persistence_data(periods=209)
+        logger.info("Generated %d datasets synthetically", len(datasets))
+        print(f"  OK Generated {len(datasets)} instruments")
+        
+    except BaseException as e:
+        # Catch pytest.Skipped and other xbbg errors
+        error_str = str(e).lower()
+        error_type = str(type(e).__name__).lower()
+        if "blpapi" in error_str or "could not import" in error_str or "skipped" in error_type:
+            logger.warning("Bloomberg Terminal not available: blpapi module missing")
+            print("  ! Bloomberg Terminal not installed")
+        else:
+            logger.warning("Bloomberg Terminal connection failed: %s", e)
+            print("  ! Bloomberg Terminal not running or authentication failed")
+            print(f"    Reason: {type(e).__name__}: {e}")
+        
+        print("\n  Falling back to synthetic data...")
+        _using_bloomberg = False
+        
+        datasets = generate_persistence_data(periods=209)
+        logger.info("Generated %d datasets synthetically", len(datasets))
+        print(f"  OK Generated {len(datasets)} instruments")
     
     # Save each dataset to Parquet
-    print("\nSaving Parquet files...")
+    data_source = "Bloomberg" if _using_bloomberg else "synthetic"
+    print(f"\nSaving Parquet files ({data_source} data)...")
     file_paths = {}
     
     for name, df in datasets.items():
         file_path = DATA_DIR / "raw" / f"{name}.parquet"
         save_parquet(df, file_path)
         file_paths[name] = file_path
+        logger.info("Saved %s: %d rows to %s", name, len(df), file_path)
         print(f"  OK {name}: {len(df)} rows -> {file_path}")
     
     # Load data back
@@ -85,11 +146,18 @@ def demonstrate_parquet_io() -> dict[str, Path]:
     )
     print(f"  OK Loaded columns only: {spreads_only.columns.tolist()}")
     
-    # Load date range
+    # Load date range (if Bloomberg data, use recent dates)
     import pandas as pd
+    if _using_bloomberg:
+        # Use a recent date from the Bloomberg data
+        start_date = pd.Timestamp("2024-10-01")
+    else:
+        # Use synthetic data date
+        start_date = pd.Timestamp("2024-10-01")
+    
     recent = load_parquet(
         file_paths["vix"],
-        start_date=pd.Timestamp("2024-10-01"),
+        start_date=start_date,
     )
     print(f"  OK Loaded date range (Oct 2024+): {len(recent)} rows")
     
@@ -105,6 +173,8 @@ def demonstrate_registry_operations(file_paths: dict[str, Path]) -> None:
     file_paths : dict[str, Path]
         Mapping of instrument names to file paths.
     """
+    global _using_bloomberg
+    
     print("\n" + "=" * 70)
     print("PART 2: DataRegistry Operations")
     print("=" * 70)
@@ -115,14 +185,15 @@ def demonstrate_registry_operations(file_paths: dict[str, Path]) -> None:
     print(f"  OK Registry path: {REGISTRY_PATH}")
     
     # Register datasets with metadata
-    print("\nRegistering datasets...")
+    data_source = "bloomberg" if _using_bloomberg else "synthetic"
+    print(f"\nRegistering datasets ({data_source} data)...")
     
     registry.register_dataset(
         name="cdx_ig_5y",
         file_path=file_paths["cdx_ig_5y"],
         instrument="CDX.NA.IG",
         tenor="5Y",
-        metadata={"source": "synthetic", "frequency": "daily"},
+        metadata={"source": data_source, "frequency": "daily"},
     )
     
     registry.register_dataset(
@@ -130,23 +201,24 @@ def demonstrate_registry_operations(file_paths: dict[str, Path]) -> None:
         file_path=file_paths["cdx_hy_5y"],
         instrument="CDX.NA.HY",
         tenor="5Y",
-        metadata={"source": "synthetic", "frequency": "daily"},
+        metadata={"source": data_source, "frequency": "daily"},
     )
     
     registry.register_dataset(
         name="vix",
         file_path=file_paths["vix"],
         instrument="VIX",
-        metadata={"source": "synthetic", "frequency": "daily"},
+        metadata={"source": data_source, "frequency": "daily"},
     )
     
     registry.register_dataset(
         name="hyg_etf",
         file_path=file_paths["hyg_etf"],
         instrument="HYG",
-        metadata={"source": "synthetic", "frequency": "daily", "type": "ETF"},
+        metadata={"source": data_source, "frequency": "daily", "type": "ETF"},
     )
     
+    logger.info("Registered %d datasets with source=%s", len(file_paths), data_source)
     print(f"  OK Registered {len(file_paths)} datasets")
     
     # Query registry
@@ -304,6 +376,8 @@ def demonstrate_update_operations() -> None:
 
 def main() -> None:
     """Run complete persistence layer demonstration."""
+    global _using_bloomberg
+    
     print("=" * 70)
     print("PERSISTENCE LAYER DEMONSTRATION")
     print("Parquet I/O, JSON I/O, and DataRegistry Management")
@@ -317,10 +391,17 @@ def main() -> None:
     demonstrate_update_operations()
     
     # Summary
+    data_source = "Bloomberg Terminal" if _using_bloomberg else "Synthetic data"
     print("\n" + "=" * 70)
     print("DEMONSTRATION COMPLETE")
     print("=" * 70)
+    print(f"\nData source used: {data_source}")
     print("\nKey Features Demonstrated:")
+    if _using_bloomberg:
+        print("  OK Real data ingestion workflow from Bloomberg Terminal")
+        print("  OK Bloomberg fetch → save → register pipeline")
+    else:
+        print("  OK Graceful fallback when Bloomberg unavailable")
     print("  OK Parquet save/load with automatic path handling")
     print("  OK Selective loading (date range, columns)")
     print("  OK DataRegistry CRUD operations")
@@ -335,6 +416,9 @@ def main() -> None:
     print(f"  - Parquet data: {DATA_DIR / 'raw'}/")
     print(f"  - Registry: {REGISTRY_PATH}")
     print(f"  - Metadata: {LOGS_DIR / 'persistence_demo_metadata.json'}")
+    if not _using_bloomberg:
+        print("\nNext steps:")
+        print("  -> Install Bloomberg Terminal and xbbg to use real data")
 
 
 if __name__ == "__main__":

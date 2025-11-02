@@ -1,4 +1,3 @@
 # TODO
 
-- update documents
-- update examples
+- include examples in PyPi dist
