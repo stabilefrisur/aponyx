@@ -1,7 +1,7 @@
 # Project Status — aponyx
 
-**Last Updated:** November 1, 2025  
-**Version:** 0.1.0  
+**Last Updated:** November 2, 2025  
+**Version:** 0.1.1  
 **Maintainer:** stabilefrisur
 
 ---
@@ -52,12 +52,56 @@ The project implements a **strict layered architecture** with functional boundar
 
 ```
 src/aponyx/
-  data/               # Load, validate, transform market data
-  models/             # Signal generation and strategy logic
-  backtest/           # Simulation, P&L tracking, metrics
-  visualization/      # Plotly charts, Streamlit dashboards
-  persistence/        # Parquet/JSON I/O, data registry
+  __init__.py         # Package initialization with version
+  main.py             # CLI entry point (placeholder)
+  py.typed            # PEP 561 type marker for mypy
+  
   config/             # Paths, constants, defaults
+    __init__.py       # PROJECT_ROOT, DATA_DIR, CACHE_ENABLED, etc.
+  
+  data/               # Load, validate, transform market data
+    __init__.py       # Exports: fetch_*, *Source, validate_*
+    fetch.py          # Unified fetch interface
+    sources.py        # DataSource protocol and types
+    validation.py     # Schema validation functions
+    schemas.py        # Schema dataclasses
+    cache.py          # TTL-based caching layer
+    sample_data.py    # Synthetic data generation
+    bloomberg_config.py         # Bloomberg ticker registry
+    bloomberg_securities.json   # Security metadata
+    bloomberg_instruments.json  # Instrument definitions
+    providers/
+      __init__.py
+      file.py         # File-based provider
+      bloomberg.py    # Bloomberg Terminal provider
+  
+  models/             # Signal generation and strategy logic
+    __init__.py       # Exports: compute_*, SignalConfig, SignalRegistry
+    signals.py        # Signal computation functions (3 signals)
+    registry.py       # Signal registry and metadata
+    catalog.py        # Batch computation orchestration
+    config.py         # SignalConfig dataclass
+    signal_catalog.json  # Signal metadata catalog
+  
+  backtest/           # Simulation, P&L tracking, metrics
+    __init__.py       # Exports: BacktestConfig, run_backtest, etc.
+    engine.py         # Core backtest engine
+    metrics.py        # Performance calculations
+    config.py         # BacktestConfig dataclass
+    protocols.py      # BacktestEngine, PerformanceCalculator
+    adapters.py       # Third-party library adapters (stubs)
+  
+  visualization/      # Plotly charts, Streamlit dashboards
+    __init__.py       # Exports: plot_*, Visualizer
+    plots.py          # Plotting functions (3 implemented, 3 stubs)
+    visualizer.py     # Theme management
+    app.py            # Streamlit dashboard (stub)
+  
+  persistence/        # Parquet/JSON I/O, data registry
+    __init__.py       # Exports: save_*, load_*, DataRegistry
+    parquet_io.py     # Parquet read/write
+    json_io.py        # JSON read/write
+    registry.py       # Data registry management
 ```
 
 ### Layer Responsibilities
@@ -85,121 +129,307 @@ src/aponyx/
 ### ✅ Data Layer (`src/aponyx/data/`)
 
 **Implemented:**
-- File-based data loading with Parquet support (`FileSource`)
-- Bloomberg Terminal integration with xbbg wrapper (`BloombergSource`)
-- Schema validation for CDX, VIX, ETF data (`validate_cdx_schema`, `validate_vix_schema`, `validate_etf_schema`)
-- TTL-based caching system (`DataCache`)
-- Data registry with metadata tracking (`DataRegistry`)
-- Sample data generation for testing (`generate_sample_cdx`, `generate_sample_vix`, `generate_sample_etf`)
-- Provider pattern with `DataSource` protocol (`sources.py`)
-- Fetch functions: `fetch_cdx`, `fetch_vix`, `fetch_etf`
+- **Provider Pattern:** Abstract `DataSource` protocol with multiple implementations
+  - `FileSource` - Local Parquet/CSV files
+  - `BloombergSource` - Bloomberg Terminal via xbbg (requires active session)
+  - `APISource` - Generic REST API (defined but not yet used)
+- **Unified Fetch Interface:** Three fetch functions with provider abstraction
+  - `fetch_cdx` - CDX index spreads with security filtering
+  - `fetch_vix` - VIX volatility index
+  - `fetch_etf` - Credit ETF prices with security filtering
+- **Schema Validation:** Comprehensive validation for all data types
+  - `validate_cdx_schema` - CDX spread validation (0-10000 bps range)
+  - `validate_vix_schema` - VIX level validation (0-200 range)
+  - `validate_etf_schema` - ETF price validation
+  - Schema dataclasses in `schemas.py` define constraints
+- **TTL-Based Caching:** Simple time-based cache with Parquet storage
+  - `DataCache` class with get/save operations
+  - Cache key generation from fetch parameters
+  - Staleness checking based on TTL (default: 1 day)
+  - Automatic cache directory management
+- **Data Registry:** Metadata tracking with JSON persistence
+  - `DataRegistry` class for dataset cataloging
+  - Automatic registration on cache save
+  - Query and lookup capabilities
+- **Sample Data Generation:** Deterministic test data with fixed seeds
+  - `generate_sample_cdx` - Synthetic CDX spreads
+  - `generate_sample_vix` - Synthetic VIX levels
+  - `generate_sample_etf` - Synthetic ETF prices
+- **Bloomberg Integration:** 
+  - JSON-based ticker registry (`bloomberg_securities.json`, `bloomberg_instruments.json`)
+  - Security-to-ticker mapping via `get_bloomberg_ticker`
+  - Registry validation utilities
+  - Provider implementation in `providers/bloomberg.py`
+- **File Provider:** Local file support in `providers/file.py`
+  - Parquet and CSV format support
+  - Date range filtering
+  - Instrument-based file organization
+
+**Key Features:**
+- Provider resolution and factory pattern (`resolve_provider`)
+- Comprehensive logging at INFO and DEBUG levels
+- Optional caching with `use_cache` parameter (default: enabled)
+- Forward-fill for missing dates in alignment
+- Duplicate date detection and warnings
+- Security filtering for multi-security DataFrames
+
+**Configuration:**
+- Cache enabled by default (`CACHE_ENABLED = True`)
+- 1-day TTL for market data (`CACHE_TTL_DAYS = 1`)
+- Data directory structure: `data/raw/`, `data/processed/`, `data/cache/`
 
 **Requirements:**
 - Bloomberg integration requires active Bloomberg Terminal session
 - xbbg wrapper included in standard dependencies
 
-**Planned:**
-- 🔜 REST API provider pattern
-
-**Not in Scope:**
-- ❌ Database integration (files only by design)
-- ❌ Authentication/authorization (handled externally)
+**Implementation Notes:**
+- `APISource` dataclass is defined but not yet used by any provider
+- Database integration not included (files only by design)
+- Authentication/authorization handled externally
+- Real-time data streaming not supported
 
 ### ✅ Models Layer (`src/aponyx/models/`)
 
 **Implemented:**
-- Three pilot signals:
+- **Three Pilot Signals:**
   - `compute_cdx_etf_basis` - Flow-driven mispricing from CDX-ETF basis
+    - Z-score normalized basis over rolling window
+    - Captures temporary dislocations from ETF flows
+    - Assumes ETF spread-equivalent conversion done externally
+    - Positive = CDX cheap vs ETF (long CDX)
   - `compute_cdx_vix_gap` - Cross-asset risk sentiment divergence
+    - Compares CDX vs VIX deviations from rolling means
+    - Normalized gap captures stress divergence
+    - Positive = credit stress outpacing equity stress (long CDX)
   - `compute_spread_momentum` - Short-term continuation in spreads
-- Signal registry pattern with JSON catalog (`SignalRegistry`, `signal_catalog.json`)
-- Batch signal computation (`compute_registered_signals`)
-- Configurable signal parameters (`SignalConfig` dataclass)
-- Signal catalog management (`SignalCatalog` for registry operations)
+    - Volatility-adjusted momentum over lookback period
+    - Negated so tightening spreads give positive signal
+    - Positive = tightening momentum (bullish credit)
+- **Signal Registry Pattern:**
+  - `SignalRegistry` class - JSON catalog management
+  - `SignalMetadata` dataclass - Signal metadata container
+  - JSON-based catalog (`signal_catalog.json`) with signal definitions
+  - Enable/disable signals via catalog without code changes
+  - Data requirements validation
+  - Dynamic function resolution
+- **Batch Signal Computation:**
+  - `compute_registered_signals` - Orchestration of all enabled signals
+  - Validates data requirements before computation
+  - Returns dict mapping signal names to Series
+  - Comprehensive error handling and logging
+- **Signal Catalog Management:**
+  - `SignalCatalog` module - Registry operations and utilities
+  - Catalog save/load with JSON persistence
+  - Metadata query and filtering
+  - Arg mapping for flexible function signatures
+- **Configuration:**
+  - `SignalConfig` dataclass with validation
+  - Configurable lookback window (default: 20 days)
+  - Configurable min_periods (default: 10 days)
+  - Frozen dataclass for immutability
+
+**Key Features:**
+- **Signal Sign Convention:** All signals follow consistent sign convention
+  - Positive values → Long credit risk → Buy CDX (sell protection)
+  - Negative values → Short credit risk → Sell CDX (buy protection)
+- **Z-Score Normalization:** All signals use rolling z-scores for regime independence
+- **Forward-Fill Alignment:** Missing data handled via forward-fill before computation
+- **Comprehensive Logging:** INFO for operations, DEBUG for implementation details
+- **Type Safety:** Full type hints with modern Python syntax
+- **Extensibility:** Add new signals by editing JSON + implementing compute function
+
+**Signal Catalog Structure:**
+```json
+{
+  "name": "signal_name",
+  "description": "Human-readable description",
+  "compute_function_name": "compute_function_name",
+  "data_requirements": {"cdx": "spread", "etf": "spread"},
+  "arg_mapping": ["cdx", "etf"],
+  "enabled": true
+}
+```
 
 **Key Files:**
-- `signals.py` - Signal computation functions
-- `registry.py` - Signal registry and batch computation
-- `catalog.py` - Signal catalog management utilities
-- `signal_catalog.json` - Signal metadata and configuration
+- `signals.py` - Signal computation functions (3 signals)
+- `registry.py` - Signal registry and metadata management
+- `catalog.py` - Batch computation and orchestration
+- `config.py` - Signal configuration dataclass
+- `signal_catalog.json` - Signal metadata catalog (3 entries)
 
-**Planned:**
-- 🔜 Additional signal ideas (expansion of catalog)
-- 🔜 Multi-signal combination strategies
+**Validation:**
+- Data requirements checked before computation
+- Required columns validated against DataFrame schemas
+- Compute function existence verified at runtime
+- Duplicate signal names prevented in catalog
 
-**Not in Scope:**
-- ❌ Real-time signal generation (research framework only)
+**Implementation Notes:**
+- Research framework only (not for real-time signal generation)
+- Transparent rules-based signals (no ML models)
+- No external signal feeds or APIs
 
 ### ✅ Backtest Layer (`src/aponyx/backtest/`)
 
 **Implemented:**
-- Core backtesting engine (`run_backtest`)
-- Position generation with entry/exit thresholds (`BacktestConfig`)
-- P&L simulation with transaction costs
-- Performance metrics calculation (`compute_performance_metrics`):
-  - Sharpe, Sortino, Calmar ratios
-  - Maximum drawdown and duration
-  - Win rate, profit factor
-  - Trade statistics and holding period analysis
-- Metadata logging with timestamps and parameters (`BacktestResult`)
-- Protocol-based adapters for signal/spread inputs (`adapters.py`)
+- **Core Backtesting Engine:**
+  - `run_backtest` - Position generation and P&L simulation
+  - `BacktestResult` dataclass - Structured output container
+  - Metadata logging with timestamps and parameters
+  - Comprehensive INFO and DEBUG logging
+- **Configuration:**
+  - `BacktestConfig` dataclass with validation
+  - Entry/exit threshold hysteresis to reduce turnover
+  - Binary position sizing (on/off) for pilot
+  - Transaction cost modeling (bps-based)
+  - Optional max holding period constraint
+  - DV01-based P&L calculation
+- **Performance Metrics:**
+  - `compute_performance_metrics` - Comprehensive statistics
+  - `PerformanceMetrics` dataclass - 13 metrics including:
+    - Risk-adjusted returns: Sharpe, Sortino, Calmar ratios
+    - Drawdown analysis: Max drawdown, drawdown duration
+    - Return statistics: Total, annualized, volatility
+    - Trade statistics: Hit rate, win/loss ratios, avg holding days
+  - Annualization assumes 252 trading days
+  - Zero risk-free rate for simplicity
+- **Protocol-Based Design:**
+  - `BacktestEngine` protocol for extensibility
+  - `PerformanceCalculator` protocol for metrics
+  - Adapter stubs for vectorbt and quantstats integration (commented)
+  - Clean separation of engine logic from external libraries
+- **Position Logic:**
+  - Long position (sell protection) when signal > entry_threshold
+  - Short position (buy protection) when signal < -entry_threshold
+  - Exit when |signal| < exit_threshold or max_holding_days reached
+  - Position tracking with days_held counter
+- **P&L Calculation:**
+  - DV01-based spread P&L calculation
+  - Transaction costs on entry and exit
+  - Cumulative P&L tracking
+  - Proper accounting on exit day (captures final P&L before flattening)
+
+**Key Features:**
+- Deterministic backtest execution
+- Entry/exit threshold hysteresis prevents whipsaw
+- Transaction costs applied symmetrically
+- Metadata logged for reproducibility
+- Trade-level statistics with P&L aggregation
+- Comprehensive validation of input data (DatetimeIndex checks)
 
 **Key Files:**
-- `engine.py` - Core backtest engine
+- `engine.py` - Core backtest engine and result container
 - `metrics.py` - Performance calculations
-- `config.py` - Configuration dataclasses
-- `protocols.py` - Type protocols for inputs
-- `adapters.py` - Input adaptation utilities
+- `config.py` - Configuration dataclass with validation
+- `protocols.py` - Type protocols for extensibility
+- `adapters.py` - Stubs for third-party library integration
 
-**Planned:**
-- 🔜 Advanced position sizing (currently binary on/off)
-- 🔜 Multi-asset portfolio backtesting
-
-**Not in Scope:**
-- ❌ Real-time trading integration
-- ❌ Production risk management
+**Current Limitations:**
+- Binary position sizing only (no notional scaling by signal strength)
+- Single-asset backtests (no multi-asset portfolio support)
+- No slippage modeling beyond transaction costs
+- No position limits or risk constraints
+- Real-time trading integration not supported
+- Production risk management not included
+- Order execution simulation not implemented
 
 ### ✅ Persistence Layer (`src/aponyx/persistence/`)
 
 **Implemented:**
-- Parquet I/O with column filtering and date ranges (`save_parquet`, `load_parquet`)
-- JSON I/O for metadata (`save_json`, `load_json`)
-- Data registry system (`DataRegistry`)
-- Comprehensive logging at INFO and DEBUG levels
+- **Parquet I/O:**
+  - `save_parquet` - DataFrame to Parquet with automatic directory creation
+  - `load_parquet` - Parquet to DataFrame with optional column/date filtering
+  - `list_parquet_files` - Directory scanning for Parquet files
+  - Column filtering for selective reads (reduces memory)
+  - Date range filtering for time-series slicing
+- **JSON I/O:**
+  - `save_json` - Dictionary/list to JSON with pretty-printing (indent=2)
+  - `load_json` - JSON to Python objects
+  - UTF-8 encoding by default
+  - Automatic directory creation
+- **Data Registry:**
+  - `DataRegistry` class - Dataset metadata cataloging
+  - `DatasetEntry` dataclass - Registry entry container
+  - JSON-based registry persistence (`registry.json`)
+  - Register, query, and lookup datasets
+  - Metadata tracking: instrument, source, date ranges, custom fields
+  - Validation on registration (path existence, metadata requirements)
+- **Comprehensive Logging:**
+  - Module-level loggers in all modules
+  - INFO: File operations (saved, loaded, rows, path)
+  - DEBUG: Performance details (columns filtered, date range)
+  - %-style formatting for log messages
+
+**Key Features:**
+- **Simple File-Based Design:** No database dependencies, just Parquet + JSON
+- **Type Safety:** Full type hints with modern Python syntax
+- **Automatic Path Handling:** Creates parent directories as needed
+- **Registry Pattern:** Central catalog of all datasets for discovery
+- **Selective Loading:** Column and date filtering reduces memory footprint
+- **Metadata Tracking:** Rich metadata for dataset lineage and discovery
+
+**Registry Structure:**
+```json
+{
+  "datasets": {
+    "dataset_name": {
+      "name": "dataset_name",
+      "file_path": "data/processed/file.parquet",
+      "instrument": "cdx",
+      "created_at": "2025-11-02T10:30:00",
+      "metadata": {
+        "source": "bloomberg",
+        "security": "cdx_ig_5y",
+        "start_date": "2020-01-01",
+        "end_date": "2025-10-31"
+      }
+    }
+  }
+}
+```
 
 **Key Files:**
 - `parquet_io.py` - Parquet read/write operations
 - `json_io.py` - JSON read/write operations
 - `registry.py` - Data registry management
 
-**Not in Scope:**
-- ❌ Database backends (Parquet/JSON only by design)
-- ❌ Cloud storage integration
+**Configuration:**
+- Registry path: `data/registry.json` (from `config.REGISTRY_PATH`)
+- Data directory: `data/` (from `config.DATA_DIR`)
+- Automatic directory initialization on config module import
 
-### 🔜 Visualization Layer (`src/aponyx/visualization/`)
+**Implementation Notes:**
+- Parquet/JSON only (no database backends)
+- Local files only (no cloud storage integration)
+- Uses Parquet default compression
+- Simple append-only design (no versioning or schema evolution)
+
+### ✅ Visualization Layer (`src/aponyx/visualization/`)
 
 **Implemented:**
-- Core plotting functions:
-  - `plot_equity_curve` - Cumulative P&L chart
-  - `plot_signal` - Signal values with entry/exit thresholds
-  - `plot_drawdown` - Underwater chart
-- `Visualizer` class for theme management
-- Returns Plotly `Figure` objects (no auto-display)
+- Core plotting functions (returns Plotly `Figure` objects):
+  - `plot_equity_curve` - Cumulative P&L chart with optional drawdown shading
+  - `plot_signal` - Signal time series with threshold lines
+  - `plot_drawdown` - Underwater chart (peak-to-trough decline)
+- `Visualizer` class for theme management and styling
+- Returns Plotly `Figure` objects (no auto-display; caller controls rendering)
 
-**Planned:**
-- 🔜 Signal attribution chart (`plot_attribution` - stub exists)
-- 🔜 Position exposures chart (`plot_exposures` - stub exists)
-- 🔜 Multi-panel dashboard (`plot_dashboard` - stub exists)
-- 🔜 Streamlit dashboard (`app.py` contains only placeholder)
+**Key Features:**
+- Interactive charts with hover tooltips and zoom controls
+- Supports Jupyter, Streamlit, HTML export, and testing
+- Consistent visual styling via `Visualizer` class
+- All functions include comprehensive logging at INFO and DEBUG levels
+
+**Implementation Status:**
+- Three functions fully implemented: `plot_equity_curve`, `plot_signal`, `plot_drawdown`
+- Three functions are stubs that raise `NotImplementedError`: `plot_attribution`, `plot_exposures`, `plot_dashboard`
+- Streamlit dashboard (`app.py`) contains only placeholder comments
+- Real-time data visualization not supported
+- Interactive parameter tuning UI not implemented
 
 **Key Files:**
-- `plots.py` - Plotting functions (partial implementation)
+- `plots.py` - Plotting functions (3 implemented, 3 stubs)
 - `visualizer.py` - Theme and style management
 - `app.py` - Streamlit dashboard (stub)
-
-**Not in Scope:**
-- ❌ Real-time data visualization
-- ❌ Interactive parameter tuning UI
 
 ### ✅ Testing (`tests/`)
 
@@ -377,38 +607,73 @@ from typing import Optional, Union, List, Dict
 ```
 1. Data Loading
    FileSource("data/raw/cdx.parquet")
-   → fetch_cdx(source, index_name="CDX_IG_5Y")
+   OR BloombergSource()
+   → fetch_cdx(source, security="cdx_ig_5y")
    → validate_cdx_schema(df)
+   → Cache to data/cache/{provider}/{instrument}_{key}.parquet
+   → Register in data/registry.json
    → Returns: pd.DataFrame with DatetimeIndex
 
 2. Signal Generation
-   SignalRegistry("signal_catalog.json")
+   SignalRegistry("src/aponyx/models/signal_catalog.json")
+   → Load enabled signals from catalog
+   → Validate data requirements
    → compute_registered_signals(registry, market_data, config)
-   → compute_cdx_etf_basis(cdx_df, etf_df, config)
-   → Returns: dict[str, pd.Series] of signals
+     → compute_cdx_etf_basis(cdx_df, etf_df, config)
+     → compute_cdx_vix_gap(cdx_df, vix_df, config)
+     → compute_spread_momentum(cdx_df, config)
+   → Returns: dict[str, pd.Series] of z-score normalized signals
 
 3. Backtesting (per signal)
-   BacktestConfig(entry_threshold=1.5, ...)
+   BacktestConfig(
+     entry_threshold=1.5,
+     exit_threshold=0.75,
+     position_size=10.0,
+     transaction_cost_bps=1.0,
+     max_holding_days=None,
+     dv01_per_million=4750.0
+   )
    → run_backtest(signal, spread, config)
+     → Generate positions (long/short/flat)
+     → Calculate spread P&L via DV01
+     → Apply transaction costs
+     → Track metadata
    → Returns: BacktestResult(positions, pnl, metadata)
 
 4. Performance Analysis
    compute_performance_metrics(result.pnl, result.positions)
-   → Returns: PerformanceMetrics(sharpe_ratio, max_drawdown, ...)
+   → Calculate 13 metrics:
+     - Sharpe, Sortino, Calmar ratios
+     - Max drawdown, total return
+     - Hit rate, win/loss ratios
+     - Trade statistics
+   → Returns: PerformanceMetrics dataclass
 
 5. Visualization
-   plot_equity_curve(result.pnl)
+   plot_equity_curve(result.pnl["cumulative_pnl"])
+   plot_signal(signal, threshold_lines=[-1.5, 1.5])
+   plot_drawdown(result.pnl["net_pnl"])
    → Returns: plotly.graph_objects.Figure
-   → .show() or st.plotly_chart() for rendering
+   → Caller renders: .show() or st.plotly_chart()
+
+6. Results Persistence
+   save_json(result.metadata, "logs/run_metadata.json")
+   save_parquet(result.pnl, "data/processed/backtest_pnl.parquet")
+   DataRegistry.register_dataset(...)
 ```
 
 **Data Dependencies:**
 
 ```
 market_data: dict[str, pd.DataFrame]
-├─ "cdx": DataFrame with 'spread' column
-├─ "vix": DataFrame with 'close' column
-└─ "etf": DataFrame with 'close' column
+├─ "cdx": DataFrame with DatetimeIndex
+│   ├─ spread (float, bps)
+│   └─ security (str, optional)
+├─ "vix": DataFrame with DatetimeIndex
+│   └─ level (float, index value)
+└─ "etf": DataFrame with DatetimeIndex
+    ├─ spread (float, spread-equivalent)
+    └─ security (str, optional)
 
 ↓ (passed to signal registry)
 
@@ -420,25 +685,38 @@ signals: dict[str, pd.Series]
 ↓ (evaluated individually)
 
 BacktestResult for each signal
-├─ positions: DataFrame (signal, position, days_held, spread)
-├─ pnl: DataFrame (spread_pnl, cost, net_pnl, cumulative_pnl)
-└─ metadata: dict (config, summary stats)
+├─ positions: DataFrame (date index)
+│   ├─ signal (float, signal value)
+│   ├─ position (int, +1/0/-1)
+│   ├─ days_held (int)
+│   └─ spread (float, spread level)
+├─ pnl: DataFrame (date index)
+│   ├─ spread_pnl (float, P&L from spread changes)
+│   ├─ cost (float, transaction costs)
+│   ├─ net_pnl (float, total P&L)
+│   └─ cumulative_pnl (float, running total)
+└─ metadata: dict
+    ├─ timestamp (str, ISO format)
+    ├─ config (dict, BacktestConfig values)
+    └─ summary (dict, trade count, total P&L, etc.)
 
 ↓ (analyzed)
 
-PerformanceMetrics
-├─ sharpe_ratio, sortino_ratio, calmar_ratio
-├─ max_drawdown, max_drawdown_duration
-├─ total_return, avg_trade_pnl
-└─ win_rate, profit_factor
+PerformanceMetrics (dataclass)
+├─ sharpe_ratio, sortino_ratio, calmar_ratio (float)
+├─ max_drawdown, total_return, annualized_return (float)
+├─ annualized_volatility, hit_rate (float)
+├─ avg_win, avg_loss, win_loss_ratio (float)
+└─ n_trades, avg_holding_days (int/float)
 ```
 
 **Key Files:**
-- Data loading: `src/aponyx/data/fetch.py`
-- Signal generation: `src/aponyx/models/registry.py`
+- Data loading: `src/aponyx/data/fetch.py`, `src/aponyx/data/providers/`
+- Signal generation: `src/aponyx/models/catalog.py`, `src/aponyx/models/signals.py`
 - Backtesting: `src/aponyx/backtest/engine.py`
 - Metrics: `src/aponyx/backtest/metrics.py`
 - Visualization: `src/aponyx/visualization/plots.py`
+- Persistence: `src/aponyx/persistence/parquet_io.py`, `src/aponyx/persistence/json_io.py`
 
 ---
 
@@ -485,11 +763,17 @@ PerformanceMetrics
 
 **Rationale:**
 - Works in Jupyter, Streamlit, HTML export, testing
-- Caller controls rendering context
+- Caller controls rendering context (`.show()`, `st.plotly_chart()`, `.write_html()`)
 - Enables post-processing (annotations, subplot composition)
-- Testable without rendering
+- Testable without rendering (check figure structure, not visuals)
 
 **Impact:** User must call `.show()` or `st.plotly_chart()` explicitly. See `src/aponyx/visualization/plots.py`.
+
+**Implementation Details:**
+- All plot functions return `go.Figure` objects
+- No side effects (no auto-display, no file writing)
+- Consistent interface across all plotting functions
+- Enables unit testing of plot generation logic
 
 ### 5. TTL-Based Caching (Not LRU)
 
@@ -497,10 +781,18 @@ PerformanceMetrics
 
 **Rationale:**
 - Predictable behavior for research workflows
-- No complex invalidation logic
+- No complex invalidation logic (staleness via TTL only)
 - Manual cleanup acceptable for single-user research
+- Simple implementation with file modification times
 
 **Impact:** Cache grows until manual cleanup; no automatic eviction. See `src/aponyx/data/cache.py`.
+
+**Implementation Details:**
+- Cache key generated from fetch parameters (hash-based)
+- Staleness checked via file modification time
+- Default TTL: 1 day (`CACHE_TTL_DAYS = 1`)
+- Cache directory structure: `data/cache/{provider}/{instrument}_{key}.parquet`
+- Optional cache registration in data registry
 
 ### 6. No Authentication in Library
 
@@ -535,95 +827,191 @@ np.random.seed(RANDOM_SEED)
 random.seed(RANDOM_SEED)
 ```
 
-**All backtest runs include metadata:**
+**All backtest runs include comprehensive metadata:**
 ```python
 metadata = {
     "timestamp": datetime.now().isoformat(),
-    "version": __version__,
-    "config": {...},
+    "version": __version__,  # From aponyx.__version__
+    "config": {
+        "entry_threshold": config.entry_threshold,
+        "exit_threshold": config.exit_threshold,
+        "position_size": config.position_size,
+        "transaction_cost_bps": config.transaction_cost_bps,
+        "max_holding_days": config.max_holding_days,
+        "dv01_per_million": config.dv01_per_million,
+    },
     "summary": {
         "start_date": str(aligned.index[0]),
         "end_date": str(aligned.index[-1]),
         "total_days": len(aligned),
         "n_trades": int(n_trades),
         "total_pnl": float(total_pnl),
+        "avg_pnl_per_trade": float(avg_pnl_per_trade),
     },
 }
 ```
 
-**Saved alongside results:**
+**Metadata persistence:**
 ```python
-save_json(metadata, "logs/run_metadata.json")
+# Save backtest metadata
+save_json(result.metadata, "logs/run_metadata.json")
+
+# Register cached datasets
+registry.register_dataset(
+    name=f"cache_{instrument}_{cache_key}",
+    file_path=cache_path,
+    instrument=instrument,
+    metadata={
+        "provider": provider,
+        "cached_at": datetime.now().isoformat(),
+        "cache_key": cache_key,
+        "params": params,
+    },
+)
 ```
+
+**Version tracking:**
+- Package version available via `aponyx.__version__`
+- Retrieved from package metadata via `importlib.metadata.version("aponyx")`
+- Included in all backtest metadata for reproducibility
 
 **Files:**
 - Sample data with fixed seeds: `src/aponyx/data/sample_data.py`
 - Metadata logging: `src/aponyx/backtest/engine.py`
 - Metadata I/O: `src/aponyx/persistence/json_io.py`
+- Registry management: `src/aponyx/persistence/registry.py`, `src/aponyx/data/cache.py`
+- Version tracking: `src/aponyx/__init__.py`
 
 ---
 
 ## Repository Structure
 
 ```
-src/aponyx/           # Main package
-  data/                    # Data loading, validation, caching
-    providers/             # Provider implementations (file, bloomberg)
-  models/                  # Signal computation and registry
-  backtest/                # Backtesting engine and metrics
-  visualization/           # Plotting and dashboards
-  persistence/             # Parquet/JSON I/O
-  config/                  # Constants and configuration
-
-tests/                     # Unit tests (mirrors src/ structure)
-  data/
-  models/
-  backtest/
-  persistence/
-  visualization/
-
-examples/                  # Runnable demonstrations
-  data_demo.py
-  models_demo.py
-  backtest_demo.py
-  visualization_demo.py
-  persistence_demo.py
-  end_to_end_demo.ipynb
-
-docs/                      # Design documentation
-  cdx_overlay_strategy.md
-  python_guidelines.md
-  logging_design.md
-  signal_registry_usage.md
-  visualization_design.md
-  caching_design.md
-  adding_data_providers.md
-  documentation_structure.md
-  maintenance/             # Advanced workflows
-
-data/                      # Data storage
-  raw/                     # Source data files
-  processed/               # Transformed data
-  cache/                   # TTL-based cache
-
-logs/                      # Run metadata and logs
-
-.github/
-  copilot-instructions.md  # AI assistant configuration
-
-pyproject.toml             # Project metadata and dependencies
-README.md                  # Quickstart guide
-LICENSE                    # MIT license
+aponyx/
+├── src/aponyx/              # Main package
+│   ├── __init__.py          # Package initialization with version
+│   ├── main.py              # CLI entry point (placeholder)
+│   ├── py.typed             # PEP 561 type marker for mypy
+│   ├── config/              # Constants and configuration
+│   │   └── __init__.py      # PROJECT_ROOT, DATA_DIR, CACHE_ENABLED, etc.
+│   ├── data/                # Data loading, validation, caching
+│   │   ├── __init__.py
+│   │   ├── fetch.py         # Unified fetch interface
+│   │   ├── sources.py       # DataSource protocol
+│   │   ├── validation.py    # Schema validation
+│   │   ├── schemas.py       # Schema dataclasses
+│   │   ├── cache.py         # TTL-based caching
+│   │   ├── sample_data.py   # Synthetic data generation
+│   │   ├── bloomberg_config.py           # Ticker registry
+│   │   ├── bloomberg_securities.json     # Security metadata
+│   │   ├── bloomberg_instruments.json    # Instrument definitions
+│   │   └── providers/       # Provider implementations
+│   │       ├── __init__.py
+│   │       ├── file.py      # File-based provider
+│   │       └── bloomberg.py # Bloomberg Terminal provider
+│   ├── models/              # Signal generation
+│   │   ├── __init__.py
+│   │   ├── signals.py       # Signal computation functions
+│   │   ├── registry.py      # Signal registry
+│   │   ├── catalog.py       # Batch computation
+│   │   ├── config.py        # SignalConfig
+│   │   └── signal_catalog.json  # Signal metadata
+│   ├── backtest/            # Backtesting engine
+│   │   ├── __init__.py
+│   │   ├── engine.py        # Core backtest engine
+│   │   ├── metrics.py       # Performance calculations
+│   │   ├── config.py        # BacktestConfig
+│   │   ├── protocols.py     # Type protocols
+│   │   └── adapters.py      # Third-party library adapters (stubs)
+│   ├── visualization/       # Plotting and dashboards
+│   │   ├── __init__.py
+│   │   ├── plots.py         # Plotting functions
+│   │   ├── visualizer.py    # Theme management
+│   │   └── app.py           # Streamlit dashboard (stub)
+│   └── persistence/         # I/O and registry
+│       ├── __init__.py
+│       ├── parquet_io.py    # Parquet read/write
+│       ├── json_io.py       # JSON read/write
+│       └── registry.py      # Data registry
+│
+├── tests/                   # Unit tests (mirrors src/ structure)
+│   ├── data/
+│   ├── models/
+│   ├── backtest/
+│   ├── persistence/
+│   └── visualization/
+│
+├── examples/                # Runnable demonstrations
+│   ├── README.md
+│   ├── data_demo.py
+│   ├── models_demo.py
+│   ├── backtest_demo.py
+│   ├── visualization_demo.py
+│   ├── persistence_demo.py
+│   ├── example_data.py
+│   └── end_to_end_demo.ipynb
+│
+├── docs/                    # Design documentation
+│   ├── cdx_overlay_strategy.md       # Investment strategy
+│   ├── python_guidelines.md          # Code standards
+│   ├── logging_design.md             # Logging conventions
+│   ├── signal_registry_usage.md      # Signal management
+│   ├── visualization_design.md       # Chart architecture
+│   ├── caching_design.md             # Cache layer
+│   ├── adding_data_providers.md      # Provider extension
+│   ├── documentation_structure.md    # Doc principles
+│   ├── maintenance/         # Advanced workflows
+│   │   ├── MAINTENANCE.md
+│   │   └── Update-Upstream.ps1
+│   └── prompts/             # LLM context
+│       ├── investment strategy.txt
+│       └── technical implementation.txt
+│
+├── data/                    # Data storage
+│   ├── registry.json        # Dataset registry
+│   ├── raw/                 # Source data files
+│   ├── processed/           # Transformed data
+│   └── cache/               # TTL-based cache
+│       ├── bloomberg/
+│       └── file/
+│
+├── logs/                    # Run metadata and logs
+│   └── run_metadata.json
+│
+├── .github/
+│   └── copilot-instructions.md  # AI assistant configuration
+│
+├── pyproject.toml           # Project metadata and dependencies
+├── README.md                # Quickstart guide
+├── LICENSE                  # MIT license
+├── TODO.md                  # Task tracking
+├── PROJECT_STATUS.md        # This file
+├── CHANGELOG.md             # Version history
+├── PYPI_RELEASE_CHECKLIST.md  # Release process
+└── project_setup_process.md   # Setup documentation
 ```
 
 ---
 
-## Next Steps (Inferred from Stubs)
+## Current Gaps and Stubs
 
-1. Complete Streamlit dashboard implementation (`src/aponyx/visualization/app.py`)
-2. Implement signal attribution and exposure charts (`plot_attribution`, `plot_exposures`)
-3. Expand signal catalog with additional ideas
-4. Multi-signal combination experiments
+**Visualization Layer:**
+- `plot_attribution` - Stub that raises `NotImplementedError`
+- `plot_exposures` - Stub that raises `NotImplementedError`
+- `plot_dashboard` - Stub that raises `NotImplementedError`
+- `app.py` - Streamlit dashboard contains only placeholder comments
+
+**Data Layer:**
+- `APISource` dataclass defined in `sources.py` but no provider implementation exists
+
+**Backtest Layer:**
+- `adapters.py` contains commented-out stubs for vectorbt and quantstats integration
+
+**Current Limitations:**
+- Three signals in catalog (basis, gap, momentum); framework supports adding more
+- Binary position sizing only (no scaling by signal strength)
+- Single-asset backtesting (no portfolio-level support)
+- File-based data only (no API or database providers beyond Bloomberg Terminal)
 
 ---
 
