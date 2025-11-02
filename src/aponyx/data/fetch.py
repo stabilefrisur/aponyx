@@ -9,7 +9,7 @@ import logging
 
 import pandas as pd
 
-from ..config import DATA_DIR, CACHE_ENABLED, CACHE_TTL_DAYS, DEFAULT_DATA_SOURCES
+from ..config import DATA_DIR, CACHE_ENABLED, CACHE_TTL_DAYS
 from .bloomberg_config import get_bloomberg_ticker
 from ..persistence.registry import DataRegistry, REGISTRY_PATH
 from .cache import get_cached_data, save_to_cache
@@ -52,7 +52,6 @@ def fetch_cdx(
     start_date: str | None = None,
     end_date: str | None = None,
     use_cache: bool = CACHE_ENABLED,
-    force_refresh: bool = False,
 ) -> pd.DataFrame:
     """
     Fetch CDX index spread data from configured source.
@@ -73,8 +72,6 @@ def fetch_cdx(
         End date in YYYY-MM-DD format.
     use_cache : bool, default CACHE_ENABLED
         Whether to use cache.
-    force_refresh : bool, default False
-        Force fetch from source, bypassing cache.
 
     Returns
     -------
@@ -90,22 +87,21 @@ def fetch_cdx(
     >>> df = fetch_cdx(BloombergSource(), security="cdx_ig_5y")
     >>> df = fetch_cdx(BloombergSource(), bloomberg_ticker="CDX IG CDSI GEN 5Y Corp")
     """
-    source = source or DEFAULT_DATA_SOURCES.get("cdx")
     if source is None:
-        raise ValueError("No source provided and no default configured for CDX")
+        raise ValueError("Data source must be specified for CDX fetch")
 
     instrument = "cdx"
     cache_dir = DATA_DIR / "cache"
 
     # Check cache first
-    if use_cache and not force_refresh:
+    if use_cache:
         cached = get_cached_data(
             source,
             instrument,
             cache_dir,
             start_date=start_date,
             end_date=end_date,
-            ttl_days=CACHE_TTL_DAYS.get(instrument),
+            ttl_days=CACHE_TTL_DAYS,
             security=security,
         )
         if cached is not None:
@@ -181,7 +177,6 @@ def fetch_vix(
     start_date: str | None = None,
     end_date: str | None = None,
     use_cache: bool = CACHE_ENABLED,
-    force_refresh: bool = False,
 ) -> pd.DataFrame:
     """
     Fetch VIX volatility index data from configured source.
@@ -196,8 +191,6 @@ def fetch_vix(
         End date in YYYY-MM-DD format.
     use_cache : bool, default CACHE_ENABLED
         Whether to use cache.
-    force_refresh : bool, default False
-        Force fetch from source, bypassing cache.
 
     Returns
     -------
@@ -210,22 +203,21 @@ def fetch_vix(
     >>> from aponyx.data import fetch_vix, FileSource
     >>> df = fetch_vix(FileSource("data/raw/vix.parquet"))
     """
-    source = source or DEFAULT_DATA_SOURCES.get("vix")
     if source is None:
-        raise ValueError("No source provided and no default configured for VIX")
+        raise ValueError("Data source must be specified for VIX fetch")
 
     instrument = "vix"
     cache_dir = DATA_DIR / "cache"
 
     # Check cache first
-    if use_cache and not force_refresh:
+    if use_cache:
         cached = get_cached_data(
             source,
             instrument,
             cache_dir,
             start_date=start_date,
             end_date=end_date,
-            ttl_days=CACHE_TTL_DAYS.get(instrument),
+            ttl_days=CACHE_TTL_DAYS,
         )
         if cached is not None:
             return cached
@@ -280,7 +272,6 @@ def fetch_etf(
     start_date: str | None = None,
     end_date: str | None = None,
     use_cache: bool = CACHE_ENABLED,
-    force_refresh: bool = False,
 ) -> pd.DataFrame:
     """
     Fetch credit ETF price data from configured source.
@@ -301,8 +292,6 @@ def fetch_etf(
         End date in YYYY-MM-DD format.
     use_cache : bool, default CACHE_ENABLED
         Whether to use cache.
-    force_refresh : bool, default False
-        Force fetch from source, bypassing cache.
 
     Returns
     -------
@@ -318,22 +307,21 @@ def fetch_etf(
     >>> df = fetch_etf(BloombergSource(), security="hyg")
     >>> df = fetch_etf(BloombergSource(), bloomberg_ticker="HYG US Equity")
     """
-    source = source or DEFAULT_DATA_SOURCES.get("etf")
     if source is None:
-        raise ValueError("No source provided and no default configured for ETF")
+        raise ValueError("Data source must be specified for ETF fetch")
 
     instrument = "etf"
     cache_dir = DATA_DIR / "cache"
 
     # Check cache first
-    if use_cache and not force_refresh:
+    if use_cache:
         cached = get_cached_data(
             source,
             instrument,
             cache_dir,
             start_date=start_date,
             end_date=end_date,
-            ttl_days=CACHE_TTL_DAYS.get(instrument),
+            ttl_days=CACHE_TTL_DAYS,
             security=security,
         )
         if cached is not None:
