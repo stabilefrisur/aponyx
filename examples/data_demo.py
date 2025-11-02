@@ -1,49 +1,41 @@
 """
-Data Layer Demonstration - Loading, Validation, Caching, and Registry
+Data Layer Demonstration - Fetching, Validation, and Caching
 
-Demonstrates the complete data layer workflow:
-1. Generate synthetic market data for multiple instruments
-   - CDX IG, CDX HY, VIX, HYG ETF (209 trading days)
-2. Save datasets to Parquet files with metadata
-3. Register datasets in central JSON registry
-4. Query registry by instrument type and date range
-5. Fetch CDX, VIX, and ETF market data with schema validation:
-   - CDX index spreads (validate_cdx_schema)
-   - VIX volatility levels (validate_vix_schema)
-   - ETF prices (validate_etf_schema)
-6. Demonstrate caching behavior (second fetch uses cache)
-7. Display summary statistics and data quality metrics
+Demonstrates the data layer fetch operations with validation and caching:
+1. Generate synthetic market data (CDX, VIX, ETF) and save to files
+2. Fetch CDX, VIX, and ETF data using FileSource provider
+3. Validate data using schema validators (validate_cdx_schema, validate_vix_schema, validate_etf_schema)
+4. Demonstrate cache behavior (miss on first fetch, hit on second fetch)
+5. Show data quality metrics and statistics
 
-Output: 
-  - Parquet files in data/raw/
-  - Registry in data/registry.json
+Output:
   - Validated DataFrames with DatetimeIndex
+  - Schema validation results
+  - Cache performance (miss/hit logging)
 
 Key Features:
-  - Type-safe Parquet I/O with schema validation
-  - Central registry for dataset discovery
-  - Metadata tracking (instrument, frequency, date range)
-  - DatasetEntry dataclass for type-safe access
-  - Transparent caching for repeated fetches
+  - Provider pattern abstraction (FileSource, BloombergSource)
+  - Unified fetch interface (fetch_cdx, fetch_vix, fetch_etf)
+  - Schema validation with constraint checking
+  - Transparent TTL-based caching
   - Clean separation of data layer from models layer
-  - Business logic checks (spread/price bounds)
 """
 
 import logging
-import pandas as pd
-from datetime import datetime
+from pathlib import Path
 
-from example_data import generate_persistence_data
+from example_data import generate_example_data
 from aponyx.data import (
     fetch_cdx,
     fetch_vix,
     fetch_etf,
     FileSource,
-    DataRegistry,
-    DatasetEntry,
+    validate_cdx_schema,
+    validate_vix_schema,
+    validate_etf_schema,
 )
-from aponyx.persistence import save_parquet, load_parquet, save_json, load_json
-from aponyx.config import DATA_DIR, REGISTRY_PATH, LOGS_DIR
+from aponyx.persistence import save_parquet
+from aponyx.config import DATA_DIR
 
 # Configure logging
 logging.basicConfig(
@@ -54,267 +46,228 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def create_sample_data() -> None:
+def create_sample_files() -> None:
+    """Create sample market data files for fetch demonstrations."""
+    print("\n" + "=" * 70)
+    print("PART 1: Creating Sample Data Files")
+    print("=" * 70)
+    
+    print("\nGenerating synthetic market data...")
+    cdx_df, vix_df, etf_df = generate_example_data(periods=252)
+    
+    # Save to files for fetch demonstrations
+    raw_dir = DATA_DIR / "raw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    
+    save_parquet(cdx_df, raw_dir / "cdx_ig_5y.parquet")
+    print(f"  OK CDX IG 5Y: {len(cdx_df)} rows -> {raw_dir / 'cdx_ig_5y.parquet'}")
+    
+    save_parquet(vix_df, raw_dir / "vix.parquet")
+    print(f"  OK VIX: {len(vix_df)} rows -> {raw_dir / 'vix.parquet'}")
+    
+    save_parquet(etf_df, raw_dir / "hyg_etf.parquet")
+    print(f"  OK HYG ETF: {len(etf_df)} rows -> {raw_dir / 'hyg_etf.parquet'}")
+
+
+def demonstrate_fetch_operations() -> tuple:
     """
-    Create sample market data files for demonstration.
-
-    Generates synthetic CDX spread, VIX, and ETF data and saves to Parquet.
+    Demonstrate fetch operations with FileSource.
+    
+    Returns
+    -------
+    tuple
+        (cdx_df, vix_df, etf_df) DataFrames with DatetimeIndex.
     """
-    print("\n" + "=" * 60)
-    print("PART 1: Creating Sample Data and Registry")
-    print("=" * 60)
-    print("\nCreating sample market data...")
+    print("\n" + "=" * 70)
+    print("PART 2: Fetch Operations with Validation")
+    print("=" * 70)
+    
+    raw_dir = DATA_DIR / "raw"
+    print(f"\nData directory: {raw_dir}")
+    
+    # Fetch CDX data
+    print("\nFetching CDX data...")
+    cdx_source = FileSource(raw_dir / "cdx_ig_5y.parquet")
+    cdx_df = fetch_cdx(cdx_source)
+    print(f"  OK Loaded {len(cdx_df)} rows")
+    print(f"  Columns: {cdx_df.columns.tolist()}")
+    print(f"  Date range: {cdx_df.index.min().date()} to {cdx_df.index.max().date()}")
+    print(f"  Spread range: [{cdx_df['spread'].min():.2f}, {cdx_df['spread'].max():.2f}] bps")
+    
+    # Fetch VIX data
+    print("\nFetching VIX data...")
+    vix_source = FileSource(raw_dir / "vix.parquet")
+    vix_df = fetch_vix(vix_source)
+    print(f"  OK Loaded {len(vix_df)} rows")
+    print(f"  Columns: {vix_df.columns.tolist()}")
+    print(f"  Date range: {vix_df.index.min().date()} to {vix_df.index.max().date()}")
+    print(f"  Level range: [{vix_df['level'].min():.2f}, {vix_df['level'].max():.2f}]")
+    
+    # Fetch ETF data
+    print("\nFetching ETF data...")
+    etf_source = FileSource(raw_dir / "hyg_etf.parquet")
+    etf_df = fetch_etf(etf_source)
+    print(f"  OK Loaded {len(etf_df)} rows")
+    print(f"  Columns: {etf_df.columns.tolist()}")
+    print(f"  Date range: {etf_df.index.min().date()} to {etf_df.index.max().date()}")
+    print(f"  Spread range: [{etf_df['spread'].min():.2f}, {etf_df['spread'].max():.2f}]")
+    
+    return cdx_df, vix_df, etf_df
 
-    # Generate all datasets using centralized helper
-    datasets = generate_persistence_data(periods=209)
 
-    # Save each dataset
-    save_parquet(datasets["cdx_ig_5y"], DATA_DIR / "raw" / "cdx_ig_5y.parquet")
-    print(f"  ✓ Saved CDX IG 5Y: {len(datasets['cdx_ig_5y'])} rows")
-
-    save_parquet(datasets["cdx_hy_5y"], DATA_DIR / "raw" / "cdx_hy_5y.parquet")
-    print(f"  ✓ Saved CDX HY 5Y: {len(datasets['cdx_hy_5y'])} rows")
-
-    save_parquet(datasets["vix"], DATA_DIR / "raw" / "vix.parquet")
-    print(f"  ✓ Saved VIX: {len(datasets['vix'])} rows")
-
-    save_parquet(datasets["hyg_etf"], DATA_DIR / "raw" / "hyg_etf.parquet")
-    print(f"  ✓ Saved HYG ETF: {len(datasets['hyg_etf'])} rows")
-
-
-def register_datasets() -> None:
+def demonstrate_validation(cdx_df, vix_df, etf_df) -> None:
     """
-    Register all datasets in the central registry.
-
-    Creates a DataRegistry and registers all available market data files
-    with appropriate metadata.
+    Demonstrate schema validation.
+    
+    Parameters
+    ----------
+    cdx_df : pd.DataFrame
+        CDX data with spread column.
+    vix_df : pd.DataFrame
+        VIX data with level column.
+    etf_df : pd.DataFrame
+        ETF data with spread column.
     """
-    print("\nRegistering datasets...")
-
-    registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
-
-    # Register CDX instruments
-    registry.register_dataset(
-        name="cdx_ig_5y",
-        file_path=DATA_DIR / "raw" / "cdx_ig_5y.parquet",
-        instrument="CDX.NA.IG",
-        tenor="5Y",
-        metadata={"source": "synthetic", "frequency": "daily"},
-    )
-
-    registry.register_dataset(
-        name="cdx_hy_5y",
-        file_path=DATA_DIR / "raw" / "cdx_hy_5y.parquet",
-        instrument="CDX.NA.HY",
-        tenor="5Y",
-        metadata={"source": "synthetic", "frequency": "daily"},
-    )
-
-    # Register market data
-    registry.register_dataset(
-        name="vix",
-        file_path=DATA_DIR / "raw" / "vix.parquet",
-        instrument="VIX",
-        metadata={"source": "synthetic", "frequency": "daily"},
-    )
-
-    registry.register_dataset(
-        name="hyg_etf",
-        file_path=DATA_DIR / "raw" / "hyg_etf.parquet",
-        instrument="HYG",
-        metadata={"source": "synthetic", "frequency": "daily", "type": "ETF"},
-    )
-
-    print(f"  ✓ Registered {len(registry.list_datasets())} datasets")
-
-
-def demonstrate_registry_usage() -> None:
-    """Demonstrate registry query and filtering capabilities."""
-    print("\nDemonstrating registry queries...")
-
-    registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
-
-    # List all datasets
-    all_datasets = registry.list_datasets()
-    print(f"  Total datasets: {len(all_datasets)}")
-
-    # Filter by CDX instruments
-    cdx_datasets = [d for d in all_datasets if "cdx" in d]
-    print(f"  CDX instruments: {cdx_datasets}")
-
-    # Get detailed info using type-safe dataclass
-    entry = registry.get_dataset_entry("cdx_ig_5y")
-    print("\n  CDX IG 5Y details:")
-    print(f"    Type: {type(entry).__name__}")
-    print(f"    Instrument: {entry.instrument}")
-    print(f"    Tenor: {entry.tenor}")
-    print(f"    Date range: {entry.start_date[:10]} to {entry.end_date[:10]}")
-    print(f"    Rows: {entry.row_count}")
-    print(f"    Metadata: {entry.metadata}")
+    print("\n" + "=" * 70)
+    print("PART 3: Schema Validation")
+    print("=" * 70)
     
-    # Demonstrate type-safe attribute access benefits
-    print("\n  Type-safe benefits:")
-    print("    - IDE autocomplete works for all attributes ✓")
-    print(f"    - Typed attributes: {type(entry.instrument).__name__}, {type(entry.row_count).__name__}")
-    print("    - No KeyError risk from typos ✓")
-
-
-def demonstrate_dataclass_features() -> None:
-    """Demonstrate DatasetEntry dataclass features."""
-    print("\nDemonstrating DatasetEntry dataclass...")
+    # Validate CDX schema
+    print("\nValidating CDX schema...")
+    validate_cdx_schema(cdx_df)
+    print("  OK CDX schema valid")
+    print("    - Required columns present: date, spread")
+    print("    - Spread range check: 0.0 <= spread <= 10000.0 bps")
+    print(f"    - Actual range: [{cdx_df['spread'].min():.2f}, {cdx_df['spread'].max():.2f}]")
     
-    registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
+    # Validate VIX schema
+    print("\nValidating VIX schema...")
+    validate_vix_schema(vix_df)
+    print("  OK VIX schema valid")
+    print("    - Required columns present: date, level")
+    print("    - Level range check: 0.0 <= level <= 200.0")
+    print(f"    - Actual range: [{vix_df['level'].min():.2f}, {vix_df['level'].max():.2f}]")
     
-    # Get multiple entries and work with them type-safely
-    print("\n  Processing multiple datasets:")
-    for name in ["cdx_ig_5y", "cdx_hy_5y", "vix"]:
-        entry = registry.get_dataset_entry(name)
-        print(f"    {entry.instrument:12s} ({entry.tenor or 'N/A':3s}): {entry.row_count:3d} rows")
+    # Validate ETF schema
+    print("\nValidating ETF schema...")
+    validate_etf_schema(etf_df)
+    print("  OK ETF schema valid")
+    print("    - Required columns present: date, spread")
+    print("    - Spread range check: 0.0 <= spread <= 10000.0")
+    print(f"    - Actual range: [{etf_df['spread'].min():.2f}, {etf_df['spread'].max():.2f}]")
+
+
+def demonstrate_caching() -> None:
+    """Demonstrate cache miss and cache hit behavior."""
+    print("\n" + "=" * 70)
+    print("PART 4: Cache Behavior Demonstration")
+    print("=" * 70)
     
-    # Demonstrate conversion methods
-    print("\n  Dataclass conversion methods:")
-    entry = registry.get_dataset_entry("hyg_etf")
+    source = FileSource(DATA_DIR / "raw" / "cdx_ig_5y.parquet")
     
-    # Convert to dict for JSON serialization
-    entry_dict = entry.to_dict()
-    print(f"    to_dict(): {type(entry_dict).__name__} with {len(entry_dict)} keys")
+    print("\nFirst fetch (cache miss expected)...")
+    print("  Watch for 'Cache miss' in logs below:")
+    cdx_first = fetch_cdx(source, use_cache=True)
+    print(f"  OK Fetched {len(cdx_first)} rows")
     
-    # Recreate from dict
-    restored = DatasetEntry.from_dict(entry_dict)
-    print(f"    from_dict(): {type(restored).__name__}")
-    print(f"    Roundtrip preserves data: {restored.instrument == entry.instrument}")
+    print("\nSecond fetch (cache hit expected)...")
+    print("  Watch for 'Cache hit' in logs below:")
+    cdx_second = fetch_cdx(source, use_cache=True)
+    print(f"  OK Retrieved {len(cdx_second)} rows from cache")
     
-    # Show practical use case: filtering datasets by row count
-    print("\n  Practical example - filter by row count:")
-    all_names = registry.list_datasets()
-    large_datasets = [
-        name for name in all_names
-        if registry.get_dataset_entry(name).row_count and 
-           registry.get_dataset_entry(name).row_count > 100
-    ]
-    print(f"    Datasets with >100 rows: {large_datasets}")
-
-
-def demonstrate_data_fetching() -> None:
-    """Demonstrate data fetching with validation and caching."""
-    print("\n" + "=" * 60)
-    print("PART 2: Data Fetching with Validation and Caching")
-    print("=" * 60)
-    print("\nFetching data with schema validation...")
-
-    # Configure file-based data source
-    source = FileSource(DATA_DIR / "raw")
+    # Verify data consistency
+    import pandas as pd
+    if cdx_first.equals(cdx_second):
+        print("\n  OK Cache consistency verified (DataFrames identical)")
+    else:
+        print("\n  WARNING: Data mismatch between fetches")
     
-    # Fetch individual data sources
-    cdx_ig = fetch_cdx(source, security="cdx_ig_5y")
-    logger.info("CDX IG fetched: %d rows, spread_mean=%.2f", len(cdx_ig), cdx_ig["spread"].mean())
+    print("\nCache benefits:")
+    print("  OK Reduced I/O on repeated fetches")
+    print("  OK Faster data access for iterative development")
+    print("  OK Automatic staleness checking via TTL")
+    print("  OK Transparent to user code (same API)")
 
-    vix = fetch_vix(source)
-    logger.info("VIX fetched: %d rows, level_mean=%.2f", len(vix), vix["close"].mean())
 
-    hyg = fetch_etf(source, security="hyg")
-    logger.info("HYG fetched: %d rows, price_mean=%.2f", len(hyg), hyg["close"].mean())
-
-    # Demonstrate caching by fetching again
-    print("\nDemonstrating cache functionality...")
-    cdx_ig_cached = fetch_cdx(source, security="cdx_ig_5y")
-    logger.info("CDX IG from cache: %d rows", len(cdx_ig_cached))
-
-    # Display summary statistics
-    print("\nData Quality Summary:")
-    print(f"CDX IG: {len(cdx_ig)} rows, date_range={cdx_ig.index.min().date()} to {cdx_ig.index.max().date()}")
-    print(f"  spread: mean={cdx_ig['spread'].mean():.2f}, min={cdx_ig['spread'].min():.2f}, max={cdx_ig['spread'].max():.2f}")
-
-    print(f"VIX: {len(vix)} rows, date_range={vix.index.min().date()} to {vix.index.max().date()}")
-    print(f"  close: mean={vix['close'].mean():.2f}, min={vix['close'].min():.2f}, max={vix['close'].max():.2f}")
-
-    print(f"HYG ETF: {len(hyg)} rows, date_range={hyg.index.min().date()} to {hyg.index.max().date()}")
-    print(f"  close: mean={hyg['close'].mean():.2f}, min={hyg['close'].min():.2f}, max={hyg['close'].max():.2f}")
-
-    # Validate data integrity
+def demonstrate_data_quality(cdx_df, vix_df, etf_df) -> None:
+    """
+    Show data quality metrics and statistics.
+    
+    Parameters
+    ----------
+    cdx_df : pd.DataFrame
+        CDX data.
+    vix_df : pd.DataFrame
+        VIX data.
+    etf_df : pd.DataFrame
+        ETF data.
+    """
+    print("\n" + "=" * 70)
+    print("PART 5: Data Quality Metrics")
+    print("=" * 70)
+    
     print("\nData Integrity Checks:")
-    print(f"CDX missing values: {cdx_ig.isna().sum().sum()}")
-    print(f"VIX missing values: {vix.isna().sum().sum()}")
-    print(f"HYG missing values: {hyg.isna().sum().sum()}")
-
-
-def demonstrate_data_loading() -> None:
-    """Demonstrate data loading with filters."""
-    print("\n" + "=" * 60)
-    print("PART 3: Advanced Data Loading")
-    print("=" * 60)
-    print("\nDemonstrating data loading...")
-
-    # Load full dataset
-    cdx_ig = load_parquet(DATA_DIR / "raw" / "cdx_ig_5y.parquet")
-    print(f"  Loaded full CDX IG dataset: {len(cdx_ig)} rows")
-
-    # Load with date filter
-    recent = load_parquet(
-        DATA_DIR / "raw" / "cdx_ig_5y.parquet",
-        start_date=pd.Timestamp("2024-10-01"),
-    )
-    print(f"  Loaded recent data (Oct 2024): {len(recent)} rows")
-
-    # Load specific columns
-    spreads_only = load_parquet(
-        DATA_DIR / "raw" / "cdx_ig_5y.parquet",
-        columns=["spread"],
-    )
-    print(f"  Loaded spread column only: {spreads_only.columns.tolist()}")
-
-
-def save_run_metadata() -> None:
-    """Save example run metadata to JSON."""
-    print("\nSaving run metadata...")
-
-    metadata = {
-        "run_id": "demo_20241102",
-        "timestamp": datetime.now(),
-        "parameters": {
-            "momentum_window": 5,
-            "volatility_window": 20,
-            "instruments": ["CDX.IG.5Y", "CDX.HY.5Y"],
-        },
-        "data_version": "0.1.0",
-        "output_path": DATA_DIR / "processed" / "signals.parquet",
-    }
-
-    output_path = save_json(metadata, LOGS_DIR / "run_metadata.json")
-    print(f"  ✓ Saved metadata to {output_path}")
-
-    # Load it back
-    loaded = load_json(output_path)
-    print(f"  ✓ Verified: Run ID = {loaded['run_id']}")
+    print(f"  CDX missing values: {cdx_df.isna().sum().sum()}")
+    print(f"  VIX missing values: {vix_df.isna().sum().sum()}")
+    print(f"  ETF missing values: {etf_df.isna().sum().sum()}")
+    
+    print("\nDate Index Checks:")
+    print(f"  CDX date continuity: {cdx_df.index.is_monotonic_increasing}")
+    print(f"  VIX date continuity: {vix_df.index.is_monotonic_increasing}")
+    print(f"  ETF date continuity: {etf_df.index.is_monotonic_increasing}")
+    
+    print("\nSummary Statistics:")
+    print("\nCDX IG 5Y:")
+    print(f"  Observations: {len(cdx_df)}")
+    print(f"  Mean spread: {cdx_df['spread'].mean():.2f} bps")
+    print(f"  Std dev: {cdx_df['spread'].std():.2f} bps")
+    print(f"  Range: [{cdx_df['spread'].min():.2f}, {cdx_df['spread'].max():.2f}]")
+    
+    print("\nVIX:")
+    print(f"  Observations: {len(vix_df)}")
+    print(f"  Mean level: {vix_df['level'].mean():.2f}")
+    print(f"  Std dev: {vix_df['level'].std():.2f}")
+    print(f"  Range: [{vix_df['level'].min():.2f}, {vix_df['level'].max():.2f}]")
+    
+    print("\nHYG ETF:")
+    print(f"  Observations: {len(etf_df)}")
+    print(f"  Mean spread: {etf_df['spread'].mean():.2f}")
+    print(f"  Std dev: {etf_df['spread'].std():.2f}")
+    print(f"  Range: [{etf_df['spread'].min():.2f}, {etf_df['spread'].max():.2f}]")
 
 
 def main() -> None:
     """Run complete data layer demonstration."""
-    print("=" * 60)
-    print("Data Layer Complete Demonstration")
-    print("=" * 60)
-
-    create_sample_data()
-    register_datasets()
-    demonstrate_registry_usage()
-    demonstrate_dataclass_features()
-    demonstrate_data_fetching()
-    demonstrate_data_loading()
-    save_run_metadata()
-
-    print("\n" + "=" * 60)
-    print("Demo completed successfully!")
-    print("=" * 60)
+    print("=" * 70)
+    print("DATA LAYER DEMONSTRATION")
+    print("Fetching, Validation, and Caching")
+    print("=" * 70)
+    
+    # Run demonstrations
+    create_sample_files()
+    cdx_df, vix_df, etf_df = demonstrate_fetch_operations()
+    demonstrate_validation(cdx_df, vix_df, etf_df)
+    demonstrate_caching()
+    demonstrate_data_quality(cdx_df, vix_df, etf_df)
+    
+    # Summary
+    print("\n" + "=" * 70)
+    print("DEMONSTRATION COMPLETE")
+    print("=" * 70)
     print("\nKey Features Demonstrated:")
-    print("  ✓ Parquet I/O with compression and filtering")
-    print("  ✓ JSON I/O with datetime/Path support")
-    print("  ✓ DataRegistry for dataset catalog management")
-    print("  ✓ DatasetEntry dataclass for type-safe access")
-    print("  ✓ Registry queries and filtering")
-    print("  ✓ Schema validation (CDX, VIX, ETF)")
-    print("  ✓ Transparent caching for repeated fetches")
-    print("  ✓ Data quality checks and integrity validation")
-    print("=" * 60)
+    print("  OK FileSource provider for local files")
+    print("  OK Unified fetch interface (fetch_cdx, fetch_vix, fetch_etf)")
+    print("  OK Schema validation with constraint checking")
+    print("  OK Transparent caching (miss then hit)")
+    print("  OK Data quality metrics and integrity checks")
+    print("  OK DatetimeIndex with proper alignment")
+    print("  OK Clean separation from models layer")
+    print("=" * 70)
+    
+    print("\nNext steps:")
+    print("  -> See persistence_demo.py for Parquet/JSON I/O and registry")
+    print("  -> See bloomberg_demo.py for Bloomberg Terminal integration")
+    print("  -> See models_demo.py for signal computation")
 
 
 if __name__ == "__main__":

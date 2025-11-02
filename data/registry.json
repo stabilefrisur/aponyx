@@ -1,4 +1,22 @@
 {
+  "cache_cdx_a6f7dc616b7f68b4": {
+    "end_date": "2024-09-08T00:00:00",
+    "file_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\data\\cache\\file\\cdx_a6f7dc616b7f68b4.parquet",
+    "instrument": "cdx",
+    "last_updated": null,
+    "metadata": {
+      "cache_key": "a6f7dc616b7f68b4",
+      "cached_at": "2025-11-02T17:22:42.559208",
+      "params": {
+        "security": null
+      },
+      "provider": "file"
+    },
+    "registered_at": "2025-11-02T17:22:42.559208",
+    "row_count": 252,
+    "start_date": "2024-01-01T00:00:00",
+    "tenor": null
+  },
   "cache_cdx_c681afa309f24571": {
     "end_date": "2023-09-09T00:00:00",
     "file_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\data\\cache\\file\\cdx_c681afa309f24571.parquet",
@@ -36,72 +54,96 @@
     "start_date": "2023-01-01T00:00:00",
     "tenor": null
   },
+  "cache_etf_f03fa26986391519": {
+    "end_date": "2024-09-08T00:00:00",
+    "file_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\data\\cache\\file\\etf_f03fa26986391519.parquet",
+    "instrument": "etf",
+    "last_updated": null,
+    "metadata": {
+      "cache_key": "f03fa26986391519",
+      "cached_at": "2025-11-02T17:22:42.594924",
+      "params": {
+        "security": null
+      },
+      "provider": "file"
+    },
+    "registered_at": "2025-11-02T17:22:42.595927",
+    "row_count": 252,
+    "start_date": "2024-01-01T00:00:00",
+    "tenor": null
+  },
   "cache_vix_d09015690dfa93d9": {
-    "end_date": "2023-09-09T00:00:00",
+    "end_date": "2024-09-08T00:00:00",
     "file_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\data\\cache\\file\\vix_d09015690dfa93d9.parquet",
     "instrument": "vix",
     "last_updated": null,
     "metadata": {
       "cache_key": "d09015690dfa93d9",
-      "cached_at": "2025-10-29T22:38:46.323949",
+      "cached_at": "2025-11-02T17:22:42.576692",
       "params": {},
       "provider": "file"
     },
-    "registered_at": "2025-10-29T22:38:46.338206",
+    "registered_at": "2025-11-02T17:22:42.579727",
     "row_count": 252,
-    "start_date": "2023-01-01T00:00:00",
+    "start_date": "2024-01-01T00:00:00",
     "tenor": null
   },
   "cdx_hy_5y": {
-    "end_date": "2024-10-25T00:00:00",
+    "end_date": "2024-07-27T00:00:00",
     "file_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\data\\raw\\cdx_hy_5y.parquet",
     "instrument": "CDX.NA.HY",
+    "last_updated": null,
     "metadata": {
       "frequency": "daily",
       "source": "synthetic"
     },
-    "registered_at": "2025-10-26T15:30:10.847478",
-    "row_count": 215,
+    "registered_at": "2025-11-02T17:23:43.156226",
+    "row_count": 209,
     "start_date": "2024-01-01T00:00:00",
     "tenor": "5Y"
   },
   "cdx_ig_5y": {
-    "end_date": "2024-10-25T00:00:00",
+    "end_date": "2024-07-27T00:00:00",
     "file_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\data\\raw\\cdx_ig_5y.parquet",
     "instrument": "CDX.NA.IG",
+    "last_updated": null,
     "metadata": {
       "frequency": "daily",
-      "source": "synthetic"
+      "quality_check": "passed",
+      "source": "synthetic",
+      "updated_at": "2025-11-02T17:23:43.172899"
     },
-    "registered_at": "2025-10-26T15:30:10.837300",
-    "row_count": 215,
+    "registered_at": "2025-11-02T17:23:43.172899",
+    "row_count": 209,
     "start_date": "2024-01-01T00:00:00",
     "tenor": "5Y"
   },
   "hyg_etf": {
-    "end_date": "2024-10-25T00:00:00",
+    "end_date": "2024-07-27T00:00:00",
     "file_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\data\\raw\\hyg_etf.parquet",
     "instrument": "HYG",
+    "last_updated": null,
     "metadata": {
       "frequency": "daily",
       "source": "synthetic",
       "type": "ETF"
     },
-    "registered_at": "2025-10-26T15:30:10.868866",
-    "row_count": 215,
+    "registered_at": "2025-11-02T17:23:43.156226",
+    "row_count": 209,
     "start_date": "2024-01-01T00:00:00",
     "tenor": null
   },
   "vix": {
-    "end_date": "2024-10-25T00:00:00",
+    "end_date": "2024-07-27T00:00:00",
     "file_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\data\\raw\\vix.parquet",
     "instrument": "VIX",
+    "last_updated": null,
     "metadata": {
       "frequency": "daily",
       "source": "synthetic"
     },
-    "registered_at": "2025-10-26T15:30:10.858192",
-    "row_count": 215,
+    "registered_at": "2025-11-02T17:23:43.156226",
+    "row_count": 209,
     "start_date": "2024-01-01T00:00:00",
     "tenor": null
   }

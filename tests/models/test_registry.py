@@ -13,12 +13,12 @@ from aponyx.models.registry import SignalRegistry, SignalMetadata
 
 @pytest.fixture
 def sample_catalog_data() -> list[dict]:
-    """Sample signal catalog data."""
+    """Sample signal catalog data using real compute functions."""
     return [
         {
             "name": "test_signal_a",
             "description": "Test signal A",
-            "compute_function_name": "compute_test_a",
+            "compute_function_name": "compute_spread_momentum",
             "data_requirements": {"cdx": "spread"},
             "arg_mapping": ["cdx"],
             "enabled": True,
@@ -26,7 +26,7 @@ def sample_catalog_data() -> list[dict]:
         {
             "name": "test_signal_b",
             "description": "Test signal B",
-            "compute_function_name": "compute_test_b",
+            "compute_function_name": "compute_cdx_vix_gap",
             "data_requirements": {"cdx": "spread", "vix": "level"},
             "arg_mapping": ["cdx", "vix"],
             "enabled": True,
@@ -129,7 +129,7 @@ def test_signal_registry_get_metadata(temp_catalog_file: Path) -> None:
     
     metadata = registry.get_metadata("test_signal_a")
     assert metadata.name == "test_signal_a"
-    assert metadata.compute_function_name == "compute_test_a"
+    assert metadata.compute_function_name == "compute_spread_momentum"
     assert metadata.data_requirements == {"cdx": "spread"}
     assert metadata.arg_mapping == ["cdx"]
 
@@ -157,7 +157,7 @@ def test_signal_registry_get_enabled_filters_disabled() -> None:
         {
             "name": "enabled_signal",
             "description": "Enabled",
-            "compute_function_name": "compute_enabled",
+            "compute_function_name": "compute_spread_momentum",
             "data_requirements": {"cdx": "spread"},
             "arg_mapping": ["cdx"],
             "enabled": True,
@@ -165,7 +165,7 @@ def test_signal_registry_get_enabled_filters_disabled() -> None:
         {
             "name": "disabled_signal",
             "description": "Disabled",
-            "compute_function_name": "compute_disabled",
+            "compute_function_name": "compute_cdx_etf_basis",
             "data_requirements": {"cdx": "spread"},
             "arg_mapping": ["cdx"],
             "enabled": False,

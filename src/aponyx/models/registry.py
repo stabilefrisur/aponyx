@@ -1,11 +1,11 @@
-"""
-Signal registry for managing signal metadata and catalog persistence.
-"""
+"""Signal registry for managing signal metadata and catalog persistence."""
 
 import json
 import logging
 from dataclasses import dataclass, asdict
 from pathlib import Path
+
+from . import signals
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +129,27 @@ class SignalRegistry:
                 ) from e
 
         logger.debug("Loaded %d signals from catalog", len(self._signals))
+        
+        # Fail-fast validation: ensure all compute functions exist
+        self._validate_catalog()
+
+    def _validate_catalog(self) -> None:
+        """
+        Validate that all signal compute functions exist in signals module.
+        
+        Raises
+        ------
+        ValueError
+            If any compute function name does not exist in signals module.
+        """
+        for name, metadata in self._signals.items():
+            if not hasattr(signals, metadata.compute_function_name):
+                raise ValueError(
+                    f"Signal '{name}' references non-existent compute function: "
+                    f"{metadata.compute_function_name}"
+                )
+        
+        logger.debug("Validated %d signal compute functions", len(self._signals))
 
     def get_metadata(self, name: str) -> SignalMetadata:
         """

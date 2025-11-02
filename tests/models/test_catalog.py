@@ -161,7 +161,7 @@ def test_compute_registered_signals_missing_column() -> None:
 
 
 def test_compute_registered_signals_invalid_function_name() -> None:
-    """Test that invalid compute function name raises AttributeError."""
+    """Test that invalid compute function name raises ValueError at load time."""
     catalog_data = [
         {
             "name": "test_signal",
@@ -178,15 +178,9 @@ def test_compute_registered_signals_invalid_function_name() -> None:
         with open(catalog_path, "w") as f:
             json.dump(catalog_data, f)
         
-        registry = SignalRegistry(catalog_path)
-        config = SignalConfig()
-        
-        market_data = {
-            "cdx": pd.DataFrame({"spread": [100, 101, 102]})
-        }
-        
-        with pytest.raises(AttributeError):
-            compute_registered_signals(registry, market_data, config)
+        # Fail-fast validation catches this at registry load time
+        with pytest.raises(ValueError, match="non-existent compute function"):
+            SignalRegistry(catalog_path)
 
 
 def test_validate_data_requirements_success() -> None:
