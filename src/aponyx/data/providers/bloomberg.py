@@ -128,6 +128,10 @@ def fetch_from_bloomberg(
 
     logger.debug("Fetched %d rows from Bloomberg", len(df))
 
+    # Convert index to DatetimeIndex (xbbg returns object dtype)
+    df.index = pd.to_datetime(df.index)
+    logger.debug("Converted index to DatetimeIndex: %s", df.index.dtype)
+
     # Map Bloomberg field names to schema columns
     df = _map_bloomberg_fields(df, spec)
 
@@ -161,13 +165,20 @@ def _map_bloomberg_fields(
 
     Notes
     -----
-    xbbg returns multi-index columns for multiple tickers: (ticker, field).
-    For single ticker requests, we flatten to just field names.
+    xbbg always returns multi-index columns: (ticker, field).
+    We flatten by taking the second level (field names).
     """
     # Handle xbbg multi-index columns: (ticker, field)
+    # xbbg always returns multi-index, even for single ticker
     if isinstance(df.columns, pd.MultiIndex):
         # Flatten by taking second level (field names)
         df.columns = df.columns.get_level_values(1)
+    else:
+        # This should not happen with real xbbg, but handle gracefully
+        logger.warning(
+            "Expected multi-index columns from xbbg, got flat columns. "
+            "This may indicate a testing scenario or API change."
+        )
 
     # Rename columns according to mapping
     df = df.rename(columns=spec.field_mapping)

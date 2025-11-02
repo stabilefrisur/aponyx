@@ -141,9 +141,11 @@ logger = logging.getLogger(__name__)
 @pytest.fixture
 def mock_xbbg_response():
     """Create mock xbbg response DataFrame."""
-    dates = pd.date_range("2023-01-01", periods=5, freq="D")
+    # xbbg returns object dtype index (date strings), not DatetimeIndex
+    dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"])
+    # xbbg always returns multi-index columns: (ticker, field)
     df = pd.DataFrame(
-        {"PX_LAST": [100.0, 101.0, 102.0, 103.0, 104.0]},
+        {("CDX IG CDSI GEN 5Y Corp", "PX_LAST"): [100.0, 101.0, 102.0, 103.0, 104.0]},
         index=dates,
     )
     return df
@@ -152,9 +154,11 @@ def mock_xbbg_response():
 @pytest.fixture
 def mock_xbbg_etf_response():
     """Create mock xbbg response DataFrame for ETF data."""
-    dates = pd.date_range("2023-01-01", periods=5, freq="D")
+    # xbbg returns object dtype index (date strings), not DatetimeIndex
+    dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"])
+    # xbbg always returns multi-index columns: (ticker, field)
     df = pd.DataFrame(
-        {"YAS_ISPREAD": [85.0, 86.0, 87.0, 88.0, 89.0]},
+        {("HYG US Equity", "YAS_ISPREAD"): [85.0, 86.0, 87.0, 88.0, 89.0]},
         index=dates,
     )
     return df
@@ -163,7 +167,8 @@ def mock_xbbg_etf_response():
 @pytest.fixture
 def mock_xbbg_multiindex_response():
     """Create mock xbbg response with multi-index columns."""
-    dates = pd.date_range("2023-01-01", periods=5, freq="D")
+    # xbbg returns object dtype index (date strings), not DatetimeIndex
+    dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"])
     df = pd.DataFrame(
         {("CDX IG CDSI GEN 5Y Corp", "PX_LAST"): [100.0, 101.0, 102.0, 103.0, 104.0]},
         index=dates,
@@ -201,9 +206,16 @@ class TestFetchFromBloomberg:
             assert "security" in result.columns
             assert result["security"].iloc[0] == "cdx_ig_5y"
 
-    def test_fetch_vix_success(self, mock_xbbg_response):
+    def test_fetch_vix_success(self):
         """Test successful VIX data fetch."""
-        with patch("xbbg.blp.bdh", return_value=mock_xbbg_response) as mock_bdh:
+        # Create VIX-specific mock response
+        dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"])
+        mock_response = pd.DataFrame(
+            {("VIX Index", "PX_LAST"): [20.0, 21.0, 22.0, 23.0, 24.0]},
+            index=dates,
+        )
+        
+        with patch("xbbg.blp.bdh", return_value=mock_response) as mock_bdh:
             result = fetch_from_bloomberg(
                 ticker="VIX Index",
                 instrument="vix",
@@ -236,9 +248,16 @@ class TestFetchFromBloomberg:
             assert "security" in result.columns
             assert result["security"].iloc[0] == "hyg"
 
-    def test_default_date_range(self, mock_xbbg_response):
+    def test_default_date_range(self):
         """Test default 5-year date range when dates not provided."""
-        with patch("xbbg.blp.bdh", return_value=mock_xbbg_response) as mock_bdh:
+        # Create VIX-specific mock response
+        dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"])
+        mock_response = pd.DataFrame(
+            {("VIX Index", "PX_LAST"): [20.0, 21.0, 22.0, 23.0, 24.0]},
+            index=dates,
+        )
+        
+        with patch("xbbg.blp.bdh", return_value=mock_response) as mock_bdh:
             fetch_from_bloomberg(
                 ticker="VIX Index",
                 instrument="vix",
@@ -252,9 +271,16 @@ class TestFetchFromBloomberg:
             assert len(call_kwargs["start_date"]) == 8  # YYYYMMDD format
             assert len(call_kwargs["end_date"]) == 8
 
-    def test_date_format_conversion(self, mock_xbbg_response):
+    def test_date_format_conversion(self):
         """Test date conversion from YYYY-MM-DD to YYYYMMDD."""
-        with patch("xbbg.blp.bdh", return_value=mock_xbbg_response) as mock_bdh:
+        # Create VIX-specific mock response
+        dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"])
+        mock_response = pd.DataFrame(
+            {("VIX Index", "PX_LAST"): [20.0, 21.0, 22.0, 23.0, 24.0]},
+            index=dates,
+        )
+        
+        with patch("xbbg.blp.bdh", return_value=mock_response) as mock_bdh:
             fetch_from_bloomberg(
                 ticker="VIX Index",
                 instrument="vix",
@@ -305,9 +331,16 @@ class TestFetchFromBloomberg:
                     security="vix",
                 )
 
-    def test_additional_params_passed_through(self, mock_xbbg_response):
+    def test_additional_params_passed_through(self):
         """Test that additional **params are passed to xbbg."""
-        with patch("xbbg.blp.bdh", return_value=mock_xbbg_response) as mock_bdh:
+        # Create VIX-specific mock response
+        dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"])
+        mock_response = pd.DataFrame(
+            {("VIX Index", "PX_LAST"): [20.0, 21.0, 22.0, 23.0, 24.0]},
+            index=dates,
+        )
+        
+        with patch("xbbg.blp.bdh", return_value=mock_response) as mock_bdh:
             fetch_from_bloomberg(
                 ticker="VIX Index",
                 instrument="vix",
@@ -327,7 +360,8 @@ class TestMapBloombergFields:
 
     def test_map_cdx_fields(self):
         """Test field mapping for CDX data."""
-        df = pd.DataFrame({"PX_LAST": [100.0, 101.0]})
+        # xbbg returns multi-index columns
+        df = pd.DataFrame({("CDX IG CDSI GEN 5Y Corp", "PX_LAST"): [100.0, 101.0]})
         spec = get_instrument_spec("cdx")
         result = _map_bloomberg_fields(df, spec)
 
@@ -337,7 +371,8 @@ class TestMapBloombergFields:
 
     def test_map_vix_fields(self):
         """Test field mapping for VIX data."""
-        df = pd.DataFrame({"PX_LAST": [20.0, 21.0]})
+        # xbbg returns multi-index columns
+        df = pd.DataFrame({("VIX Index", "PX_LAST"): [20.0, 21.0]})
         spec = get_instrument_spec("vix")
         result = _map_bloomberg_fields(df, spec)
 
@@ -346,7 +381,8 @@ class TestMapBloombergFields:
 
     def test_map_etf_fields(self):
         """Test field mapping for ETF data."""
-        df = pd.DataFrame({"YAS_ISPREAD": [85.0, 86.0]})
+        # xbbg returns multi-index columns
+        df = pd.DataFrame({("HYG US Equity", "YAS_ISPREAD"): [85.0, 86.0]})
         spec = get_instrument_spec("etf")
         result = _map_bloomberg_fields(df, spec)
 
@@ -438,9 +474,11 @@ class TestIntegration:
 
     def test_full_cdx_workflow(self):
         """Test complete CDX fetch with all transformations."""
+        # xbbg returns object dtype index
+        dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03"])
         mock_response = pd.DataFrame(
             {("CDX IG CDSI GEN 5Y Corp", "PX_LAST"): [100.0, 101.0, 102.0]},
-            index=pd.date_range("2023-01-01", periods=3, freq="D"),
+            index=dates,
         )
 
         with patch("xbbg.blp.bdh", return_value=mock_response):
@@ -462,9 +500,11 @@ class TestIntegration:
 
     def test_full_vix_workflow(self):
         """Test complete VIX fetch with all transformations."""
+        # xbbg returns object dtype index and multi-index columns
+        dates = pd.Index(["2023-01-01", "2023-01-02"])
         mock_response = pd.DataFrame(
-            {"PX_LAST": [20.0, 21.0]},
-            index=pd.date_range("2023-01-01", periods=2, freq="D"),
+            {("VIX Index", "PX_LAST"): [20.0, 21.0]},
+            index=dates,
         )
 
         with patch("xbbg.blp.bdh", return_value=mock_response):
@@ -480,9 +520,11 @@ class TestIntegration:
 
     def test_full_etf_workflow(self):
         """Test complete ETF fetch with all transformations."""
+        # xbbg returns object dtype index and multi-index columns
+        dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03"])
         mock_response = pd.DataFrame(
-            {"YAS_ISPREAD": [85.0, 86.0, 87.0]},
-            index=pd.date_range("2023-01-01", periods=3, freq="D"),
+            {("HYG US Equity", "YAS_ISPREAD"): [85.0, 86.0, 87.0]},
+            index=dates,
         )
 
         with patch("xbbg.blp.bdh", return_value=mock_response):
