@@ -61,7 +61,7 @@ class SignalRegistry:
     Registry for signal metadata with JSON catalog persistence.
 
     Manages signal definitions, enabling/disabling signals, and catalog I/O.
-    Follows pattern from persistence.registry.DataRegistry.
+    Follows pattern from data.registry.DataRegistry.
 
     Parameters
     ----------

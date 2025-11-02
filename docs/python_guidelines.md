@@ -587,7 +587,7 @@ from aponyx.models.base import BaseModel
 ```python
 # In aponyx/models/cdx_overlay_model.py
 from ..data.loader import load_market_data
-from ..persistence.registry import register_dataset
+from ..data.registry import DataRegistry
 from .base import BaseModel
 ```
 

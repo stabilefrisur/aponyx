@@ -13,7 +13,7 @@ from typing import Any
 import pandas as pd
 
 from ..persistence.parquet_io import save_parquet, load_parquet
-from ..persistence.registry import DataRegistry
+from .registry import DataRegistry
 from .sources import DataSource, resolve_provider
 
 logger = logging.getLogger(__name__)

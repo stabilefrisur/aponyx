@@ -60,12 +60,13 @@ src/aponyx/
     __init__.py       # PROJECT_ROOT, DATA_DIR, CACHE_ENABLED, etc.
   
   data/               # Load, validate, transform market data
-    __init__.py       # Exports: fetch_*, *Source, validate_*
+    __init__.py       # Exports: fetch_*, *Source, validate_*, DataRegistry
     fetch.py          # Unified fetch interface
     sources.py        # DataSource protocol and types
     validation.py     # Schema validation functions
     schemas.py        # Schema dataclasses
     cache.py          # TTL-based caching layer
+    registry.py       # Data registry management
     sample_data.py    # Synthetic data generation
     bloomberg_config.py         # Bloomberg ticker registry
     bloomberg_securities.json   # Security metadata
@@ -97,11 +98,10 @@ src/aponyx/
     visualizer.py     # Theme management
     app.py            # Streamlit dashboard (stub)
   
-  persistence/        # Parquet/JSON I/O, data registry
-    __init__.py       # Exports: save_*, load_*, DataRegistry
+  persistence/        # Parquet/JSON I/O utilities
+    __init__.py       # Exports: save_*, load_*
     parquet_io.py     # Parquet read/write
     json_io.py        # JSON read/write
-    registry.py       # Data registry management
 ```
 
 ### Layer Responsibilities
@@ -177,6 +177,8 @@ src/aponyx/
 - Cache enabled by default (`CACHE_ENABLED = True`)
 - 1-day TTL for market data (`CACHE_TTL_DAYS = 1`)
 - Data directory structure: `data/raw/`, `data/processed/`, `data/cache/`
+- Registry path: `data/registry.json` (from `config.REGISTRY_PATH`)
+- DataRegistry lives in data layer (`src/aponyx/data/registry.py`)
 
 **Requirements:**
 - Bloomberg integration requires active Bloomberg Terminal session
@@ -346,13 +348,6 @@ src/aponyx/
   - `load_json` - JSON to Python objects
   - UTF-8 encoding by default
   - Automatic directory creation
-- **Data Registry:**
-  - `DataRegistry` class - Dataset metadata cataloging
-  - `DatasetEntry` dataclass - Registry entry container
-  - JSON-based registry persistence (`registry.json`)
-  - Register, query, and lookup datasets
-  - Metadata tracking: instrument, source, date ranges, custom fields
-  - Validation on registration (path existence, metadata requirements)
 - **Comprehensive Logging:**
   - Module-level loggers in all modules
   - INFO: File operations (saved, loaded, rows, path)
@@ -363,37 +358,14 @@ src/aponyx/
 - **Simple File-Based Design:** No database dependencies, just Parquet + JSON
 - **Type Safety:** Full type hints with modern Python syntax
 - **Automatic Path Handling:** Creates parent directories as needed
-- **Registry Pattern:** Central catalog of all datasets for discovery
 - **Selective Loading:** Column and date filtering reduces memory footprint
-- **Metadata Tracking:** Rich metadata for dataset lineage and discovery
-
-**Registry Structure:**
-```json
-{
-  "datasets": {
-    "dataset_name": {
-      "name": "dataset_name",
-      "file_path": "data/processed/file.parquet",
-      "instrument": "cdx",
-      "created_at": "2025-11-02T10:30:00",
-      "metadata": {
-        "source": "bloomberg",
-        "security": "cdx_ig_5y",
-        "start_date": "2020-01-01",
-        "end_date": "2025-10-31"
-      }
-    }
-  }
-}
-```
+- **Metadata Tracking:** Rich metadata via DataRegistry in data layer
 
 **Key Files:**
 - `parquet_io.py` - Parquet read/write operations
 - `json_io.py` - JSON read/write operations
-- `registry.py` - Data registry management
 
 **Configuration:**
-- Registry path: `data/registry.json` (from `config.REGISTRY_PATH`)
 - Data directory: `data/` (from `config.DATA_DIR`)
 - Automatic directory initialization on config module import
 
@@ -879,7 +851,7 @@ registry.register_dataset(
 - Sample data with fixed seeds: `src/aponyx/data/sample_data.py`
 - Metadata logging: `src/aponyx/backtest/engine.py`
 - Metadata I/O: `src/aponyx/persistence/json_io.py`
-- Registry management: `src/aponyx/persistence/registry.py`, `src/aponyx/data/cache.py`
+- Registry management: `src/aponyx/data/registry.py`, `src/aponyx/data/cache.py`
 - Version tracking: `src/aponyx/__init__.py`
 
 ---
@@ -901,6 +873,7 @@ aponyx/
 │   │   ├── validation.py    # Schema validation
 │   │   ├── schemas.py       # Schema dataclasses
 │   │   ├── cache.py         # TTL-based caching
+│   │   ├── registry.py      # Data registry management
 │   │   ├── sample_data.py   # Synthetic data generation
 │   │   ├── bloomberg_config.py           # Ticker registry
 │   │   ├── bloomberg_securities.json     # Security metadata
@@ -931,8 +904,7 @@ aponyx/
 │   └── persistence/         # I/O and registry
 │       ├── __init__.py
 │       ├── parquet_io.py    # Parquet read/write
-│       ├── json_io.py       # JSON read/write
-│       └── registry.py      # Data registry
+│       └── json_io.py       # JSON read/write
 │
 ├── tests/                   # Unit tests (mirrors src/ structure)
 │   ├── data/

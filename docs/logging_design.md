@@ -227,7 +227,7 @@ With `logging.basicConfig(level=logging.INFO)`:
 
 ```
 00:08:40 - aponyx.persistence.parquet_io - INFO - Saving DataFrame to Parquet: path=data/cdx_ig_5y.parquet, rows=215, columns=2, compression=snappy
-00:08:41 - aponyx.persistence.registry - INFO - Loaded existing registry: path=data/registry.json, datasets=4
+00:08:41 - aponyx.data.registry - INFO - Loaded existing registry: path=data/registry.json, datasets=4
 00:08:41 - aponyx.persistence.parquet_io - INFO - Loading Parquet file: path=data/cdx_ig_5y.parquet, columns=all
 00:08:41 - aponyx.persistence.parquet_io - INFO - Loaded 215 rows, 2 columns from data/cdx_ig_5y.parquet
 ```

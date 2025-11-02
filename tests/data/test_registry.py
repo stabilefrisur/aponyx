@@ -6,7 +6,7 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime
 
-from aponyx.persistence.registry import DataRegistry, DatasetEntry
+from aponyx.data.registry import DataRegistry, DatasetEntry
 from aponyx.persistence.parquet_io import save_parquet
 
 
