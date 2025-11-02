@@ -1,30 +1,35 @@
 """
-Models Layer Demonstration - Single Signal Workflow
+Models Layer Demonstration - Registry-Based Signal Workflow
 
-Demonstrates individual signal generation workflow:
-1. Generate synthetic CDX and ETF market data (252 trading days)
-2. Compute cdx_etf_basis signal with configurable parameters
-3. Analyze signal statistics and characteristics
-4. Generate position recommendations from signal
+Demonstrates signal generation using SignalRegistry for governance:
+1. Generate synthetic market data (CDX, VIX, ETF)
+2. Initialize SignalRegistry from JSON catalog
+3. Query enabled signals and inspect metadata
+4. Compute all signals in batch using compute_registered_signals()
+5. Analyze individual signal statistics and characteristics
+6. Show signal cross-correlations
 
-The cdx_etf_basis signal identifies relative value opportunities between
-credit index (CDX) and credit ETF markets by measuring basis divergence.
+The registry pattern enables:
+- Centralized signal catalog management
+- Easy enable/disable for experiments
+- Clear metadata and data requirements
+- Batch signal computation with error handling
 
-Output: Signal statistics, position distribution, and sample recommendations
+Output: Signal statistics, correlations, and sample values
 
-Note: Signals follow the convention:
-  - Positive values → Long credit risk (buy CDX/sell protection)
-  - Negative values → Short credit risk (sell CDX/buy protection)
+Note: All signals follow the convention:
+  - Positive values -> Long credit risk (buy CDX/sell protection)
+  - Negative values -> Short credit risk (sell CDX/buy protection)
 """
 
 import logging
 from pathlib import Path
-import pandas as pd
 
 from example_data import generate_example_data
 from aponyx.models import (
-    compute_cdx_etf_basis,
+    SignalRegistry,
     SignalConfig,
+    compute_registered_signals,
 )
 
 # Configure logging
@@ -36,78 +41,156 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
-    """Run the models layer demonstration."""
-    logger.info("=== Models Layer Demo (Single Signal) ===")
+    """Run the models layer demonstration with registry pattern."""
+    print("=" * 70)
+    print("MODELS LAYER DEMONSTRATION")
+    print("Registry-Based Signal Workflow")
+    print("=" * 70)
 
     # Generate synthetic data
-    logger.info("\n=== Generating Market Data ===")
+    print("\n" + "=" * 70)
+    print("PART 1: Generate Market Data")
+    print("=" * 70)
+    
     cdx_df, vix_df, etf_df = generate_example_data(periods=252)
-    logger.info("Generated %d days of data", len(cdx_df))
+    logger.info("Generated %d days of market data", len(cdx_df))
+    
+    print(f"  OK CDX IG 5Y: {len(cdx_df)} rows, spread mean={cdx_df['spread'].mean():.2f} bps")
+    print(f"  OK VIX: {len(vix_df)} rows, level mean={vix_df['level'].mean():.2f}")
+    print(f"  OK HYG ETF: {len(etf_df)} rows, spread mean={etf_df['spread'].mean():.2f}")
 
-    # Compute cdx_etf_basis signal
-    logger.info("\n=== Computing cdx_etf_basis Signal ===")
+    # Initialize signal registry
+    print("\n" + "=" * 70)
+    print("PART 2: Initialize Signal Registry")
+    print("=" * 70)
+    
+    catalog_path = Path("src/aponyx/models/signal_catalog.json")
+    print(f"\nLoading signal catalog from: {catalog_path}")
+    
+    registry = SignalRegistry(catalog_path)
+    print(f"  OK Loaded signal registry")
+
+    # Query enabled signals
+    print("\nQuerying enabled signals...")
+    enabled_signals = registry.get_enabled()
+    
+    print(f"  Found {len(enabled_signals)} enabled signals:")
+    for name, metadata in enabled_signals.items():
+        print(f"\n  {name}:")
+        print(f"    Description: {metadata.description}")
+        print(f"    Function: {metadata.compute_function_name}")
+        print(f"    Data requirements: {metadata.data_requirements}")
+        print(f"    Enabled: {metadata.enabled}")
+
+    # Prepare market data dict
+    print("\n" + "=" * 70)
+    print("PART 3: Compute All Signals via Registry")
+    print("=" * 70)
+    
+    market_data = {
+        "cdx": cdx_df,
+        "vix": vix_df,
+        "etf": etf_df,
+    }
+    
+    print("\nPrepared market data dict:")
+    for key, df in market_data.items():
+        print(f"  {key}: {len(df)} rows, columns={df.columns.tolist()}")
+    
+    # Configure signal parameters
     signal_config = SignalConfig(lookback=20, min_periods=10)
+    print(f"\nSignal configuration:")
+    print(f"  Lookback: {signal_config.lookback}")
+    print(f"  Min periods: {signal_config.min_periods}")
     
-    signal = compute_cdx_etf_basis(cdx_df, etf_df, signal_config)
+    # Compute all signals
+    print("\nComputing signals via registry...")
+    signals = compute_registered_signals(registry, market_data, signal_config)
     
-    # Display signal statistics
-    logger.info("\n=== Signal Statistics ===")
-    valid = signal.dropna()
-    logger.info(
-        "cdx_etf_basis: valid=%d, mean=%.3f, std=%.3f, range=[%.3f, %.3f]",
-        len(valid),
-        valid.mean(),
-        valid.std(),
-        valid.min(),
-        valid.max(),
-    )
+    print(f"  OK Computed {len(signals)} signals")
+    for name in signals.keys():
+        print(f"    - {name}")
 
-    # Generate positions
+    # Analyze signal statistics
+    print("\n" + "=" * 70)
+    print("PART 4: Signal Statistics")
+    print("=" * 70)
+    
+    for name, signal in signals.items():
+        valid = signal.dropna()
+        print(f"\n{name}:")
+        print(f"  Valid observations: {len(valid)}")
+        print(f"  Mean: {valid.mean():.3f}")
+        print(f"  Std: {valid.std():.3f}")
+        print(f"  Range: [{valid.min():.2f}, {valid.max():.2f}]")
+        print(f"  Null values: {signal.isna().sum()}")
+
+    # Signal correlations
+    print("\n" + "=" * 70)
+    print("PART 5: Signal Cross-Correlations")
+    print("=" * 70)
+    
+    import pandas as pd
+    signal_df = pd.DataFrame(signals)
+    
+    print("\nCorrelation matrix:")
+    corr_matrix = signal_df.corr()
+    print(corr_matrix.to_string(float_format="%.3f"))
+    
+    # Identify high correlations
+    print("\nHigh correlations (|r| > 0.5):")
+    for i in range(len(corr_matrix.columns)):
+        for j in range(i + 1, len(corr_matrix.columns)):
+            corr = corr_matrix.iloc[i, j]
+            if abs(corr) > 0.5:
+                sig1 = corr_matrix.columns[i]
+                sig2 = corr_matrix.columns[j]
+                print(f"  {sig1} <-> {sig2}: {corr:.3f}")
+
+    # Sample signal values
+    print("\n" + "=" * 70)
+    print("PART 6: Sample Signal Values (Last 10 Days)")
+    print("=" * 70)
+    
+    print("\n" + signal_df.tail(10).to_string(float_format="%.3f"))
+
+    # Signal distribution summary
+    print("\n" + "=" * 70)
+    print("PART 7: Signal Distribution Summary")
+    print("=" * 70)
+    
     threshold = 1.5
-    logger.info("\n=== Generating Positions (threshold=%.2f) ===", threshold)
-
-    def classify_position(score: float) -> str:
-        if pd.isna(score):
-            return "no_signal"
-        if score > threshold:
-            return "long_credit"
-        if score < -threshold:
-            return "short_credit"
-        return "neutral"
-
-    positions = signal.apply(classify_position)
+    print(f"\nUsing entry threshold: +/-{threshold}")
     
-    result = pd.DataFrame(
-        {
-            "signal_score": signal,
-            "position": positions,
-        }
-    )
+    for name, signal in signals.items():
+        long_signals = (signal > threshold).sum()
+        short_signals = (signal < -threshold).sum()
+        neutral_signals = ((signal >= -threshold) & (signal <= threshold)).sum()
+        
+        total = long_signals + short_signals + neutral_signals
+        
+        print(f"\n{name}:")
+        print(f"  Long (>{threshold}):      {long_signals:4d} ({long_signals/total:5.1%})")
+        print(f"  Short (<-{threshold}):    {short_signals:4d} ({short_signals/total:5.1%})")
+        print(f"  Neutral ({-threshold} to {threshold}): {neutral_signals:4d} ({neutral_signals/total:5.1%})")
 
-    # Position distribution
-    pos_counts = result["position"].value_counts()
-    logger.info("Position distribution:\n%s", pos_counts)
-
-    # Display sample results
-    logger.info("\n=== Sample Results (Last 10 Days) ===")
-    print(result.tail(10).to_string())
-
-    # Summary statistics
-    logger.info(
-        "\n=== Signal Summary ===\n"
-        "Valid observations: %d\n"
-        "Mean: %.3f\n"
-        "Std: %.3f\n"
-        "Min: %.3f\n"
-        "Max: %.3f",
-        len(valid),
-        valid.mean(),
-        valid.std(),
-        valid.min(),
-        valid.max(),
-    )
-
-    logger.info("\n=== Demo Complete ===")
+    # Summary
+    print("\n" + "=" * 70)
+    print("DEMONSTRATION COMPLETE")
+    print("=" * 70)
+    print("\nKey Features Demonstrated:")
+    print("  OK SignalRegistry initialization from JSON catalog")
+    print("  OK Query enabled signals and inspect metadata")
+    print("  OK Batch signal computation via compute_registered_signals()")
+    print("  OK Individual signal statistics and distributions")
+    print("  OK Signal cross-correlation analysis")
+    print("  OK Governance through centralized catalog")
+    print("=" * 70)
+    
+    print("\nNext steps:")
+    print("  -> See backtest_demo.py for strategy evaluation")
+    print("  -> Edit signal_catalog.json to enable/disable signals")
+    print("  -> Adjust SignalConfig parameters for different lookbacks")
 
 
 if __name__ == "__main__":
