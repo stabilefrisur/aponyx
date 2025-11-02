@@ -14,8 +14,11 @@ The caching layer provides transparent time-to-live (TTL) based caching for data
 data/
   cache/
     file/           # File-based provider cache
-      cdx_data_abc123.parquet
-      vix_data_def456.parquet
+      cdx_ig_5y_abc123.parquet
+      vix_def456.parquet
+      hyg_ghi789.parquet
+    bloomberg/      # Bloomberg provider cache
+      cdx_ig_5y_jkl012.parquet
 ```
 
 ### Key Components
@@ -32,37 +35,32 @@ data/
 
 ```python
 from aponyx.data import fetch_cdx, FileSource
-from aponyx.data.cache import Cache
+from aponyx.config import CACHE_ENABLED, CACHE_TTL_DAYS
 
-# Create cache with 1-hour TTL
-cache = Cache(ttl_seconds=3600)
-
+# Caching is controlled by global config (default: enabled, 7 days TTL)
 # First call: loads from file, caches result
-source = FileSource("data/raw/cdx_data.parquet", cache=cache)
-cdx_df = fetch_cdx(source, index_name="CDX_IG_5Y")  # Cache miss → load + cache
+source = FileSource("data/raw/cdx_data.parquet")
+cdx_df = fetch_cdx(source, security="cdx_ig_5y")  # Cache miss → load + cache
 
 # Second call within TTL: returns cached data
-cdx_df = fetch_cdx(source, index_name="CDX_IG_5Y")  # Cache hit → instant return
+cdx_df = fetch_cdx(source, security="cdx_ig_5y")  # Cache hit → instant return
 
 # After TTL expires: reloads and updates cache
-# (Automatic based on file timestamps)
+# (Automatic based on cache file modification time)
 ```
 
 ### Cache Key Generation
 
 Keys are generated from:
-- Source file path
-- Query parameters (index name, date range, etc.)
-- Provider type
+- Data source configuration
+- Instrument identifier
+- Query parameters (security, date range, etc.)
 
 ```python
-# Deterministic hash-based keys
-cache_key = cache.generate_key(
-    provider="file",
-    path="data/raw/cdx.parquet",
-    params={"index_name": "CDX_IG_5Y"}
-)
-# Result: "file_cdx_abc123def456"
+# Deterministic hash-based keys generated internally
+# Key structure: {instrument}_{cache_key}.parquet
+# Example: cdx_ig_5y_abc123def456.parquet
+# Cache keys are SHA-256 hashes of source + params
 ```
 
 ## When to Use Caching
@@ -73,32 +71,39 @@ cache_key = cache.generate_key(
 - **Expensive transformations** on raw data
 - **Multiple signals** using the same base data
 - **Jupyter notebook workflows** with cell re-execution
+- **Bloomberg data** to avoid hitting rate limits
 
 ### ❌ Skip Cache For:
 
 - **One-time scripts** or production runs
-- **Real-time data** with constantly updating sources
+- **Real-time data** that changes frequently
 - **Small files** (<1MB) where loading is instant
-- **Streaming workflows** processing new data continuously
+- **Debugging data issues** where you need fresh data
+
+### Control Cache Usage
+
+```python
+# Use cache (default)
+df = fetch_cdx(source, security="cdx_ig_5y")  # use_cache=True by default
+
+# Skip cache for fresh data
+df = fetch_cdx(source, security="cdx_ig_5y", use_cache=False)
+```
 
 ## Configuration
 
 ### TTL Settings
 
 ```python
-from aponyx.data.cache import Cache
+# TTL configured globally in config module
+from aponyx.config import CACHE_ENABLED, CACHE_TTL_DAYS
 
-# Short TTL for intraday research (15 minutes)
-cache = Cache(ttl_seconds=900)
+# Default: 7 days TTL
+print(f"Cache enabled: {CACHE_ENABLED}, TTL: {CACHE_TTL_DAYS} days")
 
-# Standard TTL for daily workflows (1 hour)
-cache = Cache(ttl_seconds=3600)
-
-# Long TTL for static data (24 hours)
-cache = Cache(ttl_seconds=86400)
-
-# Disable caching (always reload)
-cache = None  # Or don't pass cache parameter
+# Override per fetch call
+cdx_df = fetch_cdx(source, security="cdx_ig_5y", use_cache=False)  # Skip cache
+cdx_df = fetch_cdx(source, security="cdx_ig_5y", use_cache=True)   # Use cache
 ```
 
 ### Cache Directory
@@ -125,14 +130,20 @@ Cache entries automatically expire based on:
 ### Manual Invalidation
 
 ```python
-# Clear entire cache
-cache.clear()
+# Manual cache clearing via filesystem
+from pathlib import Path
+from aponyx.config import DATA_DIR
 
-# Remove specific entry
-cache.remove(cache_key)
+cache_dir = DATA_DIR / "cache" / "file"
 
-# Clear all entries for a provider type
-cache.clear_provider("file")
+# Clear entire provider cache
+import shutil
+shutil.rmtree(cache_dir)
+cache_dir.mkdir(parents=True)
+
+# Or remove specific cached files
+for cached_file in cache_dir.glob("cdx_*"):
+    cached_file.unlink()
 ```
 
 ## Example Usage
@@ -141,21 +152,19 @@ cache.clear_provider("file")
 
 ```python
 from aponyx.data import fetch_cdx, FileSource
-from aponyx.data.cache import Cache
+import time
 
-# Setup cache
-cache = Cache(ttl_seconds=3600)
-source = FileSource("data/raw/cdx.parquet", cache=cache)
+# Caching is automatic when use_cache=True (default)
+source = FileSource("data/raw/cdx.parquet")
 
 # First load: reads from disk
-import time
 start = time.time()
-df1 = fetch_cdx(source, index_name="CDX_IG_5Y")
+df1 = fetch_cdx(source, security="cdx_ig_5y")
 print(f"First load: {time.time() - start:.2f}s")  # ~0.5s
 
 # Second load: returns from cache
 start = time.time()
-df2 = fetch_cdx(source, index_name="CDX_IG_5Y")
+df2 = fetch_cdx(source, security="cdx_ig_5y")
 print(f"Cached load: {time.time() - start:.2f}s")  # ~0.01s
 ```
 
@@ -163,20 +172,18 @@ print(f"Cached load: {time.time() - start:.2f}s")  # ~0.01s
 
 ```python
 from aponyx.data import fetch_cdx, fetch_vix, fetch_etf, FileSource
-from aponyx.data.cache import Cache
 from aponyx.models import compute_cdx_vix_gap, compute_cdx_etf_basis
+from aponyx.models.config import SignalConfig
 
-# Single cache instance for all data loads
-cache = Cache(ttl_seconds=3600)
+# Caching is automatic - load data once, reuse across iterations
+cdx_df = fetch_cdx(FileSource("data/raw/cdx.parquet"), security="cdx_ig_5y")
+vix_df = fetch_vix(FileSource("data/raw/vix.parquet"))
+etf_df = fetch_etf(FileSource("data/raw/etf.parquet"), security="hyg")
 
-# Load data once, use for multiple signals
-cdx_df = fetch_cdx(FileSource("data/raw/cdx.parquet", cache=cache), "CDX_IG_5Y")
-vix_df = fetch_vix(FileSource("data/raw/vix.parquet", cache=cache))
-etf_df = fetch_etf(FileSource("data/raw/etf.parquet", cache=cache), "HYG")
-
-# Compute multiple signals using cached data
-signal1 = compute_cdx_vix_gap(cdx_df, vix_df)      # Data already cached
-signal2 = compute_cdx_etf_basis(cdx_df, etf_df)    # Reuses cached CDX data
+# Compute multiple signals - data loads are cached
+config = SignalConfig(lookback=20)
+signal1 = compute_cdx_vix_gap(cdx_df, vix_df, config)
+signal2 = compute_cdx_etf_basis(cdx_df, etf_df, config)
 ```
 
 ### Jupyter Notebook Pattern
@@ -184,16 +191,17 @@ signal2 = compute_cdx_etf_basis(cdx_df, etf_df)    # Reuses cached CDX data
 ```python
 # Cell 1: Setup (run once)
 from aponyx.data import fetch_cdx, FileSource
-from aponyx.data.cache import Cache
+from aponyx.models import compute_spread_momentum
+from aponyx.models.config import SignalConfig
 
-cache = Cache(ttl_seconds=3600)
-source = FileSource("data/raw/cdx.parquet", cache=cache)
+source = FileSource("data/raw/cdx.parquet")
 
-# Cell 2: Load data (fast re-execution)
-cdx_df = fetch_cdx(source, "CDX_IG_5Y")  # Instant on re-run
+# Cell 2: Load data (fast re-execution via automatic caching)
+cdx_df = fetch_cdx(source, security="cdx_ig_5y")  # Instant on re-run
 
 # Cell 3: Experiment with signals (iterate quickly)
-signal = compute_momentum(cdx_df["spread"], window=20)  # Try different windows
+config = SignalConfig(lookback=20)  # Try different lookbacks
+signal = compute_spread_momentum(cdx_df, config)
 ```
 
 ## Implementation Details
@@ -259,18 +267,24 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 # Look for cache-related log messages:
-# DEBUG - Cache hit: file_cdx_abc123
-# DEBUG - Cache miss: file_vix_def456, loading from source
+# INFO - Cache hit: cdx_ig_5y_abc123.parquet
+# DEBUG - Cache miss or stale: vix_def456.parquet
 ```
 
 ### Stale Data Issues
 
 ```python
-# Force cache refresh
-cache.clear()
+# Force cache bypass for fresh data
+df = fetch_cdx(source, security="cdx_ig_5y", use_cache=False)
 
-# Or reduce TTL
-cache = Cache(ttl_seconds=300)  # 5 minutes
+# Or manually clear cache directory
+from pathlib import Path
+from aponyx.config import DATA_DIR
+import shutil
+
+cache_dir = DATA_DIR / "cache" / "file"
+shutil.rmtree(cache_dir)
+cache_dir.mkdir(parents=True)
 ```
 
 ### Disk Space Issues
@@ -280,7 +294,7 @@ cache = Cache(ttl_seconds=300)  # 5 minutes
 du -sh data/cache/
 
 # Clear old entries
-rm data/cache/file/*
+rm -rf data/cache/file/*
 ```
 
 ---

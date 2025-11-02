@@ -13,8 +13,8 @@ The data layer uses a **provider pattern** to support multiple data sources (fil
 | Provider | Module | Status | Use Case |
 |----------|--------|--------|----------|
 | `FileSource` | `providers/file.py` | ✅ Implemented | Local Parquet/CSV files |
-| `BloombergSource` | `providers/bloomberg.py` | ✅ Implemented | Bloomberg Terminal data (requires manual `blpapi` install) |
-| `APISource` | *(not yet created)* | ❌ Not implemented | REST API endpoints |
+| `BloombergSource` | `providers/bloomberg.py` | ✅ Implemented | Bloomberg Terminal data (requires `xbbg` and manual `blpapi` install) |
+| `APISource` | `sources.py` (dataclass only) | ⚠️ Defined but no fetch implementation | REST API endpoints |
 
 ### Bloomberg Provider Setup
 
@@ -28,42 +28,79 @@ The `xbbg` wrapper is included in the `bloomberg` optional dependency, but `blpa
 
 ### Provider Interface
 
-All providers implement:
+Providers are defined as dataclasses and used by fetch functions:
 
 ```python
-from typing import Protocol
+from dataclasses import dataclass
+from pathlib import Path
 import pandas as pd
 
-class DataSource(Protocol):
-    """Protocol for data source implementations."""
-    
-    def fetch(self, **params) -> pd.DataFrame:
-        """
-        Fetch data according to provider-specific parameters.
-        
-        Returns
-        -------
-        pd.DataFrame
-            Raw data with consistent index and column structure.
-        """
-        ...
+@dataclass(frozen=True)
+class FileSource:
+    """File-based data source (Parquet or CSV)."""
+    path: Path
+
+@dataclass(frozen=True)
+class BloombergSource:
+    """Bloomberg Terminal data source."""
+    pass
+
+# Fetch functions handle provider-specific logic
+def fetch_from_file(
+    file_path: str | Path,
+    instrument: str,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    **params,
+) -> pd.DataFrame:
+    """Fetch data from local file."""
+    ...
 ```
 
 ## Adding a New Provider
 
-### Step 1: Create Provider Module
+### Step 1: Define Data Source
+
+Add to `src/aponyx/data/sources.py`:
+
+```python
+"""Data source configuration for pluggable data providers."""
+
+from dataclasses import dataclass
+from typing import Any
+
+@dataclass(frozen=True)
+class MyCustomSource:
+    """
+    Custom data source for [your provider].
+    
+    Attributes
+    ----------
+    endpoint : str
+        API endpoint or connection string.
+    params : dict[str, Any] | None
+        Additional connection parameters.
+    """
+    endpoint: str
+    params: dict[str, Any] | None = None
+
+
+# Update DataSource union type
+DataSource = FileSource | BloombergSource | MyCustomSource
+```
+
+### Step 2: Create Provider Fetch Function
 
 Create `src/aponyx/data/providers/my_provider.py`:
 
 ```python
 """
-Custom data provider implementation.
+Custom data provider fetch implementation.
 
 Fetches data from [describe your source].
 """
 
 import logging
-from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -71,147 +108,144 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-class MyCustomSource:
-    """
-    Data source for [your data provider].
-    
-    Parameters
-    ----------
-    connection_params : dict[str, Any]
-        Provider-specific connection parameters.
-    cache : Cache | None, optional
-        Optional cache instance for caching results.
-    """
-    
-    def __init__(
-        self,
-        connection_params: dict[str, Any],
-        cache: Any | None = None,
-    ):
-        self.connection_params = connection_params
-        self.cache = cache
-        logger.info("Initialized MyCustomSource: params=%s", connection_params)
-    
-    def fetch(self, **query_params) -> pd.DataFrame:
+def fetch_from_mycustom(
+    endpoint: str,
+    instrument: str,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    **params: Any,
+) -> pd.DataFrame:
         """
         Fetch data from custom source.
         
         Parameters
         ----------
-        **query_params
-            Provider-specific query parameters (ticker, date range, etc.).
+        endpoint : str
+            API endpoint or data source URL.
+        instrument : str
+            Instrument identifier.
+        start_date : str | None
+            Optional start date filter (ISO format).
+        end_date : str | None
+            Optional end date filter (ISO format).
+        **params : Any
+            Additional provider-specific parameters.
         
         Returns
         -------
         pd.DataFrame
             Raw data with datetime index.
+            
+        Notes
+        -----
+        Caching is handled by the fetch layer, not provider implementation.
         """
-        logger.info("Fetching data: params=%s", query_params)
+        logger.info("Fetching %s from endpoint: %s", instrument, endpoint)
         
-        # Check cache first (if available)
-        if self.cache:
-            cache_key = self._generate_cache_key(query_params)
-            cached_data = self.cache.get(cache_key)
-            if cached_data is not None:
-                logger.debug("Cache hit: %s", cache_key)
-                return cached_data
-        
-        # Fetch from source
-        raw_data = self._fetch_from_source(query_params)
-        
-        # Cache result (if cache available)
-        if self.cache:
-            self.cache.set(cache_key, raw_data)
-            logger.debug("Cached data: %s", cache_key)
-        
-        return raw_data
-    
-    def _fetch_from_source(self, params: dict[str, Any]) -> pd.DataFrame:
-        """
-        Implement provider-specific data fetching logic.
-        
-        This is where you connect to your data source and retrieve data.
-        """
-        # Your implementation here
+        # Implement provider-specific data fetching logic
         # Example: API call, database query, etc.
-        raise NotImplementedError("Implement provider-specific fetch logic")
+        # Your implementation here
+        
+        # Build query parameters
+        query_params = {"instrument": instrument}
+        if start_date:
+            query_params["start_date"] = start_date
+        if end_date:
+            query_params["end_date"] = end_date
+        query_params.update(params)
+        
+        # Fetch data (example - implement actual logic)
+        df = self._make_request(endpoint, query_params)
+        
+        logger.info("Loaded %d rows from custom source", len(df))
+        return df
     
-    def _generate_cache_key(self, params: dict[str, Any]) -> str:
-        """Generate deterministic cache key from parameters."""
-        # Simple hash-based key generation
-        import hashlib
-        param_str = str(sorted(params.items()))
-        return f"mycustom_{hashlib.md5(param_str.encode()).hexdigest()[:12]}"
+    def _make_request(self, endpoint: str, params: dict[str, Any]) -> pd.DataFrame:
+        """Make actual request to data source."""
+        raise NotImplementedError("Implement provider-specific request logic")
 ```
 
-### Step 2: Update Provider Init
+### Step 3: Update Provider Init
 
 Add to `src/aponyx/data/providers/__init__.py`:
 
 ```python
 """Data provider implementations."""
 
-from .file import FileSource
-from .bloomberg import BloombergSource
-from .my_provider import MyCustomSource  # Add new provider
+from .file import fetch_from_file
+from .bloomberg import fetch_from_bloomberg
+from .my_provider import fetch_from_mycustom  # Add new provider
 
 __all__ = [
-    "FileSource",
-    "BloombergSource",
-    "MyCustomSource",  # Export new provider
+    "fetch_from_file",
+    "fetch_from_bloomberg",
+    "fetch_from_mycustom",  # Export new fetch function
 ]
 ```
 
-### Step 3: Create Fetch Function
+### Step 4: Integrate with Fetch Layer
 
-Add to `src/aponyx/data/fetch.py`:
+Update `src/aponyx/data/fetch.py` to support new provider:
 
 ```python
-def fetch_my_data(
-    source: MyCustomSource,
-    ticker: str,
+from .sources import MyCustomSource, resolve_provider
+from .providers.my_provider import fetch_from_mycustom
+
+def _get_provider_fetch_function(source: DataSource):
+    """Get fetch function for data source."""
+    provider_type = resolve_provider(source)
+    
+    if provider_type == "file":
+        return fetch_from_file
+    elif provider_type == "bloomberg":
+        return fetch_from_bloomberg
+    elif provider_type == "mycustom":  # Add new provider
+        return fetch_from_mycustom
+    else:
+        raise ValueError(f"Unsupported provider: {provider_type}")
+
+# Then use in instrument fetch functions:
+def fetch_cdx(
+    source: DataSource | None = None,
+    security: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
+    use_cache: bool = CACHE_ENABLED,
 ) -> pd.DataFrame:
-    """
-    Fetch custom data using MyCustomSource provider.
+    """Fetch CDX data from any provider."""
+    # ... caching logic ...
     
-    Parameters
-    ----------
-    source : MyCustomSource
-        Data source instance.
-    ticker : str
-        Instrument identifier.
-    start_date : str | None, optional
-        Start date (YYYY-MM-DD format).
-    end_date : str | None, optional
-        End date (YYYY-MM-DD format).
+    fetch_fn = _get_provider_fetch_function(source)
     
-    Returns
-    -------
-    pd.DataFrame
-        Validated data with datetime index and required columns.
-    """
-    logger.info("Fetching data for %s", ticker)
-    
-    # Fetch raw data
-    query_params = {"ticker": ticker}
-    if start_date:
-        query_params["start_date"] = start_date
-    if end_date:
-        query_params["end_date"] = end_date
-    
-    raw_df = source.fetch(**query_params)
-    
-    # Validate using appropriate schema
-    from aponyx.data.validation import validate_schema
-    validated_df = validate_schema(raw_df, schema_type="my_custom")
-    
-    logger.info("Fetched %d rows for %s", len(validated_df), ticker)
-    return validated_df
+    if isinstance(source, MyCustomSource):
+        df = fetch_fn(
+            endpoint=source.endpoint,
+            instrument="cdx",
+            start_date=start_date,
+            end_date=end_date,
+            **(source.params or {}),
+        )
+    # ... other providers ...
 ```
 
-### Step 4: Add Schema Validation (Optional)
+### Step 5: Update Provider Resolution
+
+Add to `src/aponyx/data/sources.py`:
+
+```python
+def resolve_provider(source: DataSource) -> str:
+    """Resolve data source to provider type identifier."""
+    if isinstance(source, FileSource):
+        return "file"
+    elif isinstance(source, BloombergSource):
+        return "bloomberg"
+    elif isinstance(source, MyCustomSource):  # Add new provider
+        return "mycustom"
+    else:
+        raise ValueError(f"Unknown source type: {type(source)}")
+```
+
+### Step 6: Add Schema Validation (Optional)
 
 If your data has a specific structure, add a schema in `src/aponyx/data/schemas.py`:
 
@@ -231,7 +265,7 @@ class MyCustomSchema:
     )
 ```
 
-### Step 5: Write Tests
+### Step 7: Write Tests
 
 Create `tests/data/test_my_provider.py`:
 
@@ -240,39 +274,69 @@ Create `tests/data/test_my_provider.py`:
 
 import pytest
 import pandas as pd
-from aponyx.data.providers import MyCustomSource
-from aponyx.data import fetch_my_data
+from aponyx.data import fetch_cdx
+from aponyx.data.sources import MyCustomSource
 
 
-@pytest.fixture
-def mock_source():
-    """Create test data source."""
-    connection_params = {"endpoint": "https://api.example.com"}
-    return MyCustomSource(connection_params)
-
-
-def test_fetch_basic(mock_source, monkeypatch):
-    """Test basic data fetching."""
-    # Mock the internal fetch method
-    def mock_fetch(params):
+def test_fetch_basic(monkeypatch):
+    """Test basic data fetching with custom provider."""
+    # Create source
+    source = MyCustomSource(
+        endpoint="https://api.example.com",
+        params={"api_key": "test"},
+    )
+    
+    # Mock the provider fetch function
+    def mock_fetch(*args, **kwargs):
         return pd.DataFrame({
             "date": pd.date_range("2024-01-01", periods=10),
-            "value": range(10),
-        })
+            "spread": range(100, 110),
+            "security": ["cdx_ig_5y"] * 10,
+        }).set_index("date")
     
-    monkeypatch.setattr(mock_source, "_fetch_from_source", mock_fetch)
+    from aponyx.data import providers
+    monkeypatch.setattr(providers, "fetch_from_mycustom", mock_fetch)
     
     # Fetch data
-    df = fetch_my_data(mock_source, ticker="TEST")
+    df = fetch_cdx(source, security="cdx_ig_5y")
     
     # Validate
     assert len(df) == 10
-    assert "value" in df.columns
+    assert "spread" in df.columns
 ```
 
 ## Example: REST API Provider
 
-### Implementation
+### Source Definition
+
+Add to `src/aponyx/data/sources.py`:
+
+```python
+@dataclass(frozen=True)
+class APISource:
+    """
+    Generic REST API data source.
+    
+    Attributes
+    ----------
+    endpoint : str
+        API endpoint URL.
+    api_key : str | None
+        API authentication key.
+    params : dict[str, Any] | None
+        Additional request parameters.
+    """
+    endpoint: str
+    api_key: str | None = None
+    params: dict[str, Any] | None = None
+
+# Update DataSource union
+DataSource = FileSource | BloombergSource | APISource
+```
+
+### Provider Implementation
+
+Create `src/aponyx/data/providers/api.py`:
 
 ```python
 """REST API data provider."""
@@ -286,91 +350,85 @@ import requests
 logger = logging.getLogger(__name__)
 
 
-class APISource:
+def fetch_from_api(
+    endpoint: str,
+    instrument: str,
+    api_key: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    **params: Any,
+) -> pd.DataFrame:
     """
-    Generic REST API data source.
+    Fetch data from REST API endpoint.
     
     Parameters
     ----------
-    base_url : str
-        API base URL.
-    api_key : str | None, optional
-        API authentication key.
-    cache : Cache | None, optional
-        Optional cache instance.
+    endpoint : str
+        API endpoint URL.
+    instrument : str
+        Instrument identifier.
+    api_key : str | None
+        Optional API key for authentication.
+    start_date : str | None
+        Start date filter (ISO format).
+    end_date : str | None
+        End date filter (ISO format).
+    **params : Any
+        Additional query parameters.
+    
+    Returns
+    -------
+    pd.DataFrame
+        JSON response converted to DataFrame with DatetimeIndex.
     """
+    # Build request parameters
+    query_params = {"instrument": instrument}
+    if start_date:
+        query_params["start_date"] = start_date
+    if end_date:
+        query_params["end_date"] = end_date
+    query_params.update(params)
     
-    def __init__(
-        self,
-        base_url: str,
-        api_key: str | None = None,
-        cache: Any | None = None,
-    ):
-        self.base_url = base_url.rstrip("/")
-        self.api_key = api_key
-        self.cache = cache
-        logger.info("Initialized APISource: url=%s", base_url)
+    # Add authentication if available
+    headers = {}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
     
-    def fetch(self, endpoint: str, **params) -> pd.DataFrame:
-        """
-        Fetch data from API endpoint.
-        
-        Parameters
-        ----------
-        endpoint : str
-            API endpoint path (e.g., "/market-data/cdx").
-        **params
-            Query parameters for API request.
-        
-        Returns
-        -------
-        pd.DataFrame
-            JSON response converted to DataFrame.
-        """
-        url = f"{self.base_url}/{endpoint.lstrip('/')}"
-        
-        # Add authentication if available
-        headers = {}
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
-        
-        logger.info("GET %s with params=%s", url, params)
-        
-        # Make request
-        response = requests.get(url, params=params, headers=headers)
-        response.raise_for_status()
-        
-        # Parse JSON to DataFrame
-        data = response.json()
-        df = pd.DataFrame(data)
-        
-        # Convert date column if present
-        if "date" in df.columns:
-            df["date"] = pd.to_datetime(df["date"])
-            df = df.set_index("date")
-        
-        logger.debug("Fetched %d rows from API", len(df))
-        return df
+    logger.info("GET %s with params=%s", endpoint, query_params)
+    
+    # Make request
+    response = requests.get(endpoint, params=query_params, headers=headers)
+    response.raise_for_status()
+    
+    # Parse JSON to DataFrame
+    data = response.json()
+    df = pd.DataFrame(data)
+    
+    # Convert date column if present
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"])
+        df = df.set_index("date")
+    
+    logger.info("Fetched %d rows from API", len(df))
+    return df
 ```
 
 ### Usage
 
 ```python
-from aponyx.data.providers import APISource
-from aponyx.data.cache import Cache
+from aponyx.data import fetch_cdx
+from aponyx.data.sources import MyCustomSource
 
-# Setup API source with caching
-cache = Cache(ttl_seconds=3600)
-api = APISource(
-    base_url="https://api.example.com",
-    api_key="your-key-here",
-    cache=cache,
+# Setup custom source
+source = MyCustomSource(
+    endpoint="https://api.example.com/market-data",
+    params={"api_key": "your-key-here"},
 )
 
-# Fetch data
-df = api.fetch(
-    endpoint="/market-data/cdx",
-    ticker="CDX.NA.IG.5Y",
+# Fetch data (caching handled automatically)
+df = fetch_cdx(
+    source=source,
+    security="cdx_ig_5y",
     start_date="2024-01-01",
     end_date="2024-12-31",
 )
@@ -378,77 +436,96 @@ df = api.fetch(
 
 ## Provider Design Patterns
 
-### Pattern 1: Connection Pooling
+### Pattern 1: Stateful Connection
 
 ```python
-class PooledDatabaseSource:
-    """Database source with connection pooling."""
-    
-    def __init__(self, connection_string: str, pool_size: int = 5):
-        from sqlalchemy import create_engine
-        self.engine = create_engine(
-            connection_string,
-            pool_size=pool_size,
-            pool_pre_ping=True,
-        )
-    
-    def fetch(self, query: str, **params) -> pd.DataFrame:
-        """Execute SQL query with connection pool."""
-        return pd.read_sql(query, self.engine, params=params)
+# For providers requiring persistent connections,
+# manage state in module-level variables
+
+_connection = None
+
+def _get_connection():
+    """Get or create connection instance."""
+    global _connection
+    if _connection is None:
+        _connection = initialize_connection()
+        logger.info("Connection established")
+    return _connection
+
+def fetch_from_database(
+    query: str,
+    instrument: str,
+    **params,
+) -> pd.DataFrame:
+    """Fetch using persistent connection."""
+    conn = _get_connection()
+    return pd.read_sql(query, conn, params=params)
 ```
 
-### Pattern 2: Lazy Initialization
-
-```python
-class LazyBloombergSource:
-    """Bloomberg source with lazy connection."""
-    
-    def __init__(self):
-        self._connection = None
-    
-    @property
-    def connection(self):
-        """Initialize connection on first use."""
-        if self._connection is None:
-            from bloomberg import connect  # Heavy import
-            self._connection = connect()
-            logger.info("Bloomberg connection established")
-        return self._connection
-    
-    def fetch(self, ticker: str, **params) -> pd.DataFrame:
-        """Fetch using lazy-initialized connection."""
-        return self.connection.get_data(ticker, **params)
-```
-
-### Pattern 3: Retry Logic
+### Pattern 2: Retry Logic
 
 ```python
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-class RobustAPISource:
-    """API source with automatic retry on failures."""
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(min=1, max=10),
+)
+def fetch_from_api(
+    endpoint: str,
+    instrument: str,
+    **params,
+) -> pd.DataFrame:
+    """Fetch with automatic retry on network errors."""
+    response = requests.get(endpoint, params=params)
+    response.raise_for_status()
+    return pd.DataFrame(response.json())
+```
+
+### Pattern 3: Batch Fetching
+
+```python
+def fetch_from_batch_api(
+    endpoint: str,
+    instrument: str,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    batch_size: int = 1000,
+    **params,
+) -> pd.DataFrame:
+    """Fetch data in batches for large date ranges."""
+    all_data = []
     
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(min=1, max=10),
-    )
-    def fetch(self, **params) -> pd.DataFrame:
-        """Fetch with automatic retry on network errors."""
-        response = requests.get(self.url, params=params)
-        response.raise_for_status()
-        return pd.DataFrame(response.json())
+    # Split date range into batches
+    batches = _create_date_batches(start_date, end_date, batch_size)
+    
+    for batch_start, batch_end in batches:
+        logger.debug("Fetching batch: %s to %s", batch_start, batch_end)
+        batch_df = _fetch_single_batch(
+            endpoint,
+            instrument,
+            batch_start,
+            batch_end,
+            **params,
+        )
+        all_data.append(batch_df)
+    
+    # Combine all batches
+    return pd.concat(all_data).sort_index()
 ```
 
 ## Best Practices
 
-1. **Implement caching support** for expensive data fetching
-2. **Log all operations** (connections, queries, errors)
-3. **Validate output schema** before returning data
-4. **Handle errors gracefully** with informative messages
-5. **Use type hints** for all parameters and return values
-6. **Test with mocked data** to avoid external dependencies
-7. **Document connection requirements** (credentials, network access)
-8. **Follow naming convention**: `*Source` for provider classes
+1. **Define data sources as frozen dataclasses** for immutability
+2. **Implement fetch functions** instead of class methods for simplicity
+3. **Let the fetch layer handle caching** - providers should focus on data retrieval
+4. **Log all operations** (connections, queries, errors) using %-formatting
+5. **Validate output schema** in the fetch layer, not provider
+6. **Handle errors gracefully** with informative messages
+7. **Use type hints** for all parameters and return values
+8. **Test with mocked data** to avoid external dependencies
+9. **Document connection requirements** (credentials, network access)
+10. **Follow naming convention**: `fetch_from_*` for provider functions
 
 ## Troubleshooting
 
@@ -456,38 +533,42 @@ class RobustAPISource:
 
 ```python
 # Check import
-from aponyx.data.providers import MyCustomSource  # Should work
+from aponyx.data.providers import fetch_from_mycustom  # Should work
 
 # Verify __init__.py exports
 from aponyx.data import providers
-print(dir(providers))  # Should list MyCustomSource
+print(dir(providers))  # Should list fetch_from_mycustom
 ```
 
 ### Cache Not Working
 
 ```python
-# Ensure cache is passed to provider
-from aponyx.data.cache import Cache
-
-cache = Cache()
-source = MyCustomSource(params, cache=cache)  # Pass cache here
-
-# Enable debug logging to see cache hits/misses
+# Enable debug logging to see cache operations
 import logging
 logging.basicConfig(level=logging.DEBUG)
+
+# Check if caching is enabled
+from aponyx.config import CACHE_ENABLED, CACHE_TTL_DAYS
+print(f"Cache enabled: {CACHE_ENABLED}, TTL: {CACHE_TTL_DAYS} days")
+
+# Explicitly control cache usage
+df = fetch_cdx(source, security="cdx_ig_5y", use_cache=True)
 ```
 
 ### Authentication Failures
 
 ```python
-# Don't hardcode credentials in code
+# Don't hardcode credentials in source definitions
 import os
 
 api_key = os.environ.get("MY_API_KEY")
 if not api_key:
     raise ValueError("MY_API_KEY environment variable not set")
 
-source = APISource(base_url="...", api_key=api_key)
+source = APISource(
+    endpoint="https://api.example.com",
+    api_key=api_key,
+)
 ```
 
 ---

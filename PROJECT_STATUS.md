@@ -1,7 +1,7 @@
 # Project Status — aponyx
 
 **Last Updated:** November 2, 2025  
-**Version:** 0.1.1  
+**Version:** 0.1.2  
 **Maintainer:** stabilefrisur
 
 ---
@@ -57,7 +57,7 @@ src/aponyx/
   py.typed            # PEP 561 type marker for mypy
   
   config/             # Paths, constants, defaults
-    __init__.py       # PROJECT_ROOT, DATA_DIR, CACHE_ENABLED, etc.
+    __init__.py       # PROJECT_ROOT, DATA_DIR, CACHE_ENABLED, SIGNAL_CATALOG_PATH, STRATEGY_CATALOG_PATH, etc.
   
   data/               # Load, validate, transform market data
     __init__.py       # Exports: fetch_*, *Source, validate_*, DataRegistry
@@ -85,12 +85,14 @@ src/aponyx/
     signal_catalog.json  # Signal metadata catalog
   
   backtest/           # Simulation, P&L tracking, metrics
-    __init__.py       # Exports: BacktestConfig, run_backtest, etc.
+    __init__.py       # Exports: BacktestConfig, run_backtest, StrategyRegistry, etc.
     engine.py         # Core backtest engine
     metrics.py        # Performance calculations
     config.py         # BacktestConfig dataclass
     protocols.py      # BacktestEngine, PerformanceCalculator
+    registry.py       # Strategy registry and metadata
     adapters.py       # Third-party library adapters (stubs)
+    strategy_catalog.json  # Strategy metadata catalog
   
   visualization/      # Plotly charts, Streamlit dashboards
     __init__.py       # Exports: plot_*, Visualizer
@@ -178,6 +180,8 @@ src/aponyx/
 - 1-day TTL for market data (`CACHE_TTL_DAYS = 1`)
 - Data directory structure: `data/raw/`, `data/processed/`, `data/cache/`
 - Registry path: `data/registry.json` (from `config.REGISTRY_PATH`)
+- Signal catalog path: `src/aponyx/models/signal_catalog.json` (from `config.SIGNAL_CATALOG_PATH`)
+- Strategy catalog path: `src/aponyx/backtest/strategy_catalog.json` (from `config.STRATEGY_CATALOG_PATH`)
 - DataRegistry lives in data layer (`src/aponyx/data/registry.py`)
 
 **Requirements:**
@@ -285,6 +289,13 @@ src/aponyx/
   - Transaction cost modeling (bps-based)
   - Optional max holding period constraint
   - DV01-based P&L calculation
+- **Strategy Registry Pattern:**
+  - `StrategyRegistry` class - JSON catalog management for backtest strategies
+  - `StrategyMetadata` dataclass - Strategy metadata container (frozen)
+  - JSON-based catalog (`strategy_catalog.json`) with 4 strategies
+  - Enable/disable strategies via catalog without code changes
+  - Metadata-to-config conversion via `to_config()` method
+  - Fail-fast validation at load time (entry > exit threshold)
 - **Performance Metrics:**
   - `compute_performance_metrics` - Comprehensive statistics
   - `PerformanceMetrics` dataclass - 13 metrics including:
@@ -323,6 +334,8 @@ src/aponyx/
 - `metrics.py` - Performance calculations
 - `config.py` - Configuration dataclass with validation
 - `protocols.py` - Type protocols for extensibility
+- `registry.py` - Strategy registry and metadata management
+- `strategy_catalog.json` - Strategy metadata catalog (4 entries)
 - `adapters.py` - Stubs for third-party library integration
 
 **Current Limitations:**
@@ -410,6 +423,7 @@ src/aponyx/
   - `tests/data/` - Data validation and loading
   - `tests/models/` - Signal computation, registry, catalog
   - `tests/backtest/` - Engine and metrics
+  - `tests/governance/` - Strategy registry, integration tests
   - `tests/persistence/` - I/O operations and registry
   - `tests/visualization/` - Plotting functions
 - Deterministic test data with fixed seeds
@@ -435,6 +449,8 @@ src/aponyx/
   - `caching_design.md` - Cache layer architecture
   - `adding_data_providers.md` - Provider extension guide
   - `documentation_structure.md` - Single source of truth principles
+- Additional documentation:
+  - `governance_design_plan.md` - Strategy registry and governance pattern
 - Runnable examples for each layer (`examples/`)
 - NumPy-style docstrings throughout codebase
 - Copilot instructions for AI-assisted development (`.github/copilot-instructions.md`)
@@ -480,7 +496,45 @@ registry = SignalRegistry("src/aponyx/models/signal_catalog.json")
 signals = compute_registered_signals(registry, market_data, config)
 ```
 
-### 3. Provider Pattern for Data Sources
+### 3. Strategy Registry Pattern
+
+Backtest strategies are managed via **JSON catalog** + **strategy metadata registry**:
+
+**Files:**
+- `src/aponyx/backtest/strategy_catalog.json` - Strategy metadata (4 strategies)
+- `src/aponyx/backtest/registry.py` - Registry implementation
+- `src/aponyx/config/__init__.py` - STRATEGY_CATALOG_PATH constant
+
+**Benefits:**
+- Define multiple threshold configurations without code changes
+- Enable/disable strategies for comparative evaluation
+- Clean separation of strategy parameters from backtest engine
+- Consistent pattern with signal registry
+- Convert metadata to BacktestConfig via `to_config()` method
+
+**Current Strategies:**
+- `conservative` - Entry: 2.0, Exit: 1.0 (low turnover, high conviction)
+- `balanced` - Entry: 1.5, Exit: 0.75 (moderate turnover)
+- `aggressive` - Entry: 1.0, Exit: 0.5 (high turnover)
+- `experimental` - Entry: 0.75, Exit: 0.25 (disabled by default)
+
+**Usage:**
+```python
+from aponyx.backtest import StrategyRegistry
+from aponyx.config import STRATEGY_CATALOG_PATH
+
+registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
+metadata = registry.get_metadata("balanced")
+config = metadata.to_config(position_size=15.0)  # Override defaults
+```
+
+**Implementation Details:**
+- `StrategyMetadata` dataclass with frozen=True for immutability
+- Fail-fast validation: entry_threshold > exit_threshold checked at load time
+- Enable/disable strategies via catalog without code changes
+- Comprehensive unit tests in `tests/governance/test_strategy_registry.py`
+
+### 4. Provider Pattern for Data Sources
 
 **Abstract `DataSource` protocol** supports multiple providers:
 
@@ -504,7 +558,7 @@ source = BloombergSource()
 cdx_df = fetch_cdx(source, index_name="CDX_IG", tenor="5Y")
 ```
 
-### 4. Functions Over Classes
+### 5. Functions Over Classes
 
 **Default to pure functions** for transformations, calculations, and data processing.
 
@@ -525,7 +579,7 @@ cdx_df = fetch_cdx(source, index_name="CDX_IG", tenor="5Y")
 - `src/aponyx/backtest/config.py` - Dataclass configurations
 - `src/aponyx/backtest/engine.py` - Functional backtest logic
 
-### 5. Logging Standards
+### 6. Logging Standards
 
 **Module-level loggers:**
 ```python
@@ -550,7 +604,7 @@ logging.basicConfig(...)  # User's responsibility, not library's
 
 **Examples:** See any module in `src/aponyx/` for consistent logging patterns.
 
-### 6. Type Hints (Modern Python Syntax)
+### 7. Type Hints (Modern Python Syntax)
 
 **Use built-in generics and union syntax:**
 ```python

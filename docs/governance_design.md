@@ -1,25 +1,18 @@
-# Governance Design Plan for Coding Agents — aponyx Framework
+# Governance Design — aponyx Framework
 
 **Purpose:**  
-This document defines the governance architecture for the *aponyx* research framework. It serves as guidance for coding agents and contributors to maintain a consistent, modular, and evolvable system without introducing unnecessary complexity or coupling.
+This document describes the governance architecture for the *aponyx* research framework. It explains the design principles, patterns, and implementation examples that maintain consistency and modularity across the system.
 
 ---
 
-## 1. Design Intent
+## 1. Design Overview
 
 The governance system exists to:
 - Provide **structure without friction** for researchers.  
 - Keep **layers isolated yet interoperable** through clear conventions.  
-- Ensure **consistency and reproducibility** across data, models, and backtests.  
-- Remain **simple enough to discard or refactor** as the project evolves.
+- Ensure **consistency and reproducibility** across data, models, and backtests.
 
-This framework is pre-production and rapidly evolving. Governance should therefore be lightweight, explicit, and disposable.
-
----
-
-## 2. High-Level Governance Model
-
-Governance in *aponyx* is organized around three pillars:
+The framework organizes governance around three pillars:
 
 | Pillar | Scope | Persistence | Description |
 |--------|--------|--------------|--------------|
@@ -27,11 +20,11 @@ Governance in *aponyx* is organized around three pillars:
 | **Registry** | Data and metadata tracking | JSON file | Tracks datasets and their lineage. |
 | **Catalog** | Model and signal definitions | JSON file | Declares signals and computational assets available for research. |
 
-Each pillar owns a single JSON or constant source of truth. No automatic merging or runtime inference is allowed.
+Each pillar owns a single JSON or constant source of truth.
 
 ---
 
-## 3. Core Design Principles
+## 2. Design Principles
 
 1. **Single Source of Truth per Concern**  
    Each governance domain (config, registry, catalog) has exactly one canonical file.
@@ -49,53 +42,48 @@ Each pillar owns a single JSON or constant source of truth. No automatic merging
    Loading a governance object from disk must always yield the same in-memory representation.
 
 6. **Replaceability**  
-   Governance constructs should be easy to replace later (e.g., switch JSON → database) without rewriting other layers.
+   Governance constructs are designed to be replaceable without rewriting other layers.
 
 7. **Convention over Abstraction**  
-   Avoid frameworks, inheritance, or dependency injection. Use naming and directory conventions instead.
+   Uses naming and directory conventions instead of frameworks or inheritance.
 
 ---
 
-## 4. Governance Layers
+## 3. Governance Pillars
 
-### 4.1 Configuration (`config/`)
+### 3.1 Configuration (`config/`)
 
 - Declares constant paths, project root, and cache directories.
 - Must be deterministic at import time.  
 - No dynamic configuration or environment-variable logic.
 - Used by all layers for locating data, cache, and registries.
 
-### 4.2 Registry (`data/registry.py`)
+### 3.2 Registry (`data/registry.py`)
 
 - Tracks datasets produced or consumed by the framework.
 - Maintains lightweight metadata such as instrument, source, and date range.
 - Each dataset is uniquely identified by name and stored in a single JSON registry.
 - Supports basic operations: register, lookup, list.
 
-### 4.3 Catalog (`models/registry.py`, `models/signal_catalog.json`)
+### 3.3 Catalog (`models/registry.py`, `models/signal_catalog.json`)
 
 - Enumerates all available signal definitions.
 - Each entry specifies: name, description, data requirements, and whether it is enabled.
 - The catalog acts as the research “menu” from which signals are selected for computation.
-- Catalog edits are manual and version-controlled; no runtime mutation.
+- Catalog edits are manual and version-controlled.
 
 ---
 
-## 5. Governance Spine
-
-Governance is unified conceptually through a shared minimal pattern, not through shared code.  
-Each domain (config, registry, catalog) follows the same lifecycle:
+## 4. Governance Lifecycle Pattern
 
 1. **Load** from a static source (constants or JSON file).  
 2. **Inspect** or query (e.g., list enabled signals).  
 3. **Use** in downstream processes (fetching data, computing signals).  
-4. **Optionally Save** if new metadata is produced.  
-
-This pattern forms the “governance spine” across all layers.
+4. **Optionally Save** if new metadata is produced.
 
 ---
 
-## 6. Layer Boundaries and Import Rules
+## 5. Layer Boundaries
 
 | Layer | May Import From | Must Not Import From |
 |-------|-----------------|----------------------|
@@ -106,60 +94,11 @@ This pattern forms the “governance spine” across all layers.
 | `backtest/` | `config`, `models` | `data`, `visualization` |
 | `visualization/` | None | All others |
 
-This ensures acyclic dependency flow and reproducible behavior.
-
 ---
 
-## 7. Governance Behavior Expectations
+## 6. Implementation Patterns
 
-- **Immutability:** Governance objects (config, registry, catalog) are treated as immutable within a session.
-- **Transparency:** All governance files are stored in plain text (JSON) and version-controlled.
-- **Deterministic I/O:** Loading or saving governance files must yield identical structures across systems.
-- **No Runtime Globals:** All governance data must be passed explicitly between functions.
-
----
-
-## 8. Extensibility Guidelines
-
-1. To add new governance types (e.g., metrics catalog), mirror the same pattern: flat JSON + loader functions.
-2. New layers must define their own canonical registry or catalog file.
-3. If a governance artifact becomes large, split it into multiple JSON files within a single directory and merge deterministically at load time.
-4. Governance code should never depend on external libraries; built-in `json` and `pathlib` are sufficient.
-
----
-
-## 9. Future-Proofing
-
-Although backward compatibility is not a concern, good governance discipline enables smoother evolution. Future versions can introduce:
-- Schema validation (via JSON Schema or Pydantic)
-- Catalog composition (base + user overlay)
-- Version tagging for metadata records
-- A unified CLI for inspecting governance state
-
-These are deferred until the framework stabilizes.
-
----
-
-## 10. Summary
-
-| Goal | Approach |
-|------|-----------|
-| Simplicity | Single JSON per domain, no frameworks |
-| Consistency | Shared structure and conventions |
-| Transparency | Human-readable governance data |
-| Isolation | Layer boundaries enforced |
-| Replaceability | Stateless, functional patterns |
-| Reproducibility | Deterministic loading and saving |
-
-The result is a governance system that provides **clarity, safety, and composability**, without adding unnecessary abstraction or operational weight.
-
----
-
-## 11. Implementation Examples
-
-This section provides concrete code examples demonstrating the governance spine pattern across all pillars.
-
-### 11.1 Config Pillar — Import-Time Constants
+### 6.1 Config — Import-Time Constants
 
 **File:** `src/aponyx/config/__init__.py`
 
@@ -199,7 +138,7 @@ if CACHE_ENABLED:
 
 ---
 
-### 11.2 DataRegistry — Class-Based Registry
+### 6.2 DataRegistry — Class-Based Registry
 
 **File:** `src/aponyx/data/registry.py`
 
@@ -234,7 +173,7 @@ registry.register_dataset(
 
 ---
 
-### 11.3 SignalRegistry — Class-Based Catalog with Fail-Fast Validation
+### 6.3 SignalRegistry — Class-Based Catalog with Fail-Fast Validation
 
 **File:** `src/aponyx/models/registry.py`
 
@@ -269,7 +208,7 @@ signals = compute_registered_signals(registry, market_data, config)
 
 ---
 
-### 11.4 StrategyRegistry — Class-Based Catalog for Backtest Strategies
+### 6.4 StrategyRegistry — Class-Based Catalog for Backtest Strategies
 
 **File:** `src/aponyx/backtest/registry.py`
 
@@ -305,7 +244,7 @@ result = run_backtest(signal_series, cdx_spread, config)
 
 ---
 
-### 11.5 Bloomberg Config — Functional Pattern with Module-Level Caching
+### 6.5 Bloomberg Config — Functional Pattern with Module-Level Caching
 
 **File:** `src/aponyx/data/bloomberg_config.py`
 
@@ -337,7 +276,7 @@ ticker = get_bloomberg_ticker("CDX.NA.IG", "5Y")
 
 ---
 
-### 11.6 Pattern Comparison
+### 6.6 Pattern Comparison
 
 | Pillar | Implementation | State | Validation | Save Support |
 |--------|---------------|-------|------------|--------------|
@@ -361,9 +300,7 @@ ticker = get_bloomberg_ticker("CDX.NA.IG", "5Y")
 
 ---
 
-## 12. Fail-Fast Validation Approach
-
-All catalog implementations use **fail-fast validation** to catch errors at load time rather than runtime:
+## 7. Fail-Fast Validation
 
 ### SignalRegistry Validation
 

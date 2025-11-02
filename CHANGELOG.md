@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2025-11-02
+
+### Added
+
+#### Governance Framework
+- Strategy registry system for centralized strategy management (`backtest/registry.py`)
+- JSON-based strategy catalog with versioning and metadata tracking (`strategy_catalog.json`)
+- Comprehensive integration tests validating cross-component workflows (`tests/governance/`)
+- Configuration management supporting multiple strategy configurations
+- Protocol-based adapters for decoupled signal/spread inputs
+
+#### Examples Enhancement
+- Bloomberg data provider demonstration (`bloomberg_demo.py`)
+- Complete persistence workflow examples (`persistence_demo.py`)
+- Enhanced backtest examples demonstrating strategy registry patterns
+- Improved models examples with catalog-based signal retrieval
+- Streamlined and modernized data examples
+
+#### Documentation
+- Expanded governance design plan with implementation details
+- Enhanced examples navigation with governance workflow guidance
+- Strategy catalog inline documentation with JSON schema
+
+### Changed
+- Refactored backtest examples to use strategy registry
+- Updated models examples to demonstrate catalog integration
+- Modernized data examples for clarity and consistency
+
+### Fixed
+- Strategy/signal compatibility validation in registry
+- Cross-module integration patterns in backtest layer
+
 ## [0.1.1] - 2025-11-01
 
 ### Fixed
@@ -97,5 +129,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.2]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.2
 [0.1.1]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.1
 [0.1.0]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.0

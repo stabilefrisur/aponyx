@@ -23,7 +23,7 @@ registry = SignalRegistry("src/aponyx/models/signal_catalog.json")
 # Prepare market data
 market_data = {
     "cdx": cdx_df,  # Must have 'spread' column
-    "vix": vix_df,  # Must have 'level' column
+    "vix": vix_df,  # Must have 'level' column  
     "etf": etf_df,  # Must have 'spread' column
 }
 
@@ -36,7 +36,10 @@ backtest_config = BacktestConfig(entry_threshold=1.5, exit_threshold=0.75)
 
 for signal_name, signal_series in signals.items():
     result = run_backtest(signal_series, cdx_df["spread"], backtest_config)
-    print(f"{signal_name}: Sharpe={result.metrics['sharpe_ratio']:.2f}")
+    # Compute metrics from result
+    from aponyx.backtest.metrics import compute_performance_metrics
+    metrics = compute_performance_metrics(result.pnl["net_pnl"], result.positions["position"])
+    print(f"{signal_name}: Sharpe={metrics.sharpe_ratio:.2f}")
 ```
 
 ## Adding a New Signal
@@ -123,14 +126,14 @@ print(f"Sharpe Ratio: {result.metrics['sharpe_ratio']:.2f}")
 
 ```json
 {
-  "name": "cdx_etf_basis",
-  "description": "Flow-driven mispricing from CDX-ETF basis",
-  "compute_function_name": "compute_cdx_etf_basis",
+  "name": "cdx_vix_gap",
+  "description": "Cross-asset risk sentiment gap between credit and equity vol",
+  "compute_function_name": "compute_cdx_vix_gap",
   "data_requirements": {
     "cdx": "spread",
-    "etf": "spread"
+    "vix": "level"
   },
-  "arg_mapping": ["cdx", "etf"],
+  "arg_mapping": ["cdx", "vix"],
   "enabled": true
 }
 ```
@@ -146,7 +149,8 @@ Set `"enabled": false` in catalog JSON, then reload registry.
 Run backtests for all enabled signals to compare performance:
 
 ```python
-from aponyx.backtest import run_backtest, compute_performance_metrics, BacktestConfig
+from aponyx.backtest import run_backtest, BacktestConfig
+from aponyx.backtest.metrics import compute_performance_metrics
 
 # Compute all enabled signals
 signals = compute_registered_signals(registry, market_data, signal_config)
@@ -163,7 +167,7 @@ backtest_config = BacktestConfig(
 results = {}
 for signal_name, signal_series in signals.items():
     result = run_backtest(signal_series, cdx_df["spread"], backtest_config)
-    metrics = compute_performance_metrics(result.pnl, result.positions)
+    metrics = compute_performance_metrics(result.pnl["net_pnl"], result.positions["position"])
     results[signal_name] = metrics
     
     print(f"{signal_name}:")
@@ -182,11 +186,10 @@ signal = compute_registered_signals(registry, market_data, signal_config)["cdx_e
 result = run_backtest(signal, cdx_df["spread"], backtest_config)
 
 # Detailed analysis
-from aponyx.visualization import plot_signal, plot_equity_curve, plot_drawdown
+from aponyx.visualization import plot_signal, plot_pnl
 
 plot_signal(signal, title="CDX-ETF Basis").show()
-plot_equity_curve(result.pnl).show()
-plot_drawdown(result.pnl).show()
+plot_pnl(result.pnl["cumulative_pnl"], title="Cumulative P&L").show()
 ```
 
 ### Run Subset of Signals
@@ -202,7 +205,9 @@ signal_names = ["cdx_etf_basis", "spread_momentum"]
 
 for name in signal_names:
     result = run_backtest(all_signals[name], cdx_df["spread"], backtest_config)
-    print(f"{name}: Sharpe={result.metrics['sharpe_ratio']:.2f}")
+    from aponyx.backtest.metrics import compute_performance_metrics
+    metrics = compute_performance_metrics(result.pnl["net_pnl"], result.positions["position"])
+    print(f"{name}: Sharpe={metrics.sharpe_ratio:.2f}")
 ```
 
 ## Architecture Benefits
@@ -233,7 +238,8 @@ for name in signal_names:
 The backtest layer accepts any signal series for independent evaluation:
 
 ```python
-from aponyx.backtest import BacktestConfig, run_backtest, compute_performance_metrics
+from aponyx.backtest import BacktestConfig, run_backtest
+from aponyx.backtest.metrics import compute_performance_metrics
 
 # Compute signals using registry
 signals = compute_registered_signals(registry, market_data, signal_config)
@@ -249,7 +255,7 @@ bt_config = BacktestConfig(
 # Evaluate each signal independently
 for signal_name, signal_series in signals.items():
     result = run_backtest(signal_series, cdx_df["spread"], bt_config)
-    metrics = compute_performance_metrics(result.pnl, result.positions)
+    metrics = compute_performance_metrics(result.pnl["net_pnl"], result.positions["position"])
     
     print(f"\n{signal_name}:")
     print(f"  Sharpe Ratio: {metrics.sharpe_ratio:.2f}")
@@ -447,10 +453,8 @@ You can also call compute functions directly without the registry:
 
 ```python
 # Direct computation (bypassing registry)
-from aponyx.models import (
-    compute_cdx_etf_basis,
-    SignalConfig,
-)
+from aponyx.models.signals import compute_cdx_etf_basis
+from aponyx.models.config import SignalConfig
 
 config = SignalConfig(lookback=20, min_periods=10)
 signal = compute_cdx_etf_basis(cdx_df, etf_df, config)
