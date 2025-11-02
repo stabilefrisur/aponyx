@@ -19,7 +19,8 @@ The framework supports:
 
 ```
 src/aponyx/
-  data/               # Loaders, cleaning, transformation
+  data/               # Loaders, cleaning, transformation, validation
+    providers/        # Data provider implementations (Bloomberg, etc.)
   models/             # Signal & strategy logic
   backtest/           # Backtesting engine and risk tracking
   visualization/      # Plotly & Streamlit dashboards
@@ -34,10 +35,16 @@ tests/                # Unit tests for reproducibility
   backtest/
   visualization/
   persistence/
+  governance/         # Registry and catalog integration tests
 
 docs/                 # Documentation and strategy specs
   cdx_overlay_strategy.md # Investment strategy context
-  maintenance/        # Fork/upstream sync workflows (advanced)
+  governance_design.md    # Registry, catalog, and config patterns
+  logging_design.md       # Logging conventions and metadata
+  visualization_design.md # Chart architecture and patterns
+  caching_design.md       # Cache layer architecture
+  adding_data_providers.md # Provider extension guide
+  maintenance/        # Fork/upstream sync workflows
 .github/              # GitHub workflows and agent instructions
 pyproject.toml        # Project dependencies and build system
 README.md             # Project overview and setup instructions
@@ -60,9 +67,29 @@ Use relative imports and avoid global state.
 
 ---
 
-## Environment Standards
+## Governance System
 
-- **Python:** 3.12
+The project uses a three-pillar governance architecture:
+
+1. **Config** (`config/`) — Import-time constants for paths, cache settings, catalog locations
+2. **Registry** (`data/registry.py`) — Dataset tracking with CRUD operations (class-based, mutable)
+3. **Catalog** (`models/signal_catalog.json`, `backtest/strategy_catalog.json`) — Signal and strategy definitions (class-based registries with fail-fast validation)
+
+### Patterns
+
+- **Import-time constants:** Static configuration (`config/__init__.py`)
+- **Class-based registry:** Mutable state with CRUD (`DataRegistry`)
+- **Class-based catalog:** Immutable metadata with validation (`SignalRegistry`, `StrategyRegistry`)
+- **Functional pattern:** Read-only lookups with lazy loading (Bloomberg config)
+
+See `docs/governance_design.md` for complete architecture details.
+
+### Registry vs Catalog
+
+- **Registry** = Dataset tracking (what data files exist, where they are)
+- **Catalog** = Signal/strategy definitions (what computations are available)
+
+Both use JSON persistence but serve different purposes and have different mutability patterns.
 
 ---
 
@@ -99,21 +126,28 @@ Use relative imports and avoid global state.
 
 ### Documentation Example
 ```python
-def compute_spread_momentum(spread: pd.Series, window: int = 5) -> pd.Series:
+def compute_spread_momentum(
+    cdx_df: pd.DataFrame,
+    config: SignalConfig,
+) -> pd.Series:
     """
-    Compute short‑term momentum in CDX spreads using z‑score normalization.
+    Compute short-term momentum in CDX spreads using z-score normalization.
 
     Parameters
     ----------
-    spread : pd.Series
-        Daily CDX spread levels.
-    window : int, default 5
-        Rolling lookback period in days.
+    cdx_df : pd.DataFrame
+        CDX data with 'spread' column and DatetimeIndex.
+    config : SignalConfig
+        Signal configuration with lookback and min_periods.
 
     Returns
     -------
     pd.Series
         Normalized momentum signal.
+        
+    Notes
+    -----
+    Signal sign convention: positive = tightening spreads = bullish credit.
     """
 ```
 
@@ -145,15 +179,14 @@ def compute_spread_momentum(spread: pd.Series, window: int = 5) -> pd.Series:
 ## Agent Context Hints for Claude Sonnet / GPT-5
 
 | Context | Preferred Behavior |
-|----------|--------------------|
-| Editing `/data/` | Focus on reproducible data loading, cleaning, and transformation. Avoid strategy logic. |
-| Editing `/models/` | Focus on signal functions and strategy modules. Use clean abstractions. **Signal convention: positive values = long credit risk (buy CDX).** |
-| Editing `/backtest/` | Implement transparent, deterministic backtest logic. Include metadata logging. |
+|----------|--------------------|  
+| Editing `/config/` | Use import-time constants with `Final` type hints. No classes, no dynamic configuration. |
+| Editing `/data/` | Focus on fetch functions, schema validation, and data sources. Use `DataRegistry` for dataset tracking. Support multiple providers (File, Bloomberg, API). |
+| Editing `/models/` | Focus on signal functions and strategy modules. Use `SignalRegistry` for catalog management. **Signal convention: positive values = long credit risk (buy CDX).** |
+| Editing `/backtest/` | Implement transparent, deterministic backtest logic. Use `StrategyRegistry` for strategy catalog. Include metadata logging. |
 | Editing `/visualization/` | Generate reusable Plotly/Streamlit components. Separate plotting from computation. |
-| Editing `/persistence/` | Handle Parquet/JSON I/O and registry management. No database dependencies. |
-| Editing `/tests/` | Write unit tests for determinism, type safety, and reproducibility. |
-
-When generating code, the assistant should **infer module context from file path** and **adhere to functional boundaries** automatically.
+| Editing `/persistence/` | Handle Parquet/JSON I/O. No database dependencies. Keep I/O functions pure. |
+| Editing `/tests/` | Write unit tests for determinism, type safety, and reproducibility. Test governance patterns separately in `tests/governance/`. |When generating code, the assistant should **infer module context from file path** and **adhere to functional boundaries** automatically.
 
 ### Signal Sign Convention (Models Layer)
 
@@ -202,55 +235,59 @@ signal = -spread_change / volatility  # Negated to match convention
 ### Example Ideal Output (inline completion)
 
 ```python
-# models/cdx_overlay_model.py
+# models/signals.py
 
 import logging
-from ..data.loader import load_market_data
-from ..persistence.io import save_json
 import pandas as pd
+from .config import SignalConfig
 
 logger = logging.getLogger(__name__)
 
-def compute_vix_cdx_gap(
+def compute_cdx_vix_gap(
     vix_df: pd.DataFrame,
     cdx_df: pd.DataFrame,
-    lookback: int = 20
+    config: SignalConfig,
 ) -> pd.Series:
     """
     Compute the relative stress signal between equity vol (VIX) and CDX spreads.
 
-    The signal identifies divergence between cross‑asset risk sentiment.
-    Positive values indicate VIX outpacing credit widening.
+    The signal identifies divergence between cross-asset risk sentiment.
+    Positive values indicate VIX outpacing credit widening (bullish credit).
 
     Parameters
     ----------
     vix_df : pd.DataFrame
-        VIX index levels with 'VIX' column.
+        VIX index levels with 'close' column.
     cdx_df : pd.DataFrame
         CDX index spreads with 'spread' column.
-    lookback : int, default 20
-        Rolling window for mean and std calculation.
+    config : SignalConfig
+        Signal configuration with lookback and min_periods.
 
     Returns
     -------
     pd.Series
-        Normalized VIX‑CDX gap signal.
+        Normalized VIX-CDX gap signal.
         
     Notes
     -----
     Uses z-score normalization to make signals comparable across regimes.
+    Signal sign convention: positive = long credit risk (buy CDX).
     """
     logger.info(
-        "Computing VIX-CDX gap: vix_rows=%d, cdx_rows=%d, lookback=%d",
+        "Computing CDX-VIX gap: vix_rows=%d, cdx_rows=%d, lookback=%d",
         len(vix_df),
         len(cdx_df),
-        lookback,
+        config.lookback,
     )
     
-    vix_deviation = vix_df['VIX'] - vix_df['VIX'].rolling(lookback).mean()
-    cdx_deviation = cdx_df['spread'] - cdx_df['spread'].rolling(lookback).mean()
+    vix_deviation = vix_df['close'] - vix_df['close'].rolling(
+        config.lookback, min_periods=config.min_periods
+    ).mean()
+    cdx_deviation = cdx_df['spread'] - cdx_df['spread'].rolling(
+        config.lookback, min_periods=config.min_periods
+    ).mean()
     gap = vix_deviation - cdx_deviation
-    signal = gap / gap.rolling(lookback).std()
+    signal = gap / gap.rolling(config.lookback, min_periods=config.min_periods).std()
     
     logger.debug("Generated %d signal values", signal.notna().sum())
     return signal
@@ -260,12 +297,12 @@ def compute_vix_cdx_gap(
 
 ## The Agent Should Never
 
-- Use external databases or APIs (use Parquet/JSON only).  
 - Use old typing syntax (`Optional`, `Union`, `List`, `Dict`).
 - Call `logging.basicConfig()` in library code or use f-strings in log messages.
-- Hardcode file paths or credentials.  
+- Hardcode file paths or credentials (use `config/` constants).  
 - Generate non‑deterministic results without a fixed random seed.  
-- Mix backtest logic with data ingestion.  
+- Mix backtest logic with data ingestion.
+- Mix governance concerns across pillars (config vs registry vs catalog).
 - Produce undocumented or untyped code.  
 - Add notebook cells or magic commands inside modules.
 - Add decorative emojis to code, comments, or docstrings.
@@ -274,9 +311,9 @@ def compute_vix_cdx_gap(
 - Create README files in implementation directories (`src/aponyx/*/README.md`).
 - Duplicate API documentation outside of module docstrings.
 - Write tutorial-style docs that duplicate runnable examples.
-- Implement authentication, authorization, or credential management (handled externally).
-- Create connection setup code for data providers (connections established outside project).
+- Implement authentication for data providers (connections managed externally).
 - Worry about backward compatibility or legacy code (early-stage project, use best practices).
+- Create database dependencies (use Parquet/JSON for persistence).
 
 ---
 
@@ -408,5 +445,5 @@ It should:
 - Produce code ready for production research pipelines.
 
 > Maintained by **stabilefrisur**.  
-> Version 1.1 — Optimized for VS Code Agent Mode (Claude Sonnet 4.5 / GPT‑5)  
-> Last Updated: October 31, 2025
+> Optimized for VS Code Agent Mode (Claude Sonnet 4.5 / GPT‑5)  
+> Last Updated: November 2, 2025
