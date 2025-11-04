@@ -295,7 +295,7 @@ def test_data_loading(tmp_path):
     # Test implementation...
 ```
 
-**See `docs/logging_design.md` for complete logging architecture.**
+**See `logging_design.md` (in same directory) for complete logging architecture.**
 
 ---
 
@@ -758,9 +758,8 @@ Before committing code, ensure:
 ## Additional Resources
 
 - **Project Architecture:** See `README.md`
-- **Logging Design:** See `docs/logging_design.md`
-- **Persistence Layer:** See `docs/persistence_layer_complete.md`
-- **Strategy Documentation:** See `docs/cdx_overlay_strategy.md`
+- **Logging Design:** See `logging_design.md` (in same directory)
+- **Strategy Documentation:** See `cdx_overlay_strategy.md` (in same directory)
 - **Copilot Instructions:** See `.github/copilot-instructions.md`
 
 ---

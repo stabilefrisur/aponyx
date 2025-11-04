@@ -367,7 +367,7 @@ fig.add_vrect(x0="2024-01-01", x1="2024-03-01", fillcolor="red", opacity=0.1)
 
 - **Plotly Documentation:** https://plotly.com/python/
 - **Streamlit Integration:** https://docs.streamlit.io/library/api-reference/charts/st.plotly_chart
-- **Project Standards:** `docs/python_guidelines.md`
+- **Project Standards:** `python_guidelines.md` (in same directory)
 - **Signal Convention:** All signals in `models/` use consistent positive = long credit convention
 
 ---

@@ -437,10 +437,10 @@ src/aponyx/
 - Test error handling (missing columns, empty data)
 - Do NOT test visual rendering or external services
 
-### ✅ Documentation (`docs/`, `src/aponyx/examples/`)
+### ✅ Documentation (`src/aponyx/docs/`, `src/aponyx/examples/`)
 
 **Implemented:**
-- Comprehensive design documents (8 files in `docs/`):
+- Comprehensive design documents (8 files in `src/aponyx/docs/`):
   - `cdx_overlay_strategy.md` - Investment strategy and signal definitions
   - `python_guidelines.md` - Code standards and best practices
   - `logging_design.md` - Logging conventions and metadata
@@ -458,7 +458,7 @@ src/aponyx/
 **Documentation Structure (Single Source of Truth):**
 - **API Reference:** Module docstrings
 - **Quickstart:** `README.md`
-- **Design Docs:** `docs/*.md`
+- **Design Docs:** `src/aponyx/docs/*.md` (included in PyPI distribution)
 - **Examples:** `src/aponyx/examples/*.py`
 
 ---
@@ -840,7 +840,7 @@ PerformanceMetrics (dataclass)
 - Hierarchical logger names enable fine-grained control
 - Works cleanly with pytest (no spurious output)
 
-**Impact:** Applications configure logging, library uses module loggers. See `docs/logging_design.md`.
+**Impact:** Applications configure logging, library uses module loggers. See `src/aponyx/docs/logging_design.md`.
 
 ---
 
@@ -977,21 +977,23 @@ aponyx/
 │   ├── example_data.py
 │   └── end_to_end_demo.ipynb
 │
-├── docs/                    # Design documentation
-│   ├── cdx_overlay_strategy.md       # Investment strategy
-│   ├── python_guidelines.md          # Code standards
-│   ├── logging_design.md             # Logging conventions
-│   ├── signal_registry_usage.md      # Signal management
-│   ├── visualization_design.md       # Chart architecture
-│   ├── caching_design.md             # Cache layer
-│   ├── adding_data_providers.md      # Provider extension
-│   ├── documentation_structure.md    # Doc principles
-│   ├── maintenance/         # Advanced workflows
-│   │   ├── MAINTENANCE.md
-│   │   └── Update-Upstream.ps1
-│   └── prompts/             # LLM context
-│       ├── investment strategy.txt
-│       └── technical implementation.txt
+├── src/aponyx/
+│   ├── docs/                    # Design documentation (included in package)
+│   │   ├── cdx_overlay_strategy.md       # Investment strategy
+│   │   ├── python_guidelines.md          # Code standards
+│   │   ├── logging_design.md             # Logging conventions
+│   │   ├── signal_registry_usage.md      # Signal management
+│   │   ├── visualization_design.md       # Chart architecture
+│   │   ├── caching_design.md             # Cache layer
+│   │   ├── adding_data_providers.md      # Provider extension
+│   │   ├── documentation_structure.md    # Doc principles
+│   │   ├── maintenance/         # Advanced workflows
+│   │   │   ├── MAINTENANCE.md
+│   │   │   └── Update-Upstream.ps1
+│   │   └── prompts/             # LLM context
+│   │       ├── investment strategy.txt
+│   │       └── technical implementation.txt
+│   ├── examples/            # Demo scripts (see above)
 │
 ├── data/                    # Data storage
 │   ├── registry.json        # Dataset registry
@@ -1058,9 +1060,9 @@ This document provides comprehensive context for GPT-based AI assistants working
 
 **Key reference files:**
 - Architecture: This document (layer table, design patterns)
-- Code standards: `.github/copilot-instructions.md`, `docs/python_guidelines.md`
-- Investment context: `docs/cdx_overlay_strategy.md`
-- Signal workflow: `docs/signal_registry_usage.md`
+- Code standards: `.github/copilot-instructions.md`, `src/aponyx/docs/python_guidelines.md`
+- Investment context: `src/aponyx/docs/cdx_overlay_strategy.md`
+- Signal workflow: `src/aponyx/docs/signal_registry_usage.md`
 - Examples: `src/aponyx/examples/*.py` for usage patterns
 
 ---

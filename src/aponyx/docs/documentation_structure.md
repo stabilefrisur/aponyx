@@ -6,7 +6,7 @@
 |----------|----------|---------|----------|
 | **API Reference** | Module docstrings | Function/class contracts | Developers (in-editor) |
 | **Quickstart** | `README.md` | Installation, examples, overview | New users |
-| **Design Docs** | `docs/*.md` | Architecture, standards, strategy | Contributors |
+| **Design Docs** | `src/aponyx/docs/*.md` | Architecture, standards, strategy | Contributors |
 | **Examples** | `src/aponyx/examples/*.py` + headers | Runnable demonstrations | Researchers |
 
 **Rule**: Each piece of information has exactly one authoritative location.
@@ -18,12 +18,11 @@
 ### Root Level
 - **`README.md`** - Installation, quickstart, project overview, navigation
 
-### Documentation (`docs/`)
+### Documentation (`src/aponyx/docs/`)
 - **`cdx_overlay_strategy.md`** - Investment strategy and implementation
 - **`python_guidelines.md`** - Code standards and best practices
 - **`logging_design.md`** - Logging conventions and metadata tracking
-- **`layer_review_prompt.md`** - Development workflow template
-- **`documentation_structure.md`** - This file
+- **`documentation_structure.md`** - This file (documentation philosophy)
 
 ### Examples (`src/aponyx/examples/`)
 - **`README.md`** - Quick start commands and script overview
@@ -47,7 +46,7 @@
 ❌ DON'T: Copy entire function signatures or explain implementation details
 ```
 
-### `docs/*.md`
+### Design Docs (`src/aponyx/docs/*.md`)
 ✅ Architecture decisions, design patterns, cross-cutting concerns  
 ❌ Code usage examples, API documentation, implementation summaries
 
@@ -125,7 +124,7 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
 
 ### ❌ Tutorial-Style Docs
 
-**Bad:** `docs/how_to_run_backtest.md` with step-by-step code examples
+**Bad:** Creating separate tutorial files with step-by-step code examples
 
 **Why:** Duplicates `src/aponyx/examples/backtest_demo.py` which is executable and tested.
 
@@ -168,7 +167,7 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
 **Where to document:**
 1. **Docstring** (`engine.py`): Updated function signature and behavior
 2. **Tests** (`test_engine.py`): New test cases demonstrating changed behavior
-3. **Design doc** (`docs/`): *Only if* architectural decision changed
+3. **Design doc** (`src/aponyx/docs/`): *Only if* architectural decision changed
 
 **Don't document:**
 - ❌ Changelog in multiple docs (keep git history)
@@ -179,7 +178,7 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
 **Where to document:**
 1. **Class docstring** (`providers/new_provider.py`): Provider-specific API details
 2. **Demo script** (`src/aponyx/examples/data_demo.py`): Add example using new provider
-3. **Design doc** (`docs/adding_data_providers.md`): Architecture pattern for providers
+3. **Design doc** (`adding_data_providers.md` in same directory): Architecture pattern for providers
 
 **Don't document:**
 - ❌ Provider list in multiple places (use code as source of truth)
@@ -197,14 +196,14 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
 3. **Function docstrings** → Explains individual function contracts
 
 **User never needs to:**
-- Read `docs/` for basic usage
+- Read design docs for basic usage
 - Search for API reference outside code
 - Follow tutorial-style guides
 
 ### Scenario: Contributor Wants to Add a Signal
 
 **Documentation Path:**
-1. **Root README** → Links to `docs/signal_registry_usage.md`
+1. **Root README** → Links to `signal_registry_usage.md` (in installed docs)
 2. **Design doc** → Explains registry pattern and conventions
 3. **Demo script** → Shows working example of signal usage
 4. **Docstrings** → Reference for function signatures
@@ -233,13 +232,13 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
 | "How do I install?" | Root README |
 | "How do I use function X?" | Function docstring |
 | "How do I run a backtest?" | `backtest_demo.py` header + code |
-| "Why this design?" | `docs/*.md` |
+| "Why this design?" | `src/aponyx/docs/*.md` |
 | "What's the API?" | Module/function docstrings |
 
 ### What NOT to Do
 
 ❌ Create README files in implementation directories  
-❌ Write "implementation summary" docs in `docs/`  
+❌ Write "implementation summary" docs separate from code  
 ❌ Duplicate usage examples across files  
 ❌ Document API details outside docstrings  
 ❌ Create tutorial-style docs that duplicate demos

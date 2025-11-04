@@ -26,6 +26,10 @@ src/aponyx/
   visualization/      # Plotly & Streamlit dashboards
   persistence/        # Parquet & JSON I/O utilities
   config/             # Paths, constants, environment
+  docs/               # Documentation and strategy specs
+    maintenance/      # Fork/upstream sync workflows
+    prompts/          # Strategy and implementation prompts
+  examples/           # Example scripts and notebooks
   __init__.py         # Package initialization
   main.py             # CLI entry point / notebook runner
 
@@ -36,15 +40,6 @@ tests/                # Unit tests for reproducibility
   visualization/
   persistence/
   governance/         # Registry and catalog integration tests
-
-docs/                 # Documentation and strategy specs
-  cdx_overlay_strategy.md # Investment strategy context
-  governance_design.md    # Registry, catalog, and config patterns
-  logging_design.md       # Logging conventions and metadata
-  visualization_design.md # Chart architecture and patterns
-  caching_design.md       # Cache layer architecture
-  adding_data_providers.md # Provider extension guide
-  maintenance/        # Fork/upstream sync workflows
 .github/              # GitHub workflows and agent instructions
 pyproject.toml        # Project dependencies and build system
 README.md             # Project overview and setup instructions
@@ -82,7 +77,7 @@ The project uses a three-pillar governance architecture:
 - **Class-based catalog:** Immutable metadata with validation (`SignalRegistry`, `StrategyRegistry`)
 - **Functional pattern:** Read-only lookups with lazy loading (Bloomberg config)
 
-See `docs/governance_design.md` for complete architecture details.
+See `src/aponyx/docs/governance_design.md` for complete architecture details.
 
 ### Registry vs Catalog
 
@@ -159,7 +154,7 @@ def compute_spread_momentum(
 |----------|----------|---------|
 | **API Reference** | Module docstrings | Function/class contracts, type info, parameters |
 | **Quickstart** | `README.md` | Installation, quick examples, navigation |
-| **Design Docs** | `docs/*.md` | Architecture, standards, strategy rationale |
+| **Design Docs** | `src/aponyx/docs/*.md` | Architecture, standards, strategy rationale |
 | **Examples** | `src/aponyx/examples/*.py` headers | Runnable demonstrations with explanatory headers |
 
 **What to document where:**

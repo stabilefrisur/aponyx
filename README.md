@@ -160,15 +160,30 @@ uv run python -m aponyx.examples.backtest_demo
 
 ## Documentation
 
+Documentation is **included with the package** and available after installation:
+
+```python
+# Access docs programmatically
+from aponyx.docs import get_docs_dir
+docs_path = get_docs_dir()
+print(docs_path)  # Path to installed documentation
+```
+
+**Available documentation:**
+
 | Document | Description |
 |----------|-------------|
-| [Python Guidelines](docs/python_guidelines.md) | Code standards and best practices |
-| [CDX Overlay Strategy](docs/cdx_overlay_strategy.md) | Investment thesis and pilot implementation |
-| [Signal Registry Usage](docs/signal_registry_usage.md) | Signal management workflow |
-| [Visualization Design](docs/visualization_design.md) | Chart architecture and patterns |
-| [Logging Design](docs/logging_design.md) | Logging conventions and metadata |
-| [Caching Design](docs/caching_design.md) | Cache layer architecture |
-| [Adding Data Providers](docs/adding_data_providers.md) | Provider extension guide |
+| `python_guidelines.md` | Code standards and best practices |
+| `cdx_overlay_strategy.md` | Investment thesis and pilot implementation |
+| `signal_registry_usage.md` | Signal management workflow |
+| `visualization_design.md` | Chart architecture and patterns |
+| `logging_design.md` | Logging conventions and metadata |
+| `caching_design.md` | Cache layer architecture |
+| `adding_data_providers.md` | Provider extension guide |
+| `governance_design.md` | Registry, catalog, and config patterns |
+
+**During development**, docs are also available on GitHub:
+- [Documentation Index](https://github.com/stabilefrisur/aponyx/tree/master/src/aponyx/docs)
 
 ## What's Included
 
@@ -241,7 +256,7 @@ This ensures clarity when evaluating signals independently or combining them in 
 
 Contributions welcome! This is a research framework under active development.
 
-- **Code standards**: See [Python Guidelines](docs/python_guidelines.md)
+- **Code standards**: See [Python Guidelines](src/aponyx/docs/python_guidelines.md) (or `from aponyx.docs import get_docs_dir` after install)
 - **Testing**: All new features require unit tests
 - **Documentation**: NumPy-style docstrings required
 
