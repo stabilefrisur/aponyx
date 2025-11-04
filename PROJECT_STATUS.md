@@ -1,6 +1,6 @@
 # Project Status — aponyx
 
-**Last Updated:** November 2, 2025  
+**Last Updated:** November 4, 2025  
 **Version:** 0.1.3  
 **Maintainer:** stabilefrisur
 
@@ -18,13 +18,12 @@
 | **License** | MIT |
 
 **Core Dependencies:**
-- `pandas>=2.2.0`, `numpy>=2.0.0`, `pyarrow>=17.0.0`, `xbbg>=0.7.0`
+- `pandas>=2.2.0`, `numpy>=2.0.0`, `pyarrow>=17.0.0`
 
-**Visualization:**
-- `plotly>=5.24.0`, `streamlit>=1.39.0` (optional)
-
-**Development Tools:**
-- `pytest>=8.0.0`, `ruff>=0.6.0`, `black>=24.0.0`, `mypy>=1.11.0`
+**Optional Dependencies:**
+- `bloomberg`: `xbbg>=0.7.0` (Bloomberg Terminal integration)
+- `viz`: `plotly>=5.24.0`, `streamlit>=1.39.0` (visualization)
+- `dev`: `pytest>=8.0.0`, `ruff>=0.6.0`, `black>=24.0.0`, `mypy>=1.11.0` (development tools)
 
 ---
 
@@ -182,11 +181,15 @@ src/aponyx/
 - Registry path: `data/registry.json` (from `config.REGISTRY_PATH`)
 - Signal catalog path: `src/aponyx/models/signal_catalog.json` (from `config.SIGNAL_CATALOG_PATH`)
 - Strategy catalog path: `src/aponyx/backtest/strategy_catalog.json` (from `config.STRATEGY_CATALOG_PATH`)
+- Bloomberg config paths: `src/aponyx/data/bloomberg_securities.json`, `bloomberg_instruments.json`
 - DataRegistry lives in data layer (`src/aponyx/data/registry.py`)
+- SignalRegistry lives in models layer (`src/aponyx/models/registry.py`)
+- StrategyRegistry lives in backtest layer (`src/aponyx/backtest/registry.py`)
 
 **Requirements:**
-- Bloomberg integration requires active Bloomberg Terminal session
-- xbbg wrapper included in standard dependencies
+- Bloomberg integration is optional (install with `pip install aponyx[bloomberg]`)
+- Requires active Bloomberg Terminal session when using BloombergSource
+- xbbg wrapper included in optional `bloomberg` dependencies
 
 **Implementation Notes:**
 - `APISource` dataclass is defined but not yet used by any provider
@@ -440,7 +443,7 @@ src/aponyx/
 ### ✅ Documentation (`src/aponyx/docs/`, `src/aponyx/examples/`)
 
 **Implemented:**
-- Comprehensive design documents (8 files in `src/aponyx/docs/`):
+- Comprehensive design documents (9 files in `src/aponyx/docs/`):
   - `cdx_overlay_strategy.md` - Investment strategy and signal definitions
   - `python_guidelines.md` - Code standards and best practices
   - `logging_design.md` - Logging conventions and metadata
@@ -449,8 +452,8 @@ src/aponyx/
   - `caching_design.md` - Cache layer architecture
   - `adding_data_providers.md` - Provider extension guide
   - `documentation_structure.md` - Single source of truth principles
-- Additional documentation:
-  - `governance_design_plan.md` - Strategy registry and governance pattern
+  - `governance_design.md` - Strategy registry and governance pattern
+  - `project_setup_process.md` - Project setup and installation
 - Runnable examples for each layer (`src/aponyx/examples/`)
 - NumPy-style docstrings throughout codebase
 - Copilot instructions for AI-assisted development (`.github/copilot-instructions.md`)
@@ -987,6 +990,8 @@ aponyx/
 │   │   ├── caching_design.md             # Cache layer
 │   │   ├── adding_data_providers.md      # Provider extension
 │   │   ├── documentation_structure.md    # Doc principles
+│   │   ├── governance_design.md          # Governance patterns
+│   │   ├── project_setup_process.md      # Setup guide
 │   │   ├── maintenance/         # Advanced workflows
 │   │   │   ├── MAINTENANCE.md
 │   │   │   └── Update-Upstream.ps1
