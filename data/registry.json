@@ -1,19 +1,19 @@
 {
   "cache_cdx_a6f7dc616b7f68b4": {
-    "end_date": "2024-09-08T00:00:00",
+    "end_date": "2024-07-27T00:00:00",
     "file_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\data\\cache\\file\\cdx_a6f7dc616b7f68b4.parquet",
     "instrument": "cdx",
     "last_updated": null,
     "metadata": {
       "cache_key": "a6f7dc616b7f68b4",
-      "cached_at": "2025-11-02T17:22:42.559208",
+      "cached_at": "2025-11-04T21:55:19.767035",
       "params": {
         "security": null
       },
       "provider": "file"
     },
-    "registered_at": "2025-11-02T17:22:42.559208",
-    "row_count": 252,
+    "registered_at": "2025-11-04T21:55:19.767035",
+    "row_count": 209,
     "start_date": "2024-01-01T00:00:00",
     "tenor": null
   },
@@ -55,36 +55,36 @@
     "tenor": null
   },
   "cache_etf_f03fa26986391519": {
-    "end_date": "2024-09-08T00:00:00",
+    "end_date": "2024-07-27T00:00:00",
     "file_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\data\\cache\\file\\etf_f03fa26986391519.parquet",
     "instrument": "etf",
     "last_updated": null,
     "metadata": {
       "cache_key": "f03fa26986391519",
-      "cached_at": "2025-11-02T17:22:42.594924",
+      "cached_at": "2025-11-04T21:55:19.822621",
       "params": {
         "security": null
       },
       "provider": "file"
     },
-    "registered_at": "2025-11-02T17:22:42.595927",
-    "row_count": 252,
+    "registered_at": "2025-11-04T21:55:19.822621",
+    "row_count": 209,
     "start_date": "2024-01-01T00:00:00",
     "tenor": null
   },
   "cache_vix_d09015690dfa93d9": {
-    "end_date": "2024-09-08T00:00:00",
+    "end_date": "2024-07-27T00:00:00",
     "file_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\data\\cache\\file\\vix_d09015690dfa93d9.parquet",
     "instrument": "vix",
     "last_updated": null,
     "metadata": {
       "cache_key": "d09015690dfa93d9",
-      "cached_at": "2025-11-02T17:22:42.576692",
+      "cached_at": "2025-11-04T21:55:19.789420",
       "params": {},
       "provider": "file"
     },
-    "registered_at": "2025-11-02T17:22:42.579727",
-    "row_count": 252,
+    "registered_at": "2025-11-04T21:55:19.802160",
+    "row_count": 209,
     "start_date": "2024-01-01T00:00:00",
     "tenor": null
   },

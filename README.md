@@ -47,7 +47,7 @@ git clone https://github.com/stabilefrisur/aponyx.git
 cd aponyx
 uv sync                    # Install dependencies
 uv sync --extra viz        # Include visualization
-uv run python examples/backtest_demo.py
+uv run python -m aponyx.examples.backtest_demo
 ```
 
 ### Bloomberg Terminal Setup (Optional)
@@ -131,15 +131,31 @@ Persistence Layer (save results, metadata)
 
 ## Examples
 
-Each example demonstrates a specific workflow with synthetic data:
+Examples are included with the installed package and demonstrate specific workflows with synthetic data.
+
+**After installing via PyPI:**
 
 ```bash
-python examples/data_demo.py          # Data loading and validation
-python examples/models_demo.py        # Signal generation and catalog
-python examples/backtest_demo.py      # Complete backtest workflow
-python examples/visualization_demo.py # Interactive charts (requires viz extra)
-python examples/persistence_demo.py   # Data I/O and registry
-python examples/bloomberg_demo.py     # Bloomberg Terminal integration
+# Locate installed examples
+python -c "from aponyx.examples import get_examples_dir; print(get_examples_dir())"
+
+# Run examples as modules
+python -m aponyx.examples.data_demo          # Data loading and validation
+python -m aponyx.examples.models_demo        # Signal generation and catalog
+python -m aponyx.examples.backtest_demo      # Complete backtest workflow
+python -m aponyx.examples.visualization_demo # Interactive charts (requires viz extra)
+python -m aponyx.examples.persistence_demo   # Data I/O and registry
+python -m aponyx.examples.bloomberg_demo     # Bloomberg Terminal integration
+```
+
+**During development:**
+
+```bash
+# Clone repo and run directly
+git clone https://github.com/stabilefrisur/aponyx.git
+cd aponyx
+uv sync
+uv run python -m aponyx.examples.backtest_demo
 ```
 
 ## Documentation

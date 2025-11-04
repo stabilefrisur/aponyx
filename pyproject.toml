@@ -42,7 +42,7 @@ build-backend = "uv_build"
 # optional overrides; defaults expect a single module under src/<name>
 module-root = "src"
 
-# Include JSON catalog files and type marker in package distribution
+# Include JSON catalog files, type marker, and examples in package distribution
 # These files are part of the package and must be available at runtime
 include-package-data = [
     "aponyx/py.typed",
@@ -50,6 +50,9 @@ include-package-data = [
     "aponyx/backtest/strategy_catalog.json",
     "aponyx/data/bloomberg_securities.json",
     "aponyx/data/bloomberg_instruments.json",
+    "aponyx/examples/*.py",
+    "aponyx/examples/*.ipynb",
+    "aponyx/examples/*.md",
 ]
 
 [project.optional-dependencies]

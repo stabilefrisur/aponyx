@@ -27,7 +27,7 @@ import logging
 
 import pandas as pd
 
-from example_data import generate_example_data
+from .example_data import generate_example_data
 from aponyx.data import (
     fetch_cdx,
     fetch_vix,

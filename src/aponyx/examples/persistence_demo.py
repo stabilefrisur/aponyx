@@ -29,7 +29,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from example_data import generate_persistence_data
+from .example_data import generate_persistence_data
 from aponyx.data import DataRegistry, DatasetEntry, fetch_cdx, fetch_vix, fetch_etf
 from aponyx.persistence import save_parquet, load_parquet, save_json, load_json
 from aponyx.config import DATA_DIR, REGISTRY_PATH, LOGS_DIR

@@ -160,7 +160,7 @@ def compute_spread_momentum(
 | **API Reference** | Module docstrings | Function/class contracts, type info, parameters |
 | **Quickstart** | `README.md` | Installation, quick examples, navigation |
 | **Design Docs** | `docs/*.md` | Architecture, standards, strategy rationale |
-| **Examples** | `examples/*.py` headers | Runnable demonstrations with explanatory headers |
+| **Examples** | `src/aponyx/examples/*.py` headers | Runnable demonstrations with explanatory headers |
 
 **What to document where:**
 - **Docstrings**: API contracts (parameters, returns, raises), edge cases, usage notes

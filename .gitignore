@@ -52,7 +52,7 @@ coverage.xml
 .ipynb_checkpoints/
 # Ignore notebooks in general, but allow examples
 *.ipynb
-!examples/**/*.ipynb
+!src/aponyx/examples/**/*.ipynb
 
 # mypy
 .mypy_cache/

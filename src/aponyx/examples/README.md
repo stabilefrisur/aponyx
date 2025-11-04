@@ -2,31 +2,50 @@
 
 Runnable demonstrations of the aponyx framework using synthetic market data.
 
+Examples are included with the installed package and can be accessed after `pip install aponyx`.
+
 ## Prerequisites
 
-- Python 3.12 with `uv` environment manager
-- Core dependencies: `pandas`, `numpy` (installed via `uv sync`)
-- Optional: visualization dependencies (`uv sync --extra viz` for plotting demos)
+- Python 3.12
+- Core dependencies: `pandas`, `numpy` (installed automatically)
+- Optional: `pip install aponyx[viz]` for visualization demos
 - Optional: Bloomberg Terminal (for `bloomberg_demo.py` only)
 
 ## Quick Start
 
-```bash
-# From project root, ensure dependencies are installed
-uv sync
+**After installing from PyPI:**
 
-# Run demonstrations
-uv run python examples/data_demo.py          # Data fetching, validation, caching
-uv run python examples/persistence_demo.py   # Parquet/JSON I/O, registry (209 days)
-uv run python examples/models_demo.py        # Registry-based signal generation (252 days)
-uv run python examples/backtest_demo.py      # Registry-based strategy evaluation (504 days)
+```bash
+# Install package with examples included
+pip install aponyx
+
+# Locate examples directory
+python -c "from aponyx.examples import get_examples_dir; print(get_examples_dir())"
+
+# Run demonstrations as modules
+python -m aponyx.examples.data_demo          # Data fetching, validation, caching
+python -m aponyx.examples.persistence_demo   # Parquet/JSON I/O, registry (209 days)
+python -m aponyx.examples.models_demo        # Registry-based signal generation (252 days)
+python -m aponyx.examples.backtest_demo      # Registry-based strategy evaluation (504 days)
 
 # Bloomberg Terminal integration (requires active Terminal session)
-uv run python examples/bloomberg_demo.py     # Exits gracefully if Terminal unavailable
+python -m aponyx.examples.bloomberg_demo     # Exits gracefully if Terminal unavailable
 
 # Visualization demo (requires viz extra)
-uv sync --extra viz
-uv run python examples/visualization_demo.py # Interactive charts
+pip install aponyx[viz]
+python -m aponyx.examples.visualization_demo # Interactive charts
+```
+
+**During development (from source):**
+
+```bash
+# Clone repository
+git clone https://github.com/stabilefrisur/aponyx.git
+cd aponyx
+
+# Install with uv
+uv sync
+uv run python -m aponyx.examples.backtest_demo
 ```
 
 ## Example Scripts

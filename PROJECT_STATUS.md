@@ -437,7 +437,7 @@ src/aponyx/
 - Test error handling (missing columns, empty data)
 - Do NOT test visual rendering or external services
 
-### ✅ Documentation (`docs/`, `examples/`)
+### ✅ Documentation (`docs/`, `src/aponyx/examples/`)
 
 **Implemented:**
 - Comprehensive design documents (8 files in `docs/`):
@@ -451,7 +451,7 @@ src/aponyx/
   - `documentation_structure.md` - Single source of truth principles
 - Additional documentation:
   - `governance_design_plan.md` - Strategy registry and governance pattern
-- Runnable examples for each layer (`examples/`)
+- Runnable examples for each layer (`src/aponyx/examples/`)
 - NumPy-style docstrings throughout codebase
 - Copilot instructions for AI-assisted development (`.github/copilot-instructions.md`)
 
@@ -459,7 +459,7 @@ src/aponyx/
 - **API Reference:** Module docstrings
 - **Quickstart:** `README.md`
 - **Design Docs:** `docs/*.md`
-- **Examples:** `examples/*.py`
+- **Examples:** `src/aponyx/examples/*.py`
 
 ---
 
@@ -967,7 +967,7 @@ aponyx/
 │   ├── persistence/
 │   └── visualization/
 │
-├── examples/                # Runnable demonstrations
+├── src/aponyx/examples/     # Runnable demonstrations (included in PyPI)
 │   ├── README.md
 │   ├── data_demo.py
 │   ├── models_demo.py
@@ -1061,7 +1061,7 @@ This document provides comprehensive context for GPT-based AI assistants working
 - Code standards: `.github/copilot-instructions.md`, `docs/python_guidelines.md`
 - Investment context: `docs/cdx_overlay_strategy.md`
 - Signal workflow: `docs/signal_registry_usage.md`
-- Examples: `examples/*.py` for usage patterns
+- Examples: `src/aponyx/examples/*.py` for usage patterns
 
 ---
 

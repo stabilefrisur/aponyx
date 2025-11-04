@@ -26,7 +26,7 @@ import logging
 import sys
 from pathlib import Path
 
-from example_data import generate_example_data
+from .example_data import generate_example_data
 from aponyx.data import fetch_cdx, fetch_vix, fetch_etf
 from aponyx.models import (
     SignalRegistry,

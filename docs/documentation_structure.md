@@ -7,7 +7,7 @@
 | **API Reference** | Module docstrings | Function/class contracts | Developers (in-editor) |
 | **Quickstart** | `README.md` | Installation, examples, overview | New users |
 | **Design Docs** | `docs/*.md` | Architecture, standards, strategy | Contributors |
-| **Examples** | `examples/*.py` + headers | Runnable demonstrations | Researchers |
+| **Examples** | `src/aponyx/examples/*.py` + headers | Runnable demonstrations | Researchers |
 
 **Rule**: Each piece of information has exactly one authoritative location.
 
@@ -25,7 +25,7 @@
 - **`layer_review_prompt.md`** - Development workflow template
 - **`documentation_structure.md`** - This file
 
-### Examples (`examples/`)
+### Examples (`src/aponyx/examples/`)
 - **`README.md`** - Quick start commands and script overview
 - **`*_demo.py`** - Self-documenting executable demonstrations
 
@@ -43,7 +43,7 @@
 
 **Example:**
 ```markdown
-✅ DO: "Install with `uv sync` and run `uv run python examples/backtest_demo.py`"
+✅ DO: "Install with `uv sync` and run `uv run python -m aponyx.examples.backtest_demo`"
 ❌ DON'T: Copy entire function signatures or explain implementation details
 ```
 
@@ -57,13 +57,13 @@
 ❌ DON'T: "Call compute_signal(df, window=20) to generate signals" (use docstrings instead)
 ```
 
-### `examples/README.md`
+### `src/aponyx/examples/README.md`
 ✅ Quick run commands, script purpose table, prerequisites, troubleshooting  
 ❌ Detailed explanations (use script headers), code snippets (use actual scripts)
 
 **Example:**
 ```markdown
-✅ DO: "Run `uv run python examples/backtest_demo.py` to see complete workflow"
+✅ DO: "Run `uv run python -m aponyx.examples.backtest_demo` to see complete workflow"
 ✅ DO: "Common issue: Missing viz dependencies. Solution: `uv sync --extra viz`"
 ❌ DON'T: Reproduce code from the actual demo scripts
 ```
@@ -127,7 +127,7 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
 
 **Bad:** `docs/how_to_run_backtest.md` with step-by-step code examples
 
-**Why:** Duplicates `examples/backtest_demo.py` which is executable and tested.
+**Why:** Duplicates `src/aponyx/examples/backtest_demo.py` which is executable and tested.
 
 **Good:** Point users to the demo script and explain *why* in design docs.
 
@@ -178,7 +178,7 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
 
 **Where to document:**
 1. **Class docstring** (`providers/new_provider.py`): Provider-specific API details
-2. **Demo script** (`examples/data_demo.py`): Add example using new provider
+2. **Demo script** (`src/aponyx/examples/data_demo.py`): Add example using new provider
 3. **Design doc** (`docs/adding_data_providers.md`): Architecture pattern for providers
 
 **Don't document:**
@@ -192,7 +192,7 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
 ### Scenario: User Wants to Run a Backtest
 
 **Documentation Path:**
-1. **Root README** → Points to `examples/backtest_demo.py`
+1. **Root README** → Points to `src/aponyx/examples/backtest_demo.py`
 2. **Demo script** → Shows runnable code with comments
 3. **Function docstrings** → Explains individual function contracts
 
