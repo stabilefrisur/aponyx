@@ -75,6 +75,13 @@ etf_df = fetch_etf(FileSource("data/raw/etf_data.parquet"), security="hyg")
 signal_config = SignalConfig(lookback=20, min_periods=10)
 signal = compute_cdx_etf_basis(cdx_df, etf_df, signal_config)
 
+# Evaluate signal-product suitability (optional pre-backtest gate)
+from aponyx.evaluation import evaluate_signal_suitability
+result = evaluate_signal_suitability(signal, cdx_df["spread"])
+if result.decision != "PASS":
+    print(f"Signal evaluation: {result.decision} (score: {result.composite_score:.2f})")
+    # Optionally skip backtest for low-quality signals
+
 # Run backtest with transaction costs
 backtest_config = BacktestConfig(
     entry_threshold=1.5,
@@ -109,11 +116,12 @@ Aponyx follows a **layered architecture** with clean separation of concerns:
 |-------|---------|-------------|
 | **Data** | Load, validate, transform market data | `fetch_cdx`, `fetch_vix`, `fetch_etf`, `FileSource`, `BloombergSource` |
 | **Models** | Generate signals for independent evaluation | `compute_cdx_etf_basis`, `compute_cdx_vix_gap`, `SignalRegistry` |
+| **Evaluation** | Pre-backtest signal screening and quality gates | `evaluate_signal_suitability`, `SuitabilityRegistry` |
 | **Backtest** | Simulate execution and compute metrics | `run_backtest`, `BacktestConfig`, `StrategyRegistry` |
 | **Visualization** | Interactive charts and dashboards | `plot_equity_curve`, `plot_signal`, `plot_drawdown` |
 | **Persistence** | Save/load data with metadata registry | `save_parquet`, `load_parquet`, `DataRegistry` |
 
-### Data Flow
+### Research Workflow
 
 ```
 Raw Data (Parquet/CSV/Bloomberg)
@@ -122,11 +130,14 @@ Data Layer (load, validate, transform)
     ↓
 Models Layer (signal computation)
     ↓
-Backtest Layer (simulation, metrics)
-    ↓
-Visualization Layer (interactive charts)
-    ↓
-Persistence Layer (save results, metadata)
+Evaluation Layer (signal-product suitability)
+    ├─ PASS → Backtest Layer (simulation, metrics)
+    │            ↓
+    │         Visualization Layer (charts)
+    │            ↓
+    │         Persistence Layer (results)
+    │
+    └─ FAIL → Archive (no backtest)
 ```
 
 ## Examples
@@ -142,6 +153,7 @@ python -c "from aponyx.examples import get_examples_dir; print(get_examples_dir(
 # Run examples as modules
 python -m aponyx.examples.data_demo          # Data loading and validation
 python -m aponyx.examples.models_demo        # Signal generation and catalog
+python -m aponyx.examples.suitability_demo   # Pre-backtest signal screening
 python -m aponyx.examples.backtest_demo      # Complete backtest workflow
 python -m aponyx.examples.visualization_demo # Interactive charts (requires viz extra)
 python -m aponyx.examples.persistence_demo   # Data I/O and registry
@@ -176,6 +188,7 @@ print(docs_path)  # Path to installed documentation
 | `python_guidelines.md` | Code standards and best practices |
 | `cdx_overlay_strategy.md` | Investment thesis and pilot implementation |
 | `signal_registry_usage.md` | Signal management workflow |
+| `signal_suitability_evaluation.md` | Pre-backtest evaluation framework |
 | `visualization_design.md` | Chart architecture and patterns |
 | `logging_design.md` | Logging conventions and metadata |
 | `caching_design.md` | Cache layer architecture |

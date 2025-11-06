@@ -33,6 +33,10 @@ STRATEGY_CATALOG_PATH: Final[Path] = PACKAGE_ROOT / "backtest/strategy_catalog.j
 BLOOMBERG_SECURITIES_PATH: Final[Path] = PACKAGE_ROOT / "data/bloomberg_securities.json"
 BLOOMBERG_INSTRUMENTS_PATH: Final[Path] = PACKAGE_ROOT / "data/bloomberg_instruments.json"
 
+# Evaluation layer paths
+EVALUATION_DIR: Final[Path] = PROJECT_ROOT / "reports" / "suitability"
+SUITABILITY_REGISTRY_PATH: Final[Path] = PACKAGE_ROOT / "evaluation" / "suitability" / "suitability_registry.json"
+
 
 def ensure_directories() -> None:
     """
@@ -46,6 +50,7 @@ def ensure_directories() -> None:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     (DATA_DIR / "raw").mkdir(exist_ok=True)
     (DATA_DIR / "processed").mkdir(exist_ok=True)
+    EVALUATION_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # Initialize directories on module import

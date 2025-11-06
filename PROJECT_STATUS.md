@@ -277,6 +277,59 @@ src/aponyx/
 - Transparent rules-based signals (no ML models)
 - No external signal feeds or APIs
 
+### ✅ Evaluation Layer (`src/aponyx/evaluation/`)
+
+**Implemented:**
+- **Suitability Evaluation Framework:** Pre-backtest quality gate for signal-product relationships
+  - `evaluate_signal_suitability` - Core evaluation orchestration
+  - `SuitabilityResult` dataclass - Comprehensive evaluation output (13+ fields)
+  - `SuitabilityConfig` - Configuration with validation (frozen dataclass)
+- **Four-Component Scoring:**
+  - `score_data_health` - Sample size and missing data assessment (20% weight)
+  - `score_predictive` - Multi-lag correlation and regression (40% weight)
+  - `score_economic` - Effect size relevance in basis points (20% weight)
+  - `score_stability` - Sign consistency across subperiods (20% weight)
+- **Statistical Tests:**
+  - `compute_correlation` - Pearson correlation calculation
+  - `compute_regression_stats` - OLS with beta, t-stat, p-value
+  - `compute_subperiod_betas` - Temporal stability analysis (2-way split)
+  - `check_sign_consistency` - Binary stability test
+- **Report Generation:**
+  - `generate_suitability_report` - Markdown template rendering
+  - `save_report` - File persistence with timestamp
+  - Decision interpretation (PASS/HOLD/FAIL) with visual indicators
+- **Suitability Registry:**
+  - `SuitabilityRegistry` - Class-based JSON catalog management
+  - `EvaluationEntry` - Metadata record dataclass
+  - CRUD operations: register, get, list (with filters), remove
+
+**Decision Thresholds:**
+- **PASS** (≥ 0.7): Proceed to backtest
+- **HOLD** (0.4-0.7): Marginal, requires manual review
+- **FAIL** (< 0.4): Do not backtest
+
+**Key Files:**
+- `evaluator.py` - Core evaluation orchestration
+- `tests.py` - Statistical test functions
+- `scoring.py` - Component scoring logic
+- `report.py` - Markdown report generation
+- `registry.py` - Suitability registry management
+- `config.py` - SuitabilityConfig dataclass
+- `suitability_registry.json` - Evaluation tracking catalog
+
+**Configuration:**
+- Default lags: [1, 3, 5]
+- Component weights: data_health=0.2, predictive=0.4, economic=0.2, stability=0.2
+- Pass threshold: 0.7, Hold threshold: 0.4
+- Minimum observations: 252 (default)
+- Registry path: `src/aponyx/evaluation/suitability/suitability_registry.json`
+
+**Implementation Notes:**
+- Standalone pre-backtest assessment (no trading rules or costs)
+- Uses statsmodels for OLS regression
+- Registry pattern consistent with SignalRegistry and StrategyRegistry
+- Comprehensive test coverage (6 test modules)
+
 ### ✅ Backtest Layer (`src/aponyx/backtest/`)
 
 **Implemented:**
@@ -653,7 +706,17 @@ from typing import Optional, Union, List, Dict
      → compute_spread_momentum(cdx_df, config)
    → Returns: dict[str, pd.Series] of z-score normalized signals
 
-3. Backtesting (per signal)
+3. Signal-Product Suitability (optional pre-backtest gate)
+   SuitabilityConfig(lags=[1, 3, 5], min_obs=252)
+   → evaluate_signal_suitability(signal, target, config)
+     → Compute 4-component scores (data/predictive/economic/stability)
+     → Assign decision (PASS/HOLD/FAIL)
+     → Generate markdown report
+   → SuitabilityRegistry.register_evaluation(result, signal_id, product_id)
+   → Returns: SuitabilityResult with decision and scores
+   → If FAIL: Archive signal, skip backtest
+
+4. Backtesting (per signal that passes evaluation)
    BacktestConfig(
      entry_threshold=1.5,
      exit_threshold=0.75,
@@ -669,7 +732,7 @@ from typing import Optional, Union, List, Dict
      → Track metadata
    → Returns: BacktestResult(positions, pnl, metadata)
 
-4. Performance Analysis
+5. Performance Analysis
    compute_performance_metrics(result.pnl, result.positions)
    → Calculate 13 metrics:
      - Sharpe, Sortino, Calmar ratios
@@ -678,14 +741,14 @@ from typing import Optional, Union, List, Dict
      - Trade statistics
    → Returns: PerformanceMetrics dataclass
 
-5. Visualization
+6. Visualization
    plot_equity_curve(result.pnl["cumulative_pnl"])
    plot_signal(signal, threshold_lines=[-1.5, 1.5])
    plot_drawdown(result.pnl["net_pnl"])
    → Returns: plotly.graph_objects.Figure
    → Caller renders: .show() or st.plotly_chart()
 
-6. Results Persistence
+7. Results Persistence
    save_json(result.metadata, "logs/run_metadata.json")
    save_parquet(result.pnl, "data/processed/backtest_pnl.parquet")
    DataRegistry.register_dataset(...)

@@ -25,6 +25,7 @@ dependencies = [
     "pandas>=2.2.0",
     "numpy>=2.0.0",
     "pyarrow>=17.0.0",
+    "statsmodels>=0.14.0",
 ]
 
 [project.urls]
@@ -50,6 +51,7 @@ include-package-data = [
     "aponyx/backtest/strategy_catalog.json",
     "aponyx/data/bloomberg_securities.json",
     "aponyx/data/bloomberg_instruments.json",
+    "aponyx/evaluation/suitability/suitability_registry.json",
     "aponyx/examples/*.py",
     "aponyx/examples/*.ipynb",
     "aponyx/examples/*.md",
