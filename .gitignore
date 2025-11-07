@@ -80,3 +80,4 @@ dmypy.json
 
 # Release checklists (internal use only)
 PYPI_RELEASE_CHECKLIST.md
+PYPI_RELEASE_AGENT_INSTRUCTIONS.md

@@ -75,35 +75,38 @@ def main() -> None:
         print("PART 3: Fetch Data from Bloomberg")
         print("=" * 70)
         
-        # Fetch CDX data
+        # Fetch CDX data (cache disabled to demonstrate Bloomberg fetch)
         print("\nFetching CDX IG 5Y data from Bloomberg...")
         cdx_df = fetch_cdx(
             source,
             security="cdx_ig_5y",
             start_date="2024-01-01",
+            use_cache=False,
         )
         print(f"  OK Fetched {len(cdx_df)} rows")
         print(f"  Columns: {cdx_df.columns.tolist()}")
         print(f"  Date range: {cdx_df.index.min().date()} to {cdx_df.index.max().date()}")
         print(f"  Spread range: [{cdx_df['spread'].min():.2f}, {cdx_df['spread'].max():.2f}] bps")
         
-        # Fetch VIX data
+        # Fetch VIX data (cache disabled to demonstrate Bloomberg fetch)
         print("\nFetching VIX data from Bloomberg...")
         vix_df = fetch_vix(
             source,
             start_date="2024-01-01",
+            use_cache=False,
         )
         print(f"  OK Fetched {len(vix_df)} rows")
         print(f"  Columns: {vix_df.columns.tolist()}")
         print(f"  Date range: {vix_df.index.min().date()} to {vix_df.index.max().date()}")
         print(f"  Level range: [{vix_df['level'].min():.2f}, {vix_df['level'].max():.2f}]")
         
-        # Fetch ETF data
+        # Fetch ETF data (cache disabled to demonstrate Bloomberg fetch)
         print("\nFetching HYG ETF data from Bloomberg...")
         etf_df = fetch_etf(
             source,
             security="hyg",
             start_date="2024-01-01",
+            use_cache=False,
         )
         print(f"  OK Fetched {len(etf_df)} rows")
         print(f"  Columns: {etf_df.columns.tolist()}")
