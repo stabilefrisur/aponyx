@@ -11,7 +11,7 @@ wheels/
 venv/
 env/
 
-# Data files (should not be in version control)
+# Data files (runtime-generated, not version controlled)
 # Allow directory structure but ignore data files
 *.parquet
 *.hdf5
@@ -23,14 +23,26 @@ data/cache/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/cache/.gitkeep
-# Keep registry.json for tracking dataset metadata
-!data/registry.json
+# Registry tracks runtime datasets - ignore it
+data/registry.json
 
-# Logs
+# Logs and runtime metadata (not version controlled)
 *.log
 logs/*
 !logs/.gitkeep
-!logs/run_metadata.json
+
+# Reports (evaluation outputs - not version controlled)
+reports/suitability/demo_reports/*
+
+# Example outputs (demo artifacts - not version controlled)
+src/aponyx/examples/data/
+
+# Static JSON configuration files (INCLUDE in version control):
+# These are version controlled via negation patterns below
+!src/aponyx/models/signal_catalog.json
+!src/aponyx/backtest/strategy_catalog.json
+!src/aponyx/data/bloomberg_securities.json
+!src/aponyx/data/bloomberg_instruments.json
 
 # Test and coverage artifacts
 .pytest_cache/
