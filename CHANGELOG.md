@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2025-11-07
+
+### Added
+
+#### Evaluation Layer
+- Signal-product suitability assessment framework with 4-component scoring:
+  - Data health (20%): Sample size and missing data quality
+  - Predictive association (40%): Statistical significance via OLS regression
+  - Economic relevance (20%): Effect size in basis points
+  - Temporal stability (20%): Subperiod beta sign consistency
+- `SuitabilityConfig` for immutable evaluation parameters (frozen dataclass)
+- `SuitabilityResult` with structured PASS/HOLD/FAIL decisions
+- `SuitabilityRegistry` for tracking evaluation history with JSON catalog
+- Markdown report generation with component breakdowns and interpretations
+- Statistical tests: correlation, OLS regression, subperiod analysis
+- Configurable scoring thresholds and component weights
+- Comprehensive test suite with 7 test modules
+- Suitability demonstration example (`suitability_demo.py`)
+- 10 sample evaluation reports in `reports/suitability/demo_reports/`
+
+#### Distribution Improvements
+- Documentation now included in PyPI package distribution (`src/aponyx/docs/`)
+- Examples included in PyPI package distribution (`src/aponyx/examples/`)
+- Helper functions for locating docs and examples after installation:
+  - `get_docs_dir()` for accessing documentation
+  - `get_examples_dir()` for locating example scripts
+- Examples can now be run via `python -m aponyx.examples.<demo_name>`
+
+### Changed
+- All demonstration examples now use Bloomberg Terminal as primary data source with graceful fallback to synthetic data
+- `data_demo.py`: BloombergSource with FileSource fallback
+- `models_demo.py`: Bloomberg fetches for CDX/VIX/ETF data
+- `backtest_demo.py`: Real market data (2024-01-01 to present)
+- `persistence_demo.py`: Bloomberg fetch → save → register workflow
+- `end_to_end_demo.ipynb`: Updated for Bloomberg integration
+- Performance metrics now consolidated into `run_metadata.json` under `performance_metrics` key
+- Type hints cleaned up across examples folder to use modern Python syntax
+
+### Fixed
+- Bloomberg provider implementation corrected and validated with comprehensive tests
+- `.gitignore` patterns updated to properly exclude runtime data while preserving static config
+- Type annotations in examples now follow project guidelines consistently
+
+### Documentation
+- Updated `PROJECT_STATUS.md` for accuracy and clarity
+- Added evaluation layer to architecture documentation
+- Research workflow diagram showing PASS/FAIL quality gate branching
+- Complete methodology documentation in `signal_suitability_evaluation.md`
+- Updated Bloomberg requirements with installation instructions
+- Consolidated dependency sections and repository structure
+- Added agent context hints for evaluation layer in `copilot-instructions.md`
+
 ## [0.1.3] - 2025-11-02
 
 ### Fixed
@@ -142,6 +194,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.4]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.4
 [0.1.3]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.3
 [0.1.2]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.2
 [0.1.1]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.1
