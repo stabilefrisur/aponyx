@@ -37,6 +37,9 @@ reports/suitability/demo_reports/*
 # Example outputs (demo artifacts - not version controlled)
 src/aponyx/examples/data/
 
+# Suitability registry (data-dependent, not version controlled)
+src/aponyx/evaluation/suitability/suitability_registry.json
+
 # Static JSON configuration files (INCLUDE in version control):
 # These are version controlled via negation patterns below
 !src/aponyx/models/signal_catalog.json

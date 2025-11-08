@@ -14,11 +14,15 @@ Notebooks
     Compute tactical credit signals from cached market data using SignalRegistry.
     Second step in the systematic research workflow.
 
+03_suitability_evaluation.ipynb
+    Evaluate signal-product suitability using four-component scoring framework.
+    Third step in the systematic research workflow.
+
 Workflow Sequence
 -----------------
 1. Data Download (01_data_download.ipynb)
 2. Signal Computation (02_signal_computation.ipynb)
-3. Signal Suitability Evaluation (03_suitability_evaluation.ipynb) - TODO
+3. Signal Suitability Evaluation (03_suitability_evaluation.ipynb)
 4. Backtest Execution (04_backtest.ipynb) - TODO
 5. Performance Analysis (05_analysis.ipynb) - TODO
 
