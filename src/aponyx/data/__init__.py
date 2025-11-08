@@ -1,4 +1,4 @@
-"""  
+"""
 Data layer for systematic macro credit strategy.
 
 This module handles data fetching, cleaning, and transformation for:

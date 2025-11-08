@@ -106,14 +106,10 @@ class TestSuitabilityConfigValidation:
 
     def test_min_obs_too_small_raises(self) -> None:
         """Test that min_obs < 100 raises ValueError."""
-        with pytest.raises(
-            ValueError, match="min_obs must be at least 100 for reliable inference"
-        ):
+        with pytest.raises(ValueError, match="min_obs must be at least 100 for reliable inference"):
             SuitabilityConfig(min_obs=50)
 
-        with pytest.raises(
-            ValueError, match="min_obs must be at least 100 for reliable inference"
-        ):
+        with pytest.raises(ValueError, match="min_obs must be at least 100 for reliable inference"):
             SuitabilityConfig(min_obs=0)
 
 

@@ -35,7 +35,9 @@ BLOOMBERG_INSTRUMENTS_PATH: Final[Path] = PACKAGE_ROOT / "data/bloomberg_instrum
 
 # Evaluation layer paths
 EVALUATION_DIR: Final[Path] = PROJECT_ROOT / "reports" / "suitability"
-SUITABILITY_REGISTRY_PATH: Final[Path] = PACKAGE_ROOT / "evaluation" / "suitability" / "suitability_registry.json"
+SUITABILITY_REGISTRY_PATH: Final[Path] = (
+    PACKAGE_ROOT / "evaluation" / "suitability" / "suitability_registry.json"
+)
 
 
 def ensure_directories() -> None:

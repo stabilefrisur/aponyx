@@ -40,41 +40,41 @@ def main() -> None:
     print("=" * 70)
     print("\nWARNING: This demo requires an active Bloomberg Terminal session")
     print("If Terminal is not available, demo will exit gracefully\n")
-    
+
     try:
         # Import Bloomberg-specific modules
         from aponyx.data import BloombergSource, fetch_cdx, fetch_vix, fetch_etf
         from aponyx.data.bloomberg_config import get_bloomberg_ticker
-        
+
         print("=" * 70)
         print("PART 1: Initialize Bloomberg Source")
         print("=" * 70)
-        
+
         # Initialize Bloomberg source (will fail if Terminal not available)
         print("\nInitializing BloombergSource...")
         source = BloombergSource()
         print("  OK Bloomberg Terminal connection established")
-        
+
         print("\n" + "=" * 70)
         print("PART 2: Ticker Lookup")
         print("=" * 70)
-        
+
         # Demonstrate ticker lookup
         print("\nLooking up Bloomberg tickers...")
-        
+
         cdx_ticker = get_bloomberg_ticker("cdx_ig_5y")
         print(f"  CDX IG 5Y: {cdx_ticker}")
-        
+
         vix_ticker = get_bloomberg_ticker("vix")
         print(f"  VIX: {vix_ticker}")
-        
+
         hyg_ticker = get_bloomberg_ticker("hyg")
         print(f"  HYG ETF: {hyg_ticker}")
-        
+
         print("\n" + "=" * 70)
         print("PART 3: Fetch Data from Bloomberg")
         print("=" * 70)
-        
+
         # Fetch CDX data (cache disabled to demonstrate Bloomberg fetch)
         print("\nFetching CDX IG 5Y data from Bloomberg...")
         cdx_df = fetch_cdx(
@@ -87,7 +87,7 @@ def main() -> None:
         print(f"  Columns: {cdx_df.columns.tolist()}")
         print(f"  Date range: {cdx_df.index.min().date()} to {cdx_df.index.max().date()}")
         print(f"  Spread range: [{cdx_df['spread'].min():.2f}, {cdx_df['spread'].max():.2f}] bps")
-        
+
         # Fetch VIX data (cache disabled to demonstrate Bloomberg fetch)
         print("\nFetching VIX data from Bloomberg...")
         vix_df = fetch_vix(
@@ -99,7 +99,7 @@ def main() -> None:
         print(f"  Columns: {vix_df.columns.tolist()}")
         print(f"  Date range: {vix_df.index.min().date()} to {vix_df.index.max().date()}")
         print(f"  Level range: [{vix_df['level'].min():.2f}, {vix_df['level'].max():.2f}]")
-        
+
         # Fetch ETF data (cache disabled to demonstrate Bloomberg fetch)
         print("\nFetching HYG ETF data from Bloomberg...")
         etf_df = fetch_etf(
@@ -112,7 +112,7 @@ def main() -> None:
         print(f"  Columns: {etf_df.columns.tolist()}")
         print(f"  Date range: {etf_df.index.min().date()} to {etf_df.index.max().date()}")
         print(f"  Spread range: [{etf_df['spread'].min():.2f}, {etf_df['spread'].max():.2f}]")
-        
+
         print("\n" + "=" * 70)
         print("DEMONSTRATION COMPLETE")
         print("=" * 70)
@@ -124,7 +124,7 @@ def main() -> None:
         print("  OK Fetch ETF data from Terminal")
         print("  OK Same API as FileSource (provider abstraction)")
         print("=" * 70)
-        
+
     except (ImportError, ModuleNotFoundError) as e:
         print("\n" + "!" * 70)
         print("BLOOMBERG TERMINAL NOT AVAILABLE")
@@ -138,7 +138,7 @@ def main() -> None:
         print("\nDemo exiting gracefully...")
         print("!" * 70)
         sys.exit(0)
-        
+
     except BaseException as e:
         # Catch pytest.Skipped and other xbbg errors (including non-Exception types)
         error_str = str(e).lower()
@@ -156,7 +156,7 @@ def main() -> None:
             print("\nDemo exiting gracefully...")
             print("!" * 70)
             sys.exit(0)
-        
+
         print("\n" + "!" * 70)
         print("BLOOMBERG TERMINAL CONNECTION ERROR")
         print("!" * 70)

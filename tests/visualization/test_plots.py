@@ -244,4 +244,3 @@ def test_plot_drawdown_non_positive_values(sample_pnl: pd.Series) -> None:
 
     # All drawdown values should be <= 0
     assert np.all(y_values <= 0)
-

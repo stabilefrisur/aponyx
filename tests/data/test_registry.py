@@ -493,7 +493,9 @@ class TestGetDatasetEntry:
         assert hasattr(entry, "row_count")
         assert hasattr(entry, "metadata")
 
-    def test_get_dataset_entry_vs_get_dataset_info(self, registry, sample_timeseries, temp_data_dir):
+    def test_get_dataset_entry_vs_get_dataset_info(
+        self, registry, sample_timeseries, temp_data_dir
+    ):
         """Test that both methods return equivalent data."""
         file_path = temp_data_dir / "test.parquet"
         save_parquet(sample_timeseries, file_path)
@@ -510,4 +512,3 @@ class TestGetDatasetEntry:
 
         # Convert entry to dict and compare
         assert entry.to_dict() == info
-

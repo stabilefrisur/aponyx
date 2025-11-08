@@ -51,9 +51,7 @@ class SignalMetadata:
         # Validate arg_mapping is subset of data_requirements keys
         missing_args = set(self.arg_mapping) - set(self.data_requirements.keys())
         if missing_args:
-            raise ValueError(
-                f"arg_mapping contains keys not in data_requirements: {missing_args}"
-            )
+            raise ValueError(f"arg_mapping contains keys not in data_requirements: {missing_args}")
 
 
 class SignalRegistry:
@@ -105,9 +103,7 @@ class SignalRegistry:
     def _load_catalog(self) -> None:
         """Load signal metadata from JSON catalog file."""
         if not self._catalog_path.exists():
-            raise FileNotFoundError(
-                f"Signal catalog not found: {self._catalog_path}"
-            )
+            raise FileNotFoundError(f"Signal catalog not found: {self._catalog_path}")
 
         with open(self._catalog_path, "r", encoding="utf-8") as f:
             catalog_data = json.load(f)
@@ -119,24 +115,20 @@ class SignalRegistry:
             try:
                 metadata = SignalMetadata(**entry)
                 if metadata.name in self._signals:
-                    raise ValueError(
-                        f"Duplicate signal name in catalog: {metadata.name}"
-                    )
+                    raise ValueError(f"Duplicate signal name in catalog: {metadata.name}")
                 self._signals[metadata.name] = metadata
             except TypeError as e:
-                raise ValueError(
-                    f"Invalid signal metadata in catalog: {entry}. Error: {e}"
-                ) from e
+                raise ValueError(f"Invalid signal metadata in catalog: {entry}. Error: {e}") from e
 
         logger.debug("Loaded %d signals from catalog", len(self._signals))
-        
+
         # Fail-fast validation: ensure all compute functions exist
         self._validate_catalog()
 
     def _validate_catalog(self) -> None:
         """
         Validate that all signal compute functions exist in signals module.
-        
+
         Raises
         ------
         ValueError
@@ -148,7 +140,7 @@ class SignalRegistry:
                     f"Signal '{name}' references non-existent compute function: "
                     f"{metadata.compute_function_name}"
                 )
-        
+
         logger.debug("Validated %d signal compute functions", len(self._signals))
 
     def get_metadata(self, name: str) -> SignalMetadata:
@@ -186,9 +178,7 @@ class SignalRegistry:
         dict[str, SignalMetadata]
             Mapping from signal name to metadata for enabled signals only.
         """
-        return {
-            name: meta for name, meta in self._signals.items() if meta.enabled
-        }
+        return {name: meta for name, meta in self._signals.items() if meta.enabled}
 
     def list_all(self) -> dict[str, SignalMetadata]:
         """

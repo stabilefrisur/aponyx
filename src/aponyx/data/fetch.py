@@ -389,6 +389,3 @@ def fetch_etf(
 
     logger.info("Fetched ETF data: %d rows, %s to %s", len(df), df.index.min(), df.index.max())
     return df
-
-
-

@@ -12,7 +12,6 @@ from dataclasses import dataclass, field, asdict
 from typing import Any
 import pandas as pd
 
-from ..config import REGISTRY_PATH
 from ..persistence.json_io import save_json, load_json
 from ..persistence.parquet_io import load_parquet
 
@@ -367,7 +366,4 @@ class DataRegistry:
 
     def __repr__(self) -> str:
         """String representation showing registry statistics."""
-        return (
-            f"DataRegistry(path={self.registry_path}, "
-            f"datasets={len(self._catalog)})"
-        )
+        return f"DataRegistry(path={self.registry_path}, " f"datasets={len(self._catalog)})"

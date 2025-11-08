@@ -245,7 +245,11 @@ def _interpret_data_health(result: SuitabilityResult) -> str:
 
 def _interpret_predictive(result: SuitabilityResult) -> str:
     """Generate interpretation text for predictive component."""
-    mean_abs_tstat = sum(abs(t) for t in result.t_stats.values()) / len(result.t_stats) if result.t_stats else 0.0
+    mean_abs_tstat = (
+        sum(abs(t) for t in result.t_stats.values()) / len(result.t_stats)
+        if result.t_stats
+        else 0.0
+    )
 
     if mean_abs_tstat >= 3.0:
         return (

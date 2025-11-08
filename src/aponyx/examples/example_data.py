@@ -56,12 +56,12 @@ def generate_example_data(
     - VIX: Starting at 15 with moderate volatility
     - ETF: HYG prices starting at 100 with 5bp volatility
     - All data uses mean-reverting dynamics with realistic parameters
-    
+
     Examples
     --------
     Standard 1-year dataset for signal demos:
     >>> cdx, vix, etf = generate_example_data()
-    
+
     Extended 2-year dataset for backtests:
     >>> cdx, vix, etf = generate_example_data(
     ...     start_date="2023-01-01", periods=504

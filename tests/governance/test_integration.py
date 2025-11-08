@@ -132,15 +132,15 @@ def test_cross_layer_integration() -> None:
     # Signal catalog references compute functions in models layer
     signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
     signal_metadata = signal_registry.get_metadata("cdx_etf_basis")
-    
+
     # Verify compute function name follows convention
     assert signal_metadata.compute_function_name.startswith("compute_")
     assert signal_metadata.compute_function_name == "compute_cdx_etf_basis"
-    
+
     # Strategy catalog produces configs for backtest layer
     strategy_registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
     strategy_metadata = strategy_registry.get_metadata("balanced")
-    
+
     # Verify conversion to BacktestConfig
     config = strategy_metadata.to_config()
     assert config.entry_threshold == strategy_metadata.entry_threshold

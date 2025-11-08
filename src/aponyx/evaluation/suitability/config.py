@@ -95,9 +95,7 @@ class SuitabilityConfig:
         if not self.lags:
             raise ValueError("lags must be a non-empty list")
         if not all(isinstance(lag, int) and lag > 0 for lag in self.lags):
-            raise ValueError(
-                f"All lags must be positive integers, got {self.lags}"
-            )
+            raise ValueError(f"All lags must be positive integers, got {self.lags}")
 
         # Validate thresholds ordering
         if not (0 < self.hold_threshold < self.pass_threshold < 1):

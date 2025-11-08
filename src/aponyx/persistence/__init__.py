@@ -1,4 +1,4 @@
-"""  
+"""
 Persistence layer for time series data and metadata management.
 
 Provides clean abstractions for Parquet and JSON I/O.

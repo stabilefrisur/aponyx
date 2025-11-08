@@ -85,9 +85,9 @@ def test_compute_cdx_vix_gap_has_nans_early(
     result = compute_cdx_vix_gap(sample_cdx_data, sample_vix_data, config)
 
     # First min_periods should be NaN
-    assert result.iloc[:config.min_periods].isna().all()
+    assert result.iloc[: config.min_periods].isna().all()
     # Later values should be valid
-    assert result.iloc[config.lookback:].notna().any()
+    assert result.iloc[config.lookback :].notna().any()
 
 
 def test_compute_spread_momentum_returns_series(
@@ -107,7 +107,7 @@ def test_compute_spread_momentum_custom_config(
     result = compute_spread_momentum(sample_cdx_data, config)
 
     # Should have valid values after lookback period
-    assert result.iloc[config.lookback:].notna().any()
+    assert result.iloc[config.lookback :].notna().any()
 
 
 def test_signals_handle_insufficient_data() -> None:

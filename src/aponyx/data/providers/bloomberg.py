@@ -102,8 +102,7 @@ def fetch_from_bloomberg(
         from xbbg import blp
     except ImportError:
         raise ImportError(
-            "xbbg not installed. "
-            "Install with: uv pip install --optional bloomberg"
+            "xbbg not installed. " "Install with: uv pip install --optional bloomberg"
         )
 
     # Fetch historical data using xbbg

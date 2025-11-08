@@ -51,7 +51,7 @@ class TestEvaluateSignalSuitability:
 
         # Create signal that predicts future target movements
         signal = pd.Series(np.random.randn(600), index=dates, name="strong_signal")
-        
+
         # Target is cumulative sum of (signal + noise), so current signal predicts future changes
         target_changes = signal * 5.0 + np.random.randn(600) * 0.1
         target = target_changes.cumsum() + 100.0  # Start at 100

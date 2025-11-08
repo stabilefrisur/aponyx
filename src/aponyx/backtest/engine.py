@@ -159,9 +159,7 @@ def run_backtest(
             days_held += 1
 
             exit_signal = abs(signal) < config.exit_threshold
-            exit_time = (
-                config.max_holding_days is not None and days_held >= config.max_holding_days
-            )
+            exit_time = config.max_holding_days is not None and days_held >= config.max_holding_days
 
             if exit_signal or exit_time:
                 # Exit position (will apply exit cost and capture final P&L)

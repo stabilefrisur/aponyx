@@ -281,9 +281,7 @@ def generate_full_sample_dataset(
     save_parquet(cdx_all, cdx_path)
 
     # Generate VIX data
-    vix = generate_vix_sample(
-        start_date=start_date, periods=periods, base_vix=16.0, seed=seed + 2
-    )
+    vix = generate_vix_sample(start_date=start_date, periods=periods, base_vix=16.0, seed=seed + 2)
     vix_path = output_path / "vix.parquet"
     save_parquet(vix, vix_path)
 

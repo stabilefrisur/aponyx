@@ -214,7 +214,7 @@ class TestFetchFromBloomberg:
             {("VIX Index", "PX_LAST"): [20.0, 21.0, 22.0, 23.0, 24.0]},
             index=dates,
         )
-        
+
         with patch("xbbg.blp.bdh", return_value=mock_response) as mock_bdh:
             result = fetch_from_bloomberg(
                 ticker="VIX Index",
@@ -256,7 +256,7 @@ class TestFetchFromBloomberg:
             {("VIX Index", "PX_LAST"): [20.0, 21.0, 22.0, 23.0, 24.0]},
             index=dates,
         )
-        
+
         with patch("xbbg.blp.bdh", return_value=mock_response) as mock_bdh:
             fetch_from_bloomberg(
                 ticker="VIX Index",
@@ -279,7 +279,7 @@ class TestFetchFromBloomberg:
             {("VIX Index", "PX_LAST"): [20.0, 21.0, 22.0, 23.0, 24.0]},
             index=dates,
         )
-        
+
         with patch("xbbg.blp.bdh", return_value=mock_response) as mock_bdh:
             fetch_from_bloomberg(
                 ticker="VIX Index",
@@ -339,7 +339,7 @@ class TestFetchFromBloomberg:
             {("VIX Index", "PX_LAST"): [20.0, 21.0, 22.0, 23.0, 24.0]},
             index=dates,
         )
-        
+
         with patch("xbbg.blp.bdh", return_value=mock_response) as mock_bdh:
             fetch_from_bloomberg(
                 ticker="VIX Index",
@@ -392,9 +392,7 @@ class TestMapBloombergFields:
     def test_flatten_multiindex_columns(self):
         """Test flattening xbbg multi-index columns."""
         # Create multi-index DataFrame (ticker, field)
-        df = pd.DataFrame(
-            {("CDX IG CDSI GEN 5Y Corp", "PX_LAST"): [100.0, 101.0]}
-        )
+        df = pd.DataFrame({("CDX IG CDSI GEN 5Y Corp", "PX_LAST"): [100.0, 101.0]})
         assert isinstance(df.columns, pd.MultiIndex)
 
         spec = get_instrument_spec("cdx")

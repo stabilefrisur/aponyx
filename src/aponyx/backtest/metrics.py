@@ -158,18 +158,18 @@ def compute_performance_metrics(
     # Assign a trade_id to each position period
     position_changes = (positions_df["position"] != prev_position).astype(int)
     trade_id = position_changes.cumsum()
-    
+
     # Only include periods where we have a position
     active_trades = positions_df[positions_df["position"] != 0].copy()
-    
+
     if len(active_trades) > 0:
         active_trades["trade_id"] = trade_id[positions_df["position"] != 0]
-        
+
         # Sum P&L per trade_id
-        trade_pnls = pnl_df.loc[active_trades.index].groupby(
-            active_trades["trade_id"]
-        )["net_pnl"].sum()
-        
+        trade_pnls = (
+            pnl_df.loc[active_trades.index].groupby(active_trades["trade_id"])["net_pnl"].sum()
+        )
+
         trade_pnls_array = trade_pnls.values
         winning_trades = trade_pnls_array[trade_pnls_array > 0]
         losing_trades = trade_pnls_array[trade_pnls_array < 0]

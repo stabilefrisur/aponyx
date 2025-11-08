@@ -135,10 +135,7 @@ def get_instrument_spec(instrument_type: str) -> BloombergInstrumentSpec:
 
     if instrument_type not in catalog:
         available = ", ".join(sorted(catalog.keys()))
-        raise ValueError(
-            f"Unknown instrument type: {instrument_type}. "
-            f"Available: {available}"
-        )
+        raise ValueError(f"Unknown instrument type: {instrument_type}. " f"Available: {available}")
 
     spec_data = catalog[instrument_type]
     return BloombergInstrumentSpec(
@@ -174,8 +171,7 @@ def get_security_spec(security_id: str) -> BloombergSecuritySpec:
     if security_id not in catalog:
         available = ", ".join(sorted(catalog.keys()))
         raise ValueError(
-            f"Security '{security_id}' not found in catalog. "
-            f"Available: {available}"
+            f"Security '{security_id}' not found in catalog. " f"Available: {available}"
         )
 
     spec_data = catalog[security_id]

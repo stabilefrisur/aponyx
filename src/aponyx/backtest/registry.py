@@ -152,9 +152,7 @@ class StrategyRegistry:
     def _load_catalog(self) -> None:
         """Load strategy metadata from JSON catalog file."""
         if not self._catalog_path.exists():
-            raise FileNotFoundError(
-                f"Strategy catalog not found: {self._catalog_path}"
-            )
+            raise FileNotFoundError(f"Strategy catalog not found: {self._catalog_path}")
 
         with open(self._catalog_path, "r", encoding="utf-8") as f:
             catalog_data = json.load(f)
@@ -166,9 +164,7 @@ class StrategyRegistry:
             try:
                 metadata = StrategyMetadata(**entry)
                 if metadata.name in self._strategies:
-                    raise ValueError(
-                        f"Duplicate strategy name in catalog: {metadata.name}"
-                    )
+                    raise ValueError(f"Duplicate strategy name in catalog: {metadata.name}")
                 self._strategies[metadata.name] = metadata
             except TypeError as e:
                 raise ValueError(
@@ -215,9 +211,7 @@ class StrategyRegistry:
         dict[str, StrategyMetadata]
             Mapping from strategy name to metadata for enabled strategies only.
         """
-        return {
-            name: meta for name, meta in self._strategies.items() if meta.enabled
-        }
+        return {name: meta for name, meta in self._strategies.items() if meta.enabled}
 
     def list_all(self) -> dict[str, StrategyMetadata]:
         """

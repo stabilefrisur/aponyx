@@ -167,9 +167,7 @@ def main() -> None:
     print("=" * 70)
 
     print("\nGenerating reports...")
-    report_strong = generate_suitability_report(
-        result_strong, "strong_signal", "CDX_IG_5Y"
-    )
+    report_strong = generate_suitability_report(result_strong, "strong_signal", "CDX_IG_5Y")
     report_weak = generate_suitability_report(result_weak, "weak_signal", "CDX_IG_5Y")
 
     # Save reports
@@ -216,9 +214,7 @@ def main() -> None:
         print(f"    - {eval_id}: {info['signal_id']} + {info['product_id']}")
 
     print("\nQuerying HOLD/FAIL evaluations...")
-    non_pass_evals = [
-        eval_id for eval_id in all_evals if eval_id not in pass_evals
-    ]
+    non_pass_evals = [eval_id for eval_id in all_evals if eval_id not in pass_evals]
     print(f"  HOLD/FAIL evaluations: {len(non_pass_evals)}")
     for eval_id in non_pass_evals:
         info = registry.get_evaluation_info(eval_id)
@@ -232,11 +228,15 @@ def main() -> None:
     print("\nEvaluation Results:")
     print(f"  Strong Signal -> {result_strong.decision}")
     print(f"    Composite Score: {result_strong.composite_score:.3f}")
-    print(f"    Recommendation: {'Proceed to backtest' if result_strong.decision == 'PASS' else 'Do not backtest'}")
+    print(
+        f"    Recommendation: {'Proceed to backtest' if result_strong.decision == 'PASS' else 'Do not backtest'}"
+    )
 
     print(f"\n  Weak Signal -> {result_weak.decision}")
     print(f"    Composite Score: {result_weak.composite_score:.3f}")
-    print(f"    Recommendation: {'Proceed to backtest' if result_weak.decision == 'PASS' else 'Requires judgment or skip'}")
+    print(
+        f"    Recommendation: {'Proceed to backtest' if result_weak.decision == 'PASS' else 'Requires judgment or skip'}"
+    )
 
     print("\nKey Insights:")
     print("  1. Strong signals with clear predictive content score PASS")

@@ -33,7 +33,7 @@ def _ensure_datetime_index(df: pd.DataFrame, date_col: str) -> pd.DataFrame:
         df = df.copy()
         df[date_col] = pd.to_datetime(df[date_col])
         df = df.set_index(date_col)
-    
+
     return df.sort_index()
 
 
@@ -97,9 +97,7 @@ def validate_cdx_schema(df: pd.DataFrame, schema: CDXSchema = CDXSchema()) -> pd
 
     # Validate spread bounds
     if not df[schema.spread_col].between(schema.min_spread, schema.max_spread).all():
-        invalid = df[
-            ~df[schema.spread_col].between(schema.min_spread, schema.max_spread)
-        ]
+        invalid = df[~df[schema.spread_col].between(schema.min_spread, schema.max_spread)]
         logger.warning(
             "Found %d invalid spread values outside [%.1f, %.1f]",
             len(invalid),

@@ -120,7 +120,9 @@ def test_run_backtest_tracks_holding_period(
     in_position = result.positions[result.positions["position"] != 0]
     if len(in_position) > 1:
         # Days held should increase during position
-        consecutive_positions = in_position[in_position.index.to_series().diff() == pd.Timedelta(days=1)]
+        consecutive_positions = in_position[
+            in_position.index.to_series().diff() == pd.Timedelta(days=1)
+        ]
         if len(consecutive_positions) > 0:
             assert (consecutive_positions["days_held"] > 0).any()
 
@@ -153,15 +155,11 @@ def test_run_backtest_calculates_pnl(
 
     # Net P&L should be spread P&L minus costs
     expected_net = result.pnl["spread_pnl"] - result.pnl["cost"]
-    pd.testing.assert_series_equal(
-        result.pnl["net_pnl"], expected_net, check_names=False
-    )
+    pd.testing.assert_series_equal(result.pnl["net_pnl"], expected_net, check_names=False)
 
     # Cumulative P&L should be cumulative sum of net P&L
     expected_cum = result.pnl["net_pnl"].cumsum()
-    pd.testing.assert_series_equal(
-        result.pnl["cumulative_pnl"], expected_cum, check_names=False
-    )
+    pd.testing.assert_series_equal(result.pnl["cumulative_pnl"], expected_cum, check_names=False)
 
 
 def test_compute_performance_metrics_structure() -> None:
@@ -269,6 +267,6 @@ def test_run_backtest_validates_index_types() -> None:
     # Test with valid signal but invalid spread
     dates = pd.date_range("2024-01-01", periods=3, freq="D")
     signal_valid = pd.Series([1.0, 2.0, 3.0], index=dates)
-    
+
     with pytest.raises(ValueError, match="spread must have DatetimeIndex"):
         run_backtest(signal_valid, spread)

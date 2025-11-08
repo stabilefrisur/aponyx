@@ -44,7 +44,7 @@ def save_parquet(
 
     Examples
     --------
-    >>> df = pd.DataFrame({'spread': [100, 105, 98]}, 
+    >>> df = pd.DataFrame({'spread': [100, 105, 98]},
     ...                   index=pd.date_range('2024-01-01', periods=3))
     >>> save_parquet(df, 'data/cdx_ig_5y.parquet')
     """
@@ -107,7 +107,7 @@ def load_parquet(
 
     Examples
     --------
-    >>> df = load_parquet('data/cdx_ig_5y.parquet', 
+    >>> df = load_parquet('data/cdx_ig_5y.parquet',
     ...                   start_date=pd.Timestamp('2024-01-01'))
     >>> df = load_parquet('data/vix.parquet', columns=['close'])
     """
@@ -123,8 +123,7 @@ def load_parquet(
     if start_date is not None or end_date is not None:
         if not isinstance(df.index, pd.DatetimeIndex):
             raise ValueError(
-                "Date filtering requires DatetimeIndex. "
-                f"Got {type(df.index).__name__}"
+                "Date filtering requires DatetimeIndex. " f"Got {type(df.index).__name__}"
             )
 
         if start_date is not None:

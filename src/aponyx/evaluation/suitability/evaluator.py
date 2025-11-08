@@ -260,28 +260,28 @@ def evaluate_signal_suitability(
 
     # Compute predictive statistics for all configured lags
     logger.debug("Computing stats for %d lags: %s", len(config.lags), config.lags)
-    
+
     correlations = {}
     betas = {}
     t_stats = {}
-    
+
     for lag in config.lags:
         # Compute forward returns for this lag
         target_fwd = target_change.shift(-lag)
-        
+
         # Align signal with forward target
         aligned_lag = pd.DataFrame({"signal": signal, "target": target_fwd}).dropna()
         signal_lag = aligned_lag["signal"]
         target_lag = aligned_lag["target"]
-        
+
         # Compute correlation
         correlations[lag] = tests.compute_correlation(signal_lag, target_lag)
-        
+
         # Compute regression stats
         regression_stats = tests.compute_regression_stats(signal_lag, target_lag)
         betas[lag] = regression_stats["beta"]
         t_stats[lag] = regression_stats["t_stat"]
-        
+
         logger.debug(
             "Lag %d: n=%d, corr=%.3f, beta=%.3f, t_stat=%.3f",
             lag,

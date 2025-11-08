@@ -54,7 +54,7 @@ def test_signal_metadata_creation() -> None:
         arg_mapping=["cdx"],
         enabled=True,
     )
-    
+
     assert metadata.name == "test_signal"
     assert metadata.compute_function_name == "compute_test"
     assert metadata.enabled is True
@@ -95,7 +95,7 @@ def test_signal_metadata_validates_arg_mapping() -> None:
             data_requirements={"cdx": "spread"},
             arg_mapping=[],
         )
-    
+
     # arg_mapping contains key not in data_requirements
     with pytest.raises(ValueError, match="arg_mapping contains keys not in data_requirements"):
         SignalMetadata(
@@ -110,7 +110,7 @@ def test_signal_metadata_validates_arg_mapping() -> None:
 def test_signal_registry_loads_catalog(temp_catalog_file: Path) -> None:
     """Test that SignalRegistry loads catalog on initialization."""
     registry = SignalRegistry(temp_catalog_file)
-    
+
     signals = registry.list_all()
     assert len(signals) == 2
     assert "test_signal_a" in signals
@@ -126,7 +126,7 @@ def test_signal_registry_file_not_found() -> None:
 def test_signal_registry_get_metadata(temp_catalog_file: Path) -> None:
     """Test retrieving signal metadata."""
     registry = SignalRegistry(temp_catalog_file)
-    
+
     metadata = registry.get_metadata("test_signal_a")
     assert metadata.name == "test_signal_a"
     assert metadata.compute_function_name == "compute_spread_momentum"
@@ -137,7 +137,7 @@ def test_signal_registry_get_metadata(temp_catalog_file: Path) -> None:
 def test_signal_registry_get_metadata_not_found(temp_catalog_file: Path) -> None:
     """Test that get_metadata raises KeyError for unknown signal."""
     registry = SignalRegistry(temp_catalog_file)
-    
+
     with pytest.raises(KeyError, match="Signal 'nonexistent' not found"):
         registry.get_metadata("nonexistent")
 
@@ -145,7 +145,7 @@ def test_signal_registry_get_metadata_not_found(temp_catalog_file: Path) -> None
 def test_signal_registry_get_enabled(temp_catalog_file: Path) -> None:
     """Test retrieving enabled signals."""
     registry = SignalRegistry(temp_catalog_file)
-    
+
     enabled = registry.get_enabled()
     assert len(enabled) == 2
     assert all(meta.enabled for meta in enabled.values())
@@ -171,15 +171,15 @@ def test_signal_registry_get_enabled_filters_disabled() -> None:
             "enabled": False,
         },
     ]
-    
+
     with TemporaryDirectory() as tmpdir:
         catalog_path = Path(tmpdir) / "catalog.json"
         with open(catalog_path, "w") as f:
             json.dump(catalog_data, f)
-        
+
         registry = SignalRegistry(catalog_path)
         enabled = registry.get_enabled()
-        
+
         assert len(enabled) == 1
         assert "enabled_signal" in enabled
         assert "disabled_signal" not in enabled
@@ -188,17 +188,17 @@ def test_signal_registry_get_enabled_filters_disabled() -> None:
 def test_signal_registry_save_catalog(temp_catalog_file: Path) -> None:
     """Test saving catalog to file."""
     registry = SignalRegistry(temp_catalog_file)
-    
+
     with TemporaryDirectory() as tmpdir:
         output_path = Path(tmpdir) / "output_catalog.json"
         registry.save_catalog(output_path)
-        
+
         assert output_path.exists()
-        
+
         # Verify content
         with open(output_path) as f:
             saved_data = json.load(f)
-        
+
         assert len(saved_data) == 2
         assert saved_data[0]["name"] == "test_signal_a"
         assert saved_data[1]["name"] == "test_signal_b"
@@ -224,12 +224,12 @@ def test_signal_registry_duplicate_names_raises_error() -> None:
             "enabled": True,
         },
     ]
-    
+
     with TemporaryDirectory() as tmpdir:
         catalog_path = Path(tmpdir) / "catalog.json"
         with open(catalog_path, "w") as f:
             json.dump(catalog_data, f)
-        
+
         with pytest.raises(ValueError, match="Duplicate signal name"):
             SignalRegistry(catalog_path)
 
@@ -238,11 +238,11 @@ def test_signal_registry_invalid_catalog_format() -> None:
     """Test that invalid catalog format raises error."""
     with TemporaryDirectory() as tmpdir:
         catalog_path = Path(tmpdir) / "catalog.json"
-        
+
         # Write dict instead of list
         with open(catalog_path, "w") as f:
             json.dump({"not": "a list"}, f)
-        
+
         with pytest.raises(ValueError, match="Signal catalog must be a JSON array"):
             SignalRegistry(catalog_path)
 
@@ -255,11 +255,11 @@ def test_signal_registry_invalid_metadata_entry() -> None:
             # Missing required fields
         }
     ]
-    
+
     with TemporaryDirectory() as tmpdir:
         catalog_path = Path(tmpdir) / "catalog.json"
         with open(catalog_path, "w") as f:
             json.dump(catalog_data, f)
-        
+
         with pytest.raises(ValueError, match="Invalid signal metadata"):
             SignalRegistry(catalog_path)
