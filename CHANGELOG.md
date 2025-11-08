@@ -5,16 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.5] - 2025-11-08
 
 ### Added
-- Research workflow notebook: `02_signal_computation.ipynb` (20 cells)
-  - Signal computation from cached Bloomberg data
+
+#### Research Workflow Notebooks
+- Complete systematic research workflow notebooks included in PyPI distribution
+- `notebooks/01_data_download.ipynb` - Bloomberg data download (21 cells)
+  - Automated download for all configured securities (CDX, VIX, ETF)
+  - BloombergSource integration with graceful error handling
+  - Cache directory management and validation
+  - Sample data generation for missing securities
+  - Comprehensive logging and progress tracking
+- `notebooks/02_signal_computation.ipynb` - Signal computation (20 cells)
+  - Batch signal computation from cached Bloomberg data
   - SignalRegistry integration for catalog-driven signal generation
   - Comprehensive validation (z-score normalization, alignment, correlations)
   - Plotly visualizations (individual signals, 3-panel subplot, correlation heatmap)
   - Metadata persistence for reproducibility
-  - Production-ready workflow with error handling and logging
+  - Production-ready workflow with error handling
+- `notebooks/__init__.py` - Package initialization with workflow documentation
+  - Notebook sequence documentation
+  - Workflow position markers for each step
+  - Prerequisites and outputs clearly defined
+
+#### Distribution Improvements
+- Research notebooks now included in PyPI package (`aponyx/notebooks/`)
+- Notebooks accessible after installation for copy/modification
+- Updated packaging to include notebook JSON files
+
+#### Examples Enhancements
+- Signal suitability evaluation added to `end_to_end_demo.ipynb`
+  - Pre-backtest quality gate demonstration
+  - PASS/HOLD/FAIL decision workflow
+  - Component scoring breakdown visualization
+
+### Changed
+- Updated `.gitignore` to preserve `notebooks/` directory structure
+- Enhanced `README.md` with research notebooks section and workflow documentation
+- Updated `PROJECT_STATUS.md` to reflect notebook distribution
+- Copilot instructions updated with notebook workflow context
+- `pyproject.toml` now includes notebook files in package data
+
+### Fixed
+- Bloomberg demo error handling for missing Terminal connection
+- Suitability report path references in demo notebook
 
 ## [0.1.4] - 2025-11-07
 
@@ -205,6 +240,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.5]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.5
 [0.1.4]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.4
 [0.1.3]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.3
 [0.1.2]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.2
