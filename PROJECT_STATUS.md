@@ -1,6 +1,6 @@
 # Project Status — aponyx
 
-**Last Updated:** November 7, 2025  
+**Last Updated:** November 8, 2025  
 **Version:** 0.1.4  
 **Maintainer:** stabilefrisur
 
@@ -510,7 +510,7 @@ src/aponyx/
 - Runnable examples for each layer (`src/aponyx/examples/`)
 - Research workflow notebooks (`src/aponyx/notebooks/`):
   - `01_data_download.ipynb` - Bloomberg data acquisition (23 cells, complete)
-  - `02_signal_computation.ipynb` - Signal generation workflow (coming soon)
+  - `02_signal_computation.ipynb` - Signal generation workflow (20 cells, complete)
   - `03_suitability_evaluation.ipynb` - Pre-backtest screening (coming soon)
   - `04_backtest.ipynb` - Strategy backtesting (coming soon)
   - `05_analysis.ipynb` - Performance analysis (coming soon)

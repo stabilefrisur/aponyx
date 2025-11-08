@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Research workflow notebook: `02_signal_computation.ipynb` (20 cells)
+  - Signal computation from cached Bloomberg data
+  - SignalRegistry integration for catalog-driven signal generation
+  - Comprehensive validation (z-score normalization, alignment, correlations)
+  - Plotly visualizations (individual signals, 3-panel subplot, correlation heatmap)
+  - Metadata persistence for reproducibility
+  - Production-ready workflow with error handling and logging
+
 ## [0.1.4] - 2025-11-07
 
 ### Added
