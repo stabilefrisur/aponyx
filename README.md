@@ -322,5 +322,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 **Maintained by stabilefrisur**  
-**Version**: 0.1.4  
-**Last Updated**: November 7, 2025
+**Version**: 0.1.5  
+**Last Updated**: November 8, 2025
