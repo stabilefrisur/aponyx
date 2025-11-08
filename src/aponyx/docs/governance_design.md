@@ -165,7 +165,6 @@ registry.register_dataset(
     name="new_cdx_data",
     file_path="data/raw/cdx_new.parquet",
     instrument="CDX.NA.IG",
-    tenor="5Y",
 )
 ```
 

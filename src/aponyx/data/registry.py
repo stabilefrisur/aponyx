@@ -31,8 +31,6 @@ class DatasetEntry:
         Path to the Parquet file.
     registered_at : str
         ISO format timestamp of registration.
-    tenor : str or None
-        Tenor specification (e.g., '5Y', '10Y'), None if not applicable.
     start_date : str or None
         ISO format start date of data coverage.
     end_date : str or None
@@ -48,7 +46,6 @@ class DatasetEntry:
     instrument: str
     file_path: str
     registered_at: str
-    tenor: str | None = None
     start_date: str | None = None
     end_date: str | None = None
     row_count: int | None = None
@@ -88,8 +85,7 @@ class DataRegistry:
     >>> registry.register_dataset(
     ...     name='cdx_ig_5y',
     ...     file_path='data/cdx_ig_5y.parquet',
-    ...     instrument='CDX.NA.IG',
-    ...     tenor='5Y'
+    ...     instrument='CDX.NA.IG'
     ... )
     >>> info = registry.get_dataset_info('cdx_ig_5y')
     """
@@ -122,7 +118,6 @@ class DataRegistry:
         name: str,
         file_path: str | Path,
         instrument: str,
-        tenor: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
         """
@@ -136,8 +131,6 @@ class DataRegistry:
             Path to the Parquet file (relative to data_directory or absolute).
         instrument : str
             Instrument identifier (e.g., 'CDX.NA.IG', 'VIX', 'HYG').
-        tenor : str, optional
-            Tenor specification for CDX instruments (e.g., '5Y', '10Y').
         metadata : dict, optional
             Additional metadata to store with the dataset.
 
@@ -173,7 +166,6 @@ class DataRegistry:
         # Build registry entry using dataclass
         entry = DatasetEntry(
             instrument=instrument,
-            tenor=tenor,
             file_path=str(file_path),
             registered_at=datetime.now().isoformat(),
             start_date=start_date.isoformat() if start_date else None,
@@ -186,10 +178,9 @@ class DataRegistry:
         self._save()
 
         logger.info(
-            "Registered dataset: name=%s, instrument=%s, tenor=%s, rows=%s",
+            "Registered dataset: name=%s, instrument=%s, rows=%s",
             name,
             instrument,
-            tenor,
             row_count,
         )
 
@@ -255,17 +246,14 @@ class DataRegistry:
     def list_datasets(
         self,
         instrument: str | None = None,
-        tenor: str | None = None,
     ) -> list[str]:
         """
-        List registered datasets, optionally filtered by instrument/tenor.
+        List registered datasets, optionally filtered by instrument.
 
         Parameters
         ----------
         instrument : str, optional
             Filter by instrument (e.g., 'CDX.NA.IG', 'VIX').
-        tenor : str, optional
-            Filter by tenor (e.g., '5Y', '10Y').
 
         Returns
         -------
@@ -276,14 +264,10 @@ class DataRegistry:
         --------
         >>> registry.list_datasets(instrument='CDX.NA.IG')
         ['cdx_ig_5y', 'cdx_ig_10y']
-        >>> registry.list_datasets(tenor='5Y')
-        ['cdx_ig_5y', 'cdx_hy_5y', 'cdx_xo_5y']
         """
         datasets = []
         for name, info in self._catalog.items():
             if instrument and info.get("instrument") != instrument:
-                continue
-            if tenor and info.get("tenor") != tenor:
                 continue
             datasets.append(name)
         return sorted(datasets)

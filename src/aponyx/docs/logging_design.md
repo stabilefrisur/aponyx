@@ -39,7 +39,7 @@ Logged at INFO when:
 **Examples:**
 ```python
 logger.info("Saving DataFrame to Parquet: path=%s, rows=%d, columns=%d", path, len(df), len(df.columns))
-logger.info("Registered dataset: name=%s, instrument=%s, tenor=%s, rows=%s", name, instrument, tenor, row_count)
+logger.info("Registered dataset: name=%s, instrument=%s, rows=%s", name, instrument, row_count)
 ```
 
 **Characteristics:**
@@ -123,7 +123,7 @@ Used when:
 | Operation | Level | Information Logged |
 |-----------|-------|-------------------|
 | `__init__()` | INFO | Registry path, number of datasets (loaded/created) |
-| `register_dataset()` | INFO | Name, instrument, tenor, row count |
+| `register_dataset()` | INFO | Name, instrument, row count |
 | `register_dataset()` | WARNING | Failed to extract stats from file |
 | `register_dataset()` | DEBUG | Registering non-existent file |
 | `update_dataset_stats()` | INFO | Name, rows, date range after update |

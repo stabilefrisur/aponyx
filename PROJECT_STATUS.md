@@ -621,11 +621,11 @@ config = metadata.to_config(position_size=15.0)  # Override defaults
 ```python
 # File-based
 source = FileSource("data/raw/cdx_data.parquet")
-cdx_df = fetch_cdx(source, index_name="CDX_IG_5Y")
+cdx_df = fetch_cdx(source, security="cdx_ig_5y")
 
 # Bloomberg Terminal
 source = BloombergSource()
-cdx_df = fetch_cdx(source, index_name="CDX_IG", tenor="5Y")
+cdx_df = fetch_cdx(source, security="cdx_ig_5y")
 ```
 
 ### 5. Functions Over Classes

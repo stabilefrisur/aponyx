@@ -81,12 +81,10 @@ class TestRegisterDataset:
             name="cdx_ig_5y",
             file_path=file_path,
             instrument="CDX.NA.IG",
-            tenor="5Y",
         )
 
         info = registry.get_dataset_info("cdx_ig_5y")
         assert info["instrument"] == "CDX.NA.IG"
-        assert info["tenor"] == "5Y"
         assert info["row_count"] == 30
 
     def test_register_with_metadata(self, registry, sample_timeseries, temp_data_dir):
@@ -200,13 +198,11 @@ class TestListDatasets:
             name="cdx_ig_5y",
             file_path=temp_data_dir / "cdx_ig_5y.parquet",
             instrument="CDX.NA.IG",
-            tenor="5Y",
         )
         registry.register_dataset(
             name="cdx_ig_10y",
             file_path=temp_data_dir / "cdx_ig_10y.parquet",
             instrument="CDX.NA.IG",
-            tenor="10Y",
         )
         registry.register_dataset(
             name="vix",
@@ -217,31 +213,6 @@ class TestListDatasets:
         cdx_datasets = registry.list_datasets(instrument="CDX.NA.IG")
         assert len(cdx_datasets) == 2
         assert "vix" not in cdx_datasets
-
-    def test_list_filtered_by_tenor(self, registry, temp_data_dir):
-        """Test filtering datasets by tenor."""
-        registry.register_dataset(
-            name="cdx_ig_5y",
-            file_path=temp_data_dir / "cdx_ig_5y.parquet",
-            instrument="CDX.NA.IG",
-            tenor="5Y",
-        )
-        registry.register_dataset(
-            name="cdx_hy_5y",
-            file_path=temp_data_dir / "cdx_hy_5y.parquet",
-            instrument="CDX.NA.HY",
-            tenor="5Y",
-        )
-        registry.register_dataset(
-            name="cdx_ig_10y",
-            file_path=temp_data_dir / "cdx_ig_10y.parquet",
-            instrument="CDX.NA.IG",
-            tenor="10Y",
-        )
-
-        datasets_5y = registry.list_datasets(tenor="5Y")
-        assert len(datasets_5y) == 2
-        assert "cdx_ig_10y" not in datasets_5y
 
     def test_list_empty_registry(self, registry):
         """Test listing datasets from empty registry."""
@@ -339,7 +310,6 @@ class TestDatasetEntry:
             instrument="CDX.NA.IG",
             file_path="data/cdx_ig_5y.parquet",
             registered_at="2024-10-25T14:30:00",
-            tenor="5Y",
             start_date="2024-01-01T00:00:00",
             end_date="2024-10-25T00:00:00",
             row_count=215,
@@ -347,7 +317,6 @@ class TestDatasetEntry:
         )
 
         assert entry.instrument == "CDX.NA.IG"
-        assert entry.tenor == "5Y"
         assert entry.row_count == 215
         assert entry.metadata["source"] == "Bloomberg"
 
@@ -360,7 +329,6 @@ class TestDatasetEntry:
         )
 
         assert entry.instrument == "VIX"
-        assert entry.tenor is None
         assert entry.start_date is None
         assert entry.end_date is None
         assert entry.row_count is None
@@ -373,7 +341,6 @@ class TestDatasetEntry:
             instrument="CDX.NA.IG",
             file_path="data/test.parquet",
             registered_at="2024-10-25T14:30:00",
-            tenor="5Y",
             row_count=100,
         )
 
@@ -381,7 +348,6 @@ class TestDatasetEntry:
 
         assert isinstance(data, dict)
         assert data["instrument"] == "CDX.NA.IG"
-        assert data["tenor"] == "5Y"
         assert data["row_count"] == 100
         assert data["start_date"] is None
 
@@ -391,7 +357,6 @@ class TestDatasetEntry:
             "instrument": "CDX.NA.HY",
             "file_path": "data/cdx_hy.parquet",
             "registered_at": "2024-10-25T14:30:00",
-            "tenor": "5Y",
             "start_date": "2024-01-01T00:00:00",
             "end_date": "2024-10-25T00:00:00",
             "row_count": 200,
@@ -402,7 +367,6 @@ class TestDatasetEntry:
         entry = DatasetEntry.from_dict(data)
 
         assert entry.instrument == "CDX.NA.HY"
-        assert entry.tenor == "5Y"
         assert entry.row_count == 200
         assert entry.metadata["frequency"] == "daily"
 
@@ -437,14 +401,12 @@ class TestGetDatasetEntry:
             name="cdx_ig_5y",
             file_path=file_path,
             instrument="CDX.NA.IG",
-            tenor="5Y",
         )
 
         entry = registry.get_dataset_entry("cdx_ig_5y")
 
         assert isinstance(entry, DatasetEntry)
         assert entry.instrument == "CDX.NA.IG"
-        assert entry.tenor == "5Y"
         assert entry.row_count == 30
 
     def test_get_dataset_entry_with_metadata(self, registry, sample_timeseries, temp_data_dir):
@@ -463,7 +425,6 @@ class TestGetDatasetEntry:
         entry = registry.get_dataset_entry("vix_index")
 
         assert entry.instrument == "VIX"
-        assert entry.tenor is None
         assert entry.metadata["source"] == "CBOE"
         assert entry.metadata["frequency"] == "daily"
 
@@ -481,14 +442,12 @@ class TestGetDatasetEntry:
             name="test",
             file_path=file_path,
             instrument="TEST",
-            tenor="5Y",
         )
 
         entry = registry.get_dataset_entry("test")
 
         # Test attribute access (would give IDE autocomplete)
         assert hasattr(entry, "instrument")
-        assert hasattr(entry, "tenor")
         assert hasattr(entry, "file_path")
         assert hasattr(entry, "row_count")
         assert hasattr(entry, "metadata")
@@ -504,7 +463,6 @@ class TestGetDatasetEntry:
             name="test",
             file_path=file_path,
             instrument="TEST",
-            tenor="5Y",
         )
 
         entry = registry.get_dataset_entry("test")

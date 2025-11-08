@@ -192,7 +192,6 @@ def demonstrate_registry_operations(file_paths: dict[str, Path]) -> None:
         name="cdx_ig_5y",
         file_path=file_paths["cdx_ig_5y"],
         instrument="CDX.NA.IG",
-        tenor="5Y",
         metadata={"source": data_source, "frequency": "daily"},
     )
 
@@ -200,7 +199,6 @@ def demonstrate_registry_operations(file_paths: dict[str, Path]) -> None:
         name="cdx_hy_5y",
         file_path=file_paths["cdx_hy_5y"],
         instrument="CDX.NA.HY",
-        tenor="5Y",
         metadata={"source": data_source, "frequency": "daily"},
     )
 
@@ -247,7 +245,6 @@ def demonstrate_dataclass_features() -> None:
 
     print(f"  Type: {type(entry).__name__}")
     print(f"  Instrument: {entry.instrument}")
-    print(f"  Tenor: {entry.tenor}")
     print(f"  Date range: {entry.start_date[:10]} to {entry.end_date[:10]}")
     print(f"  Rows: {entry.row_count}")
     print(f"  Metadata: {entry.metadata}")
@@ -264,8 +261,7 @@ def demonstrate_dataclass_features() -> None:
     print("\nProcessing multiple datasets type-safely...")
     for name in ["cdx_ig_5y", "cdx_hy_5y", "vix", "hyg_etf"]:
         entry = registry.get_dataset_entry(name)
-        tenor_str = entry.tenor or "N/A"
-        print(f"  {entry.instrument:12s} ({tenor_str:3s}): {entry.row_count:3d} rows")
+        print(f"  {entry.instrument:12s}: {entry.row_count:3d} rows")
 
     # Dataclass conversion methods
     print("\nDataclass conversion methods...")
@@ -366,7 +362,6 @@ def demonstrate_update_operations() -> None:
         name="cdx_ig_5y",
         file_path=entry.file_path,
         instrument=entry.instrument,
-        tenor=entry.tenor,
         metadata=updated_metadata,
     )
 
