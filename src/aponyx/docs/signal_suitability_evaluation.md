@@ -80,6 +80,8 @@ aponyx/
 | `target_change` | `pd.Series` | Forward-looking target changes with DatetimeIndex |
 | `config` | `SuitabilityConfig` | Evaluation parameters (immutable dataclass) |
 
+**Important:** When registering evaluations or generating reports, use `product_id` values that match the `security_id` format from the data layer (lowercase with underscores, e.g., `'cdx_ig_5y'`). This ensures consistency across data loading, signal computation, and evaluation tracking.
+
 **Critical:** No trading rules, costs, or position sizing in inputs.
 
 ### Output Contract

@@ -29,7 +29,7 @@ def generate_suitability_report(
     signal_id : str
         Signal identifier (for header).
     product_id : str
-        Product identifier (for header).
+        Product identifier matching security_id format (e.g., 'cdx_ig_5y').
 
     Returns
     -------
@@ -48,7 +48,7 @@ def generate_suitability_report(
 
     Examples
     --------
-    >>> report = generate_suitability_report(result, "cdx_etf_basis", "CDX_IG_5Y")
+    >>> report = generate_suitability_report(result, "cdx_etf_basis", "cdx_ig_5y")
     >>> print(report[:100])
     """
     # Decision indicator
@@ -327,7 +327,7 @@ def save_report(
     signal_id : str
         Signal identifier (for filename).
     product_id : str
-        Product identifier (for filename).
+        Product identifier matching security_id format (e.g., 'cdx_ig_5y').
     output_dir : Path
         Directory to save report.
 
@@ -344,7 +344,7 @@ def save_report(
     Examples
     --------
     >>> from aponyx.config import EVALUATION_DIR
-    >>> path = save_report(report, "cdx_etf_basis", "CDX_IG_5Y", EVALUATION_DIR)
+    >>> path = save_report(report, "cdx_etf_basis", "cdx_ig_5y", EVALUATION_DIR)
     >>> print(path)
     """
     # Create output directory

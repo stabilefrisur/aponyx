@@ -16,7 +16,7 @@ def test_validate_cdx_schema_valid() -> None:
         {
             "date": pd.date_range("2024-01-01", periods=10),
             "spread": [100.0, 105.0, 102.0, 110.0, 108.0, 115.0, 112.0, 120.0, 118.0, 125.0],
-            "index": ["CDX_IG_5Y"] * 10,
+            "index": ["cdx_ig_5y"] * 10,
         }
     )
 
@@ -33,7 +33,7 @@ def test_validate_cdx_schema_missing_columns() -> None:
         {
             "date": pd.date_range("2024-01-01", periods=10),
             # Missing 'spread' column
-            "index": ["CDX_IG_5Y"] * 10,
+            "index": ["cdx_ig_5y"] * 10,
         }
     )
 
@@ -47,7 +47,7 @@ def test_validate_cdx_schema_invalid_spread() -> None:
         {
             "date": pd.date_range("2024-01-01", periods=10),
             "spread": [-10.0] * 10,  # Negative spreads are invalid
-            "index": ["CDX_IG_5Y"] * 10,
+            "index": ["cdx_ig_5y"] * 10,
         }
     )
 
@@ -61,7 +61,7 @@ def test_validate_cdx_schema_duplicate_dates(caplog: pytest.LogCaptureFixture) -
         {
             "date": ["2024-01-01"] * 5 + ["2024-01-02"] * 5,
             "spread": [100.0] * 10,
-            "index": ["CDX_IG_5Y"] * 10,
+            "index": ["cdx_ig_5y"] * 10,
         }
     )
 
@@ -149,7 +149,7 @@ def test_validate_cdx_schema_already_indexed() -> None:
     df = pd.DataFrame(
         {
             "spread": [100.0, 105.0, 102.0],
-            "index": ["CDX_IG_5Y"] * 3,
+            "index": ["cdx_ig_5y"] * 3,
         },
         index=pd.date_range("2024-01-01", periods=3),
     )

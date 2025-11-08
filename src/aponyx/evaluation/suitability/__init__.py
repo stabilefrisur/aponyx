@@ -32,12 +32,12 @@ Examples
 >>> print(result.decision, result.composite_score)
 >>>
 >>> # Generate report
->>> report = generate_suitability_report(result, "cdx_etf_basis", "CDX_IG_5Y")
->>> report_path = save_report(report, "cdx_etf_basis", "CDX_IG_5Y", EVALUATION_DIR)
+>>> report = generate_suitability_report(result, "cdx_etf_basis", "cdx_ig_5y")
+>>> report_path = save_report(report, "cdx_etf_basis", "cdx_ig_5y", EVALUATION_DIR)
 >>>
 >>> # Register evaluation
 >>> registry = SuitabilityRegistry(SUITABILITY_REGISTRY_PATH)
->>> eval_id = registry.register_evaluation(result, "cdx_etf_basis", "CDX_IG_5Y")
+>>> eval_id = registry.register_evaluation(result, "cdx_etf_basis", "cdx_ig_5y")
 """
 
 from aponyx.evaluation.suitability.config import SuitabilityConfig

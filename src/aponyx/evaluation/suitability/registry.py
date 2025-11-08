@@ -27,7 +27,7 @@ class EvaluationEntry:
     signal_id : str
         Signal name/identifier (from signal.name).
     product_id : str
-        Product identifier (user-provided).
+        Product identifier matching security_id format (e.g., 'cdx_ig_5y').
     evaluated_at : str
         ISO timestamp of evaluation.
     decision : str
@@ -78,7 +78,7 @@ class SuitabilityRegistry:
     --------
     >>> from aponyx.config import SUITABILITY_REGISTRY_PATH
     >>> registry = SuitabilityRegistry(SUITABILITY_REGISTRY_PATH)
-    >>> eval_id = registry.register_evaluation(result, "cdx_etf_basis", "CDX_IG_5Y")
+    >>> eval_id = registry.register_evaluation(result, "cdx_etf_basis", "cdx_ig_5y")
     >>> entry = registry.get_evaluation(eval_id)
     >>> evaluations = registry.list_evaluations(decision="PASS")
     """
@@ -133,7 +133,7 @@ class SuitabilityRegistry:
         signal_id : str
             Signal identifier (typically signal.name).
         product_id : str
-            Product identifier (user-provided).
+            Product identifier matching security_id format (e.g., 'cdx_ig_5y').
         report_path : str, optional
             Path to saved report file.
         evaluator_version : str, default="0.1.0"
