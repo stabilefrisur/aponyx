@@ -493,7 +493,7 @@ src/aponyx/
 - Test error handling (missing columns, empty data)
 - Do NOT test visual rendering or external services
 
-### ✅ Documentation (`src/aponyx/docs/`, `src/aponyx/examples/`)
+### ✅ Documentation (`src/aponyx/docs/`, `src/aponyx/examples/`, `src/aponyx/notebooks/`)
 
 **Implemented:**
 - Comprehensive design documents (9 files in `src/aponyx/docs/`):
@@ -508,6 +508,12 @@ src/aponyx/
   - `governance_design.md` - Strategy registry and governance pattern
   - `project_setup_process.md` - Project setup and installation
 - Runnable examples for each layer (`src/aponyx/examples/`)
+- Research workflow notebooks (`src/aponyx/notebooks/`):
+  - `01_data_download.ipynb` - Bloomberg data acquisition (23 cells, complete)
+  - `02_signal_computation.ipynb` - Signal generation workflow (coming soon)
+  - `03_suitability_evaluation.ipynb` - Pre-backtest screening (coming soon)
+  - `04_backtest.ipynb` - Strategy backtesting (coming soon)
+  - `05_analysis.ipynb` - Performance analysis (coming soon)
 - NumPy-style docstrings throughout codebase
 - Copilot instructions for AI-assisted development (`.github/copilot-instructions.md`)
 
@@ -516,6 +522,14 @@ src/aponyx/
 - **Quickstart:** `README.md`
 - **Design Docs:** `src/aponyx/docs/*.md` (included in PyPI distribution)
 - **Examples:** `src/aponyx/examples/*.py`
+- **Notebooks:** `src/aponyx/notebooks/*.ipynb` (included in PyPI distribution)
+
+**Notebook Conventions:**
+- Use absolute imports (`from aponyx.config import...`)
+- Include workflow context headers (position, prerequisites, outputs)
+- Format tables with `to_markdown()` for clean left-aligned display
+- Each notebook works in isolation, loading from previous steps
+- Only ✅ and ❌ emojis for clarity (no decorative emojis)
 
 ---
 

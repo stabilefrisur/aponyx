@@ -62,9 +62,10 @@ coverage.xml
 
 # Jupyter Notebooks
 .ipynb_checkpoints/
-# Ignore notebooks in general, but allow examples
+# Ignore notebooks in general, but allow examples and workflow notebooks
 *.ipynb
 !src/aponyx/examples/**/*.ipynb
+!src/aponyx/notebooks/**/*.ipynb
 
 # mypy
 .mypy_cache/
@@ -81,3 +82,6 @@ dmypy.json
 # Release checklists (internal use only)
 PYPI_RELEASE_CHECKLIST.md
 PYPI_RELEASE_AGENT_INSTRUCTIONS.md
+
+# Internal TODO tracking (not version controlled)
+TODO.md

@@ -170,6 +170,41 @@ uv sync
 uv run python -m aponyx.examples.backtest_demo
 ```
 
+## Research Notebooks
+
+Complete workflow notebooks are included in the package for end-to-end research workflows.
+
+**Access installed notebooks:**
+
+```python
+# Locate notebook directory
+from pathlib import Path
+import aponyx
+notebooks_dir = Path(aponyx.__file__).parent / "notebooks"
+print(notebooks_dir)
+```
+
+**Workflow notebooks:**
+
+| Notebook | Description |
+|----------|-------------|
+| `01_data_download.ipynb` | Download market data from Bloomberg Terminal |
+| `02_signal_computation.ipynb` | Generate signals using SignalRegistry (coming soon) |
+| `03_suitability_evaluation.ipynb` | Pre-backtest signal screening (coming soon) |
+| `04_backtest.ipynb` | Execute backtests and compute metrics (coming soon) |
+| `05_analysis.ipynb` | Visualize results and generate reports (coming soon) |
+
+**Usage:**
+
+```bash
+# Copy notebooks to your workspace
+pip install aponyx[viz]  # Install with notebook dependencies
+python -c "from pathlib import Path; import aponyx, shutil; src = Path(aponyx.__file__).parent / 'notebooks'; shutil.copytree(src, 'notebooks')"
+jupyter notebook notebooks/
+```
+
+Notebooks demonstrate the complete systematic research workflow from data acquisition through performance analysis.
+
 ## Documentation
 
 Documentation is **included with the package** and available after installation:
