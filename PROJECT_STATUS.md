@@ -510,8 +510,8 @@ src/aponyx/
 - Runnable examples for each layer (`src/aponyx/examples/`)
 - Research workflow notebooks (`src/aponyx/notebooks/`):
   - `01_data_download.ipynb` - Bloomberg data acquisition (23 cells, complete)
-  - `02_signal_computation.ipynb` - Signal generation workflow (20 cells, complete)
-  - `03_suitability_evaluation.ipynb` - Pre-backtest screening (coming soon)
+  - `02_signal_computation.ipynb` - Signal generation workflow (21 cells, complete)
+  - `03_suitability_evaluation.ipynb` - Pre-backtest screening (25 cells, complete)
   - `04_backtest.ipynb` - Strategy backtesting (coming soon)
   - `05_analysis.ipynb` - Performance analysis (coming soon)
 - NumPy-style docstrings throughout codebase

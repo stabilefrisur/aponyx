@@ -447,4 +447,4 @@ It should:
 
 > Maintained by **stabilefrisur**.  
 > Optimized for VS Code Agent Mode (Claude Sonnet 4.5 / GPT‑5)  
-> Last Updated: November 2, 2025
+> Last Updated: November 8, 2025

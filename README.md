@@ -190,7 +190,7 @@ print(notebooks_dir)
 |----------|-------------|
 | `01_data_download.ipynb` | Download market data from Bloomberg Terminal |
 | `02_signal_computation.ipynb` | Generate signals using SignalRegistry |
-| `03_suitability_evaluation.ipynb` | Pre-backtest signal screening (coming soon) |
+| `03_suitability_evaluation.ipynb` | Pre-backtest signal screening and evaluation |
 | `04_backtest.ipynb` | Execute backtests and compute metrics (coming soon) |
 | `05_analysis.ipynb` | Visualize results and generate reports (coming soon) |
 
