@@ -355,3 +355,114 @@ def generate_full_sample_sources(
         "vix": FileSource(Path(file_paths["vix"])),
         "etf": FileSource(Path(file_paths["etf"])),
     }
+
+
+def generate_for_fetch_interface(
+    output_dir: str | Path,
+    start_date: str = "2020-01-01",
+    end_date: str = "2025-01-01",
+    seed: int = 42,
+) -> dict[str, Path]:
+    """
+    Generate synthetic data matching fetch layer schema requirements.
+
+    Creates individual files per security that work with fetch_cdx, fetch_vix,
+    and fetch_etf functions. Data is saved to cache directory structure.
+
+    Parameters
+    ----------
+    output_dir : str or Path
+        Base directory for cache files (e.g., "data/cache/file").
+    start_date : str, default "2020-01-01"
+        Start date for time series.
+    end_date : str, default "2025-01-01"
+        End date for time series.
+    seed : int, default 42
+        Random seed for reproducibility.
+
+    Returns
+    -------
+    dict[str, Path]
+        Mapping of security identifier to file path.
+
+    Notes
+    -----
+    Generates files matching fetch layer expectations:
+    - CDX: spread column, security="cdx_ig_5y"
+    - VIX: level column (renamed from close)
+    - ETF: spread column (prices), security="hyg"
+    """
+    logger.info(
+        "Generating synthetic data for fetch interface: %s to %s",
+        start_date,
+        end_date,
+    )
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    # Calculate periods from date range
+    start = pd.Timestamp(start_date)
+    end = pd.Timestamp(end_date)
+    dates = pd.bdate_range(start=start, end=end)
+    periods = len(dates)
+
+    # Generate CDX IG 5Y - schema requires "spread" column
+    cdx_df = generate_cdx_sample(
+        start_date=start_date,
+        periods=periods,
+        index_name="CDX_IG",
+        tenor="5Y",
+        base_spread=60.0,
+        volatility=5.0,
+        seed=seed,
+    )
+    # Transform to match CDX schema (spread column, DatetimeIndex)
+    cdx_df = cdx_df.set_index("date")
+    cdx_df = cdx_df[["spread"]].copy()
+    cdx_df["security"] = "cdx_ig_5y"
+    cdx_path = output_path / "cdx_cdx_ig_5y.parquet"
+    save_parquet(cdx_df, cdx_path)
+    logger.info("Saved CDX to %s (%d rows)", cdx_path, len(cdx_df))
+
+    # Generate VIX - schema requires "level" column
+    vix_df = generate_vix_sample(
+        start_date=start_date,
+        periods=periods,
+        base_vix=18.0,
+        volatility=2.5,
+        seed=seed + 1,
+    )
+    # Transform to match VIX schema (level column, DatetimeIndex)
+    vix_df = vix_df.set_index("date")
+    vix_df = vix_df[["level"]].copy()
+    vix_path = output_path / "vix_vix.parquet"
+    save_parquet(vix_df, vix_path)
+    logger.info("Saved VIX to %s (%d rows)", vix_path, len(vix_df))
+
+    # Generate ETF (HYG) - schema requires "spread" column
+    # Use spread directly as it represents OAS-equivalent metric
+    etf_df = generate_etf_sample(
+        start_date=start_date,
+        periods=periods,
+        ticker="HYG",
+        base_price=350.0,  # Spread-like value in bps
+        volatility=15.0,
+        seed=seed + 2,
+    )
+    # Transform to match ETF schema (spread column, DatetimeIndex)
+    etf_df = etf_df.set_index("date")
+    etf_df = etf_df[["spread"]].copy()
+    etf_df["security"] = "hyg"
+    etf_path = output_path / "etf_hyg.parquet"
+    save_parquet(etf_df, etf_path)
+    logger.info("Saved ETF to %s (%d rows)", etf_path, len(etf_df))
+
+    file_paths = {
+        "cdx_ig_5y": cdx_path,
+        "vix": vix_path,
+        "hyg": etf_path,
+    }
+
+    logger.info("Synthetic data generation complete: %d files", len(file_paths))
+    return file_paths

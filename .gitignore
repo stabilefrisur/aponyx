@@ -32,7 +32,8 @@ logs/*
 !logs/.gitkeep
 
 # Reports (evaluation outputs - not version controlled)
-reports/suitability/demo_reports/*
+reports/suitability/*
+!reports/suitability/.gitkeep
 
 # Example outputs (demo artifacts - not version controlled)
 src/aponyx/examples/data/
