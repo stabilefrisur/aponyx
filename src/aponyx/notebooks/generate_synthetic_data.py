@@ -15,10 +15,10 @@ Command line:
 
 From Python:
     from aponyx.notebooks.generate_synthetic_data import main, setup_synthetic_data
-    
+
     # Simple interface (for notebooks)
     setup_synthetic_data(years_of_history=5)
-    
+
     # Detailed interface (command line)
     main(years_of_history=5)
 """
@@ -31,7 +31,7 @@ from aponyx.data.sample_data import generate_for_fetch_interface
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -63,9 +63,7 @@ def setup_synthetic_data(years_of_history: int = 5) -> None:
     >>> setup_synthetic_data(years_of_history=5)
     """
     end_date = datetime.now().strftime("%Y-%m-%d")
-    start_date = (datetime.now() - timedelta(days=years_of_history * 365)).strftime(
-        "%Y-%m-%d"
-    )
+    start_date = (datetime.now() - timedelta(days=years_of_history * 365)).strftime("%Y-%m-%d")
 
     cache_dir = DATA_DIR / "cache" / "file"
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -95,9 +93,7 @@ def main(years_of_history: int = 5) -> None:
 
     # Calculate date range
     end_date = datetime.now().strftime("%Y-%m-%d")
-    start_date = (datetime.now() - timedelta(days=years_of_history * 365)).strftime(
-        "%Y-%m-%d"
-    )
+    start_date = (datetime.now() - timedelta(days=years_of_history * 365)).strftime("%Y-%m-%d")
 
     cache_dir = DATA_DIR / "cache" / "file"
     cache_dir.mkdir(parents=True, exist_ok=True)

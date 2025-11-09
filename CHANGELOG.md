@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2025-11-09
+
+### Added
+
+#### Backtest Workflow Notebook
+- Complete backtest execution notebook (`notebooks/04_backtest.ipynb`) with 48 cells
+  - Strategy registry integration for catalog-driven backtesting
+  - Multi-strategy batch execution with error handling
+  - Comprehensive performance metrics visualization
+  - Signal-strategy alignment validation
+  - Metadata persistence for reproducibility
+  - Production-ready workflow completing the 4-step research cycle
+
+#### Synthetic Data Support
+- Synthetic data generation utilities for development workflow (`notebooks/generate_synthetic_data.py`)
+  - CDX, VIX, and ETF synthetic time series generation
+  - Configurable market regimes and correlations
+  - Documentation for synthetic data usage (`notebooks/README_SYNTHETIC_DATA.md`)
+  - Enables full workflow execution without Bloomberg Terminal access
+
+### Changed
+- Standardized `product_id` naming to lowercase format across all modules
+  - Registry schema updated to use lowercase identifiers (e.g., `cdx_ig_5y`)
+  - Strategy catalog updated with lowercase product references
+  - All notebooks and examples updated for consistency
+- Enhanced signal computation notebook with improved visualizations
+  - Better subplot layouts and formatting
+  - Clearer correlation heatmap presentation
+- Refactored signal computation notebook to use fetch functions instead of hardcoded cache paths
+- Updated documentation to reflect current codebase state and workflow completeness
+
+### Fixed
+- Added missing imports to signal computation notebook
+- Removed deprecated `tenor` field from DataRegistry schema
+- Improved suitability evaluation workflow notebook organization
+
 ## [0.1.5] - 2025-11-08
 
 ### Added
@@ -240,6 +276,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.6]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.6
 [0.1.5]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.5
 [0.1.4]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.4
 [0.1.3]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.3
