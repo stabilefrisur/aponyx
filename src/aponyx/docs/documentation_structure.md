@@ -7,7 +7,6 @@
 | **API Reference** | Module docstrings | Function/class contracts | Developers (in-editor) |
 | **Quickstart** | `README.md` | Installation, examples, overview | New users |
 | **Design Docs** | `src/aponyx/docs/*.md` | Architecture, standards, strategy | Contributors |
-| **Examples** | `src/aponyx/examples/*.py` + headers | Runnable demonstrations | Researchers |
 
 **Rule**: Each piece of information has exactly one authoritative location.
 
@@ -24,10 +23,6 @@
 - **`logging_design.md`** - Logging conventions and metadata tracking
 - **`documentation_structure.md`** - This file (documentation philosophy)
 
-### Examples (`src/aponyx/examples/`)
-- **`README.md`** - Quick start commands and script overview
-- **`*_demo.py`** - Self-documenting executable demonstrations
-
 ### Source Code (`src/aponyx/`)
 - **Module/function docstrings** - NumPy-style API documentation
 - **Inline comments** - Implementation details and rationale
@@ -42,7 +37,7 @@
 
 **Example:**
 ```markdown
-✅ DO: "Install with `uv sync` and run `uv run python -m aponyx.examples.backtest_demo`"
+✅ DO: "Install with `uv sync` and run tests with `pytest`"
 ❌ DON'T: Copy entire function signatures or explain implementation details
 ```
 
@@ -54,33 +49,6 @@
 ```markdown
 ✅ DO: "Signals use positive values for long credit risk to ensure consistent interpretation"
 ❌ DON'T: "Call compute_signal(df, window=20) to generate signals" (use docstrings instead)
-```
-
-### `src/aponyx/examples/README.md`
-✅ Quick run commands, script purpose table, prerequisites, troubleshooting  
-❌ Detailed explanations (use script headers), code snippets (use actual scripts)
-
-**Example:**
-```markdown
-✅ DO: "Run `uv run python -m aponyx.examples.backtest_demo` to see complete workflow"
-✅ DO: "Common issue: Missing viz dependencies. Solution: `uv sync --extra viz`"
-❌ DON'T: Reproduce code from the actual demo scripts
-```
-
-### Demo Script Headers
-✅ What it demonstrates, workflow steps, key configuration, expected output  
-❌ Installation instructions, design rationale
-
-**Example:**
-```python
-✅ DO:
-"""
-Backtest Demo - Complete strategy workflow
-Demonstrates: Signal generation → Backtest → Performance metrics
-Expected output: Sharpe ratio, max drawdown, trade statistics
-"""
-
-❌ DON'T: Include installation instructions or explain why we chose this architecture
 ```
 
 ### Docstrings
@@ -126,9 +94,9 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
 
 **Bad:** Creating separate tutorial files with step-by-step code examples
 
-**Why:** Duplicates `src/aponyx/examples/backtest_demo.py` which is executable and tested.
+**Why:** Code examples should be in docstrings or design docs, not separate tutorials.
 
-**Good:** Point users to the demo script and explain *why* in design docs.
+**Good:** Use docstrings for usage examples and design docs to explain *why*.
 
 ### ❌ Implementation README Files
 
@@ -177,12 +145,10 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
 
 **Where to document:**
 1. **Class docstring** (`providers/new_provider.py`): Provider-specific API details
-2. **Demo script** (`src/aponyx/examples/data_demo.py`): Add example using new provider
-3. **Design doc** (`adding_data_providers.md` in same directory): Architecture pattern for providers
+2. **Design doc** (`adding_data_providers.md` in same directory): Architecture pattern for providers
 
 **Don't document:**
 - ❌ Provider list in multiple places (use code as source of truth)
-- ❌ Step-by-step guide separate from demo (use demo script)
 
 ---
 
@@ -191,9 +157,9 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
 ### Scenario: User Wants to Run a Backtest
 
 **Documentation Path:**
-1. **Root README** → Points to `src/aponyx/examples/backtest_demo.py`
-2. **Demo script** → Shows runnable code with comments
-3. **Function docstrings** → Explains individual function contracts
+1. **Root README** → Shows Quick Start code example
+2. **Function docstrings** → Explains individual function contracts
+3. **Notebooks** → Complete workflow demonstrations
 
 **User never needs to:**
 - Read design docs for basic usage
@@ -205,8 +171,7 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
 **Documentation Path:**
 1. **Root README** → Links to `signal_registry_usage.md` (in installed docs)
 2. **Design doc** → Explains registry pattern and conventions
-3. **Demo script** → Shows working example of signal usage
-4. **Docstrings** → Reference for function signatures
+3. **Docstrings** → Reference for function signatures and usage examples
 
 **User never encounters:**
 - Duplicate instructions in multiple places
@@ -221,9 +186,8 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
 
 1. Implement with NumPy-style docstrings
 2. Write unit tests
-3. Add demo script (if new layer/capability)
-4. Update root README (only if affects quickstart)
-5. Update design doc (only if architectural change)
+3. Update root README (only if affects quickstart)
+4. Update design doc (only if architectural change)
 
 ### Where to Document
 
@@ -231,7 +195,7 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
 |----------|----------|
 | "How do I install?" | Root README |
 | "How do I use function X?" | Function docstring |
-| "How do I run a backtest?" | `backtest_demo.py` header + code |
+| "How do I run a backtest?" | Root README Quick Start + notebooks |
 | "Why this design?" | `src/aponyx/docs/*.md` |
 | "What's the API?" | Module/function docstrings |
 
@@ -240,9 +204,8 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
 ❌ Create README files in implementation directories  
 ❌ Write "implementation summary" docs separate from code  
 ❌ Duplicate usage examples across files  
-❌ Document API details outside docstrings  
-❌ Create tutorial-style docs that duplicate demos
+❌ Document API details outside docstrings
 
 ---
 
-**Principle**: Executable code (demos, tests, docstrings) is the documentation. Design docs explain *why*, not *how*.
+**Principle**: Executable code (tests, docstrings, notebooks) is the documentation. Design docs explain *why*, not *how*.

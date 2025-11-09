@@ -30,7 +30,6 @@ src/aponyx/
   docs/               # Documentation and strategy specs
     maintenance/      # Fork/upstream sync workflows
     prompts/          # Strategy and implementation prompts
-  examples/           # Example scripts and notebooks
   __init__.py         # Package initialization
   main.py             # CLI entry point / notebook runner
 
@@ -156,19 +155,18 @@ def compute_spread_momentum(
 | **API Reference** | Module docstrings | Function/class contracts, type info, parameters |
 | **Quickstart** | `README.md` | Installation, quick examples, navigation |
 | **Design Docs** | `src/aponyx/docs/*.md` | Architecture, standards, strategy rationale |
-| **Examples** | `src/aponyx/examples/*.py` headers | Runnable demonstrations with explanatory headers |
+| **Notebooks** | `src/aponyx/notebooks/*.ipynb` | Complete workflow demonstrations |
 
 **What to document where:**
 - **Docstrings**: API contracts (parameters, returns, raises), edge cases, usage notes
-- **Examples**: Workflow demonstrations with clear headers explaining purpose and expected output
+- **Notebooks**: Workflow demonstrations with markdown explanations
 - **Design docs**: Architectural decisions, cross-cutting concerns (*why*, not *how*)
 - **README**: Installation, project structure, quickstart commands
 
 **Never:**
 - Create README files in implementation directories (`src/aponyx/*/README.md`)
 - Duplicate API documentation outside of docstrings
-- Write tutorial-style docs that duplicate runnable examples
-- Document usage patterns in design docs (use examples instead)
+- Write tutorial-style docs that duplicate notebooks
 
 ---
 

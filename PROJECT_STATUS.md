@@ -619,7 +619,7 @@ src/aponyx/
 - Test error handling (missing columns, empty data)
 - Do NOT test visual rendering or external services
 
-### ✅ Documentation (`src/aponyx/docs/`, `src/aponyx/examples/`, `src/aponyx/notebooks/`)
+### ✅ Documentation (`src/aponyx/docs/`, `src/aponyx/notebooks/`)
 
 **Implemented:**
 - Comprehensive design documents (9 files in `src/aponyx/docs/`):
@@ -635,7 +635,6 @@ src/aponyx/
   - `documentation_structure.md` - Single source of truth principles
   - `governance_design.md` - Strategy registry and governance pattern
   - `project_setup_process.md` - Project setup and installation
-- Runnable examples for each layer (`src/aponyx/examples/`)
 - Research workflow notebooks (`src/aponyx/notebooks/`):
   - `01_data_download.ipynb` - Bloomberg data acquisition (23 cells, complete)
   - `02_signal_computation.ipynb` - Signal generation workflow (21 cells, complete)
@@ -649,7 +648,6 @@ src/aponyx/
 - **API Reference:** Module docstrings
 - **Quickstart:** `README.md`
 - **Design Docs:** `src/aponyx/docs/*.md` (included in PyPI distribution)
-- **Examples:** `src/aponyx/examples/*.py`
 - **Notebooks:** `src/aponyx/notebooks/*.ipynb` (included in PyPI distribution)
 
 **Notebook Conventions:**
@@ -1202,16 +1200,6 @@ aponyx/
 │   ├── persistence/
 │   └── visualization/
 │
-├── src/aponyx/examples/     # Runnable demonstrations (included in PyPI)
-│   ├── README.md
-│   ├── data_demo.py
-│   ├── models_demo.py
-│   ├── backtest_demo.py
-│   ├── visualization_demo.py
-│   ├── persistence_demo.py
-│   ├── example_data.py
-│   └── end_to_end_demo.ipynb
-│
 ├── src/aponyx/
 │   ├── docs/                    # Design documentation (included in package)
 │   │   ├── cdx_overlay_strategy.md       # Investment strategy
@@ -1230,7 +1218,6 @@ aponyx/
 │   │   └── prompts/             # LLM context
 │   │       ├── investment strategy.txt
 │   │       └── technical implementation.txt
-│   ├── examples/            # Demo scripts (see above)
 │
 ├── data/                    # Data storage
 │   ├── registry.json        # Dataset registry
@@ -1307,7 +1294,7 @@ This document provides comprehensive context for GPT-based AI assistants working
 - Code standards: `.github/copilot-instructions.md`, `src/aponyx/docs/python_guidelines.md`
 - Investment context: `src/aponyx/docs/cdx_overlay_strategy.md`
 - Signal workflow: `src/aponyx/docs/signal_registry_usage.md`
-- Examples: `src/aponyx/examples/*.py` for usage patterns
+- Workflows: `src/aponyx/notebooks/*.ipynb` for complete demonstrations
 
 ---
 

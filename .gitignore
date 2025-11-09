@@ -25,10 +25,6 @@ logs/
 reports/suitability/
 reports/performance/
 
-# Example outputs (demo artifacts - not version controlled)
-src/aponyx/examples/data/
-src/aponyx/examples/reports/
-
 # Suitability registry (data-dependent, not version controlled)
 src/aponyx/evaluation/suitability/suitability_registry.json
 
@@ -61,9 +57,8 @@ coverage.xml
 
 # Jupyter Notebooks
 .ipynb_checkpoints/
-# Ignore notebooks in general, but allow examples and workflow notebooks
+# Ignore notebooks in general, but allow workflow notebooks
 *.ipynb
-!src/aponyx/examples/**/*.ipynb
 !src/aponyx/notebooks/**/*.ipynb
 
 # mypy

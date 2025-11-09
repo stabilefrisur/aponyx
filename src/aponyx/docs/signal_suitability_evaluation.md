@@ -558,7 +558,6 @@ evaluate_signal_suitability(
 ### Phase 5: Testing & Documentation
 - [ ] Unit tests for all evaluation components
 - [ ] Integration test with end-to-end workflow
-- [ ] Usage examples in `examples/suitability_demo.py`
 - [ ] Update project README with new evaluation layer
 - [ ] Document in `docs/signal_suitability_evaluation.md`
 
