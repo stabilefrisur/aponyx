@@ -116,7 +116,7 @@ Aponyx follows a **layered architecture** with clean separation of concerns:
 |-------|---------|-------------|
 | **Data** | Load, validate, transform market data | `fetch_cdx`, `fetch_vix`, `fetch_etf`, `FileSource`, `BloombergSource` |
 | **Models** | Generate signals for independent evaluation | `compute_cdx_etf_basis`, `compute_cdx_vix_gap`, `SignalRegistry` |
-| **Evaluation** | Pre-backtest signal screening and quality gates | `evaluate_signal_suitability`, `SuitabilityRegistry` |
+| **Evaluation** | Pre-backtest screening and post-backtest analysis | `evaluate_signal_suitability`, `analyze_backtest_performance`, `PerformanceRegistry` |
 | **Backtest** | Simulate execution and compute metrics | `run_backtest`, `BacktestConfig`, `StrategyRegistry` |
 | **Visualization** | Interactive charts and dashboards | `plot_equity_curve`, `plot_signal`, `plot_drawdown` |
 | **Persistence** | Save/load data with metadata registry | `save_parquet`, `load_parquet`, `DataRegistry` |
@@ -132,6 +132,8 @@ Models Layer (signal computation)
     ↓
 Evaluation Layer (signal-product suitability)
     ├─ PASS → Backtest Layer (simulation, metrics)
+    │            ↓
+    │         Evaluation Layer (performance analysis)
     │            ↓
     │         Visualization Layer (charts)
     │            ↓
@@ -155,6 +157,7 @@ python -m aponyx.examples.data_demo          # Data loading and validation
 python -m aponyx.examples.models_demo        # Signal generation and catalog
 python -m aponyx.examples.suitability_demo   # Pre-backtest signal screening
 python -m aponyx.examples.backtest_demo      # Complete backtest workflow
+python -m aponyx.examples.performance_demo   # Post-backtest performance analysis
 python -m aponyx.examples.visualization_demo # Interactive charts (requires viz extra)
 python -m aponyx.examples.persistence_demo   # Data I/O and registry
 python -m aponyx.examples.bloomberg_demo     # Bloomberg Terminal integration
@@ -192,6 +195,7 @@ print(notebooks_dir)
 | `02_signal_computation.ipynb` | Generate signals using SignalRegistry |
 | `03_suitability_evaluation.ipynb` | Pre-backtest signal screening and evaluation |
 | `04_backtest.ipynb` | Execute backtests and compute metrics |
+| `05_performance_analysis.ipynb` | Comprehensive post-backtest performance analysis |
 
 **Usage:**
 
@@ -223,6 +227,7 @@ print(docs_path)  # Path to installed documentation
 | `cdx_overlay_strategy.md` | Investment thesis and pilot implementation |
 | `signal_registry_usage.md` | Signal management workflow |
 | `signal_suitability_evaluation.md` | Pre-backtest evaluation framework |
+| `performance_evaluation_design.md` | Post-backtest analysis framework |
 | `visualization_design.md` | Chart architecture and patterns |
 | `logging_design.md` | Logging conventions and metadata |
 | `caching_design.md` | Cache layer architecture |

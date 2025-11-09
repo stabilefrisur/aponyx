@@ -207,7 +207,44 @@ signals = compute_registered_signals(registry, market_data, config)
 
 ---
 
-### 6.4 StrategyRegistry — Class-Based Catalog for Backtest Strategies
+### 6.4 PerformanceRegistry — Class-Based Catalog for Performance Evaluations
+
+**File:** `src/aponyx/evaluation/performance/registry.py`
+
+**Lifecycle:**
+
+```python
+from aponyx.config import PERFORMANCE_REGISTRY_PATH
+from aponyx.evaluation.performance import PerformanceRegistry
+
+# 1. LOAD: Instantiate registry (loads JSON)
+registry = PerformanceRegistry(PERFORMANCE_REGISTRY_PATH)
+
+# 2. INSPECT: Query evaluation metadata
+all_evals = registry.list_evaluations()
+cdx_evals = registry.list_evaluations(signal_id="cdx_etf_basis")
+balanced_evals = registry.list_evaluations(strategy_id="balanced")
+
+# 3. USE: Register new performance evaluation
+eval_id = registry.register_evaluation(
+    performance_result=perf_result,
+    signal_id="cdx_etf_basis",
+    strategy_id="balanced",
+    report_path=Path("reports/performance/cdx_etf_basis_balanced_20251109.md"),
+)
+
+# 4. RETRIEVE: Get specific evaluation metadata
+metadata = registry.get_evaluation(eval_id)
+
+# 5. SAVE: Auto-saves on register (manual save also available)
+registry.save_catalog()
+```
+
+**Pattern:** Class-based registry similar to SuitabilityRegistry. Tracks performance evaluation runs with comprehensive metadata including signal, strategy, stability score, and report paths.
+
+---
+
+### 6.5 StrategyRegistry — Class-Based Catalog for Backtest Strategies
 
 **File:** `src/aponyx/backtest/registry.py`
 
@@ -243,7 +280,7 @@ result = run_backtest(signal_series, cdx_spread, config)
 
 ---
 
-### 6.5 Bloomberg Config — Functional Pattern with Module-Level Caching
+### 6.6 Bloomberg Config — Functional Pattern with Module-Level Caching
 
 **File:** `src/aponyx/data/bloomberg_config.py`
 
@@ -275,7 +312,7 @@ ticker = get_bloomberg_ticker("CDX.NA.IG", "5Y")
 
 ---
 
-### 6.6 Pattern Comparison
+### 6.7 Pattern Comparison
 
 | Pillar | Implementation | State | Validation | Save Support |
 |--------|---------------|-------|------------|--------------|
@@ -283,6 +320,8 @@ ticker = get_bloomberg_ticker("CDX.NA.IG", "5Y")
 | **DataRegistry** | Class-based | Mutable (`self._catalog`) | On save | Yes |
 | **SignalRegistry** | Class-based | Immutable (frozen dataclass) | Fail-fast (load time) | Yes |
 | **StrategyRegistry** | Class-based | Immutable (frozen dataclass) | Fail-fast (load time) | Yes |
+| **SuitabilityRegistry** | Class-based | Mutable (`self._evaluations`) | On register | Yes |
+| **PerformanceRegistry** | Class-based | Mutable (`self._evaluations`) | On register | Yes |
 | **Bloomberg Config** | Functional | Module-level cache | On access | No |
 
 **When to use each pattern:**

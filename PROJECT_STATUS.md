@@ -93,6 +93,26 @@ src/aponyx/
     adapters.py       # Third-party library adapters (stubs)
     strategy_catalog.json  # Strategy metadata catalog
   
+  evaluation/         # Signal screening and performance analysis
+    suitability/      # Pre-backtest signal-product evaluation
+      __init__.py     # Exports: evaluate_signal_suitability, SuitabilityRegistry, etc.
+      evaluator.py    # Core evaluation orchestration
+      tests.py        # Statistical tests
+      scoring.py      # Component scoring
+      report.py       # Markdown report generation
+      registry.py     # Evaluation registry
+      config.py       # SuitabilityConfig dataclass
+      suitability_registry.json  # Evaluation tracking catalog
+    performance/      # Post-backtest performance analysis
+      __init__.py     # Exports: analyze_backtest_performance, PerformanceRegistry, etc.
+      analyzer.py     # Core performance evaluation
+      decomposition.py  # Return attribution
+      risk_metrics.py   # Extended metrics
+      report.py         # Markdown report generation
+      registry.py       # Performance registry
+      config.py         # PerformanceConfig dataclass
+      performance_registry.json  # Performance tracking catalog
+  
   visualization/      # Plotly charts, Streamlit dashboards
     __init__.py       # Exports: plot_*, Visualizer
     plots.py          # Plotting functions (3 implemented, 3 stubs)
@@ -109,10 +129,11 @@ src/aponyx/
 
 | Layer | Purpose | Can Import From | Cannot Import From |
 |-------|---------|-----------------|-------------------|
-| **data/** | Data loading, cleaning, validation | `config`, `persistence` | `models`, `backtest`, `visualization` |
-| **models/** | Signal computation | `config`, `data` (schemas only) | `backtest`, `visualization` |
-| **backtest/** | P&L simulation, metrics | `config`, `models` (protocols) | `data` (direct), `visualization` |
-| **visualization/** | Charts, dashboards | None (accepts generic DataFrames) | `data`, `models`, `backtest` |
+| **data/** | Data loading, cleaning, validation | `config`, `persistence` | `models`, `backtest`, `evaluation`, `visualization` |
+| **models/** | Signal computation | `config`, `data` (schemas only) | `backtest`, `evaluation`, `visualization` |
+| **evaluation/** | Signal screening and performance analysis | `config`, `backtest`, `persistence` | `data` (direct), `models`, `visualization` |
+| **backtest/** | P&L simulation, metrics | `config`, `models` (protocols) | `data` (direct), `evaluation`, `visualization` |
+| **visualization/** | Charts, dashboards | None (accepts generic DataFrames) | `data`, `models`, `backtest`, `evaluation` |
 | **persistence/** | I/O operations | `config` | All others |
 | **config/** | Constants, paths | None | All |
 
@@ -330,6 +351,109 @@ src/aponyx/
 - Registry pattern consistent with SignalRegistry and StrategyRegistry
 - Comprehensive test coverage (6 test modules)
 
+### ✅ Evaluation Layer (`src/aponyx/evaluation/`)
+
+**Implemented:**
+- **Suitability Evaluation Framework:** Pre-backtest quality gate for signal-product relationships
+  - `evaluate_signal_suitability` - Core evaluation orchestration
+  - `SuitabilityResult` dataclass - Comprehensive evaluation output (13+ fields)
+  - `SuitabilityConfig` - Configuration with validation (frozen dataclass)
+- **Four-Component Scoring:**
+  - `score_data_health` - Sample size and missing data assessment (20% weight)
+  - `score_predictive` - Multi-lag correlation and regression (40% weight)
+  - `score_economic` - Effect size relevance in basis points (20% weight)
+  - `score_stability` - Sign consistency across subperiods (20% weight)
+- **Suitability Registry:**
+  - `SuitabilityRegistry` - Class-based JSON catalog management
+  - `EvaluationEntry` - Metadata record dataclass
+  - CRUD operations: register, get, list (with filters), remove
+- **Performance Evaluation Framework:** Post-backtest comprehensive analysis
+  - `analyze_backtest_performance` - Core performance orchestration
+  - `PerformanceResult` dataclass - Extended metrics and attribution
+  - `PerformanceConfig` - Configuration with validation (frozen dataclass)
+- **Extended Performance Metrics:**
+  - Rolling Sharpe analysis with configurable window
+  - Profit factor and tail ratio calculation
+  - Consistency score across time periods
+  - Drawdown recovery analysis
+  - Subperiod stability assessment (configurable n_subperiods)
+- **Return Attribution:**
+  - Directional attribution (long vs short P&L)
+  - Signal strength attribution (quantile-based decomposition)
+  - Win/loss decomposition with contribution percentages
+- **Performance Registry:**
+  - `PerformanceRegistry` - Class-based JSON catalog management
+  - `PerformanceEntry` - Metadata record dataclass
+  - CRUD operations: register, get, list, comprehensive metadata tracking
+- **Report Generation:**
+  - `generate_performance_report` - Markdown template rendering
+  - `save_report` - File persistence with timestamp
+  - Comprehensive metrics summary and stability analysis
+  - Attribution breakdown with visual formatting
+
+**Key Features:**
+- **Suitability:** Pre-backtest signal screening with PASS/HOLD/FAIL decisions
+- **Performance:** Post-backtest comprehensive analysis with extended metrics
+- **Statistical Tests:** Correlation, regression, subperiod stability, sign consistency
+- **Attribution:** Directional, signal strength, and win/loss decomposition
+- **Registry Pattern:** Consistent governance across both evaluation types
+- **Comprehensive Logging:** INFO for operations, DEBUG for implementation details
+- **Type Safety:** Full type hints with modern Python syntax
+
+**Decision Thresholds (Suitability):**
+- **PASS** (≥ 0.7): Proceed to backtest
+- **HOLD** (0.4-0.7): Marginal, requires manual review
+- **FAIL** (< 0.4): Do not backtest
+
+**Performance Metrics:**
+- Stability score (0-1 scale)
+- Profit factor (gross wins / gross losses)
+- Tail ratio (95th / 5th percentile returns)
+- Rolling Sharpe (mean and std of rolling window)
+- Consistency score (% of positive subperiods)
+- Average recovery days from drawdowns
+- Drawdown count and duration analysis
+
+**Key Files:**
+- **Suitability:**
+  - `suitability/evaluator.py` - Core evaluation orchestration
+  - `suitability/tests.py` - Statistical test functions
+  - `suitability/scoring.py` - Component scoring logic
+  - `suitability/report.py` - Markdown report generation
+  - `suitability/registry.py` - Suitability registry management
+  - `suitability/config.py` - SuitabilityConfig dataclass
+  - `suitability/suitability_registry.json` - Evaluation tracking catalog
+- **Performance:**
+  - `performance/analyzer.py` - Core performance evaluation
+  - `performance/decomposition.py` - Return attribution logic
+  - `performance/risk_metrics.py` - Extended metric calculations
+  - `performance/report.py` - Markdown report generation
+  - `performance/registry.py` - Performance registry management
+  - `performance/config.py` - PerformanceConfig dataclass
+  - `performance/performance_registry.json` - Performance tracking catalog
+
+**Configuration:**
+- **Suitability:**
+  - Default lags: [1, 3, 5]
+  - Component weights: data_health=0.2, predictive=0.4, economic=0.2, stability=0.2
+  - Pass threshold: 0.7, Hold threshold: 0.4
+  - Minimum observations: 252 (default)
+  - Registry path: `src/aponyx/evaluation/suitability/suitability_registry.json`
+- **Performance:**
+  - Minimum observations: 252 (default)
+  - Subperiods: 4 (quarterly analysis)
+  - Rolling window: 63 days (3 months)
+  - Attribution quantiles: 3 (terciles)
+  - Risk-free rate: 0.0
+  - Registry path: `src/aponyx/evaluation/performance/performance_registry.json`
+
+**Implementation Notes:**
+- Standalone evaluation modules (no trading rules or execution logic)
+- Uses statsmodels for OLS regression and statistical tests
+- Registry pattern consistent with SignalRegistry and StrategyRegistry
+- Comprehensive test coverage in `tests/evaluation/`
+- Reports saved to `reports/suitability/` and `reports/performance/`
+
 ### ✅ Backtest Layer (`src/aponyx/backtest/`)
 
 **Implemented:**
@@ -503,6 +627,8 @@ src/aponyx/
   - `python_guidelines.md` - Code standards and best practices
   - `logging_design.md` - Logging conventions and metadata
   - `signal_registry_usage.md` - Signal management workflow
+  - `signal_suitability_evaluation.md` - Pre-backtest evaluation framework
+  - `performance_evaluation_design.md` - Post-backtest analysis framework
   - `visualization_design.md` - Chart architecture
   - `caching_design.md` - Cache layer architecture
   - `adding_data_providers.md` - Provider extension guide
@@ -515,6 +641,7 @@ src/aponyx/
   - `02_signal_computation.ipynb` - Signal generation workflow (21 cells, complete)
   - `03_suitability_evaluation.ipynb` - Pre-backtest screening (25 cells, complete)
   - `04_backtest.ipynb` - Strategy backtesting (16 cells, complete)
+  - `05_performance_analysis.ipynb` - Post-backtest performance analysis (13 cells, complete)
 - NumPy-style docstrings throughout codebase
 - Copilot instructions for AI-assisted development (`.github/copilot-instructions.md`)
 
@@ -747,7 +874,7 @@ from typing import Optional, Union, List, Dict
      → Track metadata
    → Returns: BacktestResult(positions, pnl, metadata)
 
-5. Performance Analysis
+5. Basic Performance Metrics
    compute_performance_metrics(result.pnl, result.positions)
    → Calculate 13 metrics:
      - Sharpe, Sortino, Calmar ratios
@@ -1030,16 +1157,43 @@ aponyx/
 │   │   ├── metrics.py       # Performance calculations
 │   │   ├── config.py        # BacktestConfig
 │   │   ├── protocols.py     # Type protocols
+│   │   ├── registry.py      # Strategy registry
+│   │   ├── strategy_catalog.json  # Strategy metadata
 │   │   └── adapters.py      # Third-party library adapters (stubs)
+│   ├── evaluation/          # Signal screening and performance analysis
+│   │   ├── suitability/     # Pre-backtest evaluation
+│   │   │   ├── __init__.py
+│   │   │   ├── evaluator.py
+│   │   │   ├── tests.py
+│   │   │   ├── scoring.py
+│   │   │   ├── report.py
+│   │   │   ├── registry.py
+│   │   │   ├── config.py
+│   │   │   └── suitability_registry.json
+│   │   └── performance/     # Post-backtest analysis
+│   │       ├── __init__.py
+│   │       ├── analyzer.py
+│   │       ├── decomposition.py
+│   │       ├── risk_metrics.py
+│   │       ├── report.py
+│   │       ├── registry.py
+│   │       ├── config.py
+│   │       └── performance_registry.json
 │   ├── visualization/       # Plotting and dashboards
 │   │   ├── __init__.py
 │   │   ├── plots.py         # Plotting functions
 │   │   ├── visualizer.py    # Theme management
 │   │   └── app.py           # Streamlit dashboard (stub)
-│   └── persistence/         # I/O and registry
-│       ├── __init__.py
-│       ├── parquet_io.py    # Parquet read/write
-│       └── json_io.py       # JSON read/write
+│   ├── persistence/         # I/O and registry
+│   │   ├── __init__.py
+│   │   ├── parquet_io.py    # Parquet read/write
+│   │   └── json_io.py       # JSON read/write
+│   └── notebooks/           # Research workflow notebooks
+│       ├── 01_data_download.ipynb
+│       ├── 02_signal_computation.ipynb
+│       ├── 03_suitability_evaluation.ipynb
+│       ├── 04_backtest.ipynb
+│       └── 05_performance_analysis.ipynb
 │
 ├── tests/                   # Unit tests (mirrors src/ structure)
 │   ├── data/
@@ -1087,7 +1241,14 @@ aponyx/
 │       └── file/
 │
 ├── logs/                    # Run metadata and logs
-│   └── run_metadata.json
+│   ├── backtest_metadata.json
+│   ├── performance_evaluation_metadata.json
+│   ├── signal_computation_metadata.json
+│   └── suitability_evaluation_metadata.json
+│
+├── reports/                 # Generated reports
+│   ├── suitability/         # Pre-backtest evaluation reports
+│   └── performance/         # Post-backtest analysis reports
 │
 ├── .github/
 │   └── copilot-instructions.md  # AI assistant configuration

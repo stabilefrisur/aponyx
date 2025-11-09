@@ -179,7 +179,8 @@ def compute_spread_momentum(
 | Editing `/config/` | Use import-time constants with `Final` type hints. No classes, no dynamic configuration. |
 | Editing `/data/` | Focus on fetch functions, schema validation, and data sources. Use `DataRegistry` for dataset tracking. Support multiple providers (File, Bloomberg, API). |
 | Editing `/models/` | Focus on signal functions and strategy modules. Use `SignalRegistry` for catalog management. **Signal convention: positive values = long credit risk (buy CDX).** |
-| Editing `/evaluation/` | Focus on 4-component scoring (data health, predictive, economic, stability) and PASS/HOLD/FAIL decisions for signal-product pairs. Use `SuitabilityRegistry` for tracking. |
+| Editing `/evaluation/suitability/` | Focus on 4-component scoring (data health, predictive, economic, stability) and PASS/HOLD/FAIL decisions for signal-product pairs. Use `SuitabilityRegistry` for tracking. |
+| Editing `/evaluation/performance/` | Focus on extended metrics (stability, profit factor, tail ratio), rolling Sharpe analysis, return attribution (directional, signal strength, win/loss), and comprehensive reporting. Use `PerformanceRegistry` for tracking. |
 | Editing `/backtest/` | Implement transparent, deterministic backtest logic. Use `StrategyRegistry` for strategy catalog. Include metadata logging. |
 | Editing `/visualization/` | Generate reusable Plotly/Streamlit components. Separate plotting from computation. |
 | Editing `/persistence/` | Handle Parquet/JSON I/O. No database dependencies. Keep I/O functions pure. |
