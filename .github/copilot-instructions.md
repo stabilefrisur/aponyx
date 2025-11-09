@@ -55,7 +55,7 @@ README.md             # Project overview and setup instructions
 - **Environment:** managed with [`uv`](https://docs.astral.sh/uv/)  
 - **Linting / Formatting:** `ruff`, `black`, `mypy`
 - **Testing:** `pytest`
-- **Docs:** `mkdocs` or `sphinx`
+- **Docs:** Markdown (no build system)
 - **Visualization:** `plotly`, `streamlit`
 
 All dependencies live in `pyproject.toml`.  

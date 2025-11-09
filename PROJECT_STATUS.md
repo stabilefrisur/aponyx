@@ -131,9 +131,9 @@ src/aponyx/
 
 **Implemented:**
 - **Provider Pattern:** Abstract `DataSource` protocol with multiple implementations
-  - `FileSource` - Local Parquet/CSV files
-  - `BloombergSource` - Bloomberg Terminal via xbbg (requires active session)
-  - `APISource` - Generic REST API (defined but not yet used)
+  - `FileSource` - Local Parquet/CSV files (frozen dataclass for configuration)
+  - `BloombergSource` - Bloomberg Terminal via xbbg (frozen dataclass for configuration)
+  - Provider logic implemented as functions in `providers/` directory
 - **Unified Fetch Interface:** Three fetch functions with provider abstraction
   - `fetch_cdx` - CDX index spreads with security filtering
   - `fetch_vix` - VIX volatility index
@@ -462,7 +462,9 @@ src/aponyx/
 
 **Implementation Status:**
 - Three functions fully implemented: `plot_equity_curve`, `plot_signal`, `plot_drawdown`
-- Three functions are stubs that raise `NotImplementedError`: `plot_attribution`, `plot_exposures`, `plot_dashboard`
+- Six functions are stubs that raise `NotImplementedError`:
+  - In `plots.py`: `plot_attribution`, `plot_exposures`, `plot_dashboard`
+  - In `visualizer.py`: `attribution()`, `exposures()`, `dashboard()` (wrapper methods)
 - Streamlit dashboard (`app.py`) contains only placeholder comments
 - Real-time data visualization not supported
 - Interactive parameter tuning UI not implemented
@@ -512,8 +514,7 @@ src/aponyx/
   - `01_data_download.ipynb` - Bloomberg data acquisition (23 cells, complete)
   - `02_signal_computation.ipynb` - Signal generation workflow (21 cells, complete)
   - `03_suitability_evaluation.ipynb` - Pre-backtest screening (25 cells, complete)
-  - `04_backtest.ipynb` - Strategy backtesting (coming soon)
-  - `05_analysis.ipynb` - Performance analysis (coming soon)
+  - `04_backtest.ipynb` - Strategy backtesting (16 cells, complete)
 - NumPy-style docstrings throughout codebase
 - Copilot instructions for AI-assisted development (`.github/copilot-instructions.md`)
 

@@ -191,8 +191,7 @@ print(notebooks_dir)
 | `01_data_download.ipynb` | Download market data from Bloomberg Terminal |
 | `02_signal_computation.ipynb` | Generate signals using SignalRegistry |
 | `03_suitability_evaluation.ipynb` | Pre-backtest signal screening and evaluation |
-| `04_backtest.ipynb` | Execute backtests and compute metrics (coming soon) |
-| `05_analysis.ipynb` | Visualize results and generate reports (coming soon) |
+| `04_backtest.ipynb` | Execute backtests and compute metrics |
 
 **Usage:**
 
@@ -249,12 +248,6 @@ Three signals for CDX overlay strategies:
 1. **CDX-ETF Basis** - Flow-driven mispricing from cash-derivative basis
 2. **CDX-VIX Gap** - Cross-asset risk sentiment divergence
 3. **Spread Momentum** - Short-term continuation in credit spreads
-
-### Roadmap
-- 🔜 Streamlit dashboard (architecture defined, implementation pending)
-- 🔜 Advanced attribution charts (performance decomposition)
-- 🔜 Multi-asset portfolio backtesting
-- 🔜 Position sizing and risk budgeting
 
 ## Development
 
