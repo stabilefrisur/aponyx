@@ -38,6 +38,10 @@ EVALUATION_DIR: Final[Path] = PROJECT_ROOT / "reports" / "suitability"
 SUITABILITY_REGISTRY_PATH: Final[Path] = (
     PACKAGE_ROOT / "evaluation" / "suitability" / "suitability_registry.json"
 )
+PERFORMANCE_REPORTS_DIR: Final[Path] = PROJECT_ROOT / "reports" / "performance"
+PERFORMANCE_REGISTRY_PATH: Final[Path] = (
+    PACKAGE_ROOT / "evaluation" / "performance" / "performance_registry.json"
+)
 
 
 def ensure_directories() -> None:
@@ -53,6 +57,7 @@ def ensure_directories() -> None:
     (DATA_DIR / "raw").mkdir(exist_ok=True)
     (DATA_DIR / "processed").mkdir(exist_ok=True)
     EVALUATION_DIR.mkdir(parents=True, exist_ok=True)
+    PERFORMANCE_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # Initialize directories on module import
