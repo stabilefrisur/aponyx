@@ -1,0 +1,3854 @@
+{
+  "cdx_etf_basis_aggressive_20251109_153124": {
+    "evaluated_at": "2025-11-09T15:31:23.627674",
+    "evaluation_id": "cdx_etf_basis_aggressive_20251109_153124",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.2916831926918593,
+          "long_pnl": -14242410.495173927,
+          "short_pct": 0.7083168073081407,
+          "short_pnl": -34585944.555848606
+        },
+        "signal_strength": {
+          "q1_pct": 0.2994212411050843,
+          "q1_pnl": -14620246.670496877,
+          "q2_pct": 0.2212327181323652,
+          "q2_pnl": -10802429.709869917,
+          "q3_pct": 0.4793460407625505,
+          "q3_pnl": -23405678.670655735,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -172648835.6001308,
+          "gross_wins": 123820480.5491083,
+          "loss_contribution": 3.535831494215274,
+          "net_pnl": -48828355.0510225,
+          "win_contribution": 2.535831494215274
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 48.833333333333336,
+        "consistency_score": 0.42554858934169276,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 7,
+        "profit_factor": 0.7642234848102798,
+        "rolling_sharpe_mean": -1.3046303556658474,
+        "rolling_sharpe_std": 5.060002355106268,
+        "tail_ratio": 0.7754255186449728
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          5358148.01715257,
+          -15235292.159918096,
+          -40633848.46416926,
+          5434206.728560788
+        ],
+        "subperiod_sharpes": [
+          0.727503276630263,
+          -1.8389908830237527,
+          -4.0827921226165165,
+          0.669512339735671
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.76)\nRisk profile: Negative skew (tail ratio 0.78)\nTemporal consistency: 2/4 profitable periods (42.6% positive windows)\nBalanced directional exposure (long: 29.2%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_etf_basis_aggressive_20251109_153123.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_etf_basis",
+    "stability_score": 0.5,
+    "strategy_id": "aggressive"
+  },
+  "cdx_etf_basis_aggressive_20251109_153348": {
+    "evaluated_at": "2025-11-09T15:33:48.175389",
+    "evaluation_id": "cdx_etf_basis_aggressive_20251109_153348",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.2916831926918593,
+          "long_pnl": -14242410.495173927,
+          "short_pct": 0.7083168073081407,
+          "short_pnl": -34585944.555848606
+        },
+        "signal_strength": {
+          "q1_pct": 0.2994212411050843,
+          "q1_pnl": -14620246.670496877,
+          "q2_pct": 0.2212327181323652,
+          "q2_pnl": -10802429.709869917,
+          "q3_pct": 0.4793460407625505,
+          "q3_pnl": -23405678.670655735,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -172648835.6001308,
+          "gross_wins": 123820480.5491083,
+          "loss_contribution": 3.535831494215274,
+          "net_pnl": -48828355.0510225,
+          "win_contribution": 2.535831494215274
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 48.833333333333336,
+        "consistency_score": 0.42554858934169276,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 7,
+        "profit_factor": 0.7642234848102798,
+        "rolling_sharpe_mean": -1.3046303556658474,
+        "rolling_sharpe_std": 5.060002355106268,
+        "tail_ratio": 0.7754255186449728
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          5358148.01715257,
+          -15235292.159918096,
+          -40633848.46416926,
+          5434206.728560788
+        ],
+        "subperiod_sharpes": [
+          0.727503276630263,
+          -1.8389908830237527,
+          -4.0827921226165165,
+          0.669512339735671
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.76)\nRisk profile: Negative skew (tail ratio 0.78)\nTemporal consistency: 2/4 profitable periods (42.6% positive windows)\nBalanced directional exposure (long: 29.2%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_etf_basis_aggressive_20251109_153348.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_etf_basis",
+    "stability_score": 0.5,
+    "strategy_id": "aggressive"
+  },
+  "cdx_etf_basis_aggressive_20251109_182105": {
+    "evaluated_at": "2025-11-09T18:21:05.182358",
+    "evaluation_id": "cdx_etf_basis_aggressive_20251109_182105",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.2916831926918593,
+          "long_pnl": -14242410.495173927,
+          "short_pct": 0.7083168073081407,
+          "short_pnl": -34585944.555848606
+        },
+        "signal_strength": {
+          "q1_pct": 0.2994212411050843,
+          "q1_pnl": -14620246.670496877,
+          "q2_pct": 0.2212327181323652,
+          "q2_pnl": -10802429.709869917,
+          "q3_pct": 0.4793460407625505,
+          "q3_pnl": -23405678.670655735,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -172648835.6001308,
+          "gross_wins": 123820480.5491083,
+          "loss_contribution": 3.535831494215274,
+          "net_pnl": -48828355.0510225,
+          "win_contribution": 2.535831494215274
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 48.833333333333336,
+        "consistency_score": 0.42554858934169276,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 7,
+        "profit_factor": 0.7642234848102798,
+        "rolling_sharpe_mean": -1.3046303556658474,
+        "rolling_sharpe_std": 5.060002355106268,
+        "tail_ratio": 0.7754255186449728
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          5358148.01715257,
+          -15235292.159918096,
+          -40633848.46416926,
+          5434206.728560788
+        ],
+        "subperiod_sharpes": [
+          0.727503276630263,
+          -1.8389908830237527,
+          -4.0827921226165165,
+          0.669512339735671
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.76)\nRisk profile: Negative skew (tail ratio 0.78)\nTemporal consistency: 2/4 profitable periods (42.6% positive windows)\nBalanced directional exposure (long: 29.2%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_etf_basis_aggressive_20251109_182105.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_etf_basis",
+    "stability_score": 0.5,
+    "strategy_id": "aggressive"
+  },
+  "cdx_etf_basis_balanced_20251109_153124": {
+    "evaluated_at": "2025-11-09T15:31:23.601978",
+    "evaluation_id": "cdx_etf_basis_balanced_20251109_153124",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 1.120511856693783,
+          "long_pnl": -15292082.973650124,
+          "short_pct": -0.12051185669378296,
+          "short_pnl": 1644674.530537868
+        },
+        "signal_strength": {
+          "q1_pct": 0.5435750506826278,
+          "q1_pnl": -7418390.736151265,
+          "q2_pct": 0.34056335788128844,
+          "q2_pnl": -4647807.245763755,
+          "q3_pct": 0.11586159143608396,
+          "q3_pnl": -1581210.4611972345,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -117850348.86892995,
+          "gross_wins": 104202940.4258177,
+          "loss_contribution": 8.63536468188641,
+          "net_pnl": -13647408.443112254,
+          "win_contribution": 7.63536468188641
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 21.333333333333332,
+        "consistency_score": 0.42398119122257055,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 13,
+        "profit_factor": 0.9213584461293632,
+        "rolling_sharpe_mean": -0.6788497484121898,
+        "rolling_sharpe_std": 4.678577471743808,
+        "tail_ratio": 1.0802847117802095
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          7984221.960722994,
+          -17777493.88642598,
+          -14054840.977949483,
+          13318693.764656413
+        ],
+        "subperiod_sharpes": [
+          1.3560233246272533,
+          -2.576679015514608,
+          -1.4994251231478075,
+          1.5832414541600406
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.92)\nRisk profile: Balanced (tail ratio 1.08)\nTemporal consistency: 2/4 profitable periods (42.4% positive windows)\nStrong long directional bias (112.1%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_etf_basis_balanced_20251109_153123.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_etf_basis",
+    "stability_score": 0.5,
+    "strategy_id": "balanced"
+  },
+  "cdx_etf_basis_balanced_20251109_153348": {
+    "evaluated_at": "2025-11-09T15:33:48.153986",
+    "evaluation_id": "cdx_etf_basis_balanced_20251109_153348",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 1.120511856693783,
+          "long_pnl": -15292082.973650124,
+          "short_pct": -0.12051185669378296,
+          "short_pnl": 1644674.530537868
+        },
+        "signal_strength": {
+          "q1_pct": 0.5435750506826278,
+          "q1_pnl": -7418390.736151265,
+          "q2_pct": 0.34056335788128844,
+          "q2_pnl": -4647807.245763755,
+          "q3_pct": 0.11586159143608396,
+          "q3_pnl": -1581210.4611972345,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -117850348.86892995,
+          "gross_wins": 104202940.4258177,
+          "loss_contribution": 8.63536468188641,
+          "net_pnl": -13647408.443112254,
+          "win_contribution": 7.63536468188641
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 21.333333333333332,
+        "consistency_score": 0.42398119122257055,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 13,
+        "profit_factor": 0.9213584461293632,
+        "rolling_sharpe_mean": -0.6788497484121898,
+        "rolling_sharpe_std": 4.678577471743808,
+        "tail_ratio": 1.0802847117802095
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          7984221.960722994,
+          -17777493.88642598,
+          -14054840.977949483,
+          13318693.764656413
+        ],
+        "subperiod_sharpes": [
+          1.3560233246272533,
+          -2.576679015514608,
+          -1.4994251231478075,
+          1.5832414541600406
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.92)\nRisk profile: Balanced (tail ratio 1.08)\nTemporal consistency: 2/4 profitable periods (42.4% positive windows)\nStrong long directional bias (112.1%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_etf_basis_balanced_20251109_153348.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_etf_basis",
+    "stability_score": 0.5,
+    "strategy_id": "balanced"
+  },
+  "cdx_etf_basis_balanced_20251109_182105": {
+    "evaluated_at": "2025-11-09T18:21:05.160675",
+    "evaluation_id": "cdx_etf_basis_balanced_20251109_182105",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 1.120511856693783,
+          "long_pnl": -15292082.973650124,
+          "short_pct": -0.12051185669378296,
+          "short_pnl": 1644674.530537868
+        },
+        "signal_strength": {
+          "q1_pct": 0.5435750506826278,
+          "q1_pnl": -7418390.736151265,
+          "q2_pct": 0.34056335788128844,
+          "q2_pnl": -4647807.245763755,
+          "q3_pct": 0.11586159143608396,
+          "q3_pnl": -1581210.4611972345,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -117850348.86892995,
+          "gross_wins": 104202940.4258177,
+          "loss_contribution": 8.63536468188641,
+          "net_pnl": -13647408.443112254,
+          "win_contribution": 7.63536468188641
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 21.333333333333332,
+        "consistency_score": 0.42398119122257055,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 13,
+        "profit_factor": 0.9213584461293632,
+        "rolling_sharpe_mean": -0.6788497484121898,
+        "rolling_sharpe_std": 4.678577471743808,
+        "tail_ratio": 1.0802847117802095
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          7984221.960722994,
+          -17777493.88642598,
+          -14054840.977949483,
+          13318693.764656413
+        ],
+        "subperiod_sharpes": [
+          1.3560233246272533,
+          -2.576679015514608,
+          -1.4994251231478075,
+          1.5832414541600406
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.92)\nRisk profile: Balanced (tail ratio 1.08)\nTemporal consistency: 2/4 profitable periods (42.4% positive windows)\nStrong long directional bias (112.1%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_etf_basis_balanced_20251109_182105.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_etf_basis",
+    "stability_score": 0.5,
+    "strategy_id": "balanced"
+  },
+  "cdx_etf_basis_conservative_20251109_153124": {
+    "evaluated_at": "2025-11-09T15:31:23.590275",
+    "evaluation_id": "cdx_etf_basis_conservative_20251109_153124",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.018978713555361442,
+          "long_pnl": -255980.85009327438,
+          "short_pct": 0.9810212864446386,
+          "short_pnl": -13231806.367231602
+        },
+        "signal_strength": {
+          "q1_pct": 1.719985709507003,
+          "q1_pnl": -23198801.26667001,
+          "q2_pct": -0.6799155399536957,
+          "q2_pnl": 9170556.128647998,
+          "q3_pct": -0.0400701695533075,
+          "q3_pnl": 540457.9206971413,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -72204276.65665105,
+          "gross_wins": 58716489.43932619,
+          "loss_contribution": 5.3533078104839715,
+          "net_pnl": -13487787.21732486,
+          "win_contribution": 4.3533078104839715
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 63.5,
+        "consistency_score": 0.3683385579937304,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 5,
+        "profit_factor": 0.8549002848794517,
+        "rolling_sharpe_mean": -0.3769836384812558,
+        "rolling_sharpe_std": 4.427514136895674,
+        "tail_ratio": 0.9390380889922376
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          9662539.72501489,
+          -13128430.670419503,
+          -25147524.109603547,
+          16590240.826946083
+        ],
+        "subperiod_sharpes": [
+          2.025562554993495,
+          -1.9975937655891363,
+          -3.396277857743128,
+          2.8003111897869837
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.85)\nRisk profile: Balanced (tail ratio 0.94)\nTemporal consistency: 2/4 profitable periods (36.8% positive windows)\nBalanced directional exposure (long: 1.9%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_etf_basis_conservative_20251109_153123.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_etf_basis",
+    "stability_score": 0.5,
+    "strategy_id": "conservative"
+  },
+  "cdx_etf_basis_conservative_20251109_153348": {
+    "evaluated_at": "2025-11-09T15:33:48.137698",
+    "evaluation_id": "cdx_etf_basis_conservative_20251109_153348",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.018978713555361442,
+          "long_pnl": -255980.85009327438,
+          "short_pct": 0.9810212864446386,
+          "short_pnl": -13231806.367231602
+        },
+        "signal_strength": {
+          "q1_pct": 1.719985709507003,
+          "q1_pnl": -23198801.26667001,
+          "q2_pct": -0.6799155399536957,
+          "q2_pnl": 9170556.128647998,
+          "q3_pct": -0.0400701695533075,
+          "q3_pnl": 540457.9206971413,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -72204276.65665105,
+          "gross_wins": 58716489.43932619,
+          "loss_contribution": 5.3533078104839715,
+          "net_pnl": -13487787.21732486,
+          "win_contribution": 4.3533078104839715
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 63.5,
+        "consistency_score": 0.3683385579937304,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 5,
+        "profit_factor": 0.8549002848794517,
+        "rolling_sharpe_mean": -0.3769836384812558,
+        "rolling_sharpe_std": 4.427514136895674,
+        "tail_ratio": 0.9390380889922376
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          9662539.72501489,
+          -13128430.670419503,
+          -25147524.109603547,
+          16590240.826946083
+        ],
+        "subperiod_sharpes": [
+          2.025562554993495,
+          -1.9975937655891363,
+          -3.396277857743128,
+          2.8003111897869837
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.85)\nRisk profile: Balanced (tail ratio 0.94)\nTemporal consistency: 2/4 profitable periods (36.8% positive windows)\nBalanced directional exposure (long: 1.9%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_etf_basis_conservative_20251109_153348.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_etf_basis",
+    "stability_score": 0.5,
+    "strategy_id": "conservative"
+  },
+  "cdx_etf_basis_conservative_20251109_182105": {
+    "evaluated_at": "2025-11-09T18:21:05.140294",
+    "evaluation_id": "cdx_etf_basis_conservative_20251109_182105",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.018978713555361442,
+          "long_pnl": -255980.85009327438,
+          "short_pct": 0.9810212864446386,
+          "short_pnl": -13231806.367231602
+        },
+        "signal_strength": {
+          "q1_pct": 1.719985709507003,
+          "q1_pnl": -23198801.26667001,
+          "q2_pct": -0.6799155399536957,
+          "q2_pnl": 9170556.128647998,
+          "q3_pct": -0.0400701695533075,
+          "q3_pnl": 540457.9206971413,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -72204276.65665105,
+          "gross_wins": 58716489.43932619,
+          "loss_contribution": 5.3533078104839715,
+          "net_pnl": -13487787.21732486,
+          "win_contribution": 4.3533078104839715
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 63.5,
+        "consistency_score": 0.3683385579937304,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 5,
+        "profit_factor": 0.8549002848794517,
+        "rolling_sharpe_mean": -0.3769836384812558,
+        "rolling_sharpe_std": 4.427514136895674,
+        "tail_ratio": 0.9390380889922376
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          9662539.72501489,
+          -13128430.670419503,
+          -25147524.109603547,
+          16590240.826946083
+        ],
+        "subperiod_sharpes": [
+          2.025562554993495,
+          -1.9975937655891363,
+          -3.396277857743128,
+          2.8003111897869837
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.85)\nRisk profile: Balanced (tail ratio 0.94)\nTemporal consistency: 2/4 profitable periods (36.8% positive windows)\nBalanced directional exposure (long: 1.9%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_etf_basis_conservative_20251109_182105.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_etf_basis",
+    "stability_score": 0.5,
+    "strategy_id": "conservative"
+  },
+  "cdx_etf_basis_experimental_20251109_153124": {
+    "evaluated_at": "2025-11-09T15:31:23.646318",
+    "evaluation_id": "cdx_etf_basis_experimental_20251109_153124",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.4028881300322484,
+          "long_pnl": 23987077.30787482,
+          "short_pct": 0.5971118699677517,
+          "short_pnl": 35550733.612379454
+        },
+        "signal_strength": {
+          "q1_pct": 0.7021115233837008,
+          "q1_pnl": 41802183.124150455,
+          "q2_pct": 0.07513406772473205,
+          "q2_pnl": 4473317.917864675,
+          "q3_pct": 0.22275440889156742,
+          "q3_pnl": 13262309.878239146,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -212508752.02947995,
+          "gross_wins": 272046562.9497342,
+          "loss_contribution": 3.569307449246278,
+          "net_pnl": 59537810.92025426,
+          "win_contribution": 4.569307449246279
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 18.428571428571427,
+        "consistency_score": 0.5532915360501567,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 36,
+        "profit_factor": 1.2938626630384287,
+        "rolling_sharpe_mean": 1.2561638321209776,
+        "rolling_sharpe_std": 7.884224687516412,
+        "tail_ratio": 1.1526363886616657
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          74493315.36870736,
+          32532072.15164318,
+          -12443809.370758649,
+          -27045589.391393665
+        ],
+        "subperiod_sharpes": [
+          6.927914777724585,
+          3.231752694343737,
+          -0.9591857787324418,
+          -2.3397868040531624
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Positive (profit factor 1.29)\nRisk profile: Balanced (tail ratio 1.15)\nTemporal consistency: 2/4 profitable periods (55.3% positive windows)\nBalanced directional exposure (long: 40.3%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_etf_basis_experimental_20251109_153123.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_etf_basis",
+    "stability_score": 0.5,
+    "strategy_id": "experimental"
+  },
+  "cdx_etf_basis_experimental_20251109_153348": {
+    "evaluated_at": "2025-11-09T15:33:48.191735",
+    "evaluation_id": "cdx_etf_basis_experimental_20251109_153348",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.4028881300322484,
+          "long_pnl": 23987077.30787482,
+          "short_pct": 0.5971118699677517,
+          "short_pnl": 35550733.612379454
+        },
+        "signal_strength": {
+          "q1_pct": 0.7021115233837008,
+          "q1_pnl": 41802183.124150455,
+          "q2_pct": 0.07513406772473205,
+          "q2_pnl": 4473317.917864675,
+          "q3_pct": 0.22275440889156742,
+          "q3_pnl": 13262309.878239146,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -212508752.02947995,
+          "gross_wins": 272046562.9497342,
+          "loss_contribution": 3.569307449246278,
+          "net_pnl": 59537810.92025426,
+          "win_contribution": 4.569307449246279
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 18.428571428571427,
+        "consistency_score": 0.5532915360501567,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 36,
+        "profit_factor": 1.2938626630384287,
+        "rolling_sharpe_mean": 1.2561638321209776,
+        "rolling_sharpe_std": 7.884224687516412,
+        "tail_ratio": 1.1526363886616657
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          74493315.36870736,
+          32532072.15164318,
+          -12443809.370758649,
+          -27045589.391393665
+        ],
+        "subperiod_sharpes": [
+          6.927914777724585,
+          3.231752694343737,
+          -0.9591857787324418,
+          -2.3397868040531624
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Positive (profit factor 1.29)\nRisk profile: Balanced (tail ratio 1.15)\nTemporal consistency: 2/4 profitable periods (55.3% positive windows)\nBalanced directional exposure (long: 40.3%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_etf_basis_experimental_20251109_153348.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_etf_basis",
+    "stability_score": 0.5,
+    "strategy_id": "experimental"
+  },
+  "cdx_etf_basis_experimental_20251109_182105": {
+    "evaluated_at": "2025-11-09T18:21:05.206367",
+    "evaluation_id": "cdx_etf_basis_experimental_20251109_182105",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.4028881300322484,
+          "long_pnl": 23987077.30787482,
+          "short_pct": 0.5971118699677517,
+          "short_pnl": 35550733.612379454
+        },
+        "signal_strength": {
+          "q1_pct": 0.7021115233837008,
+          "q1_pnl": 41802183.124150455,
+          "q2_pct": 0.07513406772473205,
+          "q2_pnl": 4473317.917864675,
+          "q3_pct": 0.22275440889156742,
+          "q3_pnl": 13262309.878239146,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -212508752.02947995,
+          "gross_wins": 272046562.9497342,
+          "loss_contribution": 3.569307449246278,
+          "net_pnl": 59537810.92025426,
+          "win_contribution": 4.569307449246279
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 18.428571428571427,
+        "consistency_score": 0.5532915360501567,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 36,
+        "profit_factor": 1.2938626630384287,
+        "rolling_sharpe_mean": 1.2561638321209776,
+        "rolling_sharpe_std": 7.884224687516412,
+        "tail_ratio": 1.1526363886616657
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          74493315.36870736,
+          32532072.15164318,
+          -12443809.370758649,
+          -27045589.391393665
+        ],
+        "subperiod_sharpes": [
+          6.927914777724585,
+          3.231752694343737,
+          -0.9591857787324418,
+          -2.3397868040531624
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Positive (profit factor 1.29)\nRisk profile: Balanced (tail ratio 1.15)\nTemporal consistency: 2/4 profitable periods (55.3% positive windows)\nBalanced directional exposure (long: 40.3%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_etf_basis_experimental_20251109_182105.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_etf_basis",
+    "stability_score": 0.5,
+    "strategy_id": "experimental"
+  },
+  "cdx_vix_gap_aggressive_20251109_153124": {
+    "evaluated_at": "2025-11-09T15:31:23.706057",
+    "evaluation_id": "cdx_vix_gap_aggressive_20251109_153124",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.349028829321473,
+          "long_pnl": -32437867.78170429,
+          "short_pct": 0.6509711706785271,
+          "short_pnl": -60499634.959157825
+        },
+        "signal_strength": {
+          "q1_pct": -0.05583236204142749,
+          "q1_pnl": 5188920.300253974,
+          "q2_pct": 0.36438624989171847,
+          "q2_pnl": -33865148.09804406,
+          "q3_pct": 0.6914461121497089,
+          "q3_pnl": -64261274.943072036,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -169887230.6969438,
+          "gross_wins": 76949727.95608167,
+          "loss_contribution": 1.8279728385928424,
+          "net_pnl": -92937502.74086212,
+          "win_contribution": 0.8279728385928423
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 41.75,
+        "consistency_score": 0.3898973954222573,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 9,
+        "profit_factor": 0.6040235021256267,
+        "rolling_sharpe_mean": -2.4814533577186975,
+        "rolling_sharpe_std": 5.799978643822406,
+        "tail_ratio": 0.7296772713672999
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          5158134.560335735,
+          8295057.415393959,
+          -57442827.08507298,
+          -26655085.298864447
+        ],
+        "subperiod_sharpes": [
+          0.7639948346613551,
+          1.0125247467125196,
+          -7.869574990509731,
+          -3.8757878901788154
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.60)\nRisk profile: Negative skew (tail ratio 0.73)\nTemporal consistency: 2/4 profitable periods (39.0% positive windows)\nBalanced directional exposure (long: 34.9%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_vix_gap_aggressive_20251109_153123.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_vix_gap",
+    "stability_score": 0.5,
+    "strategy_id": "aggressive"
+  },
+  "cdx_vix_gap_aggressive_20251109_153348": {
+    "evaluated_at": "2025-11-09T15:33:48.238841",
+    "evaluation_id": "cdx_vix_gap_aggressive_20251109_153348",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.349028829321473,
+          "long_pnl": -32437867.78170429,
+          "short_pct": 0.6509711706785271,
+          "short_pnl": -60499634.959157825
+        },
+        "signal_strength": {
+          "q1_pct": -0.05583236204142749,
+          "q1_pnl": 5188920.300253974,
+          "q2_pct": 0.36438624989171847,
+          "q2_pnl": -33865148.09804406,
+          "q3_pct": 0.6914461121497089,
+          "q3_pnl": -64261274.943072036,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -169887230.6969438,
+          "gross_wins": 76949727.95608167,
+          "loss_contribution": 1.8279728385928424,
+          "net_pnl": -92937502.74086212,
+          "win_contribution": 0.8279728385928423
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 41.75,
+        "consistency_score": 0.3898973954222573,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 9,
+        "profit_factor": 0.6040235021256267,
+        "rolling_sharpe_mean": -2.4814533577186975,
+        "rolling_sharpe_std": 5.799978643822406,
+        "tail_ratio": 0.7296772713672999
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          5158134.560335735,
+          8295057.415393959,
+          -57442827.08507298,
+          -26655085.298864447
+        ],
+        "subperiod_sharpes": [
+          0.7639948346613551,
+          1.0125247467125196,
+          -7.869574990509731,
+          -3.8757878901788154
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.60)\nRisk profile: Negative skew (tail ratio 0.73)\nTemporal consistency: 2/4 profitable periods (39.0% positive windows)\nBalanced directional exposure (long: 34.9%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_vix_gap_aggressive_20251109_153348.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_vix_gap",
+    "stability_score": 0.5,
+    "strategy_id": "aggressive"
+  },
+  "cdx_vix_gap_aggressive_20251109_182105": {
+    "evaluated_at": "2025-11-09T18:21:05.271994",
+    "evaluation_id": "cdx_vix_gap_aggressive_20251109_182105",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.349028829321473,
+          "long_pnl": -32437867.78170429,
+          "short_pct": 0.6509711706785271,
+          "short_pnl": -60499634.959157825
+        },
+        "signal_strength": {
+          "q1_pct": -0.05583236204142749,
+          "q1_pnl": 5188920.300253974,
+          "q2_pct": 0.36438624989171847,
+          "q2_pnl": -33865148.09804406,
+          "q3_pct": 0.6914461121497089,
+          "q3_pnl": -64261274.943072036,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -169887230.6969438,
+          "gross_wins": 76949727.95608167,
+          "loss_contribution": 1.8279728385928424,
+          "net_pnl": -92937502.74086212,
+          "win_contribution": 0.8279728385928423
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 41.75,
+        "consistency_score": 0.3898973954222573,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 9,
+        "profit_factor": 0.6040235021256267,
+        "rolling_sharpe_mean": -2.4814533577186975,
+        "rolling_sharpe_std": 5.799978643822406,
+        "tail_ratio": 0.7296772713672999
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          5158134.560335735,
+          8295057.415393959,
+          -57442827.08507298,
+          -26655085.298864447
+        ],
+        "subperiod_sharpes": [
+          0.7639948346613551,
+          1.0125247467125196,
+          -7.869574990509731,
+          -3.8757878901788154
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.60)\nRisk profile: Negative skew (tail ratio 0.73)\nTemporal consistency: 2/4 profitable periods (39.0% positive windows)\nBalanced directional exposure (long: 34.9%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_vix_gap_aggressive_20251109_182105.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_vix_gap",
+    "stability_score": 0.5,
+    "strategy_id": "aggressive"
+  },
+  "cdx_vix_gap_balanced_20251109_153124": {
+    "evaluated_at": "2025-11-09T15:31:23.688792",
+    "evaluation_id": "cdx_vix_gap_balanced_20251109_153124",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.5398484210753771,
+          "long_pnl": -38542348.21842182,
+          "short_pct": 0.46015157892462283,
+          "short_pnl": -32852411.33583514
+        },
+        "signal_strength": {
+          "q1_pct": 0.17459360676450164,
+          "q1_pnl": -12465068.574662084,
+          "q2_pct": 0.20661612856437472,
+          "q2_pnl": -14751308.818884974,
+          "q3_pct": 0.6187902646711237,
+          "q3_pnl": -44178382.160709895,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -96530077.31012692,
+          "gross_wins": 25135317.755869962,
+          "loss_contribution": 1.3520611024226254,
+          "net_pnl": -71394759.55425695,
+          "win_contribution": 0.35206110242262534
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 1.0,
+        "consistency_score": 0.4601420678768745,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 2,
+        "profit_factor": 0.48787664458278385,
+        "rolling_sharpe_mean": -1.4982549549743582,
+        "rolling_sharpe_std": 4.807484555441588,
+        "tail_ratio": 0.5241292474103603
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.0,
+        "positive_periods": 0,
+        "subperiod_returns": [
+          -5484451.636605982,
+          -2615074.1523489393,
+          -25090958.11672967,
+          -18576095.83580012
+        ],
+        "subperiod_sharpes": [
+          -1.5699964226988259,
+          -0.5114640029779458,
+          -4.193205178135319,
+          -3.9221809307043993
+        ]
+      },
+      "summary": "Overall: Inconsistent performance requiring review (stability score: 0.00)\nProfitability: Weak (profit factor 0.49)\nRisk profile: Negative skew (tail ratio 0.52)\nTemporal consistency: 0/4 profitable periods (46.0% positive windows)\nBalanced directional exposure (long: 54.0%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_vix_gap_balanced_20251109_153123.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_vix_gap",
+    "stability_score": 0.0,
+    "strategy_id": "balanced"
+  },
+  "cdx_vix_gap_balanced_20251109_153348": {
+    "evaluated_at": "2025-11-09T15:33:48.222851",
+    "evaluation_id": "cdx_vix_gap_balanced_20251109_153348",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.5398484210753771,
+          "long_pnl": -38542348.21842182,
+          "short_pct": 0.46015157892462283,
+          "short_pnl": -32852411.33583514
+        },
+        "signal_strength": {
+          "q1_pct": 0.17459360676450164,
+          "q1_pnl": -12465068.574662084,
+          "q2_pct": 0.20661612856437472,
+          "q2_pnl": -14751308.818884974,
+          "q3_pct": 0.6187902646711237,
+          "q3_pnl": -44178382.160709895,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -96530077.31012692,
+          "gross_wins": 25135317.755869962,
+          "loss_contribution": 1.3520611024226254,
+          "net_pnl": -71394759.55425695,
+          "win_contribution": 0.35206110242262534
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 1.0,
+        "consistency_score": 0.4601420678768745,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 2,
+        "profit_factor": 0.48787664458278385,
+        "rolling_sharpe_mean": -1.4982549549743582,
+        "rolling_sharpe_std": 4.807484555441588,
+        "tail_ratio": 0.5241292474103603
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.0,
+        "positive_periods": 0,
+        "subperiod_returns": [
+          -5484451.636605982,
+          -2615074.1523489393,
+          -25090958.11672967,
+          -18576095.83580012
+        ],
+        "subperiod_sharpes": [
+          -1.5699964226988259,
+          -0.5114640029779458,
+          -4.193205178135319,
+          -3.9221809307043993
+        ]
+      },
+      "summary": "Overall: Inconsistent performance requiring review (stability score: 0.00)\nProfitability: Weak (profit factor 0.49)\nRisk profile: Negative skew (tail ratio 0.52)\nTemporal consistency: 0/4 profitable periods (46.0% positive windows)\nBalanced directional exposure (long: 54.0%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_vix_gap_balanced_20251109_153348.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_vix_gap",
+    "stability_score": 0.0,
+    "strategy_id": "balanced"
+  },
+  "cdx_vix_gap_balanced_20251109_182105": {
+    "evaluated_at": "2025-11-09T18:21:05.251854",
+    "evaluation_id": "cdx_vix_gap_balanced_20251109_182105",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.5398484210753771,
+          "long_pnl": -38542348.21842182,
+          "short_pct": 0.46015157892462283,
+          "short_pnl": -32852411.33583514
+        },
+        "signal_strength": {
+          "q1_pct": 0.17459360676450164,
+          "q1_pnl": -12465068.574662084,
+          "q2_pct": 0.20661612856437472,
+          "q2_pnl": -14751308.818884974,
+          "q3_pct": 0.6187902646711237,
+          "q3_pnl": -44178382.160709895,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -96530077.31012692,
+          "gross_wins": 25135317.755869962,
+          "loss_contribution": 1.3520611024226254,
+          "net_pnl": -71394759.55425695,
+          "win_contribution": 0.35206110242262534
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 1.0,
+        "consistency_score": 0.4601420678768745,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 2,
+        "profit_factor": 0.48787664458278385,
+        "rolling_sharpe_mean": -1.4982549549743582,
+        "rolling_sharpe_std": 4.807484555441588,
+        "tail_ratio": 0.5241292474103603
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.0,
+        "positive_periods": 0,
+        "subperiod_returns": [
+          -5484451.636605982,
+          -2615074.1523489393,
+          -25090958.11672967,
+          -18576095.83580012
+        ],
+        "subperiod_sharpes": [
+          -1.5699964226988259,
+          -0.5114640029779458,
+          -4.193205178135319,
+          -3.9221809307043993
+        ]
+      },
+      "summary": "Overall: Inconsistent performance requiring review (stability score: 0.00)\nProfitability: Weak (profit factor 0.49)\nRisk profile: Negative skew (tail ratio 0.52)\nTemporal consistency: 0/4 profitable periods (46.0% positive windows)\nBalanced directional exposure (long: 54.0%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_vix_gap_balanced_20251109_182105.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_vix_gap",
+    "stability_score": 0.0,
+    "strategy_id": "balanced"
+  },
+  "cdx_vix_gap_conservative_20251109_153124": {
+    "evaluated_at": "2025-11-09T15:31:23.660974",
+    "evaluation_id": "cdx_vix_gap_conservative_20251109_153124",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.35961265769099343,
+          "long_pnl": -1982803.4164186153,
+          "short_pct": 0.6403873423090065,
+          "short_pnl": -3530916.3429186405
+        },
+        "signal_strength": {
+          "q1_pct": -1.609972761918202,
+          "q1_pnl": 8876938.629383165,
+          "q2_pct": 0.6900563597105831,
+          "q2_pnl": -3804777.385592579,
+          "q3_pct": 1.9199164022076187,
+          "q3_pnl": -10585881.003127841,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -19940307.780663136,
+          "gross_wins": 14426588.021325886,
+          "loss_contribution": 3.6164891672078676,
+          "net_pnl": -5513719.75933725,
+          "win_contribution": 2.6164891672078676
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 6.096774193548387,
+        "consistency_score": 0.48382004735595896,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 32,
+        "profit_factor": 1.5369151869063777,
+        "rolling_sharpe_mean": 1.2957138791004206,
+        "rolling_sharpe_std": 3.339007173264791,
+        "tail_ratio": 1.4926869853771352
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.75,
+        "positive_periods": 3,
+        "subperiod_returns": [
+          2381809.6842387374,
+          13124230.653823903,
+          391520.0353378053,
+          -4866808.623931621
+        ],
+        "subperiod_sharpes": [
+          1.1560903803245306,
+          4.292325851596361,
+          0.1915082562208345,
+          -1.7109423069463379
+        ]
+      },
+      "summary": "Overall: Strong and stable performance (stability score: 0.75)\nProfitability: Strong (profit factor 1.54)\nRisk profile: Favorable asymmetry (tail ratio 1.49)\nTemporal consistency: 3/4 profitable periods (48.4% positive windows)\nBalanced directional exposure (long: 36.0%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_vix_gap_conservative_20251109_153123.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_vix_gap",
+    "stability_score": 0.75,
+    "strategy_id": "conservative"
+  },
+  "cdx_vix_gap_conservative_20251109_153348": {
+    "evaluated_at": "2025-11-09T15:33:48.207154",
+    "evaluation_id": "cdx_vix_gap_conservative_20251109_153348",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.35961265769099343,
+          "long_pnl": -1982803.4164186153,
+          "short_pct": 0.6403873423090065,
+          "short_pnl": -3530916.3429186405
+        },
+        "signal_strength": {
+          "q1_pct": -1.609972761918202,
+          "q1_pnl": 8876938.629383165,
+          "q2_pct": 0.6900563597105831,
+          "q2_pnl": -3804777.385592579,
+          "q3_pct": 1.9199164022076187,
+          "q3_pnl": -10585881.003127841,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -19940307.780663136,
+          "gross_wins": 14426588.021325886,
+          "loss_contribution": 3.6164891672078676,
+          "net_pnl": -5513719.75933725,
+          "win_contribution": 2.6164891672078676
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 6.096774193548387,
+        "consistency_score": 0.48382004735595896,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 32,
+        "profit_factor": 1.5369151869063777,
+        "rolling_sharpe_mean": 1.2957138791004206,
+        "rolling_sharpe_std": 3.339007173264791,
+        "tail_ratio": 1.4926869853771352
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.75,
+        "positive_periods": 3,
+        "subperiod_returns": [
+          2381809.6842387374,
+          13124230.653823903,
+          391520.0353378053,
+          -4866808.623931621
+        ],
+        "subperiod_sharpes": [
+          1.1560903803245306,
+          4.292325851596361,
+          0.1915082562208345,
+          -1.7109423069463379
+        ]
+      },
+      "summary": "Overall: Strong and stable performance (stability score: 0.75)\nProfitability: Strong (profit factor 1.54)\nRisk profile: Favorable asymmetry (tail ratio 1.49)\nTemporal consistency: 3/4 profitable periods (48.4% positive windows)\nBalanced directional exposure (long: 36.0%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_vix_gap_conservative_20251109_153348.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_vix_gap",
+    "stability_score": 0.75,
+    "strategy_id": "conservative"
+  },
+  "cdx_vix_gap_conservative_20251109_182105": {
+    "evaluated_at": "2025-11-09T18:21:05.226970",
+    "evaluation_id": "cdx_vix_gap_conservative_20251109_182105",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.35961265769099343,
+          "long_pnl": -1982803.4164186153,
+          "short_pct": 0.6403873423090065,
+          "short_pnl": -3530916.3429186405
+        },
+        "signal_strength": {
+          "q1_pct": -1.609972761918202,
+          "q1_pnl": 8876938.629383165,
+          "q2_pct": 0.6900563597105831,
+          "q2_pnl": -3804777.385592579,
+          "q3_pct": 1.9199164022076187,
+          "q3_pnl": -10585881.003127841,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -19940307.780663136,
+          "gross_wins": 14426588.021325886,
+          "loss_contribution": 3.6164891672078676,
+          "net_pnl": -5513719.75933725,
+          "win_contribution": 2.6164891672078676
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 6.096774193548387,
+        "consistency_score": 0.48382004735595896,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 32,
+        "profit_factor": 1.5369151869063777,
+        "rolling_sharpe_mean": 1.2957138791004206,
+        "rolling_sharpe_std": 3.339007173264791,
+        "tail_ratio": 1.4926869853771352
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.75,
+        "positive_periods": 3,
+        "subperiod_returns": [
+          2381809.6842387374,
+          13124230.653823903,
+          391520.0353378053,
+          -4866808.623931621
+        ],
+        "subperiod_sharpes": [
+          1.1560903803245306,
+          4.292325851596361,
+          0.1915082562208345,
+          -1.7109423069463379
+        ]
+      },
+      "summary": "Overall: Strong and stable performance (stability score: 0.75)\nProfitability: Strong (profit factor 1.54)\nRisk profile: Favorable asymmetry (tail ratio 1.49)\nTemporal consistency: 3/4 profitable periods (48.4% positive windows)\nBalanced directional exposure (long: 36.0%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_vix_gap_conservative_20251109_182105.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_vix_gap",
+    "stability_score": 0.75,
+    "strategy_id": "conservative"
+  },
+  "cdx_vix_gap_experimental_20251109_153124": {
+    "evaluated_at": "2025-11-09T15:31:23.710901",
+    "evaluation_id": "cdx_vix_gap_experimental_20251109_153124",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.41704692868823307,
+          "long_pnl": -24657502.442486368,
+          "short_pct": 0.5829530713117669,
+          "short_pnl": -34466545.10785368
+        },
+        "signal_strength": {
+          "q1_pct": -0.43119316819032294,
+          "q1_pnl": 25493885.379466433,
+          "q2_pct": 0.4290291237300949,
+          "q2_pnl": -25365938.31189886,
+          "q3_pct": 1.002164044460228,
+          "q3_pnl": -59251994.617907636,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -223135875.77208525,
+          "gross_wins": 164011828.2217452,
+          "loss_contribution": 3.774029096741058,
+          "net_pnl": -59124047.55034006,
+          "win_contribution": 2.774029096741058
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 11.352941176470589,
+        "consistency_score": 0.44277821625887925,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 18,
+        "profit_factor": 0.811282486160932,
+        "rolling_sharpe_mean": -1.1381705624579739,
+        "rolling_sharpe_std": 6.6217994072306485,
+        "tail_ratio": 0.9378056428867101
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          7486488.612099485,
+          9144593.63555272,
+          -40896031.137805805,
+          -19895457.49929778
+        ],
+        "subperiod_sharpes": [
+          0.7528730710744574,
+          0.871101513849475,
+          -4.246042850750538,
+          -2.6352969428058666
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.81)\nRisk profile: Balanced (tail ratio 0.94)\nTemporal consistency: 2/4 profitable periods (44.3% positive windows)\nBalanced directional exposure (long: 41.7%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_vix_gap_experimental_20251109_153123.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_vix_gap",
+    "stability_score": 0.5,
+    "strategy_id": "experimental"
+  },
+  "cdx_vix_gap_experimental_20251109_153348": {
+    "evaluated_at": "2025-11-09T15:33:48.258391",
+    "evaluation_id": "cdx_vix_gap_experimental_20251109_153348",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.41704692868823307,
+          "long_pnl": -24657502.442486368,
+          "short_pct": 0.5829530713117669,
+          "short_pnl": -34466545.10785368
+        },
+        "signal_strength": {
+          "q1_pct": -0.43119316819032294,
+          "q1_pnl": 25493885.379466433,
+          "q2_pct": 0.4290291237300949,
+          "q2_pnl": -25365938.31189886,
+          "q3_pct": 1.002164044460228,
+          "q3_pnl": -59251994.617907636,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -223135875.77208525,
+          "gross_wins": 164011828.2217452,
+          "loss_contribution": 3.774029096741058,
+          "net_pnl": -59124047.55034006,
+          "win_contribution": 2.774029096741058
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 11.352941176470589,
+        "consistency_score": 0.44277821625887925,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 18,
+        "profit_factor": 0.811282486160932,
+        "rolling_sharpe_mean": -1.1381705624579739,
+        "rolling_sharpe_std": 6.6217994072306485,
+        "tail_ratio": 0.9378056428867101
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          7486488.612099485,
+          9144593.63555272,
+          -40896031.137805805,
+          -19895457.49929778
+        ],
+        "subperiod_sharpes": [
+          0.7528730710744574,
+          0.871101513849475,
+          -4.246042850750538,
+          -2.6352969428058666
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.81)\nRisk profile: Balanced (tail ratio 0.94)\nTemporal consistency: 2/4 profitable periods (44.3% positive windows)\nBalanced directional exposure (long: 41.7%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_vix_gap_experimental_20251109_153348.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_vix_gap",
+    "stability_score": 0.5,
+    "strategy_id": "experimental"
+  },
+  "cdx_vix_gap_experimental_20251109_182105": {
+    "evaluated_at": "2025-11-09T18:21:05.291285",
+    "evaluation_id": "cdx_vix_gap_experimental_20251109_182105",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.41704692868823307,
+          "long_pnl": -24657502.442486368,
+          "short_pct": 0.5829530713117669,
+          "short_pnl": -34466545.10785368
+        },
+        "signal_strength": {
+          "q1_pct": -0.43119316819032294,
+          "q1_pnl": 25493885.379466433,
+          "q2_pct": 0.4290291237300949,
+          "q2_pnl": -25365938.31189886,
+          "q3_pct": 1.002164044460228,
+          "q3_pnl": -59251994.617907636,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -223135875.77208525,
+          "gross_wins": 164011828.2217452,
+          "loss_contribution": 3.774029096741058,
+          "net_pnl": -59124047.55034006,
+          "win_contribution": 2.774029096741058
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 11.352941176470589,
+        "consistency_score": 0.44277821625887925,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 18,
+        "profit_factor": 0.811282486160932,
+        "rolling_sharpe_mean": -1.1381705624579739,
+        "rolling_sharpe_std": 6.6217994072306485,
+        "tail_ratio": 0.9378056428867101
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          7486488.612099485,
+          9144593.63555272,
+          -40896031.137805805,
+          -19895457.49929778
+        ],
+        "subperiod_sharpes": [
+          0.7528730710744574,
+          0.871101513849475,
+          -4.246042850750538,
+          -2.6352969428058666
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.81)\nRisk profile: Balanced (tail ratio 0.94)\nTemporal consistency: 2/4 profitable periods (44.3% positive windows)\nBalanced directional exposure (long: 41.7%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\cdx_vix_gap_experimental_20251109_182105.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "cdx_vix_gap",
+    "stability_score": 0.5,
+    "strategy_id": "experimental"
+  },
+  "spread_momentum_aggressive_20251109_153124": {
+    "evaluated_at": "2025-11-09T15:31:23.778550",
+    "evaluation_id": "spread_momentum_aggressive_20251109_153124",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.6994975579869247,
+          "long_pnl": 10690706.96913672,
+          "short_pct": 0.3005024420130753,
+          "short_pnl": 4592701.596153161
+        },
+        "signal_strength": {
+          "q1_pct": -1.0253574495002167,
+          "q1_pnl": -15670956.8261754,
+          "q2_pct": -0.022547865495283287,
+          "q2_pnl": -344608.24063961674,
+          "q3_pct": 2.0479053149954995,
+          "q3_pnl": 31298973.632104892,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -185264604.13607207,
+          "gross_wins": 200548012.70136195,
+          "loss_contribution": 12.121942781587748,
+          "net_pnl": 15283408.565289885,
+          "win_contribution": 13.121942781587748
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 25.833333333333332,
+        "consistency_score": 0.5335968379446641,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 13,
+        "profit_factor": 0.9650513318272426,
+        "rolling_sharpe_mean": 0.28087091473709125,
+        "rolling_sharpe_std": 6.782523517978414,
+        "tail_ratio": 0.8390708375228627
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          12654592.620160645,
+          -31692481.52947413,
+          -21264029.933290802,
+          32816622.5086188
+        ],
+        "subperiod_sharpes": [
+          1.544890241597441,
+          -3.384443987913074,
+          -1.8733517372266388,
+          3.457298676815629
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.97)\nRisk profile: Balanced (tail ratio 0.84)\nTemporal consistency: 2/4 profitable periods (53.4% positive windows)\nBalanced directional exposure (long: 69.9%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\spread_momentum_aggressive_20251109_153123.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "spread_momentum",
+    "stability_score": 0.5,
+    "strategy_id": "aggressive"
+  },
+  "spread_momentum_aggressive_20251109_153348": {
+    "evaluated_at": "2025-11-09T15:33:48.309851",
+    "evaluation_id": "spread_momentum_aggressive_20251109_153348",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.6994975579869247,
+          "long_pnl": 10690706.96913672,
+          "short_pct": 0.3005024420130753,
+          "short_pnl": 4592701.596153161
+        },
+        "signal_strength": {
+          "q1_pct": -1.0253574495002167,
+          "q1_pnl": -15670956.8261754,
+          "q2_pct": -0.022547865495283287,
+          "q2_pnl": -344608.24063961674,
+          "q3_pct": 2.0479053149954995,
+          "q3_pnl": 31298973.632104892,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -185264604.13607207,
+          "gross_wins": 200548012.70136195,
+          "loss_contribution": 12.121942781587748,
+          "net_pnl": 15283408.565289885,
+          "win_contribution": 13.121942781587748
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 25.833333333333332,
+        "consistency_score": 0.5335968379446641,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 13,
+        "profit_factor": 0.9650513318272426,
+        "rolling_sharpe_mean": 0.28087091473709125,
+        "rolling_sharpe_std": 6.782523517978414,
+        "tail_ratio": 0.8390708375228627
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          12654592.620160645,
+          -31692481.52947413,
+          -21264029.933290802,
+          32816622.5086188
+        ],
+        "subperiod_sharpes": [
+          1.544890241597441,
+          -3.384443987913074,
+          -1.8733517372266388,
+          3.457298676815629
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.97)\nRisk profile: Balanced (tail ratio 0.84)\nTemporal consistency: 2/4 profitable periods (53.4% positive windows)\nBalanced directional exposure (long: 69.9%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\spread_momentum_aggressive_20251109_153348.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "spread_momentum",
+    "stability_score": 0.5,
+    "strategy_id": "aggressive"
+  },
+  "spread_momentum_aggressive_20251109_182105": {
+    "evaluated_at": "2025-11-09T18:21:05.344942",
+    "evaluation_id": "spread_momentum_aggressive_20251109_182105",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.6994975579869247,
+          "long_pnl": 10690706.96913672,
+          "short_pct": 0.3005024420130753,
+          "short_pnl": 4592701.596153161
+        },
+        "signal_strength": {
+          "q1_pct": -1.0253574495002167,
+          "q1_pnl": -15670956.8261754,
+          "q2_pct": -0.022547865495283287,
+          "q2_pnl": -344608.24063961674,
+          "q3_pct": 2.0479053149954995,
+          "q3_pnl": 31298973.632104892,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -185264604.13607207,
+          "gross_wins": 200548012.70136195,
+          "loss_contribution": 12.121942781587748,
+          "net_pnl": 15283408.565289885,
+          "win_contribution": 13.121942781587748
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 25.833333333333332,
+        "consistency_score": 0.5335968379446641,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 13,
+        "profit_factor": 0.9650513318272426,
+        "rolling_sharpe_mean": 0.28087091473709125,
+        "rolling_sharpe_std": 6.782523517978414,
+        "tail_ratio": 0.8390708375228627
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.5,
+        "positive_periods": 2,
+        "subperiod_returns": [
+          12654592.620160645,
+          -31692481.52947413,
+          -21264029.933290802,
+          32816622.5086188
+        ],
+        "subperiod_sharpes": [
+          1.544890241597441,
+          -3.384443987913074,
+          -1.8733517372266388,
+          3.457298676815629
+        ]
+      },
+      "summary": "Overall: Moderate performance with acceptable stability (stability score: 0.50)\nProfitability: Weak (profit factor 0.97)\nRisk profile: Balanced (tail ratio 0.84)\nTemporal consistency: 2/4 profitable periods (53.4% positive windows)\nBalanced directional exposure (long: 69.9%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\spread_momentum_aggressive_20251109_182105.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "spread_momentum",
+    "stability_score": 0.5,
+    "strategy_id": "aggressive"
+  },
+  "spread_momentum_balanced_20251109_153124": {
+    "evaluated_at": "2025-11-09T15:31:23.760537",
+    "evaluation_id": "spread_momentum_balanced_20251109_153124",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.40159225688474914,
+          "long_pnl": -10535882.907223385,
+          "short_pct": 0.5984077431152509,
+          "short_pnl": -15699391.12159591
+        },
+        "signal_strength": {
+          "q1_pct": 1.7370682524727004,
+          "q1_pnl": -45572461.61038355,
+          "q2_pct": 1.2073444372120736,
+          "q2_pnl": -31675012.15742936,
+          "q3_pct": -1.944412689684774,
+          "q3_pnl": 51012199.738993615,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -172278836.1534062,
+          "gross_wins": 146043562.12458694,
+          "loss_contribution": 6.566687123761662,
+          "net_pnl": -26235274.028819263,
+          "win_contribution": 5.566687123761662
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 17.444444444444443,
+        "consistency_score": 0.46561264822134385,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 10,
+        "profit_factor": 0.7502477152044277,
+        "rolling_sharpe_mean": -1.0627962084130314,
+        "rolling_sharpe_std": 7.497685383066784,
+        "tail_ratio": 0.6881300549826443
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.25,
+        "positive_periods": 1,
+        "subperiod_returns": [
+          -5624961.761762241,
+          -57055493.17205066,
+          -16983392.23392691,
+          29588809.059635043
+        ],
+        "subperiod_sharpes": [
+          -0.6600883158623186,
+          -6.6601735810016525,
+          -1.6448762405083508,
+          3.647997792650611
+        ]
+      },
+      "summary": "Overall: Inconsistent performance requiring review (stability score: 0.25)\nProfitability: Weak (profit factor 0.75)\nRisk profile: Negative skew (tail ratio 0.69)\nTemporal consistency: 1/4 profitable periods (46.6% positive windows)\nBalanced directional exposure (long: 40.2%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\spread_momentum_balanced_20251109_153123.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "spread_momentum",
+    "stability_score": 0.25,
+    "strategy_id": "balanced"
+  },
+  "spread_momentum_balanced_20251109_153348": {
+    "evaluated_at": "2025-11-09T15:33:48.294112",
+    "evaluation_id": "spread_momentum_balanced_20251109_153348",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.40159225688474914,
+          "long_pnl": -10535882.907223385,
+          "short_pct": 0.5984077431152509,
+          "short_pnl": -15699391.12159591
+        },
+        "signal_strength": {
+          "q1_pct": 1.7370682524727004,
+          "q1_pnl": -45572461.61038355,
+          "q2_pct": 1.2073444372120736,
+          "q2_pnl": -31675012.15742936,
+          "q3_pct": -1.944412689684774,
+          "q3_pnl": 51012199.738993615,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -172278836.1534062,
+          "gross_wins": 146043562.12458694,
+          "loss_contribution": 6.566687123761662,
+          "net_pnl": -26235274.028819263,
+          "win_contribution": 5.566687123761662
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 17.444444444444443,
+        "consistency_score": 0.46561264822134385,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 10,
+        "profit_factor": 0.7502477152044277,
+        "rolling_sharpe_mean": -1.0627962084130314,
+        "rolling_sharpe_std": 7.497685383066784,
+        "tail_ratio": 0.6881300549826443
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.25,
+        "positive_periods": 1,
+        "subperiod_returns": [
+          -5624961.761762241,
+          -57055493.17205066,
+          -16983392.23392691,
+          29588809.059635043
+        ],
+        "subperiod_sharpes": [
+          -0.6600883158623186,
+          -6.6601735810016525,
+          -1.6448762405083508,
+          3.647997792650611
+        ]
+      },
+      "summary": "Overall: Inconsistent performance requiring review (stability score: 0.25)\nProfitability: Weak (profit factor 0.75)\nRisk profile: Negative skew (tail ratio 0.69)\nTemporal consistency: 1/4 profitable periods (46.6% positive windows)\nBalanced directional exposure (long: 40.2%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\spread_momentum_balanced_20251109_153348.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "spread_momentum",
+    "stability_score": 0.25,
+    "strategy_id": "balanced"
+  },
+  "spread_momentum_balanced_20251109_182105": {
+    "evaluated_at": "2025-11-09T18:21:05.327581",
+    "evaluation_id": "spread_momentum_balanced_20251109_182105",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.40159225688474914,
+          "long_pnl": -10535882.907223385,
+          "short_pct": 0.5984077431152509,
+          "short_pnl": -15699391.12159591
+        },
+        "signal_strength": {
+          "q1_pct": 1.7370682524727004,
+          "q1_pnl": -45572461.61038355,
+          "q2_pct": 1.2073444372120736,
+          "q2_pnl": -31675012.15742936,
+          "q3_pct": -1.944412689684774,
+          "q3_pnl": 51012199.738993615,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -172278836.1534062,
+          "gross_wins": 146043562.12458694,
+          "loss_contribution": 6.566687123761662,
+          "net_pnl": -26235274.028819263,
+          "win_contribution": 5.566687123761662
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 17.444444444444443,
+        "consistency_score": 0.46561264822134385,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 10,
+        "profit_factor": 0.7502477152044277,
+        "rolling_sharpe_mean": -1.0627962084130314,
+        "rolling_sharpe_std": 7.497685383066784,
+        "tail_ratio": 0.6881300549826443
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.25,
+        "positive_periods": 1,
+        "subperiod_returns": [
+          -5624961.761762241,
+          -57055493.17205066,
+          -16983392.23392691,
+          29588809.059635043
+        ],
+        "subperiod_sharpes": [
+          -0.6600883158623186,
+          -6.6601735810016525,
+          -1.6448762405083508,
+          3.647997792650611
+        ]
+      },
+      "summary": "Overall: Inconsistent performance requiring review (stability score: 0.25)\nProfitability: Weak (profit factor 0.75)\nRisk profile: Negative skew (tail ratio 0.69)\nTemporal consistency: 1/4 profitable periods (46.6% positive windows)\nBalanced directional exposure (long: 40.2%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\spread_momentum_balanced_20251109_182105.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "spread_momentum",
+    "stability_score": 0.25,
+    "strategy_id": "balanced"
+  },
+  "spread_momentum_conservative_20251109_153124": {
+    "evaluated_at": "2025-11-09T15:31:23.742090",
+    "evaluation_id": "spread_momentum_conservative_20251109_153124",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.390687741663206,
+          "long_pnl": 17659762.810573123,
+          "short_pct": 0.609312258336794,
+          "short_pnl": 27541969.74288077
+        },
+        "signal_strength": {
+          "q1_pct": -0.24908495491401283,
+          "q1_pnl": -11259071.51511233,
+          "q2_pct": 0.11410019988306996,
+          "q2_pnl": 5157526.71941016,
+          "q3_pct": 1.1349847550309429,
+          "q3_pnl": 51303277.34915606,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -72690045.97006874,
+          "gross_wins": 117891778.52352263,
+          "loss_contribution": 1.6081252169727827,
+          "net_pnl": 45201732.55345389,
+          "win_contribution": 2.6081252169727827
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 92.92307692307692,
+        "consistency_score": 0.475098814229249,
+        "max_dd_recovery_days": 558,
+        "n_drawdowns": 13,
+        "profit_factor": 1.1648803285466074,
+        "rolling_sharpe_mean": 0.23205084702817746,
+        "rolling_sharpe_std": 5.126053113461059,
+        "tail_ratio": 1.0881027628078812
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.75,
+        "positive_periods": 3,
+        "subperiod_returns": [
+          12745230.794741038,
+          -18148457.549286343,
+          56360.55268872902,
+          22565490.429077692
+        ],
+        "subperiod_sharpes": [
+          2.1974435051124392,
+          -3.5082650452655755,
+          0.007188746168007031,
+          3.448442895928418
+        ]
+      },
+      "summary": "Overall: Strong and stable performance (stability score: 0.75)\nProfitability: Positive (profit factor 1.16)\nRisk profile: Balanced (tail ratio 1.09)\nTemporal consistency: 3/4 profitable periods (47.5% positive windows)\nBalanced directional exposure (long: 39.1%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\spread_momentum_conservative_20251109_153123.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "spread_momentum",
+    "stability_score": 0.75,
+    "strategy_id": "conservative"
+  },
+  "spread_momentum_conservative_20251109_153348": {
+    "evaluated_at": "2025-11-09T15:33:48.277682",
+    "evaluation_id": "spread_momentum_conservative_20251109_153348",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.390687741663206,
+          "long_pnl": 17659762.810573123,
+          "short_pct": 0.609312258336794,
+          "short_pnl": 27541969.74288077
+        },
+        "signal_strength": {
+          "q1_pct": -0.24908495491401283,
+          "q1_pnl": -11259071.51511233,
+          "q2_pct": 0.11410019988306996,
+          "q2_pnl": 5157526.71941016,
+          "q3_pct": 1.1349847550309429,
+          "q3_pnl": 51303277.34915606,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -72690045.97006874,
+          "gross_wins": 117891778.52352263,
+          "loss_contribution": 1.6081252169727827,
+          "net_pnl": 45201732.55345389,
+          "win_contribution": 2.6081252169727827
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 92.92307692307692,
+        "consistency_score": 0.475098814229249,
+        "max_dd_recovery_days": 558,
+        "n_drawdowns": 13,
+        "profit_factor": 1.1648803285466074,
+        "rolling_sharpe_mean": 0.23205084702817746,
+        "rolling_sharpe_std": 5.126053113461059,
+        "tail_ratio": 1.0881027628078812
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.75,
+        "positive_periods": 3,
+        "subperiod_returns": [
+          12745230.794741038,
+          -18148457.549286343,
+          56360.55268872902,
+          22565490.429077692
+        ],
+        "subperiod_sharpes": [
+          2.1974435051124392,
+          -3.5082650452655755,
+          0.007188746168007031,
+          3.448442895928418
+        ]
+      },
+      "summary": "Overall: Strong and stable performance (stability score: 0.75)\nProfitability: Positive (profit factor 1.16)\nRisk profile: Balanced (tail ratio 1.09)\nTemporal consistency: 3/4 profitable periods (47.5% positive windows)\nBalanced directional exposure (long: 39.1%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\spread_momentum_conservative_20251109_153348.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "spread_momentum",
+    "stability_score": 0.75,
+    "strategy_id": "conservative"
+  },
+  "spread_momentum_conservative_20251109_182105": {
+    "evaluated_at": "2025-11-09T18:21:05.310472",
+    "evaluation_id": "spread_momentum_conservative_20251109_182105",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.390687741663206,
+          "long_pnl": 17659762.810573123,
+          "short_pct": 0.609312258336794,
+          "short_pnl": 27541969.74288077
+        },
+        "signal_strength": {
+          "q1_pct": -0.24908495491401283,
+          "q1_pnl": -11259071.51511233,
+          "q2_pct": 0.11410019988306996,
+          "q2_pnl": 5157526.71941016,
+          "q3_pct": 1.1349847550309429,
+          "q3_pnl": 51303277.34915606,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -72690045.97006874,
+          "gross_wins": 117891778.52352263,
+          "loss_contribution": 1.6081252169727827,
+          "net_pnl": 45201732.55345389,
+          "win_contribution": 2.6081252169727827
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 92.92307692307692,
+        "consistency_score": 0.475098814229249,
+        "max_dd_recovery_days": 558,
+        "n_drawdowns": 13,
+        "profit_factor": 1.1648803285466074,
+        "rolling_sharpe_mean": 0.23205084702817746,
+        "rolling_sharpe_std": 5.126053113461059,
+        "tail_ratio": 1.0881027628078812
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.75,
+        "positive_periods": 3,
+        "subperiod_returns": [
+          12745230.794741038,
+          -18148457.549286343,
+          56360.55268872902,
+          22565490.429077692
+        ],
+        "subperiod_sharpes": [
+          2.1974435051124392,
+          -3.5082650452655755,
+          0.007188746168007031,
+          3.448442895928418
+        ]
+      },
+      "summary": "Overall: Strong and stable performance (stability score: 0.75)\nProfitability: Positive (profit factor 1.16)\nRisk profile: Balanced (tail ratio 1.09)\nTemporal consistency: 3/4 profitable periods (47.5% positive windows)\nBalanced directional exposure (long: 39.1%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\spread_momentum_conservative_20251109_182105.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "spread_momentum",
+    "stability_score": 0.75,
+    "strategy_id": "conservative"
+  },
+  "spread_momentum_experimental_20251109_153124": {
+    "evaluated_at": "2025-11-09T15:31:23.797041",
+    "evaluation_id": "spread_momentum_experimental_20251109_153124",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.8489253244237335,
+          "long_pnl": -80667503.72208598,
+          "short_pct": 0.15107467557626647,
+          "short_pnl": -14355581.820620146
+        },
+        "signal_strength": {
+          "q1_pct": 0.4797491176739596,
+          "q1_pnl": -45587241.447770454,
+          "q2_pct": 0.2722322044024173,
+          "q2_pnl": -25868344.04641036,
+          "q3_pct": 0.24801867792362298,
+          "q3_pnl": -23567500.048525307,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -292388543.586311,
+          "gross_wins": 197365458.04360488,
+          "loss_contribution": 3.0770264080185354,
+          "net_pnl": -95023085.5427061,
+          "win_contribution": 2.0770264080185354
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 7.0,
+        "consistency_score": 0.4150197628458498,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 8,
+        "profit_factor": 0.6425850836011286,
+        "rolling_sharpe_mean": -2.921969664501244,
+        "rolling_sharpe_std": 7.2729638559313425,
+        "tail_ratio": 0.7882303220104772
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.25,
+        "positive_periods": 1,
+        "subperiod_returns": [
+          -13270888.70176926,
+          -68039940.4832829,
+          -79385808.90666951,
+          48301592.14357929
+        ],
+        "subperiod_sharpes": [
+          -1.5093220364548492,
+          -6.777118238558415,
+          -6.292612853400235,
+          4.668102558347275
+        ]
+      },
+      "summary": "Overall: Inconsistent performance requiring review (stability score: 0.25)\nProfitability: Weak (profit factor 0.64)\nRisk profile: Negative skew (tail ratio 0.79)\nTemporal consistency: 1/4 profitable periods (41.5% positive windows)\nStrong long directional bias (84.9%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\spread_momentum_experimental_20251109_153124.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "spread_momentum",
+    "stability_score": 0.25,
+    "strategy_id": "experimental"
+  },
+  "spread_momentum_experimental_20251109_153348": {
+    "evaluated_at": "2025-11-09T15:33:48.327132",
+    "evaluation_id": "spread_momentum_experimental_20251109_153348",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.8489253244237335,
+          "long_pnl": -80667503.72208598,
+          "short_pct": 0.15107467557626647,
+          "short_pnl": -14355581.820620146
+        },
+        "signal_strength": {
+          "q1_pct": 0.4797491176739596,
+          "q1_pnl": -45587241.447770454,
+          "q2_pct": 0.2722322044024173,
+          "q2_pnl": -25868344.04641036,
+          "q3_pct": 0.24801867792362298,
+          "q3_pnl": -23567500.048525307,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -292388543.586311,
+          "gross_wins": 197365458.04360488,
+          "loss_contribution": 3.0770264080185354,
+          "net_pnl": -95023085.5427061,
+          "win_contribution": 2.0770264080185354
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 7.0,
+        "consistency_score": 0.4150197628458498,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 8,
+        "profit_factor": 0.6425850836011286,
+        "rolling_sharpe_mean": -2.921969664501244,
+        "rolling_sharpe_std": 7.2729638559313425,
+        "tail_ratio": 0.7882303220104772
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.25,
+        "positive_periods": 1,
+        "subperiod_returns": [
+          -13270888.70176926,
+          -68039940.4832829,
+          -79385808.90666951,
+          48301592.14357929
+        ],
+        "subperiod_sharpes": [
+          -1.5093220364548492,
+          -6.777118238558415,
+          -6.292612853400235,
+          4.668102558347275
+        ]
+      },
+      "summary": "Overall: Inconsistent performance requiring review (stability score: 0.25)\nProfitability: Weak (profit factor 0.64)\nRisk profile: Negative skew (tail ratio 0.79)\nTemporal consistency: 1/4 profitable periods (41.5% positive windows)\nStrong long directional bias (84.9%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\spread_momentum_experimental_20251109_153348.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "spread_momentum",
+    "stability_score": 0.25,
+    "strategy_id": "experimental"
+  },
+  "spread_momentum_experimental_20251109_182105": {
+    "evaluated_at": "2025-11-09T18:21:05.362194",
+    "evaluation_id": "spread_momentum_experimental_20251109_182105",
+    "evaluator_version": "0.1.6",
+    "max_drawdown": 0.0,
+    "metadata": {
+      "attribution": {
+        "direction": {
+          "long_pct": 0.8489253244237335,
+          "long_pnl": -80667503.72208598,
+          "short_pct": 0.15107467557626647,
+          "short_pnl": -14355581.820620146
+        },
+        "signal_strength": {
+          "q1_pct": 0.4797491176739596,
+          "q1_pnl": -45587241.447770454,
+          "q2_pct": 0.2722322044024173,
+          "q2_pnl": -25868344.04641036,
+          "q3_pct": 0.24801867792362298,
+          "q3_pnl": -23567500.048525307,
+          "quantile_labels": [
+            "Q1",
+            "Q2",
+            "Q3"
+          ]
+        },
+        "win_loss": {
+          "gross_losses": -292388543.586311,
+          "gross_wins": 197365458.04360488,
+          "loss_contribution": 3.0770264080185354,
+          "net_pnl": -95023085.5427061,
+          "win_contribution": 2.0770264080185354
+        }
+      },
+      "backtest_config": {
+        "data_source": "c3bedc49b771b0f2",
+        "dv01_per_million": 4750.0,
+        "focus_pairs": [
+          [
+            "cdx_etf_basis",
+            "experimental"
+          ],
+          [
+            "cdx_vix_gap",
+            "conservative"
+          ],
+          [
+            "spread_momentum",
+            "conservative"
+          ]
+        ],
+        "position_size": 10.0,
+        "selected_signals": [
+          "cdx_etf_basis",
+          "cdx_vix_gap",
+          "spread_momentum"
+        ],
+        "selected_strategies": [
+          "conservative",
+          "balanced",
+          "aggressive",
+          "experimental"
+        ],
+        "transaction_cost_bps": 1.0
+      },
+      "config": {
+        "attribution_quantiles": 3,
+        "min_obs": 252,
+        "n_subperiods": 4,
+        "report_format": "markdown",
+        "risk_free_rate": 0.0,
+        "rolling_window": 63
+      },
+      "extended_metrics": {
+        "avg_recovery_days": 7.0,
+        "consistency_score": 0.4150197628458498,
+        "max_dd_recovery_days": Infinity,
+        "n_drawdowns": 8,
+        "profit_factor": 0.6425850836011286,
+        "rolling_sharpe_mean": -2.921969664501244,
+        "rolling_sharpe_std": 7.2729638559313425,
+        "tail_ratio": 0.7882303220104772
+      },
+      "subperiod_analysis": {
+        "consistency_rate": 0.25,
+        "positive_periods": 1,
+        "subperiod_returns": [
+          -13270888.70176926,
+          -68039940.4832829,
+          -79385808.90666951,
+          48301592.14357929
+        ],
+        "subperiod_sharpes": [
+          -1.5093220364548492,
+          -6.777118238558415,
+          -6.292612853400235,
+          4.668102558347275
+        ]
+      },
+      "summary": "Overall: Inconsistent performance requiring review (stability score: 0.25)\nProfitability: Weak (profit factor 0.64)\nRisk profile: Negative skew (tail ratio 0.79)\nTemporal consistency: 1/4 profitable periods (41.5% positive windows)\nStrong long directional bias (84.9%)"
+    },
+    "report_path": "C:\\Users\\ROG3003\\PythonProjects\\aponyx\\reports\\performance\\spread_momentum_experimental_20251109_182105.md",
+    "sharpe_ratio": 0.0,
+    "signal_id": "spread_momentum",
+    "stability_score": 0.25,
+    "strategy_id": "experimental"
+  }
+}
