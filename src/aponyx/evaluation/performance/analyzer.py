@@ -105,7 +105,7 @@ def _compute_subperiod_metrics(
         std_pnl = sub_pnl["net_pnl"].std()
 
         if std_pnl > 0:
-            sharpe = (mean_pnl / std_pnl) * (252 ** 0.5)
+            sharpe = (mean_pnl / std_pnl) * (252**0.5)
         else:
             sharpe = 0.0
 
@@ -296,9 +296,7 @@ def analyze_backtest_performance(
     positions_df = backtest_result.positions
 
     if len(pnl_df) < config.min_obs:
-        raise ValueError(
-            f"Insufficient observations: {len(pnl_df)} < {config.min_obs} (min_obs)"
-        )
+        raise ValueError(f"Insufficient observations: {len(pnl_df)} < {config.min_obs} (min_obs)")
 
     if not isinstance(pnl_df.index, pd.DatetimeIndex):
         raise ValueError("pnl_df must have DatetimeIndex")
@@ -315,9 +313,7 @@ def analyze_backtest_performance(
     extended_metrics = compute_extended_metrics(pnl_df, config.rolling_window)
 
     # Subperiod stability analysis
-    subperiod_analysis = _compute_subperiod_metrics(
-        pnl_df, positions_df, config.n_subperiods
-    )
+    subperiod_analysis = _compute_subperiod_metrics(pnl_df, positions_df, config.n_subperiods)
 
     # Return attribution
     attribution = compute_attribution(
@@ -328,9 +324,7 @@ def analyze_backtest_performance(
     stability_score = _compute_stability_score(subperiod_analysis)
 
     # Generate interpretive summary
-    summary = _generate_summary(
-        extended_metrics, subperiod_analysis, attribution, stability_score
-    )
+    summary = _generate_summary(extended_metrics, subperiod_analysis, attribution, stability_score)
 
     # Build result
     timestamp = datetime.now().isoformat()

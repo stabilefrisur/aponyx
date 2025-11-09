@@ -129,9 +129,11 @@ def attribute_by_signal_strength(
 
     if len(positioned) == 0:
         logger.warning("No positioned days found for signal attribution")
-        return {f"q{i+1}_pnl": 0.0 for i in range(n_quantiles)} | {
-            f"q{i+1}_pct": 0.0 for i in range(n_quantiles)
-        } | {"quantile_labels": [f"Q{i+1}" for i in range(n_quantiles)]}
+        return (
+            {f"q{i+1}_pnl": 0.0 for i in range(n_quantiles)}
+            | {f"q{i+1}_pct": 0.0 for i in range(n_quantiles)}
+            | {"quantile_labels": [f"Q{i+1}" for i in range(n_quantiles)]}
+        )
 
     # Use absolute signal strength
     positioned["abs_signal"] = positioned["signal"].abs()

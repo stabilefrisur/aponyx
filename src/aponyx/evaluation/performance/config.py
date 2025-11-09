@@ -89,15 +89,11 @@ class PerformanceConfig:
 
         # Validate risk-free rate
         if self.risk_free_rate < 0:
-            raise ValueError(
-                f"risk_free_rate must be non-negative, got {self.risk_free_rate}"
-            )
+            raise ValueError(f"risk_free_rate must be non-negative, got {self.risk_free_rate}")
 
         # Validate rolling window
         if self.rolling_window < 20:
-            raise ValueError(
-                f"rolling_window must be at least 20 days, got {self.rolling_window}"
-            )
+            raise ValueError(f"rolling_window must be at least 20 days, got {self.rolling_window}")
 
         # Validate report format
         valid_formats = {"markdown", "json", "html"}

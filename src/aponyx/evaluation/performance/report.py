@@ -102,30 +102,30 @@ def generate_performance_report(
 """
 
     # Add metric interpretations
-    if metrics['profit_factor'] > 1.5:
+    if metrics["profit_factor"] > 1.5:
         report += "- Strong profitability with gross wins substantially exceeding gross losses\n"
-    elif metrics['profit_factor'] > 1.0:
+    elif metrics["profit_factor"] > 1.0:
         report += "- Positive profitability with gross wins exceeding gross losses\n"
     else:
         report += "- Weak profitability with gross losses approaching or exceeding gross wins\n"
 
-    if metrics['tail_ratio'] > 1.2:
+    if metrics["tail_ratio"] > 1.2:
         report += "- Favorable tail asymmetry with larger upside than downside extremes\n"
-    elif metrics['tail_ratio'] > 0.8:
+    elif metrics["tail_ratio"] > 0.8:
         report += "- Balanced tail distribution with similar upside and downside extremes\n"
     else:
         report += "- Negative tail asymmetry with larger downside than upside extremes\n"
 
-    if metrics['consistency_score'] > 0.6:
+    if metrics["consistency_score"] > 0.6:
         report += "- High consistency with majority of rolling windows profitable\n"
-    elif metrics['consistency_score'] > 0.4:
+    elif metrics["consistency_score"] > 0.4:
         report += "- Moderate consistency with mixed profitable/unprofitable periods\n"
     else:
         report += "- Low consistency with frequent unprofitable rolling windows\n"
 
     # Drawdown recovery
-    max_dd_recovery = metrics['max_dd_recovery_days']
-    if max_dd_recovery == float('inf'):
+    max_dd_recovery = metrics["max_dd_recovery_days"]
+    if max_dd_recovery == float("inf"):
         recovery_text = "Not recovered"
     else:
         recovery_text = f"{max_dd_recovery:.0f} days"
@@ -141,7 +141,7 @@ def generate_performance_report(
 
 """
 
-    if max_dd_recovery == float('inf'):
+    if max_dd_recovery == float("inf"):
         report += "**Warning:** Maximum drawdown has not been recovered as of backtest end date.\n"
 
     # Subperiod stability
@@ -159,18 +159,18 @@ def generate_performance_report(
 """
 
     for i, (ret, sharpe) in enumerate(
-        zip(subperiod['subperiod_returns'], subperiod['subperiod_sharpes']), 1
+        zip(subperiod["subperiod_returns"], subperiod["subperiod_sharpes"]), 1
     ):
         report += f"| {i} | {ret:,.2f} | {sharpe:.3f} |\n"
 
     report += "\n**Interpretation:**\n\n"
 
-    if subperiod['consistency_rate'] >= 0.75:
+    if subperiod["consistency_rate"] >= 0.75:
         report += (
             "Excellent temporal consistency with strong performance across most subperiods. "
             "Strategy appears robust to different market conditions.\n"
         )
-    elif subperiod['consistency_rate'] >= 0.5:
+    elif subperiod["consistency_rate"] >= 0.5:
         report += (
             "Moderate temporal consistency with mixed performance across subperiods. "
             "Performance may be regime-dependent.\n"
@@ -182,9 +182,9 @@ def generate_performance_report(
         )
 
     # Return attribution
-    direction = attribution['direction']
-    signal_strength = attribution['signal_strength']
-    win_loss = attribution['win_loss']
+    direction = attribution["direction"]
+    signal_strength = attribution["signal_strength"]
+    win_loss = attribution["win_loss"]
 
     report += f"""
 ---
@@ -200,11 +200,13 @@ def generate_performance_report(
 
 """
 
-    if abs(direction['long_pct']) > 0.7:
-        bias = "long" if direction['long_pct'] > 0 else "short"
+    if abs(direction["long_pct"]) > 0.7:
+        bias = "long" if direction["long_pct"] > 0 else "short"
         report += f"**Strong {bias} bias** - Returns highly concentrated in {bias} positions.\n"
     else:
-        report += "**Balanced exposure** - Returns distributed across both long and short positions.\n"
+        report += (
+            "**Balanced exposure** - Returns distributed across both long and short positions.\n"
+        )
 
     report += "\n### Signal Strength Attribution\n\n"
     report += "| Quantile | P&L | Contribution |\n"
@@ -212,14 +214,14 @@ def generate_performance_report(
 
     n_quantiles = result.config.attribution_quantiles
     for i in range(1, n_quantiles + 1):
-        pnl = signal_strength[f'q{i}_pnl']
-        pct = signal_strength[f'q{i}_pct']
+        pnl = signal_strength[f"q{i}_pnl"]
+        pct = signal_strength[f"q{i}_pct"]
         report += f"| Q{i} | {pnl:,.2f} | {pct:.1%} |\n"
 
     report += "\n"
 
     # Check if highest quantile contributed most
-    highest_q_pct = signal_strength[f'q{n_quantiles}_pct']
+    highest_q_pct = signal_strength[f"q{n_quantiles}_pct"]
     if highest_q_pct > 0.4:
         report += (
             "**Strong signal strength relationship** - Highest conviction signals contributed "
@@ -256,22 +258,22 @@ def generate_performance_report(
             "⚠️ **Low stability score** - Review strategy robustness and consider regime filters"
         )
 
-    if metrics['profit_factor'] < 1.0:
+    if metrics["profit_factor"] < 1.0:
         recommendations.append(
             "❌ **Negative profit factor** - Strategy is unprofitable; do not deploy"
         )
 
-    if subperiod['consistency_rate'] < 0.5:
+    if subperiod["consistency_rate"] < 0.5:
         recommendations.append(
             "⚠️ **Low consistency** - Performance concentrated in few periods; assess regime dependency"
         )
 
-    if max_dd_recovery == float('inf'):
+    if max_dd_recovery == float("inf"):
         recommendations.append(
             "⚠️ **Unrecovered drawdown** - Current strategy underwater; reassess viability"
         )
 
-    if metrics['tail_ratio'] < 0.8:
+    if metrics["tail_ratio"] < 0.8:
         recommendations.append(
             "⚠️ **Negative skew** - Downside risk exceeds upside potential; review risk controls"
         )

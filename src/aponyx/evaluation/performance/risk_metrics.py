@@ -232,7 +232,9 @@ def compute_profit_factor(pnl_series: pd.Series) -> float:
     else:
         profit_factor = 0.0 if gross_profit == 0 else np.inf
 
-    logger.debug("Profit factor: %.3f (profit=%.2f, loss=%.2f)", profit_factor, gross_profit, gross_loss)
+    logger.debug(
+        "Profit factor: %.3f (profit=%.2f, loss=%.2f)", profit_factor, gross_profit, gross_loss
+    )
 
     return profit_factor
 
@@ -279,7 +281,12 @@ def compute_consistency_score(pnl_series: pd.Series, window: int = 21) -> float:
     else:
         consistency = 0.0
 
-    logger.debug("Consistency score: %.3f (%d/%d positive windows)", consistency, positive_windows, total_windows)
+    logger.debug(
+        "Consistency score: %.3f (%d/%d positive windows)",
+        consistency,
+        positive_windows,
+        total_windows,
+    )
 
     return consistency
 

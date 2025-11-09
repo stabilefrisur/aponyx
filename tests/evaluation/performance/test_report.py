@@ -62,9 +62,7 @@ def sample_performance_result() -> PerformanceResult:
 class TestGeneratePerformanceReport:
     """Test performance report generation."""
 
-    def test_generate_report_basic(
-        self, sample_performance_result: PerformanceResult
-    ) -> None:
+    def test_generate_report_basic(self, sample_performance_result: PerformanceResult) -> None:
         """Test basic report generation."""
         report = generate_performance_report(
             sample_performance_result, "test_signal", "test_strategy"

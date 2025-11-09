@@ -72,9 +72,7 @@ class TestAnalyzeBacktestPerformance:
         assert result.summary != ""
         assert result.timestamp != ""
 
-    def test_analyze_with_custom_config(
-        self, sample_backtest_result: BacktestResult
-    ) -> None:
+    def test_analyze_with_custom_config(self, sample_backtest_result: BacktestResult) -> None:
         """Test analysis with custom configuration."""
         config = PerformanceConfig(
             min_obs=200, n_subperiods=6, rolling_window=30, attribution_quantiles=5
@@ -90,12 +88,8 @@ class TestAnalyzeBacktestPerformance:
         """Test that insufficient data raises ValueError."""
         dates = pd.date_range("2020-01-01", periods=100, freq="D")
 
-        positions_df = pd.DataFrame(
-            {"signal": [0] * 100, "position": [0] * 100}, index=dates
-        )
-        pnl_df = pd.DataFrame(
-            {"net_pnl": [0] * 100, "cumulative_pnl": [0] * 100}, index=dates
-        )
+        positions_df = pd.DataFrame({"signal": [0] * 100, "position": [0] * 100}, index=dates)
+        pnl_df = pd.DataFrame({"net_pnl": [0] * 100, "cumulative_pnl": [0] * 100}, index=dates)
 
         result = BacktestResult(positions=positions_df, pnl=pnl_df, metadata={})
 
@@ -112,21 +106,15 @@ class TestAnalyzeBacktestPerformance:
         with pytest.raises(ValueError, match="must have DatetimeIndex"):
             analyze_backtest_performance(result)
 
-    def test_analyze_missing_columns_raises(
-        self, sample_backtest_result: BacktestResult
-    ) -> None:
+    def test_analyze_missing_columns_raises(self, sample_backtest_result: BacktestResult) -> None:
         """Test that missing required columns raises ValueError."""
         # Remove required column
-        sample_backtest_result.pnl = sample_backtest_result.pnl.drop(
-            columns=["net_pnl"]
-        )
+        sample_backtest_result.pnl = sample_backtest_result.pnl.drop(columns=["net_pnl"])
 
         with pytest.raises(ValueError, match="missing required columns"):
             analyze_backtest_performance(sample_backtest_result)
 
-    def test_analyze_metadata_propagation(
-        self, sample_backtest_result: BacktestResult
-    ) -> None:
+    def test_analyze_metadata_propagation(self, sample_backtest_result: BacktestResult) -> None:
         """Test that metadata is properly propagated."""
         result = analyze_backtest_performance(sample_backtest_result)
 

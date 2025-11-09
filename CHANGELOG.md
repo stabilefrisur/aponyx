@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] - 2025-11-09
+
+### Added
+
+#### Performance Evaluation Layer
+- Complete post-backtest performance analysis framework with extended risk metrics:
+  - Stability metrics: rolling Sharpe, consistency scores, regime analysis
+  - Risk-adjusted returns: Calmar, Sortino, profit factor, tail ratio
+  - Return attribution: directional, signal strength, win/loss decomposition
+- `PerformanceConfig` for immutable analysis parameters (frozen dataclass)
+- `PerformanceResult` with structured performance summary and diagnostics
+- `PerformanceRegistry` for tracking analysis history with JSON catalog
+- Markdown report generation with comprehensive metrics and visualizations
+- 5-step performance analysis workflow:
+  1. Extended metrics calculation (stability, profit factor, tail ratio)
+  2. Rolling Sharpe analysis for temporal consistency
+  3. Return attribution decomposition
+  4. Risk decomposition and diagnostics
+  5. Comprehensive reporting with interpretations
+- Production-ready notebook (`notebooks/05_performance_analysis.ipynb`) with 31 cells:
+  - Registry-driven batch analysis for multiple strategies
+  - Comparative performance tables and rankings
+  - Individual strategy deep-dive reports
+  - Metadata persistence for reproducibility
+- Comprehensive test suite with 6 test modules (136 tests total)
+- Performance evaluation design documentation (`docs/performance_evaluation_design.md`)
+
+#### Infrastructure Improvements
+- Performance report directory structure in project config
+- Enhanced backtest persistence with performance metrics in metadata
+- Updated backtest notebook to save comprehensive performance data
+
+### Changed
+- Removed examples folder and all references (replaced by production notebooks)
+  - Cleaned up `pyproject.toml` to remove examples package data
+  - Updated documentation to reference notebooks instead of examples
+  - Removed example data helpers and demo scripts
+- Simplified `.gitignore` to focus on actual runtime artifacts
+  - Removed unnecessary `.gitkeep` files from data directories
+  - Added performance reports and registry to ignore patterns
+- Updated evaluation layer `__init__.py` with performance module exports
+- Enhanced governance design documentation with performance layer details
+- Updated documentation structure guide with performance evaluation section
+
+### Fixed
+- Corrected documentation claims about speculative features
+- Improved alignment between design docs and actual implementation
+
 ## [0.1.6] - 2025-11-09
 
 ### Added
@@ -276,6 +324,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.7]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.7
 [0.1.6]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.6
 [0.1.5]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.5
 [0.1.4]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.4

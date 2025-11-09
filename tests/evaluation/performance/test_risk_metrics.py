@@ -31,9 +31,7 @@ def sample_pnl_df() -> pd.DataFrame:
     net_pnl = np.random.normal(10, 50, 252)
     cumulative_pnl = np.cumsum(net_pnl)
 
-    return pd.DataFrame(
-        {"net_pnl": net_pnl, "cumulative_pnl": cumulative_pnl}, index=dates
-    )
+    return pd.DataFrame({"net_pnl": net_pnl, "cumulative_pnl": cumulative_pnl}, index=dates)
 
 
 class TestRollingSharpe:
