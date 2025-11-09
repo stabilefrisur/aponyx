@@ -33,13 +33,18 @@ logs/*
 
 # Reports (evaluation outputs - not version controlled)
 reports/suitability/*
+reports/performance/*
 !reports/suitability/.gitkeep
+!reports/performance/.gitkeep
 
 # Example outputs (demo artifacts - not version controlled)
 src/aponyx/examples/data/
 
 # Suitability registry (data-dependent, not version controlled)
 src/aponyx/evaluation/suitability/suitability_registry.json
+
+# Performance registry (data-dependent, not version controlled)
+src/aponyx/evaluation/performance/performance_registry.json
 
 # Static JSON configuration files (INCLUDE in version control):
 # These are version controlled via negation patterns below
