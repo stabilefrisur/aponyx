@@ -12,33 +12,22 @@ venv/
 env/
 
 # Data files (runtime-generated, not version controlled)
-# Allow directory structure but ignore data files
-*.parquet
-*.hdf5
-*.h5
-*.csv
-data/raw/*
-data/processed/*
-data/cache/*
-!data/raw/.gitkeep
-!data/processed/.gitkeep
-!data/cache/.gitkeep
-# Registry tracks runtime datasets - ignore it
+data/raw/
+data/processed/
+data/cache/
 data/registry.json
 
 # Logs and runtime metadata (not version controlled)
 *.log
-logs/*
-!logs/.gitkeep
+logs/
 
 # Reports (evaluation outputs - not version controlled)
-reports/suitability/*
-reports/performance/*
-!reports/suitability/.gitkeep
-!reports/performance/.gitkeep
+reports/suitability/
+reports/performance/
 
 # Example outputs (demo artifacts - not version controlled)
 src/aponyx/examples/data/
+src/aponyx/examples/reports/
 
 # Suitability registry (data-dependent, not version controlled)
 src/aponyx/evaluation/suitability/suitability_registry.json
@@ -68,6 +57,7 @@ coverage.xml
 *.swo
 *~
 .DS_Store
+.VSCodeCounter/
 
 # Jupyter Notebooks
 .ipynb_checkpoints/
@@ -94,3 +84,6 @@ PYPI_RELEASE_AGENT_INSTRUCTIONS.md
 
 # Internal TODO tracking (not version controlled)
 TODO.md
+
+# Utility scripts (not version controlled)
+scripts/
