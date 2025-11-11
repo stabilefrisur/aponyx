@@ -206,7 +206,7 @@ src/aponyx/notebooks/
 ## Data Flow (Implemented)
 
 ```
-BacktestResult(s) from 04_backtest.ipynb
+BacktestResult(s) from 04_backtest_execution.ipynb
    ↓
 PerformanceConfig (min_obs=252, n_subperiods=4, rolling_window=63)
    ↓
@@ -230,7 +230,7 @@ Visualization Layer (optional)
 Step 1: Data Download (01_data_download.ipynb)
 Step 2: Signal Computation (02_signal_computation.ipynb)
 Step 3: Suitability Evaluation (03_suitability_evaluation.ipynb)
-Step 4: Backtest Execution (04_backtest.ipynb)
+Step 4: Backtest Execution (04_backtest_execution.ipynb)
 Step 5: Performance Analysis (05_performance_analysis.ipynb) ← NEW
 ```
 

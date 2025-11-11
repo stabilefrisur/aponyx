@@ -639,7 +639,7 @@ src/aponyx/
   - `01_data_download.ipynb` - Bloomberg data acquisition (23 cells, complete)
   - `02_signal_computation.ipynb` - Signal generation workflow (21 cells, complete)
   - `03_suitability_evaluation.ipynb` - Pre-backtest screening (25 cells, complete)
-  - `04_backtest.ipynb` - Strategy backtesting (16 cells, complete)
+  - `04_backtest_execution.ipynb` - Backtest execution (9 cells, execution-only)
   - `05_performance_analysis.ipynb` - Post-backtest performance analysis (13 cells, complete)
   - `06_single_signal_template.ipynb` - End-to-end single-signal research template (29 cells, complete)
 - NumPy-style docstrings throughout codebase
@@ -1191,7 +1191,7 @@ aponyx/
 │       ├── 01_data_download.ipynb
 │       ├── 02_signal_computation.ipynb
 │       ├── 03_suitability_evaluation.ipynb
-│       ├── 04_backtest.ipynb
+│       ├── 04_backtest_execution.ipynb
 │       └── 05_performance_analysis.ipynb
 │
 ├── tests/                   # Unit tests (mirrors src/ structure)

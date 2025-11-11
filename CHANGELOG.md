@@ -58,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Backtest Workflow Notebook
-- Complete backtest execution notebook (`notebooks/04_backtest.ipynb`) with 16 cells
+- Complete backtest execution notebook (`notebooks/04_backtest_execution.ipynb`) with 9 cells (execution-only)
   - Strategy registry integration for catalog-driven backtesting
   - Multi-strategy batch execution with error handling
   - Comprehensive performance metrics visualization

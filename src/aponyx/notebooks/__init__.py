@@ -32,15 +32,15 @@ Workflow Sequence
 1. Data Download (01_data_download.ipynb)
 2. Signal Computation (02_signal_computation.ipynb)
 3. Signal Suitability Evaluation (03_suitability_evaluation.ipynb)
-4. Backtest Execution (04_backtest.ipynb) - TODO
-5. Performance Analysis (05_analysis.ipynb) - TODO
+4. Backtest Execution (04_backtest_execution.ipynb)
+5. Performance Analysis (05_performance_analysis.ipynb)
 
 **Development (Synthetic Data):**
 1. Generate Data (python generate_synthetic_data.py)
 2. Signal Computation (02_signal_computation.ipynb)
 3. Signal Suitability Evaluation (03_suitability_evaluation.ipynb)
-4. Backtest Execution (04_backtest.ipynb) - TODO
-5. Performance Analysis (05_analysis.ipynb) - TODO
+4. Backtest Execution (04_backtest_execution.ipynb)
+5. Performance Analysis (05_performance_analysis.ipynb)
 
 Notes
 -----

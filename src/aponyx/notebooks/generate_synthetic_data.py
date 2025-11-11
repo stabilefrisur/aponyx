@@ -125,7 +125,7 @@ def main(years_of_history: int = 5) -> None:
     print("  1. Skip 01_data_download.ipynb (Bloomberg not available)")
     print("  2. Run 02_signal_computation.ipynb")
     print("  3. Run 03_suitability_evaluation.ipynb")
-    print("  4. Run 04_backtest.ipynb (when available)")
+    print("  4. Run 04_backtest_execution.ipynb (when available)")
     print("  5. Run 05_analysis.ipynb (when available)")
     print("\nNotebooks will auto-detect the synthetic data cache.")
     print()
