@@ -64,7 +64,8 @@ File-based data loading (`FileSource`) works without Bloomberg dependencies.
 ```python
 from aponyx.data import fetch_cdx, fetch_etf, FileSource
 from aponyx.models import compute_cdx_etf_basis, SignalConfig
-from aponyx.backtest import run_backtest, BacktestConfig, compute_performance_metrics
+from aponyx.backtest import run_backtest, BacktestConfig
+from aponyx.evaluation.performance import compute_all_metrics
 
 # Load validated market data
 cdx_df = fetch_cdx(FileSource("data/raw/cdx_data.parquet"), security="cdx_ig_5y")
@@ -89,8 +90,8 @@ backtest_config = BacktestConfig(
 )
 results = run_backtest(signal, cdx_df["spread"], backtest_config)
 
-# Compute performance metrics
-metrics = compute_performance_metrics(results.pnl, results.positions)
+# Compute comprehensive performance metrics
+metrics = compute_all_metrics(results.pnl, results.positions)
 
 # Analyze results
 print(f"Sharpe Ratio: {metrics.sharpe_ratio:.2f}")

@@ -37,8 +37,8 @@ backtest_config = BacktestConfig(entry_threshold=1.5, exit_threshold=0.75)
 for signal_name, signal_series in signals.items():
     result = run_backtest(signal_series, cdx_df["spread"], backtest_config)
     # Compute metrics from result
-    from aponyx.backtest.metrics import compute_performance_metrics
-    metrics = compute_performance_metrics(result.pnl["net_pnl"], result.positions["position"])
+    from aponyx.evaluation.performance import compute_all_metrics
+    metrics = compute_all_metrics(result.pnl, result.positions)
     print(f"{signal_name}: Sharpe={metrics.sharpe_ratio:.2f}")
 ```
 
@@ -150,7 +150,7 @@ Run backtests for all enabled signals to compare performance:
 
 ```python
 from aponyx.backtest import run_backtest, BacktestConfig
-from aponyx.backtest.metrics import compute_performance_metrics
+from aponyx.evaluation.performance import compute_all_metrics
 
 # Compute all enabled signals
 signals = compute_registered_signals(registry, market_data, signal_config)
@@ -205,8 +205,8 @@ signal_names = ["cdx_etf_basis", "spread_momentum"]
 
 for name in signal_names:
     result = run_backtest(all_signals[name], cdx_df["spread"], backtest_config)
-    from aponyx.backtest.metrics import compute_performance_metrics
-    metrics = compute_performance_metrics(result.pnl["net_pnl"], result.positions["position"])
+    from aponyx.evaluation.performance import compute_all_metrics
+    metrics = compute_all_metrics(result.pnl, result.positions)
     print(f"{name}: Sharpe={metrics.sharpe_ratio:.2f}")
 ```
 
@@ -239,7 +239,7 @@ The backtest layer accepts any signal series for independent evaluation:
 
 ```python
 from aponyx.backtest import BacktestConfig, run_backtest
-from aponyx.backtest.metrics import compute_performance_metrics
+from aponyx.evaluation.performance import compute_all_metrics
 
 # Compute signals using registry
 signals = compute_registered_signals(registry, market_data, signal_config)

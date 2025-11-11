@@ -68,9 +68,9 @@ class PerformanceCalculator(Protocol):
 
     Examples
     --------
-    >>> # Our implementation
-    >>> from aponyx.backtest import compute_performance_metrics
-    >>> metrics = compute_performance_metrics(result.pnl, result.positions)
+    >>> # Our implementation (now in evaluation.performance)
+    >>> from aponyx.evaluation.performance import compute_all_metrics
+    >>> metrics = compute_all_metrics(result.pnl, result.positions)
     >>>
     >>> # Future: quantstats wrapper
     >>> from aponyx.backtest.adapters import QuantStatsCalculator

@@ -60,7 +60,7 @@ def generate_performance_report(
     else:
         stability_indicator = "❌ Weak"
 
-    # Extract key metrics
+    # Extract key metrics (use dataclass field access)
     metrics = result.metrics
     subperiod = result.subperiod_analysis
     attribution = result.attribution
@@ -85,46 +85,71 @@ def generate_performance_report(
 
 ---
 
+## Basic Backtest Metrics
+
+| Metric | Value |
+|--------|-------|
+| Total Return | ${metrics.total_return:,.2f} |
+| Annualized Return | ${metrics.annualized_return:,.2f} |
+| Sharpe Ratio | {metrics.sharpe_ratio:.3f} |
+| Sortino Ratio | {metrics.sortino_ratio:.3f} |
+| Max Drawdown | ${metrics.max_drawdown:,.2f} |
+| Calmar Ratio | {metrics.calmar_ratio:.3f} |
+| Annualized Volatility | ${metrics.annualized_volatility:,.2f} |
+
+### Trade Statistics
+
+| Metric | Value |
+|--------|-------|
+| Total Trades | {metrics.n_trades} |
+| Hit Rate | {metrics.hit_rate:.1%} |
+| Average Win | ${metrics.avg_win:,.2f} |
+| Average Loss | ${metrics.avg_loss:,.2f} |
+| Win/Loss Ratio | {metrics.win_loss_ratio:.3f} |
+| Avg Holding Days | {metrics.avg_holding_days:.1f} |
+
+---
+
 ## Extended Performance Metrics
 
 ### Risk-Adjusted Returns
 
 | Metric | Value |
 |--------|-------|
-| Rolling Sharpe (Mean) | {metrics['rolling_sharpe_mean']:.3f} |
-| Rolling Sharpe (Std Dev) | {metrics['rolling_sharpe_std']:.3f} |
-| Profit Factor | {metrics['profit_factor']:.3f} |
-| Tail Ratio (95th pct) | {metrics['tail_ratio']:.3f} |
-| Consistency Score (21d) | {metrics['consistency_score']:.1%} |
+| Rolling Sharpe (Mean) | {metrics.rolling_sharpe_mean:.3f} |
+| Rolling Sharpe (Std Dev) | {metrics.rolling_sharpe_std:.3f} |
+| Profit Factor | {metrics.profit_factor:.3f} |
+| Tail Ratio (95th pct) | {metrics.tail_ratio:.3f} |
+| Consistency Score (21d) | {metrics.consistency_score:.1%} |
 
 **Interpretation:**
 
 """
 
     # Add metric interpretations
-    if metrics["profit_factor"] > 1.5:
+    if metrics.profit_factor > 1.5:
         report += "- Strong profitability with gross wins substantially exceeding gross losses\n"
-    elif metrics["profit_factor"] > 1.0:
+    elif metrics.profit_factor > 1.0:
         report += "- Positive profitability with gross wins exceeding gross losses\n"
     else:
         report += "- Weak profitability with gross losses approaching or exceeding gross wins\n"
 
-    if metrics["tail_ratio"] > 1.2:
+    if metrics.tail_ratio > 1.2:
         report += "- Favorable tail asymmetry with larger upside than downside extremes\n"
-    elif metrics["tail_ratio"] > 0.8:
+    elif metrics.tail_ratio > 0.8:
         report += "- Balanced tail distribution with similar upside and downside extremes\n"
     else:
         report += "- Negative tail asymmetry with larger downside than upside extremes\n"
 
-    if metrics["consistency_score"] > 0.6:
+    if metrics.consistency_score > 0.6:
         report += "- High consistency with majority of rolling windows profitable\n"
-    elif metrics["consistency_score"] > 0.4:
+    elif metrics.consistency_score > 0.4:
         report += "- Moderate consistency with mixed profitable/unprofitable periods\n"
     else:
         report += "- Low consistency with frequent unprofitable rolling windows\n"
 
     # Drawdown recovery
-    max_dd_recovery = metrics["max_dd_recovery_days"]
+    max_dd_recovery = metrics.max_dd_recovery_days
     if max_dd_recovery == float("inf"):
         recovery_text = "Not recovered"
     else:
@@ -136,8 +161,8 @@ def generate_performance_report(
 | Metric | Value |
 |--------|-------|
 | Max Drawdown Recovery | {recovery_text} |
-| Average Recovery Time | {metrics['avg_recovery_days']:.1f} days |
-| Number of Drawdowns | {metrics['n_drawdowns']} |
+| Average Recovery Time | {metrics.avg_recovery_days:.1f} days |
+| Number of Drawdowns | {metrics.n_drawdowns} |
 
 """
 
@@ -258,7 +283,7 @@ def generate_performance_report(
             "⚠️ **Low stability score** - Review strategy robustness and consider regime filters"
         )
 
-    if metrics["profit_factor"] < 1.0:
+    if metrics.profit_factor < 1.0:
         recommendations.append(
             "❌ **Negative profit factor** - Strategy is unprofitable; do not deploy"
         )
@@ -273,7 +298,7 @@ def generate_performance_report(
             "⚠️ **Unrecovered drawdown** - Current strategy underwater; reassess viability"
         )
 
-    if metrics["tail_ratio"] < 0.8:
+    if metrics.tail_ratio < 0.8:
         recommendations.append(
             "⚠️ **Negative skew** - Downside risk exceeds upside potential; review risk controls"
         )

@@ -3,7 +3,8 @@ Extended risk and stability metrics for performance evaluation.
 
 Provides advanced metrics beyond standard backtest statistics, including
 rolling performance diagnostics, drawdown recovery analysis, tail risk,
-and consistency measures.
+and consistency measures. Consolidates all performance metrics (basic + extended)
+into a unified computation function.
 """
 
 import logging
@@ -12,6 +13,268 @@ import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
+
+
+def compute_all_metrics(
+    pnl_df: pd.DataFrame,
+    positions_df: pd.DataFrame,
+    rolling_window: int = 63,
+) -> "PerformanceMetrics":
+    """
+    Compute all performance metrics (basic + extended) from backtest results.
+
+    Consolidates computation of 21 comprehensive metrics including returns,
+    risk-adjusted ratios, trade statistics, and stability measures. Optimizes
+    shared calculations (drawdown, daily stats) to avoid redundancy.
+
+    Parameters
+    ----------
+    pnl_df : pd.DataFrame
+        Daily P&L data with 'net_pnl' and 'cumulative_pnl' columns.
+    positions_df : pd.DataFrame
+        Daily position data with 'position' and 'days_held' columns.
+    rolling_window : int
+        Window length for rolling metrics. Default: 63 days (3 months).
+
+    Returns
+    -------
+    PerformanceMetrics
+        Complete set of 21 performance statistics organized by category.
+
+    Notes
+    -----
+    Calculations assume:
+    - 252 trading days per year for annualization
+    - No risk-free rate (excess returns = total returns)
+    - Daily P&L represents actual trading results
+
+    Shared intermediates (running_max, drawdown, daily stats) are computed
+    once and reused across metrics for efficiency.
+
+    Examples
+    --------
+    >>> from aponyx.evaluation.performance import compute_all_metrics
+    >>> metrics = compute_all_metrics(result.pnl, result.positions)
+    >>> print(f"Sharpe: {metrics.sharpe_ratio:.2f}, Trades: {metrics.n_trades}")
+    """
+    from aponyx.evaluation.performance.config import PerformanceMetrics
+
+    logger.debug("Computing all performance metrics: rolling_window=%d", rolling_window)
+
+    # ==================== Shared Intermediates ====================
+    daily_pnl = pnl_df["net_pnl"]
+    cum_pnl = pnl_df["cumulative_pnl"]
+    n_days = len(pnl_df)
+    n_years = n_days / 252.0
+
+    # Daily statistics (shared by Sharpe, Sortino, volatility)
+    daily_mean = daily_pnl.mean()
+    daily_std = daily_pnl.std()
+
+    # Drawdown analysis (shared by max_drawdown and recovery metrics)
+    running_max = cum_pnl.expanding().max()
+    drawdown = cum_pnl - running_max
+    max_drawdown = drawdown.min()
+
+    # ==================== Return Metrics ====================
+    total_return = cum_pnl.iloc[-1]
+    annualized_return = total_return / n_years if n_years > 0 else 0.0
+
+    # ==================== Risk-Adjusted Metrics ====================
+    annualized_vol = daily_std * np.sqrt(252)
+
+    # Sharpe ratio
+    if daily_std > 0:
+        sharpe_ratio = (daily_mean / daily_std) * np.sqrt(252)
+    else:
+        sharpe_ratio = 0.0
+
+    # Sortino ratio (downside deviation)
+    downside_returns = daily_pnl[daily_pnl < 0]
+    if len(downside_returns) > 0:
+        downside_std = downside_returns.std()
+        if downside_std > 0:
+            sortino_ratio = (daily_mean / downside_std) * np.sqrt(252)
+        else:
+            sortino_ratio = 0.0
+    else:
+        sortino_ratio = sharpe_ratio  # No downside = same as Sharpe
+
+    # Calmar ratio
+    if max_drawdown < 0:
+        calmar_ratio = annualized_return / abs(max_drawdown)
+    else:
+        calmar_ratio = 0.0
+
+    # ==================== Trade Statistics ====================
+    # Identify trade entries (transitions from flat to positioned)
+    prev_position = positions_df["position"].shift(1).fillna(0)
+    position_entries = (prev_position == 0) & (positions_df["position"] != 0)
+    n_trades = position_entries.sum()
+
+    # Compute P&L per trade by grouping consecutive positions
+    position_changes = (positions_df["position"] != prev_position).astype(int)
+    trade_id = position_changes.cumsum()
+
+    # Only include periods where we have a position
+    active_trades = positions_df[positions_df["position"] != 0].copy()
+
+    if len(active_trades) > 0:
+        active_trades["trade_id"] = trade_id[positions_df["position"] != 0]
+
+        # Sum P&L per trade_id
+        trade_pnls = (
+            pnl_df.loc[active_trades.index].groupby(active_trades["trade_id"])["net_pnl"].sum()
+        )
+
+        trade_pnls_array = trade_pnls.values
+        winning_trades = trade_pnls_array[trade_pnls_array > 0]
+        losing_trades = trade_pnls_array[trade_pnls_array < 0]
+
+        hit_rate = len(winning_trades) / len(trade_pnls_array) if len(trade_pnls_array) > 0 else 0.0
+        avg_win = winning_trades.mean() if len(winning_trades) > 0 else 0.0
+        avg_loss = losing_trades.mean() if len(losing_trades) > 0 else 0.0
+
+        if avg_loss < 0:
+            win_loss_ratio = abs(avg_win / avg_loss)
+        else:
+            win_loss_ratio = 0.0
+    else:
+        hit_rate = 0.0
+        avg_win = 0.0
+        avg_loss = 0.0
+        win_loss_ratio = 0.0
+
+    # Holding period statistics
+    holding_periods = positions_df[positions_df["position"] != 0]["days_held"]
+    avg_holding_days = holding_periods.mean() if len(holding_periods) > 0 else 0.0
+
+    # ==================== Stability Metrics ====================
+    # Rolling Sharpe statistics
+    rolling_sharpe = compute_rolling_sharpe(daily_pnl, window=rolling_window)
+    rolling_sharpe_mean = rolling_sharpe.mean()
+    rolling_sharpe_std = rolling_sharpe.std()
+
+    # Drawdown recovery (pass pre-computed intermediates)
+    recovery_stats = _compute_drawdown_recovery_optimized(cum_pnl, running_max, drawdown)
+
+    # Tail risk
+    tail_ratio = compute_tail_ratio(daily_pnl)
+
+    # Profitability metrics
+    profit_factor = compute_profit_factor(daily_pnl)
+
+    # Consistency
+    consistency_score = compute_consistency_score(daily_pnl, window=21)
+
+    # ==================== Assemble Result ====================
+    logger.debug(
+        "Computed 21 metrics: sharpe=%.2f, trades=%d, profit_factor=%.2f",
+        sharpe_ratio,
+        n_trades,
+        profit_factor,
+    )
+
+    return PerformanceMetrics(
+        # Returns
+        total_return=total_return,
+        annualized_return=annualized_return,
+        # Risk-adjusted
+        sharpe_ratio=sharpe_ratio,
+        sortino_ratio=sortino_ratio,
+        calmar_ratio=calmar_ratio,
+        max_drawdown=max_drawdown,
+        annualized_volatility=annualized_vol,
+        # Trade stats
+        n_trades=int(n_trades),
+        hit_rate=hit_rate,
+        avg_win=avg_win,
+        avg_loss=avg_loss,
+        win_loss_ratio=win_loss_ratio,
+        avg_holding_days=avg_holding_days,
+        # Stability
+        rolling_sharpe_mean=rolling_sharpe_mean,
+        rolling_sharpe_std=rolling_sharpe_std,
+        max_dd_recovery_days=recovery_stats["max_dd_recovery_days"],
+        avg_recovery_days=recovery_stats["avg_recovery_days"],
+        n_drawdowns=recovery_stats["n_drawdowns"],
+        tail_ratio=tail_ratio,
+        profit_factor=profit_factor,
+        consistency_score=consistency_score,
+    )
+
+
+def _compute_drawdown_recovery_optimized(
+    cumulative_pnl: pd.Series,
+    running_max: pd.Series,
+    drawdown: pd.Series,
+) -> dict[str, float]:
+    """
+    Compute drawdown recovery using pre-computed intermediates.
+
+    Optimized version that accepts pre-computed running_max and drawdown
+    to avoid redundant calculation when called from compute_all_metrics.
+
+    Parameters
+    ----------
+    cumulative_pnl : pd.Series
+        Cumulative P&L time series.
+    running_max : pd.Series
+        Expanding maximum of cumulative P&L.
+    drawdown : pd.Series
+        Drawdown series (cumulative_pnl - running_max).
+
+    Returns
+    -------
+    dict[str, float]
+        Recovery statistics (max_dd_recovery_days, avg_recovery_days, n_drawdowns).
+    """
+    logger.debug("Computing drawdown recovery from pre-computed intermediates")
+
+    # Find maximum drawdown
+    max_dd_idx = drawdown.idxmin()
+
+    # Find when max drawdown started
+    peaks_before = running_max[:max_dd_idx]
+    if len(peaks_before) > 0:
+        max_dd_start = peaks_before[peaks_before == running_max[max_dd_idx]].index[-1]
+    else:
+        max_dd_start = cumulative_pnl.index[0]
+
+    # Find recovery point
+    peak_level = running_max[max_dd_idx]
+    recovery_mask = (cumulative_pnl.index > max_dd_idx) & (cumulative_pnl >= peak_level)
+
+    if recovery_mask.any():
+        recovery_idx = cumulative_pnl[recovery_mask].index[0]
+        max_dd_recovery_days = (recovery_idx - max_dd_start).days
+    else:
+        max_dd_recovery_days = np.inf
+
+    # Count all drawdown periods
+    in_drawdown = drawdown < 0
+    drawdown_starts = (~in_drawdown.shift(1, fill_value=False)) & in_drawdown
+    n_drawdowns = drawdown_starts.sum()
+
+    # Compute average recovery time
+    recovery_times = []
+    current_dd_start = None
+
+    for idx in cumulative_pnl.index:
+        if drawdown[idx] < 0 and current_dd_start is None:
+            current_dd_start = idx
+        elif drawdown[idx] == 0 and current_dd_start is not None:
+            recovery_days = (idx - current_dd_start).days
+            recovery_times.append(recovery_days)
+            current_dd_start = None
+
+    avg_recovery_days = np.mean(recovery_times) if recovery_times else 0.0
+
+    return {
+        "max_dd_recovery_days": max_dd_recovery_days,
+        "avg_recovery_days": avg_recovery_days,
+        "n_drawdowns": int(n_drawdowns),
+    }
 
 
 def compute_rolling_sharpe(

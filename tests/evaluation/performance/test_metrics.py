@@ -1,10 +1,10 @@
-"""Tests for extended risk metrics."""
+"""Tests for performance metrics."""
 
 import numpy as np
 import pandas as pd
 import pytest
 
-from aponyx.evaluation.performance.risk_metrics import (
+from aponyx.evaluation.performance.metrics import (
     compute_consistency_score,
     compute_drawdown_recovery_time,
     compute_extended_metrics,

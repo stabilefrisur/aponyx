@@ -159,10 +159,9 @@ class PerformanceRegistry:
 
         logger.debug("Registering performance evaluation: %s", evaluation_id)
 
-        # Extract key metrics (need base metrics from backtest)
-        # For now, use placeholder values - will be populated from backtest metadata
-        sharpe_ratio = result.metadata.get("sharpe_ratio", 0.0)
-        max_drawdown = result.metadata.get("max_drawdown", 0.0)
+        # Extract key metrics from PerformanceMetrics dataclass
+        sharpe_ratio = result.metrics.sharpe_ratio
+        max_drawdown = result.metrics.max_drawdown
 
         # Create entry
         entry = PerformanceEntry(
@@ -176,7 +175,7 @@ class PerformanceRegistry:
             evaluator_version=result.metadata.get("evaluator_version", "unknown"),
             report_path=report_path,
             metadata={
-                "extended_metrics": result.metrics,
+                "extended_metrics": asdict(result.metrics),
                 "subperiod_analysis": result.subperiod_analysis,
                 "attribution": result.attribution,
                 "summary": result.summary,

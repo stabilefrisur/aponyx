@@ -16,7 +16,7 @@ from aponyx.backtest import BacktestResult
 
 from .config import PerformanceConfig, PerformanceResult
 from .decomposition import compute_attribution
-from .risk_metrics import compute_extended_metrics
+from .metrics import compute_all_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -66,23 +66,27 @@ def _compute_subperiod_metrics(
     pnl_df: pd.DataFrame,
     positions_df: pd.DataFrame,
     n_subperiods: int,
+    rolling_window: int = 63,
 ) -> dict[str, Any]:
     """
-    Compute metrics for each subperiod and assess stability.
+    Compute comprehensive metrics for each subperiod using compute_all_metrics.
 
     Parameters
     ----------
     pnl_df : pd.DataFrame
         P&L DataFrame with 'net_pnl' and 'cumulative_pnl' columns.
     positions_df : pd.DataFrame
-        Position DataFrame.
+        Position DataFrame with 'position' and 'days_held' columns.
     n_subperiods : int
         Number of subperiods for analysis.
+    rolling_window : int
+        Rolling window for metrics computation. Default: 63.
 
     Returns
     -------
     dict[str, Any]
         Subperiod analysis with keys:
+        - 'periods': List of PerformanceMetrics objects per subperiod
         - 'subperiod_returns': List of total returns per period
         - 'subperiod_sharpes': List of Sharpe ratios per period
         - 'positive_periods': Count of profitable periods
@@ -90,34 +94,40 @@ def _compute_subperiod_metrics(
 
     Notes
     -----
-    Simple Sharpe calculation per subperiod (mean / std * sqrt(252)).
+    Now uses compute_all_metrics to get all 21 metrics per subperiod.
+    Stores full PerformanceMetrics dataclass objects in 'periods' list.
     """
     logger.debug("Computing subperiod metrics: n_subperiods=%d", n_subperiods)
 
     pnl_subperiods = _split_into_subperiods(pnl_df, n_subperiods)
+    pos_subperiods = _split_into_subperiods(positions_df, n_subperiods)
 
+    periods_metrics = []
     subperiod_returns = []
     subperiod_sharpes = []
 
-    for i, sub_pnl in enumerate(pnl_subperiods):
-        total_return = sub_pnl["net_pnl"].sum()
-        mean_pnl = sub_pnl["net_pnl"].mean()
-        std_pnl = sub_pnl["net_pnl"].std()
+    for i, (sub_pnl, sub_pos) in enumerate(zip(pnl_subperiods, pos_subperiods)):
+        # Compute all metrics for this subperiod
+        metrics = compute_all_metrics(sub_pnl, sub_pos, rolling_window)
+        periods_metrics.append(metrics)
+        
+        # Extract key values for summary stats
+        subperiod_returns.append(metrics.total_return)
+        subperiod_sharpes.append(metrics.sharpe_ratio)
 
-        if std_pnl > 0:
-            sharpe = (mean_pnl / std_pnl) * (252**0.5)
-        else:
-            sharpe = 0.0
-
-        subperiod_returns.append(total_return)
-        subperiod_sharpes.append(sharpe)
-
-        logger.debug("Subperiod %d: return=%.2f, sharpe=%.2f", i + 1, total_return, sharpe)
+        logger.debug(
+            "Subperiod %d: return=%.2f, sharpe=%.2f, trades=%d",
+            i + 1,
+            metrics.total_return,
+            metrics.sharpe_ratio,
+            metrics.n_trades,
+        )
 
     positive_periods = sum(1 for r in subperiod_returns if r > 0)
     consistency_rate = positive_periods / n_subperiods
 
     return {
+        "periods": periods_metrics,
         "subperiod_returns": subperiod_returns,
         "subperiod_sharpes": subperiod_sharpes,
         "positive_periods": positive_periods,
@@ -167,7 +177,7 @@ def _compute_stability_score(subperiod_analysis: dict[str, Any]) -> float:
 
 
 def _generate_summary(
-    extended_metrics: dict[str, float],
+    metrics: "PerformanceMetrics",
     subperiod_analysis: dict[str, Any],
     attribution: dict[str, dict[str, float]],
     stability_score: float,
@@ -177,8 +187,8 @@ def _generate_summary(
 
     Parameters
     ----------
-    extended_metrics : dict[str, float]
-        Extended risk metrics.
+    metrics : PerformanceMetrics
+        Comprehensive performance metrics (basic + extended).
     subperiod_analysis : dict[str, Any]
         Subperiod stability results.
     attribution : dict[str, dict[str, float]]
@@ -191,10 +201,10 @@ def _generate_summary(
     str
         Multi-line interpretive summary text.
     """
-    # Key metrics
-    profit_factor = extended_metrics["profit_factor"]
-    tail_ratio = extended_metrics["tail_ratio"]
-    consistency = extended_metrics["consistency_score"]
+    # Key metrics (access dataclass fields)
+    profit_factor = metrics.profit_factor
+    tail_ratio = metrics.tail_ratio
+    consistency = metrics.consistency_score
     positive_periods = subperiod_analysis["positive_periods"]
     n_periods = len(subperiod_analysis["subperiod_returns"])
 
@@ -309,11 +319,13 @@ def analyze_backtest_performance(
     if not required_pos_cols.issubset(positions_df.columns):
         raise ValueError(f"positions_df missing required columns: {required_pos_cols}")
 
-    # Compute extended metrics
-    extended_metrics = compute_extended_metrics(pnl_df, config.rolling_window)
+    # Compute all performance metrics (basic + extended)
+    metrics = compute_all_metrics(pnl_df, positions_df, config.rolling_window)
 
     # Subperiod stability analysis
-    subperiod_analysis = _compute_subperiod_metrics(pnl_df, positions_df, config.n_subperiods)
+    subperiod_analysis = _compute_subperiod_metrics(
+        pnl_df, positions_df, config.n_subperiods, config.rolling_window
+    )
 
     # Return attribution
     attribution = compute_attribution(
@@ -324,7 +336,7 @@ def analyze_backtest_performance(
     stability_score = _compute_stability_score(subperiod_analysis)
 
     # Generate interpretive summary
-    summary = _generate_summary(extended_metrics, subperiod_analysis, attribution, stability_score)
+    summary = _generate_summary(metrics, subperiod_analysis, attribution, stability_score)
 
     # Build result
     timestamp = datetime.now().isoformat()
@@ -337,7 +349,7 @@ def analyze_backtest_performance(
     }
 
     result = PerformanceResult(
-        metrics=extended_metrics,
+        metrics=metrics,
         subperiod_analysis=subperiod_analysis,
         attribution=attribution,
         stability_score=stability_score,
@@ -350,7 +362,7 @@ def analyze_backtest_performance(
     logger.info(
         "Performance evaluation complete: stability=%.2f, profit_factor=%.2f",
         stability_score,
-        extended_metrics["profit_factor"],
+        metrics.profit_factor,
     )
 
     return result

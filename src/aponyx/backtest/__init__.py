@@ -8,14 +8,15 @@ with clean interfaces that can wrap more powerful libraries later.
 Core Components
 ---------------
 - engine: Position generation and P&L simulation
-- metrics: Performance and risk statistics
 - config: Backtest parameters and constraints
 - protocols: Abstract interfaces for extensibility
+- registry: Strategy catalog management
+
+Note: Performance metrics have been moved to aponyx.evaluation.performance
 """
 
 from .config import BacktestConfig
 from .engine import run_backtest, BacktestResult
-from .metrics import compute_performance_metrics, PerformanceMetrics
 from .protocols import BacktestEngine, PerformanceCalculator
 from .registry import StrategyRegistry, StrategyMetadata
 
@@ -23,8 +24,6 @@ __all__ = [
     "BacktestConfig",
     "run_backtest",
     "BacktestResult",
-    "compute_performance_metrics",
-    "PerformanceMetrics",
     "BacktestEngine",
     "PerformanceCalculator",
     "StrategyRegistry",
