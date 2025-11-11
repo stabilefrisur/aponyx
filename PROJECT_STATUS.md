@@ -641,6 +641,7 @@ src/aponyx/
   - `03_suitability_evaluation.ipynb` - Pre-backtest screening (25 cells, complete)
   - `04_backtest.ipynb` - Strategy backtesting (16 cells, complete)
   - `05_performance_analysis.ipynb` - Post-backtest performance analysis (13 cells, complete)
+  - `06_single_signal_template.ipynb` - End-to-end single-signal research template (29 cells, complete)
 - NumPy-style docstrings throughout codebase
 - Copilot instructions for AI-assisted development (`.github/copilot-instructions.md`)
 
