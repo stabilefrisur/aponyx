@@ -203,6 +203,8 @@ print(docs_path)  # Path to installed documentation
 | `caching_design.md` | Cache layer architecture |
 | `adding_data_providers.md` | Provider extension guide |
 | `governance_design.md` | Registry, catalog, and config patterns |
+| `documentation_structure.md` | Documentation organization principles |
+| `project_setup_process.md` | Project setup and installation |
 
 **During development**, docs are also available on GitHub:
 - [Documentation Index](https://github.com/stabilefrisur/aponyx/tree/master/src/aponyx/docs)
@@ -291,4 +293,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 **Maintained by stabilefrisur**
 **Version**: 0.1.7
-**Last Updated**: November 9, 2025
+**Last Updated**: November 12, 2025

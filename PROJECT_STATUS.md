@@ -1,6 +1,6 @@
 # Project Status — aponyx
 
-**Last Updated:** November 9, 2025  
+**Last Updated:** November 12, 2025  
 **Version:** 0.1.7  
 **Maintainer:** stabilefrisur
 
@@ -203,9 +203,13 @@ src/aponyx/
 - Signal catalog path: `src/aponyx/models/signal_catalog.json` (from `config.SIGNAL_CATALOG_PATH`)
 - Strategy catalog path: `src/aponyx/backtest/strategy_catalog.json` (from `config.STRATEGY_CATALOG_PATH`)
 - Bloomberg config paths: `src/aponyx/data/bloomberg_securities.json`, `bloomberg_instruments.json`
+- Suitability registry path: `src/aponyx/evaluation/suitability/suitability_registry.json` (from `config.SUITABILITY_REGISTRY_PATH`)
+- Performance registry path: `src/aponyx/evaluation/performance/performance_registry.json` (from `config.PERFORMANCE_REGISTRY_PATH`)
 - DataRegistry lives in data layer (`src/aponyx/data/registry.py`)
 - SignalRegistry lives in models layer (`src/aponyx/models/registry.py`)
 - StrategyRegistry lives in backtest layer (`src/aponyx/backtest/registry.py`)
+- SuitabilityRegistry lives in evaluation/suitability layer (`src/aponyx/evaluation/suitability/registry.py`)
+- PerformanceRegistry lives in evaluation/performance layer (`src/aponyx/evaluation/performance/registry.py`)
 
 **Requirements:**
 - Bloomberg integration is optional (install with `pip install aponyx[bloomberg]`)
@@ -622,7 +626,7 @@ src/aponyx/
 ### ✅ Documentation (`src/aponyx/docs/`, `src/aponyx/notebooks/`)
 
 **Implemented:**
-- Comprehensive design documents (9 files in `src/aponyx/docs/`):
+- Comprehensive design documents (12 files in `src/aponyx/docs/`):
   - `cdx_overlay_strategy.md` - Investment strategy and signal definitions
   - `python_guidelines.md` - Code standards and best practices
   - `logging_design.md` - Logging conventions and metadata
@@ -636,12 +640,13 @@ src/aponyx/
   - `governance_design.md` - Strategy registry and governance pattern
   - `project_setup_process.md` - Project setup and installation
 - Research workflow notebooks (`src/aponyx/notebooks/`):
-  - `01_data_download.ipynb` - Bloomberg data acquisition (23 cells, complete)
-  - `02_signal_computation.ipynb` - Signal generation workflow (21 cells, complete)
-  - `03_suitability_evaluation.ipynb` - Pre-backtest screening (25 cells, complete)
-  - `04_backtest_execution.ipynb` - Backtest execution (9 cells, execution-only)
-  - `05_performance_analysis.ipynb` - Post-backtest performance analysis (13 cells, complete)
-  - `06_single_signal_template.ipynb` - End-to-end single-signal research template (29 cells, complete)
+  - `01_data_download.ipynb` - Bloomberg data acquisition (23 cells)
+  - `02_signal_computation.ipynb` - Signal generation workflow (17 cells)
+  - `03_suitability_evaluation.ipynb` - Pre-backtest screening (18 cells)
+  - `04_backtest_execution.ipynb` - Backtest execution (9 cells)
+  - `05_performance_analysis.ipynb` - Post-backtest performance analysis (31 cells)
+  - `06_single_signal_template.ipynb` - End-to-end single-signal research template (29 cells)
+  - `generate_synthetic_data.py` - Generate synthetic market data for development
 - NumPy-style docstrings throughout codebase
 - Copilot instructions for AI-assisted development (`.github/copilot-instructions.md`)
 
