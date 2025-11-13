@@ -82,3 +82,6 @@ TODO.md
 
 # Utility scripts (not version controlled)
 scripts/
+
+# Troubleshooting guides (local development only)
+NOTEBOOK_TROUBLESHOOTING.md
