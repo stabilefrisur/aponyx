@@ -127,7 +127,7 @@ def run_backtest(
     pnl_records = []
     current_position = 0
     days_held = 0
-    entry_spread = 0.0
+    prev_spread = 0.0  # Track previous day's spread for incremental P&L
 
     for date, row in aligned.iterrows():
         signal = row["signal"]
@@ -139,7 +139,7 @@ def run_backtest(
 
         # Store position before any state changes (for P&L calculation)
         position_before_update = current_position
-        entry_spread_before_update = entry_spread
+        prev_spread_before_update = prev_spread
 
         # Determine position based on signal thresholds
         if current_position == 0:
@@ -147,12 +147,10 @@ def run_backtest(
             if signal > config.entry_threshold:
                 current_position = 1  # Long credit risk (sell protection)
                 days_held = 0
-                entry_spread = spread_level
                 entry_cost = config.transaction_cost_bps * config.position_size * 100
             elif signal < -config.entry_threshold:
                 current_position = -1  # Short credit risk (buy protection)
                 days_held = 0
-                entry_spread = spread_level
                 entry_cost = config.transaction_cost_bps * config.position_size * 100
         else:
             # In position - check exit conditions
@@ -167,11 +165,12 @@ def run_backtest(
                 current_position = 0
                 days_held = 0
 
-        # Calculate P&L based on position we held during this period
+        # Calculate incremental P&L for this day
         # Use position_before_update to capture P&L on exit day
         if position_before_update != 0:
+            # Incremental spread change: current spread vs previous day's spread
             # Spread change: negative when tightening, positive when widening
-            spread_change = spread_level - entry_spread_before_update
+            spread_change = spread_level - prev_spread_before_update
             # Long position profits from tightening (negative spread change)
             # Short position profits from widening (positive spread change)
             # P&L = -position * spread_change * DV01 * position_size
@@ -186,6 +185,9 @@ def run_backtest(
 
         total_cost = entry_cost + exit_cost
         net_pnl = spread_pnl - total_cost
+
+        # Update previous spread for next iteration
+        prev_spread = spread_level
 
         # Record position state
         positions.append(
