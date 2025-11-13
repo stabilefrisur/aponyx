@@ -93,8 +93,8 @@ class TestEvaluateSignalSuitability:
         assert result.data_health_score < 1.0
         assert result.valid_obs < 500
 
-    def test_regime_change_fails_stability(self):
-        """Test that regime change fails stability test."""
+    def test_regime_change_affects_stability(self):
+        """Test that regime change is detected in stability metrics."""
         dates = pd.date_range("2020-01-01", periods=600)
 
         # First half: positive relationship
@@ -114,11 +114,11 @@ class TestEvaluateSignalSuitability:
 
         result = evaluate_signal_suitability(signal, target)
 
-        # Should have good predictive score but fail stability
-        assert result.stability_score == 0.0
-        assert len(result.subperiod_betas) == 2
-        assert result.subperiod_betas[0] > 0
-        assert result.subperiod_betas[1] < 0
+        # Should detect instability with rolling window approach
+        # Sign consistency should be low due to regime shift
+        assert result.sign_consistency_ratio < 0.8
+        assert result.stability_score < 1.0
+        assert result.n_windows > 0
 
     def test_result_to_dict(self):
         """Test that result can be serialized to dict."""
@@ -138,6 +138,11 @@ class TestEvaluateSignalSuitability:
         assert "metrics" in result_dict
         assert "timestamp" in result_dict
         assert "config" in result_dict
+        
+        # Check for rolling window metrics (not subperiod_betas)
+        assert "sign_consistency_ratio" in result_dict["metrics"]
+        assert "beta_cv" in result_dict["metrics"]
+        assert "n_windows" in result_dict["metrics"]
 
     def test_custom_config(self):
         """Test evaluation with custom configuration."""

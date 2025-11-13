@@ -133,17 +133,67 @@ class TestScoreEconomic:
 class TestScoreStability:
     """Test stability scoring."""
 
-    def test_consistent_sign(self) -> None:
-        """Test consistent sign returns 1.0."""
-        score = scoring.score_stability(sign_consistent=True)
+    def test_high_stability(self) -> None:
+        """Test high consistency and low CV returns 1.0."""
+        score = scoring.score_stability(
+            sign_consistency_ratio=0.85,
+            beta_cv=0.3,
+        )
 
-        assert score == 1.0
+        assert score == 1.0  # Both components score 1.0
 
-    def test_inconsistent_sign(self) -> None:
-        """Test inconsistent sign returns 0.0."""
-        score = scoring.score_stability(sign_consistent=False)
+    def test_moderate_stability(self) -> None:
+        """Test moderate scores return 0.5."""
+        # Moderate sign consistency, moderate CV
+        score = scoring.score_stability(
+            sign_consistency_ratio=0.75,
+            beta_cv=0.6,
+        )
 
-        assert score == 0.0
+        assert score == 0.5  # Both components score 0.5
+
+    def test_low_stability(self) -> None:
+        """Test low consistency and high CV returns 0.0."""
+        score = scoring.score_stability(
+            sign_consistency_ratio=0.5,
+            beta_cv=1.2,
+        )
+
+        assert score == 0.0  # Both components score 0.0
+
+    def test_mixed_stability(self) -> None:
+        """Test one high, one low component."""
+        # High sign consistency, high CV
+        score = scoring.score_stability(
+            sign_consistency_ratio=0.9,
+            beta_cv=1.5,
+        )
+
+        assert score == 0.5  # (1.0 + 0.0) / 2
+
+        # Low sign consistency, low CV
+        score = scoring.score_stability(
+            sign_consistency_ratio=0.5,
+            beta_cv=0.3,
+        )
+
+        assert score == 0.5  # (0.0 + 1.0) / 2
+
+    def test_threshold_boundaries(self) -> None:
+        """Test scoring at exact threshold boundaries."""
+        # Sign consistency thresholds
+        score = scoring.score_stability(sign_consistency_ratio=0.8, beta_cv=0.0)
+        assert score == 1.0  # Exactly at 0.8
+
+        score = scoring.score_stability(sign_consistency_ratio=0.6, beta_cv=0.0)
+        assert score == 0.75  # 0.5 + 1.0, average = 0.75
+
+        # CV thresholds
+        score = scoring.score_stability(sign_consistency_ratio=1.0, beta_cv=0.5)
+        assert score == 0.75  # 1.0 + 0.5, average = 0.75
+
+        score = scoring.score_stability(sign_consistency_ratio=1.0, beta_cv=1.0)
+        assert score == 0.5  # 1.0 + 0.0, average = 0.5
 
 
 class TestComputeCompositeScore:

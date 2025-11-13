@@ -307,25 +307,31 @@ src/aponyx/
 **Implemented:**
 - **Suitability Evaluation Framework:** Pre-backtest quality gate for signal-product relationships
   - `evaluate_signal_suitability` - Core evaluation orchestration
-  - `SuitabilityResult` dataclass - Comprehensive evaluation output (13+ fields)
+  - `SuitabilityResult` dataclass - Comprehensive evaluation output (15+ fields)
   - `SuitabilityConfig` - Configuration with validation (frozen dataclass)
 - **Four-Component Scoring:**
   - `score_data_health` - Sample size and missing data assessment (20% weight)
   - `score_predictive` - Multi-lag correlation and regression (40% weight)
   - `score_economic` - Effect size relevance in basis points (20% weight)
-  - `score_stability` - Sign consistency across subperiods (20% weight)
+  - `score_stability` - Dual-metric temporal stability (20% weight)
 - **Statistical Tests:**
   - `compute_correlation` - Pearson correlation calculation
   - `compute_regression_stats` - OLS with beta, t-stat, p-value
-  - `compute_subperiod_betas` - Temporal stability analysis (2-way split)
-  - `check_sign_consistency` - Binary stability test
+  - `compute_rolling_betas` - Rolling window regression (252-day default)
+  - `compute_stability_metrics` - Sign consistency ratio + coefficient of variation
+- **Stability Analysis:**
+  - Rolling window approach (default: 252 observations, min: 50)
+  - Sign consistency ratio: proportion of windows matching aggregate direction
+  - Coefficient of variation: std/mean of rolling betas for magnitude stability
+  - Dual-metric scoring: 50% sign (≥0.8 high, ≥0.6 moderate) + 50% CV (<0.5 high, <1.0 moderate)
 - **Report Generation:**
   - `generate_suitability_report` - Markdown template rendering
   - `save_report` - File persistence with timestamp
+  - Rolling window statistics with interpretation
   - Decision interpretation (PASS/HOLD/FAIL) with visual indicators
 - **Suitability Registry:**
   - `SuitabilityRegistry` - Class-based JSON catalog management
-  - `EvaluationEntry` - Metadata record dataclass
+  - `EvaluationEntry` - Metadata record dataclass with stability metrics
   - CRUD operations: register, get, list (with filters), remove
 
 **Decision Thresholds:**
@@ -335,8 +341,8 @@ src/aponyx/
 
 **Key Files:**
 - `evaluator.py` - Core evaluation orchestration
-- `tests.py` - Statistical test functions
-- `scoring.py` - Component scoring logic
+- `tests.py` - Statistical test functions (rolling window analysis)
+- `scoring.py` - Component scoring logic (dual-metric stability)
 - `report.py` - Markdown report generation
 - `registry.py` - Suitability registry management
 - `config.py` - SuitabilityConfig dataclass
@@ -344,34 +350,22 @@ src/aponyx/
 
 **Configuration:**
 - Default lags: [1, 3, 5]
+- Rolling window: 252 observations (~1 year for daily data)
 - Component weights: data_health=0.2, predictive=0.4, economic=0.2, stability=0.2
 - Pass threshold: 0.7, Hold threshold: 0.4
-- Minimum observations: 252 (default)
+- Minimum observations: 500 (default)
 - Registry path: `src/aponyx/evaluation/suitability/suitability_registry.json`
 
 **Implementation Notes:**
 - Standalone pre-backtest assessment (no trading rules or costs)
 - Uses statsmodels for OLS regression
+- Rolling window stability replaces fixed subperiod analysis
 - Registry pattern consistent with SignalRegistry and StrategyRegistry
-- Comprehensive test coverage (6 test modules)
+- Comprehensive test coverage (87 tests across 6 modules)
 
-### ✅ Evaluation Layer (`src/aponyx/evaluation/`)
+### ✅ Evaluation Layer - Performance Analysis (`src/aponyx/evaluation/performance/`)
 
 **Implemented:**
-- **Suitability Evaluation Framework:** Pre-backtest quality gate for signal-product relationships
-  - `evaluate_signal_suitability` - Core evaluation orchestration
-  - `SuitabilityResult` dataclass - Comprehensive evaluation output (13+ fields)
-  - `SuitabilityConfig` - Configuration with validation (frozen dataclass)
-- **Four-Component Scoring:**
-  - `score_data_health` - Sample size and missing data assessment (20% weight)
-  - `score_predictive` - Multi-lag correlation and regression (40% weight)
-  - `score_economic` - Effect size relevance in basis points (20% weight)
-  - `score_stability` - Sign consistency across subperiods (20% weight)
-- **Suitability Registry:**
-  - `SuitabilityRegistry` - Class-based JSON catalog management
-  - `EvaluationEntry` - Metadata record dataclass
-  - CRUD operations: register, get, list (with filters), remove
-- **Performance Evaluation Framework:** Post-backtest comprehensive analysis
   - `analyze_backtest_performance` - Core performance orchestration
   - `PerformanceResult` dataclass - Extended metrics and attribution
   - `PerformanceConfig` - Configuration with validation (frozen dataclass)

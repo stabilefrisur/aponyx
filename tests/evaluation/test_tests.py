@@ -99,101 +99,134 @@ class TestComputeRegressionStats:
         assert stats["r_squared"] == 0.0
 
 
-class TestComputeSubperiodBetas:
-    """Test subperiod beta calculation."""
+class TestComputeRollingBetas:
+    """Test rolling beta calculation."""
 
-    def test_consistent_relationship(self) -> None:
-        """Test that consistent relationship returns similar betas."""
-        np.random.seed(42)
-        signal = pd.Series(np.random.randn(200))
-        target = signal * 2.0 + np.random.randn(200) * 0.5
+    def test_perfect_relationship(self) -> None:
+        """Test rolling betas with perfect linear relationship."""
+        signal = pd.Series(np.linspace(0, 10, 300))
+        target = signal * 2.0  # Perfect relationship: beta = 2.0
 
-        betas = tests.compute_subperiod_betas(signal, target, n_splits=2)
+        rolling_betas = tests.compute_rolling_betas(signal, target, window=100)
 
-        assert len(betas) == 2
-        # Both betas should be positive and similar magnitude
-        assert betas[0] > 0
-        assert betas[1] > 0
-        assert abs(betas[0] - betas[1]) < 1.0  # Similar magnitudes
+        # First 99 values should be NaN
+        assert rolling_betas.iloc[:99].isna().all()
 
-    def test_regime_change(self) -> None:
-        """Test that regime change is detected."""
-        # First half: positive relationship
-        signal1 = pd.Series(np.linspace(0, 10, 100))
+        # Valid betas should be close to 2.0
+        valid_betas = rolling_betas.dropna()
+        assert len(valid_betas) > 0
+        assert np.allclose(valid_betas, 2.0, rtol=0.01)
+
+    def test_regime_shift(self) -> None:
+        """Test rolling betas with midpoint regime shift."""
+        # First half: positive relationship (beta ≈ 2.0)
+        signal1 = pd.Series(np.linspace(0, 10, 150))
         target1 = signal1 * 2.0
 
-        # Second half: negative relationship
-        signal2 = pd.Series(np.linspace(0, 10, 100))
+        # Second half: negative relationship (beta ≈ -2.0)
+        signal2 = pd.Series(np.linspace(0, 10, 150))
         target2 = signal2 * -2.0
 
         signal = pd.concat([signal1, signal2], ignore_index=True)
         target = pd.concat([target1, target2], ignore_index=True)
 
-        betas = tests.compute_subperiod_betas(signal, target, n_splits=2)
+        rolling_betas = tests.compute_rolling_betas(signal, target, window=50)
 
-        assert len(betas) == 2
-        # First beta positive, second negative
-        assert betas[0] > 0
-        assert betas[1] < 0
+        valid_betas = rolling_betas.dropna()
+
+        # Early betas should be positive
+        early_betas = valid_betas.iloc[:50]
+        assert early_betas.mean() > 0
+
+        # Late betas should be negative
+        late_betas = valid_betas.iloc[-50:]
+        assert late_betas.mean() < 0
 
     def test_insufficient_data_returns_empty(self) -> None:
-        """Test that insufficient data returns empty list."""
+        """Test that insufficient data returns empty series."""
         signal = pd.Series([1, 2, 3])
         target = pd.Series([4, 5, 6])
 
-        betas = tests.compute_subperiod_betas(signal, target, n_splits=2)
+        rolling_betas = tests.compute_rolling_betas(signal, target, window=100)
 
-        assert betas == []
+        assert len(rolling_betas) == 0
+
+    def test_noisy_relationship(self) -> None:
+        """Test rolling betas with noisy data."""
+        np.random.seed(42)
+        signal = pd.Series(np.random.randn(300))
+        target = signal * 1.5 + np.random.randn(300) * 0.5
+
+        rolling_betas = tests.compute_rolling_betas(signal, target, window=100)
+
+        valid_betas = rolling_betas.dropna()
+
+        # Should have some valid betas
+        assert len(valid_betas) > 0
+
+        # Mean beta should be around 1.5
+        assert 1.0 < valid_betas.mean() < 2.0
 
 
-class TestCheckSignConsistency:
-    """Test sign consistency check."""
+class TestComputeStabilityMetrics:
+    """Test stability metrics calculation."""
 
-    def test_all_positive_consistent(self) -> None:
-        """Test that all positive betas are consistent."""
-        betas = [1.5, 2.0, 1.8, 2.2]
+    def test_stable_relationship(self) -> None:
+        """Test stability metrics with stable relationship."""
+        # All betas positive and similar magnitude
+        rolling_betas = pd.Series([1.5, 1.6, 1.4, 1.7, 1.5, 1.6])
+        aggregate_beta = 1.55
 
-        consistent = tests.check_sign_consistency(betas)
+        metrics = tests.compute_stability_metrics(rolling_betas, aggregate_beta)
 
-        assert consistent is True
+        assert metrics['sign_consistency_ratio'] == 1.0  # All same sign
+        assert metrics['beta_cv'] < 0.1  # Low variation
+        assert metrics['n_windows'] == 6
 
-    def test_all_negative_consistent(self) -> None:
-        """Test that all negative betas are consistent."""
-        betas = [-1.5, -2.0, -1.8, -2.2]
+    def test_regime_shift(self) -> None:
+        """Test stability metrics with sign reversal."""
+        # Half positive, half negative (but not perfectly symmetric)
+        rolling_betas = pd.Series([2.0, 2.2, 1.8, -1.0, -1.2, -0.8])
+        aggregate_beta = 1.5  # Use positive aggregate
 
-        consistent = tests.check_sign_consistency(betas)
+        metrics = tests.compute_stability_metrics(rolling_betas, aggregate_beta)
 
-        assert consistent is True
+        # Sign consistency should be 0.5 (half pos, half neg)
+        assert metrics['sign_consistency_ratio'] == 0.5  # 3 pos, 3 neg
+        # CV should be high due to variation and non-zero mean
+        assert metrics['beta_cv'] > 1.0  # High variation across regime
+        assert metrics['n_windows'] == 6
 
-    def test_mixed_signs_inconsistent(self) -> None:
-        """Test that mixed signs are inconsistent."""
-        betas = [1.5, -0.5, 1.8]
+    def test_high_variation_stable_sign(self) -> None:
+        """Test high CV with consistent sign."""
+        # All positive but wide range
+        rolling_betas = pd.Series([0.5, 3.0, 1.0, 2.5, 1.5, 2.0])
+        aggregate_beta = 1.75
 
-        consistent = tests.check_sign_consistency(betas)
+        metrics = tests.compute_stability_metrics(rolling_betas, aggregate_beta)
 
-        assert consistent is False
+        assert metrics['sign_consistency_ratio'] == 1.0  # All same sign
+        assert metrics['beta_cv'] > 0.5  # High variation
 
-    def test_zero_beta_filtered(self) -> None:
-        """Test that zero beta is filtered out, consistency based on non-zero."""
-        betas = [0.0, 1.5, 2.0]
+    def test_empty_betas_returns_zeros(self) -> None:
+        """Test that empty rolling betas returns zero metrics."""
+        rolling_betas = pd.Series([], dtype=float)
+        aggregate_beta = 1.0
 
-        consistent = tests.check_sign_consistency(betas)
+        metrics = tests.compute_stability_metrics(rolling_betas, aggregate_beta)
 
-        # Zeros filtered, remaining [1.5, 2.0] are consistent (both positive)
-        assert consistent is True
+        assert metrics['sign_consistency_ratio'] == 0.0
+        assert metrics['beta_cv'] == 0.0
+        assert metrics['n_windows'] == 0
 
-    def test_all_zeros_inconsistent(self) -> None:
-        """Test that all zeros is treated as inconsistent."""
-        betas = [0.0, 0.0, 0.0]
+    def test_filters_near_zero_betas(self) -> None:
+        """Test that near-zero betas are filtered from sign consistency."""
+        # Mix of significant betas and near-zero noise
+        rolling_betas = pd.Series([1.5, 0.005, 1.6, -0.008, 1.4])
+        aggregate_beta = 1.5
 
-        consistent = tests.check_sign_consistency(betas)
+        metrics = tests.compute_stability_metrics(rolling_betas, aggregate_beta)
 
-        assert consistent is False
+        # Only significant betas [1.5, 1.6, 1.4] should count for sign consistency
+        assert metrics['sign_consistency_ratio'] == 1.0  # All significant ones are positive
 
-    def test_empty_list_inconsistent(self) -> None:
-        """Test that empty list is inconsistent."""
-        betas = []
-
-        consistent = tests.check_sign_consistency(betas)
-
-        assert consistent is False

@@ -150,8 +150,9 @@ def generate_suitability_report(
 ### 4. Temporal Stability Score: {result.stability_score:.3f}
 
 **Metrics:**
-- Subperiod Betas: {', '.join(f'{b:.4f}' for b in result.subperiod_betas)}
-- Sign Consistent: {'Yes' if result.stability_score > 0.5 else 'No'}
+- Rolling Windows: {result.n_windows} windows ({result.config.rolling_window} observations each)
+- Sign Consistency Ratio: {result.sign_consistency_ratio:.1%}
+- Beta Coefficient of Variation: {result.beta_cv:.3f}
 
 **Interpretation:**  
 {stability_interp}
@@ -297,18 +298,47 @@ def _interpret_economic(result: SuitabilityResult) -> str:
 
 def _interpret_stability(result: SuitabilityResult) -> str:
     """Generate interpretation text for stability component."""
-    if result.stability_score >= 0.9:
-        return (
-            "Excellent temporal stability. "
-            "Predictive relationship maintains consistent sign across subperiods, "
-            "indicating robustness across different market regimes."
+    sign_ratio = result.sign_consistency_ratio
+    cv = result.beta_cv
+    n_windows = result.n_windows
+    
+    # Interpret sign consistency
+    if sign_ratio >= 0.8:
+        sign_interp = "highly consistent"
+    elif sign_ratio >= 0.6:
+        sign_interp = "moderately consistent"
+    else:
+        sign_interp = "inconsistent"
+    
+    # Interpret magnitude stability
+    if cv < 0.5:
+        mag_interp = "stable magnitude"
+    elif cv < 1.0:
+        mag_interp = "moderate variation"
+    else:
+        mag_interp = "high variation"
+    
+    # Overall interpretation
+    if result.stability_score >= 0.8:
+        overall = (
+            f"Excellent temporal stability ({sign_interp} sign, {mag_interp}). "
+            f"The predictive relationship maintains consistent direction and magnitude "
+            f"across {n_windows} rolling windows, indicating robustness across different market regimes."
+        )
+    elif result.stability_score >= 0.5:
+        overall = (
+            f"Moderate temporal stability ({sign_interp} sign, {mag_interp}). "
+            f"The relationship shows some consistency but exhibits regime-dependent behavior. "
+            f"Consider investigating the source of variation before strategy design."
         )
     else:
-        return (
-            "Temporal instability detected. "
-            "Predictive relationship reversed sign in at least one subperiod, suggesting "
-            "regime changes or non-stationarity. Use caution when designing strategies."
+        overall = (
+            f"Low temporal stability ({sign_interp} sign, {mag_interp}). "
+            f"The predictive relationship is unstable across time, suggesting strong regime "
+            f"dependence or non-stationarity. Use caution when designing strategies."
         )
+    
+    return overall
 
 
 def save_report(

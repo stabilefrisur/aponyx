@@ -25,6 +25,9 @@ class SuitabilityConfig:
     min_obs : int
         Minimum number of valid observations required for reliable inference.
         Must be at least 100. Default: 500.
+    rolling_window : int
+        Rolling window size in observations for stability analysis.
+        Must be at least 50. Default: 252 (~1 year for daily data).
     pass_threshold : float
         Composite score threshold for PASS decision (proceed to backtest).
         Must satisfy: 0 < hold_threshold < pass_threshold < 1.
@@ -71,6 +74,7 @@ class SuitabilityConfig:
 
     lags: list[int] = field(default_factory=lambda: [1, 3, 5])
     min_obs: int = 500
+    rolling_window: int = 252
     pass_threshold: float = 0.7
     hold_threshold: float = 0.4
     data_health_weight: float = 0.2
@@ -130,4 +134,10 @@ class SuitabilityConfig:
         if self.min_obs < 100:
             raise ValueError(
                 f"min_obs must be at least 100 for reliable inference, got {self.min_obs}"
+            )
+
+        # Validate rolling window
+        if self.rolling_window < 50:
+            raise ValueError(
+                f"rolling_window must be at least 50 for meaningful statistics, got {self.rolling_window}"
             )

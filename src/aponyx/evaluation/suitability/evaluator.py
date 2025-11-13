@@ -53,8 +53,12 @@ class SuitabilityResult:
         T-statistics by lag horizon.
     effect_size_bps : float
         Economic impact estimate (bps per 1σ signal change).
-    subperiod_betas : list[float]
-        Beta coefficients from subperiod analysis.
+    sign_consistency_ratio : float
+        Proportion of rolling windows with consistent sign.
+    beta_cv : float
+        Coefficient of variation of rolling betas.
+    n_windows : int
+        Number of valid rolling windows analyzed.
     timestamp : str
         ISO timestamp of evaluation.
     config : SuitabilityConfig
@@ -73,7 +77,9 @@ class SuitabilityResult:
     betas: dict[int, float]
     t_stats: dict[int, float]
     effect_size_bps: float
-    subperiod_betas: list[float]
+    sign_consistency_ratio: float
+    beta_cv: float
+    n_windows: int
     timestamp: str
     config: SuitabilityConfig
 
@@ -102,7 +108,9 @@ class SuitabilityResult:
                 "betas": self.betas,
                 "t_stats": self.t_stats,
                 "effect_size_bps": self.effect_size_bps,
-                "subperiod_betas": self.subperiod_betas,
+                "sign_consistency_ratio": self.sign_consistency_ratio,
+                "beta_cv": self.beta_cv,
+                "n_windows": self.n_windows,
             },
             "timestamp": self.timestamp,
             "config": asdict(self.config),
@@ -312,18 +320,28 @@ def evaluate_signal_suitability(
     economic_score = scoring.score_economic(effect_size_bps)
     logger.info("Economic score: %.3f", economic_score)
 
-    # Compute temporal stability
-    subperiod_betas = tests.compute_subperiod_betas(signal_aligned, target_aligned)
-    sign_consistent = tests.check_sign_consistency(subperiod_betas)
+    # Compute temporal stability using rolling window approach
+    rolling_betas = tests.compute_rolling_betas(
+        signal_aligned,
+        target_aligned,
+        window=config.rolling_window,
+    )
+    
+    # Compute stability metrics
+    stability_metrics = tests.compute_stability_metrics(rolling_betas, avg_beta)
+    sign_consistency_ratio = stability_metrics['sign_consistency_ratio']
+    beta_cv = stability_metrics['beta_cv']
+    n_windows = stability_metrics['n_windows']
 
     logger.debug(
-        "Stability: subperiod_betas=%s, consistent=%s",
-        subperiod_betas,
-        sign_consistent,
+        "Stability: sign_ratio=%.3f, CV=%.3f, n_windows=%d",
+        sign_consistency_ratio,
+        beta_cv,
+        n_windows,
     )
 
     # Score stability
-    stability_score = scoring.score_stability(sign_consistent)
+    stability_score = scoring.score_stability(sign_consistency_ratio, beta_cv)
     logger.info("Stability score: %.3f", stability_score)
 
     # Compute composite score
@@ -354,7 +372,9 @@ def evaluate_signal_suitability(
         betas=betas,
         t_stats=t_stats,
         effect_size_bps=effect_size_bps,
-        subperiod_betas=subperiod_betas,
+        sign_consistency_ratio=sign_consistency_ratio,
+        beta_cv=beta_cv,
+        n_windows=n_windows,
         timestamp=datetime.now().isoformat(),
         config=config,
     )

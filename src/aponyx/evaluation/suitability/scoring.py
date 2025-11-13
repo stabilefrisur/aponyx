@@ -163,40 +163,88 @@ def score_economic(effect_size_bps: float) -> float:
     return score
 
 
-def score_stability(sign_consistent: bool) -> float:
+def score_stability(
+    sign_consistency_ratio: float,
+    beta_cv: float,
+) -> float:
     """
-    Score temporal stability based on sign consistency.
+    Score temporal stability based on rolling window statistics.
 
     Parameters
     ----------
-    sign_consistent : bool
-        Whether all subperiod betas have consistent sign.
+    sign_consistency_ratio : float
+        Proportion of rolling windows with same sign as aggregate beta (0-1).
+    beta_cv : float
+        Coefficient of variation of rolling betas (std / |mean|).
 
     Returns
     -------
     float
-        Stability score: 1.0 if consistent, 0.0 if not.
+        Stability score on 0-1 scale.
+        Weighted average of sign consistency and magnitude stability scores.
 
     Notes
     -----
-    Binary test: relationship either stable (1.0) or unstable (0.0).
-    Sign reversals indicate regime changes or non-stationarity.
+    Scoring logic:
+    
+    Sign Consistency Component (50% weight):
+    - ratio ≥ 0.8: score = 1.0 (highly consistent)
+    - 0.6 ≤ ratio < 0.8: score = 0.5 (moderately consistent)
+    - ratio < 0.6: score = 0.0 (inconsistent)
+    
+    Magnitude Stability Component (50% weight):
+    - CV < 0.5: score = 1.0 (stable magnitude)
+    - 0.5 ≤ CV < 1.0: score = 0.5 (moderate variation)
+    - CV ≥ 1.0: score = 0.0 (high variation)
+    
+    Final score = 0.5 × sign_score + 0.5 × magnitude_score
 
     Examples
     --------
-    >>> score_stability(True)
+    >>> score_stability(0.85, 0.3)  # High consistency, low CV
     1.0
-    >>> score_stability(False)
+    >>> score_stability(0.75, 0.6)  # Moderate both
+    0.5
+    >>> score_stability(0.5, 1.2)   # Low consistency, high CV
     0.0
     """
-    score = 1.0 if sign_consistent else 0.0
-
+    # Score sign consistency
+    if sign_consistency_ratio >= 0.8:
+        sign_score = 1.0
+        sign_category = "highly consistent"
+    elif sign_consistency_ratio >= 0.6:
+        sign_score = 0.5
+        sign_category = "moderately consistent"
+    else:
+        sign_score = 0.0
+        sign_category = "inconsistent"
+    
+    # Score magnitude stability (lower CV = more stable)
+    if beta_cv < 0.5:
+        magnitude_score = 1.0
+        magnitude_category = "stable"
+    elif beta_cv < 1.0:
+        magnitude_score = 0.5
+        magnitude_category = "moderate variation"
+    else:
+        magnitude_score = 0.0
+        magnitude_category = "high variation"
+    
+    # Weighted average (equal weights)
+    score = 0.5 * sign_score + 0.5 * magnitude_score
+    
     logger.debug(
-        "Temporal stability: sign_consistent=%s, score=%.3f",
-        sign_consistent,
+        "Temporal stability: sign_ratio=%.3f (%s, score=%.1f), "
+        "CV=%.3f (%s, score=%.1f), final_score=%.3f",
+        sign_consistency_ratio,
+        sign_category,
+        sign_score,
+        beta_cv,
+        magnitude_category,
+        magnitude_score,
         score,
     )
-
+    
     return score
 
 
