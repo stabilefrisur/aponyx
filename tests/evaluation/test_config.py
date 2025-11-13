@@ -115,10 +115,14 @@ class TestSuitabilityConfigValidation:
 
     def test_rolling_window_too_small_raises(self) -> None:
         """Test that rolling_window < 50 raises ValueError."""
-        with pytest.raises(ValueError, match="rolling_window must be at least 50 for meaningful statistics"):
+        with pytest.raises(
+            ValueError, match="rolling_window must be at least 50 for meaningful statistics"
+        ):
             SuitabilityConfig(rolling_window=30)
 
-        with pytest.raises(ValueError, match="rolling_window must be at least 50 for meaningful statistics"):
+        with pytest.raises(
+            ValueError, match="rolling_window must be at least 50 for meaningful statistics"
+        ):
             SuitabilityConfig(rolling_window=0)
 
 

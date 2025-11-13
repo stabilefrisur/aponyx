@@ -167,7 +167,7 @@ def compute_rolling_betas(
     -----
     Uses OLS regression in each window: target ~ signal + constant.
     Minimum window size is 50 observations for reliable estimation.
-    
+
     Implementation uses rolling window with apply to compute regression
     beta coefficient in each window.
 
@@ -188,15 +188,15 @@ def compute_rolling_betas(
 
     # Preallocate result array
     betas = np.full(len(signal), np.nan)
-    
+
     # Compute beta for each window
     for i in range(window - 1, len(signal)):
-        window_signal = signal.iloc[i - window + 1:i + 1]
-        window_target = target.iloc[i - window + 1:i + 1]
-        
+        window_signal = signal.iloc[i - window + 1 : i + 1]
+        window_target = target.iloc[i - window + 1 : i + 1]
+
         if len(window_signal) < 3:
             continue
-        
+
         try:
             X = sm.add_constant(window_signal.values)
             y = window_target.values
@@ -204,16 +204,16 @@ def compute_rolling_betas(
             betas[i] = float(model.params[1])
         except Exception:
             pass  # Keep as NaN
-    
+
     rolling_betas = pd.Series(betas, index=signal.index, name=signal.name)
-    
+
     logger.debug(
         "Computed %d rolling betas (window=%d, valid=%d)",
         len(rolling_betas),
         window,
         rolling_betas.notna().sum(),
     )
-    
+
     return rolling_betas
 
 
@@ -244,7 +244,7 @@ def compute_stability_metrics(
     -----
     Sign consistency ratio ≥ 0.8 indicates stable directional relationship.
     Beta CV < 0.5 indicates low magnitude variation (stable effect size).
-    
+
     Windows with beta ≈ 0 (|beta| < 0.01) are excluded from sign consistency
     to avoid spurious sign flips in noise.
 
@@ -260,18 +260,18 @@ def compute_stability_metrics(
     """
     # Remove NaN values
     valid_betas = rolling_betas.dropna()
-    
+
     if len(valid_betas) == 0:
         logger.warning("No valid rolling betas, returning zero metrics")
         return {
-            'sign_consistency_ratio': 0.0,
-            'beta_cv': 0.0,
-            'n_windows': 0,
+            "sign_consistency_ratio": 0.0,
+            "beta_cv": 0.0,
+            "n_windows": 0,
         }
-    
+
     # Sign consistency: proportion of windows with same sign as aggregate
     aggregate_sign = np.sign(aggregate_beta)
-    
+
     # Filter out near-zero betas (|beta| < 0.01) to avoid noise
     non_zero_mask = np.abs(valid_betas) >= 0.01
     if non_zero_mask.sum() == 0:
@@ -279,26 +279,25 @@ def compute_stability_metrics(
     else:
         same_sign = (np.sign(valid_betas[non_zero_mask]) == aggregate_sign).sum()
         sign_consistency_ratio = float(same_sign / non_zero_mask.sum())
-    
+
     # Coefficient of variation: std / |mean|
     beta_mean = valid_betas.mean()
     beta_std = valid_betas.std()
-    
+
     if abs(beta_mean) < 1e-10:
         beta_cv = 0.0
     else:
         beta_cv = float(beta_std / abs(beta_mean))
-    
+
     logger.debug(
         "Stability metrics: sign_ratio=%.3f, CV=%.3f, n_windows=%d",
         sign_consistency_ratio,
         beta_cv,
         len(valid_betas),
     )
-    
-    return {
-        'sign_consistency_ratio': sign_consistency_ratio,
-        'beta_cv': beta_cv,
-        'n_windows': len(valid_betas),
-    }
 
+    return {
+        "sign_consistency_ratio": sign_consistency_ratio,
+        "beta_cv": beta_cv,
+        "n_windows": len(valid_betas),
+    }

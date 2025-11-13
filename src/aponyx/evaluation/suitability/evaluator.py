@@ -326,12 +326,12 @@ def evaluate_signal_suitability(
         target_aligned,
         window=config.rolling_window,
     )
-    
+
     # Compute stability metrics
     stability_metrics = tests.compute_stability_metrics(rolling_betas, avg_beta)
-    sign_consistency_ratio = stability_metrics['sign_consistency_ratio']
-    beta_cv = stability_metrics['beta_cv']
-    n_windows = stability_metrics['n_windows']
+    sign_consistency_ratio = stability_metrics["sign_consistency_ratio"]
+    beta_cv = stability_metrics["beta_cv"]
+    n_windows = stability_metrics["n_windows"]
 
     logger.debug(
         "Stability: sign_ratio=%.3f, CV=%.3f, n_windows=%d",

@@ -9,8 +9,8 @@ import pytest
 from aponyx.backtest import (
     BacktestConfig,
     run_backtest,
-    compute_performance_metrics,
 )
+from aponyx.evaluation.performance import compute_all_metrics
 
 
 @pytest.fixture
@@ -162,7 +162,7 @@ def test_run_backtest_calculates_pnl(
     pd.testing.assert_series_equal(result.pnl["cumulative_pnl"], expected_cum)
 
 
-def test_compute_performance_metrics_structure() -> None:
+def test_compute_all_metrics_structure() -> None:
     """Test that performance metrics returns all expected fields."""
     # Create simple synthetic backtest result
     dates = pd.date_range("2024-01-01", periods=100, freq="D")
@@ -181,7 +181,7 @@ def test_compute_performance_metrics_structure() -> None:
         index=dates,
     )
 
-    metrics = compute_performance_metrics(pnl_df, positions_df)
+    metrics = compute_all_metrics(pnl_df, positions_df)
 
     # Check all fields exist
     assert hasattr(metrics, "sharpe_ratio")
@@ -199,13 +199,13 @@ def test_compute_performance_metrics_structure() -> None:
     assert hasattr(metrics, "avg_holding_days")
 
 
-def test_compute_performance_metrics_values(
+def test_compute_all_metrics_values(
     sample_signal_and_spread: tuple[pd.Series, pd.Series],
 ) -> None:
     """Test that performance metrics have reasonable values."""
     signal, spread = sample_signal_and_spread
     result = run_backtest(signal, spread)
-    metrics = compute_performance_metrics(result.pnl, result.positions)
+    metrics = compute_all_metrics(result.pnl, result.positions)
 
     # Hit rate should be between 0 and 1
     assert 0.0 <= metrics.hit_rate <= 1.0

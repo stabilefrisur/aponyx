@@ -179,9 +179,9 @@ class TestComputeStabilityMetrics:
 
         metrics = tests.compute_stability_metrics(rolling_betas, aggregate_beta)
 
-        assert metrics['sign_consistency_ratio'] == 1.0  # All same sign
-        assert metrics['beta_cv'] < 0.1  # Low variation
-        assert metrics['n_windows'] == 6
+        assert metrics["sign_consistency_ratio"] == 1.0  # All same sign
+        assert metrics["beta_cv"] < 0.1  # Low variation
+        assert metrics["n_windows"] == 6
 
     def test_regime_shift(self) -> None:
         """Test stability metrics with sign reversal."""
@@ -192,10 +192,10 @@ class TestComputeStabilityMetrics:
         metrics = tests.compute_stability_metrics(rolling_betas, aggregate_beta)
 
         # Sign consistency should be 0.5 (half pos, half neg)
-        assert metrics['sign_consistency_ratio'] == 0.5  # 3 pos, 3 neg
+        assert metrics["sign_consistency_ratio"] == 0.5  # 3 pos, 3 neg
         # CV should be high due to variation and non-zero mean
-        assert metrics['beta_cv'] > 1.0  # High variation across regime
-        assert metrics['n_windows'] == 6
+        assert metrics["beta_cv"] > 1.0  # High variation across regime
+        assert metrics["n_windows"] == 6
 
     def test_high_variation_stable_sign(self) -> None:
         """Test high CV with consistent sign."""
@@ -205,8 +205,8 @@ class TestComputeStabilityMetrics:
 
         metrics = tests.compute_stability_metrics(rolling_betas, aggregate_beta)
 
-        assert metrics['sign_consistency_ratio'] == 1.0  # All same sign
-        assert metrics['beta_cv'] > 0.5  # High variation
+        assert metrics["sign_consistency_ratio"] == 1.0  # All same sign
+        assert metrics["beta_cv"] > 0.5  # High variation
 
     def test_empty_betas_returns_zeros(self) -> None:
         """Test that empty rolling betas returns zero metrics."""
@@ -215,9 +215,9 @@ class TestComputeStabilityMetrics:
 
         metrics = tests.compute_stability_metrics(rolling_betas, aggregate_beta)
 
-        assert metrics['sign_consistency_ratio'] == 0.0
-        assert metrics['beta_cv'] == 0.0
-        assert metrics['n_windows'] == 0
+        assert metrics["sign_consistency_ratio"] == 0.0
+        assert metrics["beta_cv"] == 0.0
+        assert metrics["n_windows"] == 0
 
     def test_filters_near_zero_betas(self) -> None:
         """Test that near-zero betas are filtered from sign consistency."""
@@ -228,5 +228,4 @@ class TestComputeStabilityMetrics:
         metrics = tests.compute_stability_metrics(rolling_betas, aggregate_beta)
 
         # Only significant betas [1.5, 1.6, 1.4] should count for sign consistency
-        assert metrics['sign_consistency_ratio'] == 1.0  # All significant ones are positive
-
+        assert metrics["sign_consistency_ratio"] == 1.0  # All significant ones are positive

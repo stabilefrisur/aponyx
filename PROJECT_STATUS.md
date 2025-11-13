@@ -1,7 +1,7 @@
 # Project Status — aponyx
 
-**Last Updated:** November 12, 2025  
-**Version:** 0.1.7  
+**Last Updated:** November 13, 2025  
+**Version:** 0.1.8  
 **Maintainer:** stabilefrisur
 
 ---

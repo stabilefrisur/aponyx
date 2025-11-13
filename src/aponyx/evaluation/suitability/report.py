@@ -301,7 +301,7 @@ def _interpret_stability(result: SuitabilityResult) -> str:
     sign_ratio = result.sign_consistency_ratio
     cv = result.beta_cv
     n_windows = result.n_windows
-    
+
     # Interpret sign consistency
     if sign_ratio >= 0.8:
         sign_interp = "highly consistent"
@@ -309,7 +309,7 @@ def _interpret_stability(result: SuitabilityResult) -> str:
         sign_interp = "moderately consistent"
     else:
         sign_interp = "inconsistent"
-    
+
     # Interpret magnitude stability
     if cv < 0.5:
         mag_interp = "stable magnitude"
@@ -317,7 +317,7 @@ def _interpret_stability(result: SuitabilityResult) -> str:
         mag_interp = "moderate variation"
     else:
         mag_interp = "high variation"
-    
+
     # Overall interpretation
     if result.stability_score >= 0.8:
         overall = (
@@ -337,7 +337,7 @@ def _interpret_stability(result: SuitabilityResult) -> str:
             f"The predictive relationship is unstable across time, suggesting strong regime "
             f"dependence or non-stationarity. Use caution when designing strategies."
         )
-    
+
     return overall
 
 

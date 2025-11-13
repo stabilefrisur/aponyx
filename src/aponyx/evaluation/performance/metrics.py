@@ -12,6 +12,8 @@ import logging
 import numpy as np
 import pandas as pd
 
+from .config import PerformanceMetrics
+
 logger = logging.getLogger(__name__)
 
 
@@ -19,7 +21,7 @@ def compute_all_metrics(
     pnl_df: pd.DataFrame,
     positions_df: pd.DataFrame,
     rolling_window: int = 63,
-) -> "PerformanceMetrics":
+) -> PerformanceMetrics:
     """
     Compute all performance metrics (basic + extended) from backtest results.
 

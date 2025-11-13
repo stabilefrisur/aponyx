@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2025-11-13
+
+### Added
+- Single-signal research workflow template notebook (`notebooks/06_single_signal_template.ipynb`) with 8588 lines
+  - Complete end-to-end workflow for individual signal development and validation
+  - Integrated suitability evaluation, backtesting, and performance analysis
+  - Self-contained template for rapid signal idea iteration
+- Jupyter notebook stability settings and troubleshooting guide (`NOTEBOOK_TROUBLESHOOTING.md`)
+  - Solutions for kernel crashes and execution issues
+  - Environment variable configuration for Windows stability
+  - Best practices for notebook development workflow
+
+### Changed
+- Refactored performance metrics consolidation into evaluation layer
+  - Moved `backtest/metrics.py` → `evaluation/performance/metrics.py`
+  - Enhanced metrics module with comprehensive risk-adjusted calculations
+  - Unified performance analysis through evaluation layer
+- Implemented rolling window stability analysis with dual-metric scoring
+  - Enhanced `PerformanceAnalyzer` with temporal stability assessment
+  - Added rolling Sharpe ratio tracking for regime consistency
+  - Improved performance reporting with stability diagnostics
+- Aligned structure and formatting across notebooks 01-05
+  - Standardized markdown headers and cell organization
+  - Consistent workflow documentation and prerequisite tracking
+  - Improved table formatting with left-aligned display
+- Updated documentation for accuracy across design docs and notebooks
+  - Corrected signal registry usage examples
+  - Fixed performance evaluation design documentation
+  - Enhanced signal suitability design document (renamed from `signal_suitability_evaluation.md`)
+
+### Fixed
+- Performance metrics now correctly compute extended risk metrics (profit factor, tail ratio, Calmar)
+- Suitability evaluation tests updated with correct configuration patterns
+- Notebook execution stability improved with proper error handling
+
 ## [0.1.7] - 2025-11-09
 
 ### Added
@@ -324,6 +359,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.8]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.8
 [0.1.7]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.7
 [0.1.6]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.6
 [0.1.5]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.5

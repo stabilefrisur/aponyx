@@ -235,7 +235,7 @@ def generate_performance_report(
 
     report += "\n### Signal Strength Attribution\n\n"
     report += "| Quantile | P&L | Contribution |\n"
-    report += "|----------|-----|--------------|\\n"
+    report += "|----------|-----|--------------|\n"
 
     n_quantiles = result.config.attribution_quantiles
     for i in range(1, n_quantiles + 1):

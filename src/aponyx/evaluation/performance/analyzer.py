@@ -14,7 +14,7 @@ import pandas as pd
 from aponyx import __version__
 from aponyx.backtest import BacktestResult
 
-from .config import PerformanceConfig, PerformanceResult
+from .config import PerformanceConfig, PerformanceMetrics, PerformanceResult
 from .decomposition import compute_attribution
 from .metrics import compute_all_metrics
 
@@ -110,7 +110,7 @@ def _compute_subperiod_metrics(
         # Compute all metrics for this subperiod
         metrics = compute_all_metrics(sub_pnl, sub_pos, rolling_window)
         periods_metrics.append(metrics)
-        
+
         # Extract key values for summary stats
         subperiod_returns.append(metrics.total_return)
         subperiod_sharpes.append(metrics.sharpe_ratio)
@@ -177,7 +177,7 @@ def _compute_stability_score(subperiod_analysis: dict[str, Any]) -> float:
 
 
 def _generate_summary(
-    metrics: "PerformanceMetrics",
+    metrics: PerformanceMetrics,
     subperiod_analysis: dict[str, Any],
     attribution: dict[str, dict[str, float]],
     stability_score: float,

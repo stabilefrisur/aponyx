@@ -138,7 +138,7 @@ class TestEvaluateSignalSuitability:
         assert "metrics" in result_dict
         assert "timestamp" in result_dict
         assert "config" in result_dict
-        
+
         # Check for rolling window metrics (not subperiod_betas)
         assert "sign_consistency_ratio" in result_dict["metrics"]
         assert "beta_cv" in result_dict["metrics"]

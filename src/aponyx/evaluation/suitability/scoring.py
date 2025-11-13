@@ -186,17 +186,17 @@ def score_stability(
     Notes
     -----
     Scoring logic:
-    
+
     Sign Consistency Component (50% weight):
     - ratio ≥ 0.8: score = 1.0 (highly consistent)
     - 0.6 ≤ ratio < 0.8: score = 0.5 (moderately consistent)
     - ratio < 0.6: score = 0.0 (inconsistent)
-    
+
     Magnitude Stability Component (50% weight):
     - CV < 0.5: score = 1.0 (stable magnitude)
     - 0.5 ≤ CV < 1.0: score = 0.5 (moderate variation)
     - CV ≥ 1.0: score = 0.0 (high variation)
-    
+
     Final score = 0.5 × sign_score + 0.5 × magnitude_score
 
     Examples
@@ -218,7 +218,7 @@ def score_stability(
     else:
         sign_score = 0.0
         sign_category = "inconsistent"
-    
+
     # Score magnitude stability (lower CV = more stable)
     if beta_cv < 0.5:
         magnitude_score = 1.0
@@ -229,10 +229,10 @@ def score_stability(
     else:
         magnitude_score = 0.0
         magnitude_category = "high variation"
-    
+
     # Weighted average (equal weights)
     score = 0.5 * sign_score + 0.5 * magnitude_score
-    
+
     logger.debug(
         "Temporal stability: sign_ratio=%.3f (%s, score=%.1f), "
         "CV=%.3f (%s, score=%.1f), final_score=%.3f",
@@ -244,7 +244,7 @@ def score_stability(
         magnitude_score,
         score,
     )
-    
+
     return score
 
 
