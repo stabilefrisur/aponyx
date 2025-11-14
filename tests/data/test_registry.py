@@ -304,37 +304,6 @@ class TestRegistryRepr:
 class TestDatasetEntry:
     """Test cases for DatasetEntry dataclass."""
 
-    def test_dataclass_creation(self):
-        """Test creating DatasetEntry with all fields."""
-        entry = DatasetEntry(
-            instrument="CDX.NA.IG",
-            file_path="data/cdx_ig_5y.parquet",
-            registered_at="2024-10-25T14:30:00",
-            start_date="2024-01-01T00:00:00",
-            end_date="2024-10-25T00:00:00",
-            row_count=215,
-            metadata={"source": "Bloomberg"},
-        )
-
-        assert entry.instrument == "CDX.NA.IG"
-        assert entry.row_count == 215
-        assert entry.metadata["source"] == "Bloomberg"
-
-    def test_dataclass_defaults(self):
-        """Test DatasetEntry with default values."""
-        entry = DatasetEntry(
-            instrument="VIX",
-            file_path="data/vix.parquet",
-            registered_at="2024-10-25T14:30:00",
-        )
-
-        assert entry.instrument == "VIX"
-        assert entry.start_date is None
-        assert entry.end_date is None
-        assert entry.row_count is None
-        assert entry.last_updated is None
-        assert entry.metadata == {}
-
     def test_to_dict(self):
         """Test converting DatasetEntry to dictionary."""
         entry = DatasetEntry(

@@ -7,6 +7,7 @@ import pytest
 from aponyx.evaluation.performance import (
     PerformanceConfig,
     PerformanceEntry,
+    PerformanceMetrics,
     PerformanceRegistry,
     PerformanceResult,
 )
@@ -15,17 +16,31 @@ from aponyx.evaluation.performance import (
 @pytest.fixture
 def sample_performance_result() -> PerformanceResult:
     """Generate sample performance result for testing."""
+    metrics = PerformanceMetrics(
+        total_return=4000.0,
+        annualized_return=2000.0,
+        sharpe_ratio=1.5,
+        sortino_ratio=1.8,
+        calmar_ratio=2.0,
+        max_drawdown=-1000.0,
+        annualized_volatility=800.0,
+        n_trades=100,
+        hit_rate=0.65,
+        avg_win=80.0,
+        avg_loss=-40.0,
+        win_loss_ratio=2.0,
+        avg_holding_days=5.0,
+        rolling_sharpe_mean=1.5,
+        rolling_sharpe_std=0.3,
+        max_dd_recovery_days=45.0,
+        avg_recovery_days=20.0,
+        n_drawdowns=5,
+        tail_ratio=1.2,
+        profit_factor=1.8,
+        consistency_score=0.65,
+    )
     return PerformanceResult(
-        metrics={
-            "rolling_sharpe_mean": 1.5,
-            "rolling_sharpe_std": 0.3,
-            "max_dd_recovery_days": 45.0,
-            "avg_recovery_days": 20.0,
-            "n_drawdowns": 5,
-            "tail_ratio": 1.2,
-            "profit_factor": 1.8,
-            "consistency_score": 0.65,
-        },
+        metrics=metrics,
         subperiod_analysis={
             "subperiod_returns": [1000, 1500, -500, 2000],
             "subperiod_sharpes": [1.2, 1.5, -0.5, 2.0],

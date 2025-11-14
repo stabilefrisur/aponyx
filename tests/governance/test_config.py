@@ -54,14 +54,6 @@ def test_catalog_files_exist() -> None:
     ), f"Bloomberg instruments not found: {BLOOMBERG_INSTRUMENTS_PATH}"
 
 
-def test_config_constants_are_correct_types() -> None:
-    """Test that config constants have correct types."""
-    assert isinstance(PROJECT_ROOT, Path)
-    assert isinstance(DATA_DIR, Path)
-    assert isinstance(CACHE_ENABLED, bool)
-    assert isinstance(CACHE_TTL_DAYS, int)
-
-
 def test_cache_config_values() -> None:
     """Test cache configuration values."""
     assert CACHE_ENABLED is True

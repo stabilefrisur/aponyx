@@ -29,12 +29,18 @@ class BacktestConfig:
     dv01_per_million : float
         DV01 per $1MM notional for risk calculations.
         Typical CDX IG 5Y: ~4500-5000.
+    signal_lag : int
+        Number of days to lag the signal before execution.
+        0 = same-day execution (idealized), 1 = next-day execution (realistic).
+        Helps prevent look-ahead bias in backtests.
+        Default is 1 for realistic execution timing.
 
     Notes
     -----
     - entry_threshold > exit_threshold creates hysteresis to reduce turnover.
     - Position sizing is deliberately simple for the pilot (binary on/off).
     - Transaction costs are applied symmetrically on entry and exit.
+    - signal_lag models realistic execution timing and prevents look-ahead bias.
     """
 
     entry_threshold: float = 1.5
@@ -43,6 +49,7 @@ class BacktestConfig:
     transaction_cost_bps: float = 1.0
     max_holding_days: int | None = None
     dv01_per_million: float = 4750.0
+    signal_lag: int = 1
 
     def __post_init__(self) -> None:
         """Validate configuration parameters."""
@@ -57,3 +64,5 @@ class BacktestConfig:
             raise ValueError(
                 f"transaction_cost_bps must be non-negative, got {self.transaction_cost_bps}"
             )
+        if self.signal_lag < 0:
+            raise ValueError(f"signal_lag must be non-negative, got {self.signal_lag}")

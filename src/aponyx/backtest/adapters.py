@@ -29,13 +29,13 @@ Usage
 #     Examples
 #     --------
 #     >>> engine = VectorBTEngine()
-#     >>> result = engine.run(composite_signal, cdx_spread, config)
+#     >>> result = engine.run(signal, cdx_spread, config)
 #     >>> # Result is still a BacktestResult, but computed via vectorbt
 #     """
 #
 #     def run(
 #         self,
-#         composite_signal: pd.Series,
+#         signal: pd.Series,
 #         spread: pd.Series,
 #         config: BacktestConfig | None = None,
 #     ) -> BacktestResult:
@@ -50,8 +50,8 @@ Usage
 #             config = BacktestConfig()
 #
 #         # Convert signal to vectorbt entries/exits
-#         entries = composite_signal > config.entry_threshold
-#         exits = composite_signal.abs() < config.exit_threshold
+#         entries = signal > config.entry_threshold
+#         exits = signal.abs() < config.exit_threshold
 #
 #         # Run vectorbt portfolio simulation
 #         portfolio = vbt.Portfolio.from_signals(
@@ -64,7 +64,7 @@ Usage
 #
 #         # Convert vectorbt results to our BacktestResult format
 #         positions_df = pd.DataFrame({
-#             "signal": composite_signal,
+#             "signal": signal,
 #             "position": portfolio.positions.values,
 #             "days_held": portfolio.holding_duration.values,
 #             "spread": spread,

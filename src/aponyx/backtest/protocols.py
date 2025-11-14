@@ -35,7 +35,7 @@ class BacktestEngine(Protocol):
 
     def run(
         self,
-        composite_signal: pd.Series,
+        signal: pd.Series,
         spread: pd.Series,
         config: BacktestConfig | None = None,
     ) -> BacktestResult:
@@ -44,7 +44,7 @@ class BacktestEngine(Protocol):
 
         Parameters
         ----------
-        composite_signal : pd.Series
+        signal : pd.Series
             Daily positioning scores from signal computation.
         spread : pd.Series
             CDX spread levels aligned to signal dates.

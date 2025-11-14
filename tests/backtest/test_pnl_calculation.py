@@ -34,6 +34,7 @@ def test_incremental_pnl_no_double_counting() -> None:
         position_size=10.0,  # $10MM
         dv01_per_million=100.0,  # $100 DV01 per $1MM
         transaction_cost_bps=0.0,  # Disable costs for cleaner test
+        signal_lag=0,  # No lag to avoid data truncation
     )
 
     result = run_backtest(signal, spread, config)
@@ -90,6 +91,7 @@ def test_incremental_pnl_with_position_changes() -> None:
         position_size=10.0,
         dv01_per_million=100.0,
         transaction_cost_bps=0.0,
+        signal_lag=0,
     )
 
     result = run_backtest(signal, spread, config)
@@ -127,6 +129,7 @@ def test_incremental_pnl_long_vs_short() -> None:
         position_size=10.0,
         dv01_per_million=100.0,
         transaction_cost_bps=0.0,
+        signal_lag=0,
     )
 
     # Test long position
@@ -166,6 +169,7 @@ def test_cumulative_pnl_equals_mark_to_market() -> None:
         position_size=10.0,
         dv01_per_million=100.0,
         transaction_cost_bps=0.0,
+        signal_lag=0,
     )
 
     result = run_backtest(signal, spread, config)

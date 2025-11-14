@@ -150,7 +150,7 @@ def attribute_by_signal_strength(
     aligned_pnl = pnl_df.reindex(positioned.index)["net_pnl"]
 
     # Aggregate by quantile
-    quantile_pnl = aligned_pnl.groupby(positioned["quantile"]).sum()
+    quantile_pnl = aligned_pnl.groupby(positioned["quantile"], observed=True).sum()
     total_pnl = aligned_pnl.sum()
 
     # Build result dictionary

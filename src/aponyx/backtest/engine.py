@@ -52,7 +52,7 @@ class BacktestResult:
 
 
 def run_backtest(
-    composite_signal: pd.Series,
+    signal: pd.Series,
     spread: pd.Series,
     config: BacktestConfig | None = None,
 ) -> BacktestResult:
@@ -61,7 +61,7 @@ def run_backtest(
 
     Parameters
     ----------
-    composite_signal : pd.Series
+    signal : pd.Series
         Daily positioning scores from signal computation.
         DatetimeIndex with float values.
     spread : pd.Series
@@ -92,29 +92,36 @@ def run_backtest(
     Examples
     --------
     >>> config = BacktestConfig(entry_threshold=1.5, position_size=10.0)
-    >>> result = run_backtest(composite_signal, cdx_spread, config)
+    >>> result = run_backtest(signal, cdx_spread, config)
     >>> sharpe = result.pnl['net_pnl'].mean() / result.pnl['net_pnl'].std() * np.sqrt(252)
     """
     if config is None:
         config = BacktestConfig()
 
     logger.info(
-        "Starting backtest: dates=%d, entry_threshold=%.2f, position_size=%.1fMM",
-        len(composite_signal),
+        "Starting backtest: dates=%d, entry_threshold=%.2f, position_size=%.1fMM, signal_lag=%d",
+        len(signal),
         config.entry_threshold,
         config.position_size,
+        config.signal_lag,
     )
 
     # Validate inputs
-    if not isinstance(composite_signal.index, pd.DatetimeIndex):
-        raise ValueError("composite_signal must have DatetimeIndex")
+    if not isinstance(signal.index, pd.DatetimeIndex):
+        raise ValueError("signal must have DatetimeIndex")
     if not isinstance(spread.index, pd.DatetimeIndex):
         raise ValueError("spread must have DatetimeIndex")
+
+    # Apply signal lag if specified
+    if config.signal_lag > 0:
+        lagged_signal = signal.shift(config.signal_lag)
+    else:
+        lagged_signal = signal
 
     # Align data
     aligned = pd.DataFrame(
         {
-            "signal": composite_signal,
+            "signal": lagged_signal,
             "spread": spread,
         }
     ).dropna()
@@ -231,6 +238,7 @@ def run_backtest(
             "transaction_cost_bps": config.transaction_cost_bps,
             "max_holding_days": config.max_holding_days,
             "dv01_per_million": config.dv01_per_million,
+            "signal_lag": config.signal_lag,
         },
         "summary": {
             "start_date": str(aligned.index[0]),
