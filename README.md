@@ -4,9 +4,11 @@
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> **Early-stage research framework** — Not for production use
+
 **A modular Python framework for developing and backtesting systematic credit strategies.**
 
-Aponyx provides a type-safe, reproducible research environment for tactical fixed-income strategies. Built for investment professionals who need clean separation between strategy logic, data infrastructure, and backtesting workflows.
+Type-safe, reproducible research environment for tactical fixed-income strategies with clean separation between strategy logic, data infrastructure, and backtesting workflows.
 
 ## Key Features
 
@@ -14,7 +16,7 @@ Aponyx provides a type-safe, reproducible research environment for tactical fixe
 - **Modular signal framework** with composable transformations and registry management
 - **Deterministic backtesting** with transaction cost modeling and comprehensive metrics
 - **Interactive visualization** with Plotly charts (equity curves, signals, drawdown)
-- **Production-ready persistence** with metadata tracking and versioning
+- **File-based persistence** with metadata tracking and versioning
 - **Strategy governance** with centralized registry and configuration management
 
 ## Installation
@@ -169,6 +171,8 @@ print(notebooks_dir)
 | `05_performance_analysis.ipynb` | Comprehensive post-backtest performance analysis |
 | `06_single_signal_template.ipynb` | End-to-end single-signal research template |
 
+> **Note:** Notebook 01 requires Bloomberg Terminal. Notebooks 02-06 work with any data source (file-based or Bloomberg).
+
 **Usage:**
 
 ```bash
@@ -193,40 +197,33 @@ print(docs_path)  # Path to installed documentation
 
 **Available documentation:**
 
-| Document | Description |
-|----------|-------------|
-| `python_guidelines.md` | Code standards and best practices |
-| `cdx_overlay_strategy.md` | Investment thesis and pilot implementation |
-| `signal_registry_usage.md` | Signal management workflow |
-| `signal_suitability_evaluation.md` | Pre-backtest evaluation framework |
-| `performance_evaluation_design.md` | Post-backtest analysis framework |
-| `visualization_design.md` | Chart architecture and patterns |
-| `logging_design.md` | Logging conventions and metadata |
-| `caching_design.md` | Cache layer architecture |
-| `adding_data_providers.md` | Provider extension guide |
-| `governance_design.md` | Registry, catalog, and config patterns |
-| `documentation_structure.md` | Documentation organization principles |
-| `project_setup_process.md` | Project setup and installation |
+**Strategy & Research:**
+- [`cdx_overlay_strategy.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/cdx_overlay_strategy.md) - Investment thesis and pilot implementation
+- [`signal_registry_usage.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/signal_registry_usage.md) - Signal management workflow
+- [`signal_suitability_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/signal_suitability_design.md) - Pre-backtest evaluation framework
+- [`performance_evaluation_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/performance_evaluation_design.md) - Post-backtest analysis framework
 
-**During development**, docs are also available on GitHub:
-- [Documentation Index](https://github.com/stabilefrisur/aponyx/tree/master/src/aponyx/docs)
+**Architecture & Design:**
+- [`governance_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/governance_design.md) - Registry, catalog, and config patterns
+- [`caching_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/caching_design.md) - Cache layer architecture
+- [`visualization_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/visualization_design.md) - Chart architecture and patterns
+- [`logging_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/logging_design.md) - Logging conventions and metadata
+
+**Development:**
+- [`python_guidelines.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/python_guidelines.md) - Code standards and best practices
+- [`adding_data_providers.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/adding_data_providers.md) - Provider extension guide
+- [`documentation_structure.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/documentation_structure.md) - Documentation organization principles
+
+**All documentation** is included in the package and also available on [GitHub](https://github.com/stabilefrisur/aponyx/tree/master/src/aponyx/docs).
 
 ## What's Included
 
-### Implemented
-- ✅ Type-safe data loading with schema validation (Parquet, CSV, Bloomberg)
-- ✅ Modular signal framework with registry and catalog management
-- ✅ Deterministic backtesting with transaction costs and comprehensive metrics
-- ✅ Interactive Plotly visualizations (equity curves, signals, drawdown)
-- ✅ Strategy governance with centralized registry and versioning
-- ✅ Metadata tracking and reproducibility controls
-- ✅ Comprehensive test suite with >90% coverage
-
-### Pilot Signals
-Three signals for CDX overlay strategies:
+**Three pilot signals for CDX overlay strategies:**
 1. **CDX-ETF Basis** - Flow-driven mispricing from cash-derivative basis
 2. **CDX-VIX Gap** - Cross-asset risk sentiment divergence
 3. **Spread Momentum** - Short-term continuation in credit spreads
+
+**Core capabilities:** Type-safe data loading • Signal registry • Pre/post-backtest evaluation • Deterministic backtesting • Interactive visualizations • Comprehensive testing (>90% coverage)
 
 ## Development
 
@@ -257,6 +254,7 @@ All tools are configured in `pyproject.toml` with project-specific settings.
 3. **Type Safety** - Strict type hints and runtime validation throughout
 4. **Simplicity** - Prefer functions over classes, explicit over implicit
 5. **Transparency** - Clear separation between strategy logic and execution
+6. **No Legacy Support** - Breaking changes without deprecation warnings; always use latest patterns
 
 ### Signal Convention
 
@@ -272,13 +270,15 @@ This ensures clarity when evaluating signals independently or combining them in 
 - Modern type syntax (`str | None`, not `Optional[str]`)
 - Optional: Bloomberg Terminal with `blpapi` for live data
 
+**Breaking changes:** This is an early-stage project under active development. Breaking changes may occur between versions without deprecation warnings or backward compatibility.
+
 ## Contributing
 
-Contributions welcome! This is a research framework under active development.
+This is an early-stage personal research project. See [CONTRIBUTING.md](CONTRIBUTING.md) for technical guidelines if you'd like to contribute.
 
-- **Code standards**: See [Python Guidelines](src/aponyx/docs/python_guidelines.md) (or `from aponyx.docs import get_docs_dir` after install)
-- **Testing**: All new features require unit tests
-- **Documentation**: NumPy-style docstrings required
+## Security
+
+Security issues addressed on a best-effort basis. See [SECURITY.md](SECURITY.md) for reporting guidelines and scope.
 
 ## License
 
@@ -293,6 +293,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-**Maintained by stabilefrisur**
-**Version**: 0.1.8
-**Last Updated**: November 13, 2025
+**Maintained by stabilefrisur**  
+**Version**: 0.1.8  
+**Last Updated**: November 14, 2025

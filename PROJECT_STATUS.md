@@ -1,6 +1,6 @@
 # Project Status — aponyx
 
-**Last Updated:** November 13, 2025  
+**Last Updated:** November 14, 2025  
 **Version:** 0.1.8  
 **Maintainer:** stabilefrisur
 
@@ -15,6 +15,7 @@
 | **Python Version** | 3.12 (modern syntax, no legacy compatibility) |
 | **Environment Manager** | `uv` |
 | **Maturity Level** | Early-stage research framework |
+| **Breaking Changes** | May occur without deprecation warnings |
 | **License** | MIT |
 
 **Core Dependencies:**
@@ -143,6 +144,7 @@ src/aponyx/
 3. **Type Safety:** Strict type hints using modern Python syntax (`str | None`, `dict[str, Any]`)
 4. **Simplicity:** Functions over classes; `@dataclass` for data containers
 5. **Transparency:** Clear separation of strategy logic from infrastructure
+6. **No Legacy Support:** Breaking changes without deprecation warnings; always use latest patterns
 
 ---
 

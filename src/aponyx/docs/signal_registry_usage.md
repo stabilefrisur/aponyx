@@ -32,12 +32,13 @@ signal_config = SignalConfig(lookback=20, min_periods=10)
 signals = compute_registered_signals(registry, market_data, signal_config)
 
 # Evaluate each signal independently
+from aponyx.evaluation.performance import compute_all_metrics
+
 backtest_config = BacktestConfig(entry_threshold=1.5, exit_threshold=0.75)
 
 for signal_name, signal_series in signals.items():
     result = run_backtest(signal_series, cdx_df["spread"], backtest_config)
     # Compute metrics from result
-    from aponyx.evaluation.performance import compute_all_metrics
     metrics = compute_all_metrics(result.pnl, result.positions)
     print(f"{signal_name}: Sharpe={metrics.sharpe_ratio:.2f}")
 ```
@@ -103,10 +104,12 @@ signals = compute_registered_signals(registry, market_data, config)
 
 # Run backtest to evaluate performance
 from aponyx.backtest import run_backtest, BacktestConfig
+from aponyx.evaluation.performance import compute_all_metrics
 
 backtest_config = BacktestConfig(entry_threshold=1.5, exit_threshold=0.75)
 result = run_backtest(signals["my_new_signal"], cdx_df["spread"], backtest_config)
-print(f"Sharpe Ratio: {result.metrics['sharpe_ratio']:.2f}")
+metrics = compute_all_metrics(result.pnl, result.positions)
+print(f"Sharpe Ratio: {metrics.sharpe_ratio:.2f}")
 ```
 
 ## Signal Catalog Schema
@@ -164,10 +167,12 @@ backtest_config = BacktestConfig(
 )
 
 # Evaluate each signal independently
+from aponyx.evaluation.performance import compute_all_metrics
+
 results = {}
 for signal_name, signal_series in signals.items():
     result = run_backtest(signal_series, cdx_df["spread"], backtest_config)
-    metrics = compute_performance_metrics(result.pnl["net_pnl"], result.positions["position"])
+    metrics = compute_all_metrics(result.pnl, result.positions)
     results[signal_name] = metrics
     
     print(f"{signal_name}:")
@@ -253,9 +258,11 @@ bt_config = BacktestConfig(
 )
 
 # Evaluate each signal independently
+from aponyx.evaluation.performance import compute_all_metrics
+
 for signal_name, signal_series in signals.items():
     result = run_backtest(signal_series, cdx_df["spread"], bt_config)
-    metrics = compute_performance_metrics(result.pnl["net_pnl"], result.positions["position"])
+    metrics = compute_all_metrics(result.pnl, result.positions)
     
     print(f"\n{signal_name}:")
     print(f"  Sharpe Ratio: {metrics.sharpe_ratio:.2f}")

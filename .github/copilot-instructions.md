@@ -96,7 +96,7 @@ Both use JSON persistence but serve different purposes and have different mutabi
 3. **Always document functions and classes using NumPy‑style docstrings.**
 4. **Propose structured changes — not isolated code fragments.**
 5. **Assume collaboration**: other developers must read and extend your code easily.
-6. **No backward compatibility required**: This is an early-stage project. Use modern best practices without legacy concerns.
+6. **No backward compatibility required**: Breaking changes may occur without deprecation warnings. Always use latest patterns and best practices.
 
 ### Style
 - Follow **PEP 8** and **type hints** strictly.
@@ -446,4 +446,4 @@ It should:
 
 > Maintained by **stabilefrisur**.  
 > Optimized for VS Code Agent Mode (Claude Sonnet 4.5 / GPT‑5)  
-> Last Updated: November 8, 2025
+> Last Updated: November 14, 2025
