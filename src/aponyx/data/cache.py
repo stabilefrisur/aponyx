@@ -240,3 +240,55 @@ def save_to_cache(
         )
 
     return cache_path
+
+
+def update_current_day(
+    cached_df: pd.DataFrame,
+    current_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Update cached data with current day's data point.
+
+    Parameters
+    ----------
+    cached_df : pd.DataFrame
+        Historical cached data with DatetimeIndex.
+    current_df : pd.DataFrame
+        Current day's data (single row with today's date).
+
+    Returns
+    -------
+    pd.DataFrame
+        Updated DataFrame with current day's data merged/replaced.
+
+    Notes
+    -----
+    If today's date already exists in cached_df, it will be replaced.
+    Otherwise, current_df is appended. Result is sorted by date.
+    """
+    if cached_df.empty:
+        return current_df
+
+    if current_df.empty:
+        return cached_df
+
+    # Get today's date from current_df
+    today = current_df.index[0]
+
+    # Remove today's data if it exists in cache
+    updated_df = cached_df[cached_df.index != today]
+
+    # Append current day's data
+    updated_df = pd.concat([updated_df, current_df])
+
+    # Sort by date
+    updated_df = updated_df.sort_index()
+
+    logger.debug(
+        "Updated cache: removed %d existing rows for %s, total rows=%d",
+        len(cached_df) - len(updated_df) + len(current_df),
+        today,
+        len(updated_df),
+    )
+
+    return updated_df

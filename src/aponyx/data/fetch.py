@@ -52,6 +52,7 @@ def fetch_cdx(
     start_date: str | None = None,
     end_date: str | None = None,
     use_cache: bool = CACHE_ENABLED,
+    update_current_day: bool = False,
 ) -> pd.DataFrame:
     """
     Fetch CDX index spread data from configured source.
@@ -72,6 +73,10 @@ def fetch_cdx(
         End date in YYYY-MM-DD format.
     use_cache : bool, default CACHE_ENABLED
         Whether to use cache.
+    update_current_day : bool, default False
+        If True and cache exists, only update today's data point using BDP.
+        Useful for intraday refreshes without re-fetching entire history.
+        Only applicable for Bloomberg source.
 
     Returns
     -------
@@ -86,6 +91,8 @@ def fetch_cdx(
     >>> df = fetch_cdx(FileSource("data/raw/cdx.parquet"), security="cdx_ig_5y")
     >>> df = fetch_cdx(BloombergSource(), security="cdx_ig_5y")
     >>> df = fetch_cdx(BloombergSource(), bloomberg_ticker="CDX IG CDSI GEN 5Y Corp")
+    >>> # Update only today's data point (intraday refresh)
+    >>> df = fetch_cdx(BloombergSource(), security="cdx_ig_5y", update_current_day=True)
     """
     if source is None:
         raise ValueError("Data source must be specified for CDX fetch")
@@ -105,11 +112,68 @@ def fetch_cdx(
             security=security,
         )
         if cached is not None:
-            df = cached
-            # Apply filter if needed
-            if security is not None and "security" in df.columns:
-                df = df[df["security"] == security]
-            return df
+            # Handle update_current_day mode
+            if update_current_day and isinstance(source, BloombergSource):
+                from .cache import update_current_day as update_cache_day
+                from .providers.bloomberg import fetch_current_from_bloomberg
+
+                logger.info("Updating current day data from Bloomberg")
+
+                # Get Bloomberg ticker
+                if bloomberg_ticker is not None:
+                    ticker = bloomberg_ticker
+                elif security is not None:
+                    ticker = get_bloomberg_ticker(security)
+                else:
+                    raise ValueError(
+                        "Either 'security' or 'bloomberg_ticker' required for Bloomberg fetch"
+                    )
+
+                # Fetch current data point
+                current_df = fetch_current_from_bloomberg(
+                    ticker=ticker,
+                    instrument=instrument,
+                    security=security,
+                )
+
+                # Handle non-trading days (no current data available)
+                if current_df is None:
+                    logger.info(
+                        "No current data available (non-trading day), returning cached data"
+                    )
+                    df = cached
+                    if security is not None and "security" in df.columns:
+                        df = df[df["security"] == security]
+                    return df
+
+                current_df = validate_cdx_schema(current_df)
+
+                # Merge with cache
+                df = update_cache_day(cached, current_df)
+
+                # Save updated cache
+                registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
+                save_to_cache(
+                    df,
+                    source,
+                    instrument,
+                    cache_dir,
+                    registry=registry,
+                    start_date=start_date,
+                    end_date=end_date,
+                    security=security,
+                )
+
+                # Apply filter if needed
+                if security is not None and "security" in df.columns:
+                    df = df[df["security"] == security]
+                return df
+            else:
+                df = cached
+                # Apply filter if needed
+                if security is not None and "security" in df.columns:
+                    df = df[df["security"] == security]
+                return df
 
     # Fetch from source
     logger.info("Fetching CDX from %s", resolve_provider(source))
@@ -177,6 +241,7 @@ def fetch_vix(
     start_date: str | None = None,
     end_date: str | None = None,
     use_cache: bool = CACHE_ENABLED,
+    update_current_day: bool = False,
 ) -> pd.DataFrame:
     """
     Fetch VIX volatility index data from configured source.
@@ -191,6 +256,9 @@ def fetch_vix(
         End date in YYYY-MM-DD format.
     use_cache : bool, default CACHE_ENABLED
         Whether to use cache.
+    update_current_day : bool, default False
+        If True and cache exists, only update today's data point using BDP.
+        Only applicable for Bloomberg source.
 
     Returns
     -------
@@ -202,6 +270,8 @@ def fetch_vix(
     --------
     >>> from aponyx.data import fetch_vix, FileSource
     >>> df = fetch_vix(FileSource("data/raw/vix.parquet"))
+    >>> # Update only today's data point (intraday refresh)
+    >>> df = fetch_vix(BloombergSource(), update_current_day=True)
     """
     if source is None:
         raise ValueError("Data source must be specified for VIX fetch")
@@ -220,7 +290,46 @@ def fetch_vix(
             ttl_days=CACHE_TTL_DAYS,
         )
         if cached is not None:
-            return cached
+            # Handle update_current_day mode
+            if update_current_day and isinstance(source, BloombergSource):
+                from .cache import update_current_day as update_cache_day
+                from .providers.bloomberg import fetch_current_from_bloomberg
+
+                logger.info("Updating current day VIX data from Bloomberg")
+
+                ticker = get_bloomberg_ticker("vix")
+                current_df = fetch_current_from_bloomberg(
+                    ticker=ticker,
+                    instrument=instrument,
+                    security="vix",
+                )
+
+                # Handle non-trading days (no current data available)
+                if current_df is None:
+                    logger.info(
+                        "No current VIX data available (non-trading day), returning cached data"
+                    )
+                    return cached
+
+                current_df = validate_vix_schema(current_df)
+
+                # Merge with cache
+                df = update_cache_day(cached, current_df)
+
+                # Save updated cache
+                registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
+                save_to_cache(
+                    df,
+                    source,
+                    instrument,
+                    cache_dir,
+                    registry=registry,
+                    start_date=start_date,
+                    end_date=end_date,
+                )
+                return df
+            else:
+                return cached
 
     # Fetch from source
     logger.info("Fetching VIX from %s", resolve_provider(source))
@@ -272,6 +381,7 @@ def fetch_etf(
     start_date: str | None = None,
     end_date: str | None = None,
     use_cache: bool = CACHE_ENABLED,
+    update_current_day: bool = False,
 ) -> pd.DataFrame:
     """
     Fetch credit ETF price data from configured source.
@@ -292,6 +402,9 @@ def fetch_etf(
         End date in YYYY-MM-DD format.
     use_cache : bool, default CACHE_ENABLED
         Whether to use cache.
+    update_current_day : bool, default False
+        If True and cache exists, only update today's data point using BDP.
+        Only applicable for Bloomberg source.
 
     Returns
     -------
@@ -306,6 +419,8 @@ def fetch_etf(
     >>> df = fetch_etf(FileSource("data/raw/etf.parquet"), security="hyg")
     >>> df = fetch_etf(BloombergSource(), security="hyg")
     >>> df = fetch_etf(BloombergSource(), bloomberg_ticker="HYG US Equity")
+    >>> # Update only today's data point (intraday refresh)
+    >>> df = fetch_etf(BloombergSource(), security="hyg", update_current_day=True)
     """
     if source is None:
         raise ValueError("Data source must be specified for ETF fetch")
@@ -325,10 +440,67 @@ def fetch_etf(
             security=security,
         )
         if cached is not None:
-            df = cached
-            if security is not None and "security" in df.columns:
-                df = df[df["security"] == security]
-            return df
+            # Handle update_current_day mode
+            if update_current_day and isinstance(source, BloombergSource):
+                from .cache import update_current_day as update_cache_day
+                from .providers.bloomberg import fetch_current_from_bloomberg
+
+                logger.info("Updating current day ETF data from Bloomberg")
+
+                # Get Bloomberg ticker
+                if bloomberg_ticker is not None:
+                    ticker = bloomberg_ticker
+                elif security is not None:
+                    ticker = get_bloomberg_ticker(security)
+                else:
+                    raise ValueError(
+                        "Either 'security' or 'bloomberg_ticker' required for Bloomberg fetch"
+                    )
+
+                # Fetch current data point
+                current_df = fetch_current_from_bloomberg(
+                    ticker=ticker,
+                    instrument=instrument,
+                    security=security,
+                )
+
+                # Handle non-trading days (no current data available)
+                if current_df is None:
+                    logger.info(
+                        "No current ETF data available (non-trading day), returning cached data"
+                    )
+                    df = cached
+                    if security is not None and "security" in df.columns:
+                        df = df[df["security"] == security]
+                    return df
+
+                current_df = validate_etf_schema(current_df)
+
+                # Merge with cache
+                df = update_cache_day(cached, current_df)
+
+                # Save updated cache
+                registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
+                save_to_cache(
+                    df,
+                    source,
+                    instrument,
+                    cache_dir,
+                    registry=registry,
+                    start_date=start_date,
+                    end_date=end_date,
+                    security=security,
+                )
+
+                # Apply filter if needed
+                if security is not None and "security" in df.columns:
+                    df = df[df["security"] == security]
+                return df
+            else:
+                df = cached
+                if security is not None and "security" in df.columns:
+                    df = df[df["security"] == security]
+                return df
 
     # Fetch from source
     logger.info("Fetching ETF from %s", resolve_provider(source))

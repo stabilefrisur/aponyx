@@ -26,6 +26,8 @@ The Bloomberg provider requires manual installation of the `blpapi` library:
 
 The `xbbg` wrapper is included in the `bloomberg` optional dependency, but `blpapi` itself must be installed separately due to Bloomberg's proprietary distribution.
 
+**Intraday Updates:** Bloomberg provider supports efficient current-day updates via BDP (see [Caching Design](caching_design.md#intraday-cache-updates) for details).
+
 ### Provider Interface
 
 Providers are defined as dataclasses and used by fetch functions:

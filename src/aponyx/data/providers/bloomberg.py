@@ -7,6 +7,7 @@ Requires active Bloomberg Terminal session.
 import logging
 from datetime import datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -236,5 +237,108 @@ def _add_security_metadata(
 
     df["security"] = sec_id
     logger.debug("Added security metadata: %s", sec_id)
+
+    return df
+
+
+def fetch_current_from_bloomberg(
+    ticker: str,
+    instrument: str,
+    security: str | None = None,
+    **params: Any,
+) -> pd.DataFrame | None:
+    """
+    Fetch current/latest data point from Bloomberg using BDP.
+
+    Parameters
+    ----------
+    ticker : str
+        Bloomberg ticker.
+    instrument : str
+        Instrument type for field mapping ('cdx', 'vix', 'etf').
+    security : str or None
+        Internal security identifier.
+    **params : Any
+        Additional Bloomberg request parameters.
+
+    Returns
+    -------
+    pd.DataFrame or None
+        Single-row DataFrame with current data and today's date as index.
+        Returns None if no data available (e.g., non-trading day).
+
+    Raises
+    ------
+    ImportError
+        If xbbg is not installed.
+    RuntimeError
+        If Bloomberg request fails due to connection/authentication issues.
+
+    Notes
+    -----
+    Uses Bloomberg's BDP (current data) instead of BDH (historical data).
+    Returns data with today's date (US/Eastern timezone) as the index.
+    Gracefully returns None on weekends/holidays instead of raising errors.
+    """
+    spec = get_instrument_spec(instrument)
+
+    logger.info(
+        "Fetching current %s from Bloomberg: ticker=%s",
+        instrument,
+        ticker,
+    )
+
+    try:
+        from xbbg import blp
+    except ImportError:
+        raise ImportError(
+            "xbbg not installed. " "Install with: uv pip install --optional bloomberg"
+        )
+
+    try:
+        # Use BDP for current data point
+        current_data = blp.bdp(
+            tickers=ticker,
+            flds=spec.bloomberg_fields,
+            **params,
+        )
+    except Exception as e:
+        logger.error("Bloomberg BDP request failed: %s", str(e))
+        raise RuntimeError(f"Failed to fetch current data from Bloomberg: {e}") from e
+
+    if current_data is None or current_data.empty:
+        # Gracefully handle no data (weekends, holidays, market closed)
+        logger.warning(
+            "Bloomberg BDP returned empty data for %s (likely non-trading day)",
+            ticker,
+        )
+        return None
+
+    logger.debug("Fetched current data from Bloomberg: %s", current_data.shape)
+
+    # Convert to time series format with today's date as index
+    # Use US/Eastern timezone (market time) for consistent date handling
+    eastern = ZoneInfo("America/New_York")
+    today = datetime.now(eastern).strftime("%Y-%m-%d")
+    df = current_data.T  # Transpose: fields become columns
+    df.index = pd.to_datetime([today])
+    df.index.name = "date"
+
+    # Handle xbbg column naming (may include ticker prefix)
+    # BDP returns columns like (ticker, field) or just field
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(1)
+
+    # Map Bloomberg fields to schema columns
+    df = df.rename(columns=spec.field_mapping)
+
+    # Add security metadata if required
+    if spec.requires_security_metadata:
+        df = _add_security_metadata(df, ticker, security)
+
+    logger.info(
+        "Successfully fetched current data with columns: %s",
+        list(df.columns),
+    )
 
     return df

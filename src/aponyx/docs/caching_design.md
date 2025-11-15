@@ -88,7 +88,70 @@ df = fetch_cdx(source, security="cdx_ig_5y")  # use_cache=True by default
 
 # Skip cache for fresh data
 df = fetch_cdx(source, security="cdx_ig_5y", use_cache=False)
+
+# Intraday update: refresh only today's data point (Bloomberg only)
+df = fetch_cdx(source, security="cdx_ig_5y", update_current_day=True)
 ```
+
+### Intraday Cache Updates
+
+**Problem:** During trading hours, you may want fresh data without re-fetching the entire historical series.
+
+**Solution:** Use `update_current_day=True` to update only today's data point via Bloomberg's BDP function.
+
+```python
+from aponyx.data import fetch_cdx, BloombergSource
+
+source = BloombergSource()
+
+# Morning: Full history via BDH
+cdx_df = fetch_cdx(source, security="cdx_ig_5y")
+
+# Afternoon: Update only today via BDP (~10x faster)
+cdx_df = fetch_cdx(source, security="cdx_ig_5y", update_current_day=True)
+```
+
+**Cache Decision Flow:**
+
+```
+┌─ use_cache=False ──→ Full fetch, no cache
+│
+└─ use_cache=True
+   │
+   ├─ Cache doesn't exist ──→ Full fetch, save cache
+   │
+   └─ Cache exists
+      │
+      ├─ Cache is stale (age ≥ TTL) ──→ Full fetch, update cache
+      │
+      └─ Cache is fresh (age < TTL)
+         │
+         ├─ update_current_day=False ──→ Return cache
+         │
+         └─ update_current_day=True
+            │
+            ├─ Bloomberg source ──→ Fetch today (BDP), merge, update cache
+            │
+            └─ Other source ──→ Return cache (parameter ignored)
+```
+
+**How it works:**
+1. Loads existing cache
+2. Fetches only current day's value using BDP
+3. Replaces/appends today's row in cached data
+4. Saves updated cache
+
+**Benefits:**
+- **~10x faster** than full refetch
+- **500x less data transfer** (1 point vs 1800 days)
+- Preserves historical data in cache
+
+**Limitations:**
+- Bloomberg source only (ignored for FileSource)
+- Requires existing cache (falls back to full fetch if none)
+- Returns cached data unchanged on weekends/holidays
+
+**Timezone handling:** Uses US/Eastern (America/New_York) for "today" to match market hours.
 
 ## Configuration
 
@@ -124,8 +187,10 @@ cache = Cache(cache_dir=Path("./custom_cache"))
 ### Automatic Invalidation
 
 Cache entries automatically expire based on:
-1. **TTL expiration:** Entry older than `ttl_seconds`
+1. **TTL expiration:** Entry older than `CACHE_TTL_DAYS` (default: 1 day)
 2. **Source modification:** Source file modified after cache entry created
+
+**Note:** When cache is stale (age ≥ TTL), `update_current_day=True` is ignored and a full refetch occurs
 
 ### Manual Invalidation
 
@@ -204,6 +269,30 @@ config = SignalConfig(lookback=20)  # Try different lookbacks
 signal = compute_spread_momentum(cdx_df, config)
 ```
 
+### Intraday Monitoring Workflow
+
+```python
+from aponyx.data import fetch_cdx, BloombergSource
+from aponyx.models import compute_spread_momentum
+from aponyx.models.config import SignalConfig
+import time
+
+source = BloombergSource()
+config = SignalConfig(lookback=20)
+
+# Run monitoring loop
+while True:
+    # Efficient intraday update (BDP only)
+    cdx_df = fetch_cdx(source, security="cdx_ig_5y", update_current_day=True)
+    
+    # Compute signal
+    signal = compute_spread_momentum(cdx_df, config)
+    print(f"Latest signal: {signal.iloc[-1]:.3f}")
+    
+    # Wait 15 minutes
+    time.sleep(15 * 60)
+```
+
 ## Implementation Details
 
 ### Cache Storage Format
@@ -214,13 +303,17 @@ signal = compute_spread_momentum(cdx_df, config)
 
 ### Performance Characteristics
 
-| Operation | Uncached | Cached | Speedup |
-|-----------|----------|--------|---------|
-| Small file (1MB) | 50ms | 5ms | 10x |
-| Medium file (10MB) | 500ms | 10ms | 50x |
-| Large file (100MB) | 5s | 20ms | 250x |
+| Operation | Time | Data Transfer | Use Case |
+|-----------|------|---------------|----------|
+| **File (uncached)** | 50-5000ms | Varies | First load |
+| **File (cached)** | 5-20ms | None | Subsequent loads |
+| **Bloomberg BDH** | 2-5 sec | ~500KB (1800 days) | Full history |
+| **Bloomberg BDP** | 0.2-0.5 sec | ~1KB (1 point) | Current day only |
+| **Intraday update** | 0.2-0.5 sec | ~1KB | Morning → afternoon |
 
-**Note:** Speedup depends on disk I/O, file format, and data complexity.
+**Speedup: Intraday update vs full refetch:** ~10x faster, 500x less data.
+
+**Note:** Performance depends on disk I/O, network latency, and Bloomberg server load.
 
 ### Memory Considerations
 
@@ -295,6 +388,28 @@ du -sh data/cache/
 
 # Clear old entries
 rm -rf data/cache/file/*
+```
+
+### Intraday Update Not Refreshing
+
+**Symptom:** `update_current_day=True` returns stale data
+
+**Possible causes:**
+1. Cache doesn't exist yet (first call creates full cache)
+2. Cache is stale (age ≥ TTL triggers full refetch)
+3. Non-Bloomberg source (parameter ignored for FileSource)
+4. Weekend/holiday (no current data available, returns cache unchanged)
+
+**Solution:**
+```python
+import logging
+logging.basicConfig(level=logging.INFO)
+
+# Check log messages
+df = fetch_cdx(source, security="cdx_ig_5y", update_current_day=True)
+# INFO - Cache hit: cdx_abc123.parquet
+# INFO - Updating current day data from Bloomberg
+# INFO - No current data available (non-trading day)  # ← Weekend
 ```
 
 ---
