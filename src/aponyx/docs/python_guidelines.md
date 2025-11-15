@@ -308,9 +308,11 @@ def test_data_loading(tmp_path):
 ✅ **Use functions for:**
 ```python
 # Simple transformations
+from aponyx.data import apply_transform
+
 def compute_spread_momentum(spread: pd.Series, window: int = 5) -> pd.Series:
     """Pure function - no state needed."""
-    return (spread - spread.rolling(window).mean()) / spread.rolling(window).std()
+    return apply_transform(spread, "normalized_change", window=window, periods=window)
 
 # Data processing pipelines
 def clean_cdx_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -320,8 +322,8 @@ def clean_cdx_data(df: pd.DataFrame) -> pd.DataFrame:
 # Signal generation
 def generate_vix_cdx_gap(vix: pd.Series, cdx: pd.Series, lookback: int) -> pd.Series:
     """Pure computation - easier to test and reason about."""
-    vix_z = (vix - vix.rolling(lookback).mean()) / vix.rolling(lookback).std()
-    cdx_z = (cdx - cdx.rolling(lookback).mean()) / cdx.rolling(lookback).std()
+    vix_z = apply_transform(vix, "z_score", window=lookback)
+    cdx_z = apply_transform(cdx, "z_score", window=lookback)
     return vix_z - cdx_z
 ```
 
@@ -333,11 +335,11 @@ class MomentumCalculator:
         self.window = window
     
     def calculate(self, spread: pd.Series) -> pd.Series:
-        return (spread - spread.rolling(self.window).mean())
+        return apply_transform(spread, 'normalized_change', window=self.window)
 
 # GOOD: Simple function
 def compute_momentum(spread: pd.Series, window: int) -> pd.Series:
-    return (spread - spread.rolling(window).mean())
+    return apply_transform(spread, 'normalized_change', window=window)
 ```
 
 ### When to Use Classes
@@ -713,8 +715,9 @@ def run_backtest(params: dict[str, Any]) -> dict[str, Any]:
 
 ✅ **Vectorized operations:**
 ```python
-# GOOD: Vectorized
-df['momentum'] = (df['spread'] - df['spread'].rolling(20).mean()) / df['spread'].rolling(20).std()
+# GOOD: Vectorized using centralized transforms
+from aponyx.data import apply_transform
+df['momentum'] = apply_transform(df['spread'], 'z_score', window=20)
 ```
 
 ❌ **Avoid iteration:**

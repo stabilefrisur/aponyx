@@ -10,6 +10,7 @@ Implements the three pilot signals:
 import logging
 import pandas as pd
 
+from ..data.transforms import apply_transform
 from .config import SignalConfig
 
 logger = logging.getLogger(__name__)
@@ -65,16 +66,12 @@ def compute_cdx_etf_basis(
     raw_basis = cdx_spread - etf_spread
 
     # Normalize using rolling z-score
-    rolling_mean = raw_basis.rolling(
+    signal = apply_transform(
+        raw_basis,
+        "z_score",
         window=config.lookback,
         min_periods=config.min_periods,
-    ).mean()
-    rolling_std = raw_basis.rolling(
-        window=config.lookback,
-        min_periods=config.min_periods,
-    ).std()
-
-    signal = (raw_basis - rolling_mean) / rolling_std
+    )
 
     valid_count = signal.notna().sum()
     logger.debug("Generated %d valid basis signals", valid_count)
@@ -151,11 +148,12 @@ def compute_cdx_vix_gap(
     raw_gap = cdx_deviation - vix_deviation
 
     # Normalize the gap
-    rolling_std = raw_gap.rolling(
+    signal = apply_transform(
+        raw_gap,
+        "z_score",
         window=config.lookback,
         min_periods=config.min_periods,
-    ).std()
-    signal = raw_gap / rolling_std
+    )
 
     valid_count = signal.notna().sum()
     logger.debug("Generated %d valid CDX-VIX gap signals", valid_count)
@@ -184,11 +182,12 @@ def compute_spread_momentum(
     Returns
     -------
     pd.Series
-        Z-score normalized momentum signal.
+        Volatility-normalized momentum signal (change / rolling_std).
 
     Notes
     -----
     - Uses negative of spread change: tightening spreads give positive signal.
+    - Normalized by rolling volatility to make comparable across regimes.
     - Short lookback (5-10 days) suitable for tactical overlay strategy.
     - Positive signal indicates tightening momentum (bullish credit).
     """
@@ -203,17 +202,16 @@ def compute_spread_momentum(
 
     spread = cdx_df["spread"]
 
-    # Compute spread change over lookback period (negative for tightening)
-    spread_change = spread - spread.shift(config.lookback)
-
-    # Normalize by rolling volatility and negate
-    # Positive when spreads tightening (buy CDX)
-    # Negative when spreads widening (sell CDX)
-    rolling_std = spread.rolling(
+    # Compute volatility-normalized change
+    # Negate because tightening spreads (negative change) should give positive signal
+    normalized = apply_transform(
+        spread,
+        "normalized_change",
         window=config.lookback,
         min_periods=config.min_periods,
-    ).std()
-    signal = -spread_change / rolling_std
+        periods=config.lookback,
+    )
+    signal = -normalized
 
     valid_count = signal.notna().sum()
     logger.debug("Generated %d valid momentum signals", valid_count)

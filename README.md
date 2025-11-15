@@ -118,7 +118,7 @@ Aponyx follows a **layered architecture** with clean separation of concerns:
 
 | Layer | Purpose | Key Modules |
 |-------|---------|-------------|
-| **Data** | Load, validate, transform market data | `fetch_cdx`, `fetch_vix`, `fetch_etf`, `FileSource`, `BloombergSource` |
+| **Data** | Load, validate, transform market data | `fetch_cdx`, `fetch_vix`, `fetch_etf`, `apply_transform`, `FileSource`, `BloombergSource` |
 | **Models** | Generate signals for independent evaluation | `compute_cdx_etf_basis`, `compute_cdx_vix_gap`, `SignalRegistry` |
 | **Evaluation** | Pre-backtest screening (rolling window stability) and post-backtest analysis | `evaluate_signal_suitability`, `analyze_backtest_performance`, `PerformanceRegistry` |
 | **Backtest** | Simulate execution and compute metrics | `run_backtest`, `BacktestConfig`, `StrategyRegistry` |

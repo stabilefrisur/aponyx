@@ -363,13 +363,15 @@ logging.basicConfig(level=logging.DEBUG)
 **Inspect intermediate values:**
 ```python
 # Modify signal function temporarily to log intermediate steps
+from aponyx.data import apply_transform
+
 def compute_my_signal(cdx_df, etf_df, config=None):
     logger.info("Computing signal...")
     
     raw_diff = cdx_df['spread'] - etf_df['spread']
     logger.debug("Raw diff range: %.2f to %.2f", raw_diff.min(), raw_diff.max())
     
-    zscore = (raw_diff - raw_diff.rolling(20).mean()) / raw_diff.rolling(20).std()
+    zscore = apply_transform(raw_diff, 'z_score', window=20)
     logger.debug("Z-score range: %.2f to %.2f", zscore.min(), zscore.max())
     
     return zscore
