@@ -95,6 +95,8 @@ def _compute_signal(
     """
     Compute a single signal using metadata specification.
 
+    Applies sign multiplier from catalog metadata.
+
     Parameters
     ----------
     metadata : SignalMetadata
@@ -107,7 +109,7 @@ def _compute_signal(
     Returns
     -------
     pd.Series
-        Computed signal.
+        Computed signal with sign multiplier applied.
 
     Raises
     ------
@@ -126,7 +128,16 @@ def _compute_signal(
     args = [market_data[key] for key in metadata.arg_mapping]
 
     # Call compute function with market data and config
-    signal = compute_fn(*args, config)
+    raw_signal = compute_fn(*args, config)
+
+    # Apply sign multiplier from catalog
+    signal = raw_signal * metadata.sign_multiplier
+
+    if metadata.sign_multiplier == -1:
+        logger.debug(
+            "Applied sign inversion to signal '%s'",
+            metadata.name,
+        )
 
     return signal
 

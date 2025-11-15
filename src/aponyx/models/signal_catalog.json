@@ -8,7 +8,8 @@
       "etf": "spread"
     },
     "arg_mapping": ["cdx", "etf"],
-    "enabled": true
+    "enabled": true,
+    "sign_multiplier": 1
   },
   {
     "name": "cdx_vix_gap",
@@ -19,7 +20,8 @@
       "vix": "level"
     },
     "arg_mapping": ["cdx", "vix"],
-    "enabled": true
+    "enabled": true,
+    "sign_multiplier": 1
   },
   {
     "name": "spread_momentum",
@@ -29,6 +31,7 @@
       "cdx": "spread"
     },
     "arg_mapping": ["cdx"],
-    "enabled": true
+    "enabled": true,
+    "sign_multiplier": 1
   }
 ]

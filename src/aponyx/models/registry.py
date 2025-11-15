@@ -31,6 +31,10 @@ class SignalMetadata:
         Example: ["cdx", "etf"] means call compute_fn(market_data["cdx"], market_data["etf"], config)
     enabled : bool
         Whether signal should be included in computation.
+    sign_multiplier : int
+        Multiplier to apply to signal output for sign correction.
+        Use -1 to invert signals with negative Sharpe ratios.
+        Default is 1 (no inversion).
     """
 
     name: str
@@ -39,6 +43,7 @@ class SignalMetadata:
     data_requirements: dict[str, str]
     arg_mapping: list[str]
     enabled: bool = True
+    sign_multiplier: int = 1
 
     def __post_init__(self) -> None:
         """Validate signal metadata."""
@@ -52,6 +57,9 @@ class SignalMetadata:
         missing_args = set(self.arg_mapping) - set(self.data_requirements.keys())
         if missing_args:
             raise ValueError(f"arg_mapping contains keys not in data_requirements: {missing_args}")
+        # Validate sign_multiplier is ±1
+        if self.sign_multiplier not in (-1, 1):
+            raise ValueError(f"sign_multiplier must be -1 or 1, got {self.sign_multiplier}")
 
 
 class SignalRegistry:
