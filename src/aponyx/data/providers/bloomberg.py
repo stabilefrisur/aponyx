@@ -165,20 +165,20 @@ def _map_bloomberg_fields(
 
     Notes
     -----
-    xbbg always returns multi-index columns: (ticker, field).
-    We flatten by taking the second level (field names).
+    BDH returns multi-index columns: (ticker, field) with uppercase fields.
+    BDP returns flat columns: fields with lowercase.
+    We normalize to uppercase before mapping.
     """
-    # Handle xbbg multi-index columns: (ticker, field)
-    # xbbg always returns multi-index, even for single ticker
+    # Handle xbbg multi-index columns: (ticker, field) from BDH
     if isinstance(df.columns, pd.MultiIndex):
         # Flatten by taking second level (field names)
         df.columns = df.columns.get_level_values(1)
+        logger.debug("Flattened multi-index columns from BDH")
     else:
-        # This should not happen with real xbbg, but handle gracefully
-        logger.warning(
-            "Expected multi-index columns from xbbg, got flat columns. "
-            "This may indicate a testing scenario or API change."
-        )
+        # BDP returns flat columns (single ticker)
+        # Normalize lowercase fields to uppercase for consistent mapping
+        df.columns = df.columns.str.upper()
+        logger.debug("Normalized BDP field names to uppercase")
 
     # Rename columns according to mapping
     df = df.rename(columns=spec.field_mapping)
@@ -316,21 +316,19 @@ def fetch_current_from_bloomberg(
 
     logger.debug("Fetched current data from Bloomberg: %s", current_data.shape)
 
-    # Convert to time series format with today's date as index
-    # Use US/Eastern timezone (market time) for consistent date handling
+    # Convert BDP format to time series format
+    # BDP returns: index=tickers, columns=fields (lowercase)
+    # Need: index=dates, columns=fields (to match BDH format)
     eastern = ZoneInfo("America/New_York")
     today = datetime.now(eastern).strftime("%Y-%m-%d")
-    df = current_data.T  # Transpose: fields become columns
+    
+    # Replace ticker index with today's date
+    df = current_data.copy()
     df.index = pd.to_datetime([today])
     df.index.name = "date"
 
-    # Handle xbbg column naming (may include ticker prefix)
-    # BDP returns columns like (ticker, field) or just field
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(1)
-
-    # Map Bloomberg fields to schema columns
-    df = df.rename(columns=spec.field_mapping)
+    # Map Bloomberg field names to schema columns
+    df = _map_bloomberg_fields(df, spec)
 
     # Add security metadata if required
     if spec.requires_security_metadata:
