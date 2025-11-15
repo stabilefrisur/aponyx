@@ -53,18 +53,18 @@ def test_incremental_pnl_no_double_counting() -> None:
 
     for i in range(1, 10):
         actual_pnl = result.pnl.iloc[i]["spread_pnl"]
-        assert abs(actual_pnl - expected_daily_pnl) < 0.01, (
-            f"Day {i}: Expected ${expected_daily_pnl:.2f}, got ${actual_pnl:.2f}"
-        )
+        assert (
+            abs(actual_pnl - expected_daily_pnl) < 0.01
+        ), f"Day {i}: Expected ${expected_daily_pnl:.2f}, got ${actual_pnl:.2f}"
 
     # Cumulative P&L should equal sum of daily P&L
     # 9 days of losses (day 0 has 0 P&L) = 9 * -$1,000 = -$9,000
     expected_cumulative = 9 * expected_daily_pnl
     actual_cumulative = result.pnl.iloc[-1]["cumulative_pnl"]
 
-    assert abs(actual_cumulative - expected_cumulative) < 0.01, (
-        f"Cumulative P&L: Expected ${expected_cumulative:.2f}, got ${actual_cumulative:.2f}"
-    )
+    assert (
+        abs(actual_cumulative - expected_cumulative) < 0.01
+    ), f"Cumulative P&L: Expected ${expected_cumulative:.2f}, got ${actual_cumulative:.2f}"
 
 
 def test_incremental_pnl_with_position_changes() -> None:
@@ -144,9 +144,9 @@ def test_incremental_pnl_long_vs_short() -> None:
     for i in range(1, 6):
         pnl_long = result_long.pnl.iloc[i]["spread_pnl"]
         pnl_short = result_short.pnl.iloc[i]["spread_pnl"]
-        assert abs(pnl_long + pnl_short) < 0.01, (
-            f"Day {i}: Long P&L ${pnl_long:.2f} should be opposite of short P&L ${pnl_short:.2f}"
-        )
+        assert (
+            abs(pnl_long + pnl_short) < 0.01
+        ), f"Day {i}: Long P&L ${pnl_long:.2f} should be opposite of short P&L ${pnl_short:.2f}"
 
 
 def test_cumulative_pnl_equals_mark_to_market() -> None:
@@ -186,6 +186,6 @@ def test_cumulative_pnl_equals_mark_to_market() -> None:
         expected_mtm = -spread_change_from_entry * config.dv01_per_million * config.position_size
         actual_cumulative = result.pnl.iloc[i]["cumulative_pnl"]
 
-        assert abs(actual_cumulative - expected_mtm) < 0.01, (
-            f"Day {i}: MTM=${expected_mtm:.2f}, Cumulative=${actual_cumulative:.2f}"
-        )
+        assert (
+            abs(actual_cumulative - expected_mtm) < 0.01
+        ), f"Day {i}: MTM=${expected_mtm:.2f}, Cumulative=${actual_cumulative:.2f}"

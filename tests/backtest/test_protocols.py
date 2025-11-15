@@ -17,7 +17,7 @@ from aponyx.evaluation.performance import compute_all_metrics
 class SimpleBacktestEngine:
     """
     Minimal implementation of BacktestEngine protocol for testing.
-    
+
     This verifies that the protocol can be implemented with minimal code
     and that our main engine follows the same interface.
     """
@@ -30,7 +30,7 @@ class SimpleBacktestEngine:
     ) -> BacktestResult:
         """
         Simple backtest that just tracks signals without P&L calculation.
-        
+
         Used to test protocol conformance only.
         """
         if config is None:
@@ -181,7 +181,7 @@ def test_simple_calculator_protocol_conformance() -> None:
 def test_protocol_allows_swapping_implementations() -> None:
     """
     Test that different BacktestEngine implementations can be used interchangeably.
-    
+
     This verifies that the protocol design enables future integration
     of libraries like vectorbt or backtrader.
     """
@@ -210,7 +210,7 @@ def test_protocol_allows_swapping_implementations() -> None:
 def test_backtest_result_immutability_expectation() -> None:
     """
     Test that BacktestResult components are separate from inputs.
-    
+
     Modifying result should not affect original data.
     """
     dates = pd.date_range("2024-01-01", periods=30, freq="D")
@@ -229,7 +229,7 @@ def test_backtest_result_immutability_expectation() -> None:
 def test_protocol_type_annotations() -> None:
     """
     Test that protocol implementations have correct type signatures.
-    
+
     This is mainly for documentation - mypy would catch type violations.
     """
     # Verify our function signature matches protocol
@@ -250,7 +250,7 @@ def test_protocol_type_annotations() -> None:
 def test_metadata_structure_consistency() -> None:
     """
     Test that metadata follows consistent structure across implementations.
-    
+
     This enables downstream tools to reliably parse backtest metadata.
     """
     dates = pd.date_range("2024-01-01", periods=50, freq="D")

@@ -233,9 +233,7 @@ class TestNormalizedChange:
             [100, 105, 103, 108, 110, 107],
             index=pd.date_range("2024-01-01", periods=6),
         )
-        result = apply_transform(
-            series, "normalized_change", window=3, min_periods=3, periods=1
-        )
+        result = apply_transform(series, "normalized_change", window=3, min_periods=3, periods=1)
 
         # First value is NaN (no prior for diff)
         assert pd.isna(result.iloc[0])
@@ -259,9 +257,7 @@ class TestNormalizedChange:
             [100, 105, 103, 108, 110],
             index=pd.date_range("2024-01-01", periods=5),
         )
-        result = apply_transform(
-            series, "normalized_change", window=3, min_periods=3, periods=2
-        )
+        result = apply_transform(series, "normalized_change", window=3, min_periods=3, periods=2)
 
         # First two values are NaN (periods=2 for diff)
         assert pd.isna(result.iloc[0])

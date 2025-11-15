@@ -285,10 +285,10 @@ def test_run_backtest_validates_empty_data_after_alignment() -> None:
     # Create non-overlapping date ranges
     dates1 = pd.date_range("2024-01-01", periods=5, freq="D")
     dates2 = pd.date_range("2024-02-01", periods=5, freq="D")
-    
+
     signal = pd.Series([1.0, 2.0, 3.0, 2.0, 1.0], index=dates1)
     spread = pd.Series([100.0, 101.0, 102.0, 101.0, 100.0], index=dates2)
-    
+
     with pytest.raises(ValueError, match="No valid data after alignment"):
         run_backtest(signal, spread, BacktestConfig(signal_lag=0))
 
@@ -297,34 +297,38 @@ def test_signal_lag_shifts_execution() -> None:
     """Test that signal_lag properly delays signal execution."""
     # Create deterministic signal and spread
     dates = pd.date_range("2024-01-01", periods=10, freq="D")
-    
+
     # Strong signal on day 3 only
     signal = pd.Series([0.0] * 10, index=dates)
     signal.iloc[3] = 3.0  # Strong long signal
-    
+
     # Constant spread for simplicity
     spread = pd.Series([100.0] * 10, index=dates)
-    
+
     # Test with no lag (default behavior)
     config_no_lag = BacktestConfig(entry_threshold=2.0, signal_lag=0)
     result_no_lag = run_backtest(signal, spread, config_no_lag)
-    
+
     # Test with 1-day lag
     config_lag = BacktestConfig(entry_threshold=2.0, signal_lag=1)
     result_lag = run_backtest(signal, spread, config_lag)
-    
+
     # With no lag, position should be taken on day 3 (when signal appears)
     # With 1-day lag, position should be taken on day 4 (next day)
-    
+
     # Find first non-zero position for each backtest
-    first_position_no_lag = result_no_lag.positions[
-        result_no_lag.positions["position"] != 0
-    ].index[0] if (result_no_lag.positions["position"] != 0).any() else None
-    
-    first_position_lag = result_lag.positions[
-        result_lag.positions["position"] != 0
-    ].index[0] if (result_lag.positions["position"] != 0).any() else None
-    
+    first_position_no_lag = (
+        result_no_lag.positions[result_no_lag.positions["position"] != 0].index[0]
+        if (result_no_lag.positions["position"] != 0).any()
+        else None
+    )
+
+    first_position_lag = (
+        result_lag.positions[result_lag.positions["position"] != 0].index[0]
+        if (result_lag.positions["position"] != 0).any()
+        else None
+    )
+
     # Verify lag effect
     if first_position_no_lag is not None and first_position_lag is not None:
         assert first_position_lag > first_position_no_lag
@@ -336,10 +340,10 @@ def test_signal_lag_metadata_logging() -> None:
     dates = pd.date_range("2024-01-01", periods=50, freq="D")
     signal = pd.Series(np.random.randn(50), index=dates)
     spread = pd.Series(100 + np.random.randn(50), index=dates)
-    
+
     config = BacktestConfig(signal_lag=2)
     result = run_backtest(signal, spread, config)
-    
+
     # Verify signal_lag is in metadata
     assert "signal_lag" in result.metadata["config"]
     assert result.metadata["config"]["signal_lag"] == 2
@@ -349,33 +353,29 @@ def test_signal_lag_prevents_look_ahead_bias() -> None:
     """Test that signal_lag prevents using future information."""
     # Create scenario where future signal would affect past trades without lag
     dates = pd.date_range("2024-01-01", periods=20, freq="D")
-    
+
     # Signal turns positive on day 10
     signal = pd.Series([0.0] * 10 + [3.0] * 10, index=dates)
     spread = pd.Series([100.0] * 20, index=dates)
-    
+
     config = BacktestConfig(entry_threshold=2.0, signal_lag=1)
     result = run_backtest(signal, spread, config)
-    
+
     # With 1-day lag, signal data is shifted, reducing available dates
     # After alignment, we should have 19 days (lost 1 to lag)
     assert len(result.positions) == 19
-    
+
     # Check using date-based indexing to avoid off-by-one errors
     # Signal appears on 2024-01-10, with 1-day lag executes on 2024-01-11
     signal_date = pd.Timestamp("2024-01-10")
     execution_date = pd.Timestamp("2024-01-11")
-    
+
     # No position before execution date
-    early_positions = result.positions[
-        result.positions.index < execution_date
-    ]
+    early_positions = result.positions[result.positions.index < execution_date]
     assert (early_positions["position"] == 0).all()
-    
+
     # Position should exist on or after execution date
-    later_positions = result.positions[
-        result.positions.index >= execution_date
-    ]
+    later_positions = result.positions[result.positions.index >= execution_date]
     assert (later_positions["position"] != 0).any()
 
 
@@ -384,17 +384,17 @@ def test_signal_lag_with_various_lags() -> None:
     dates = pd.date_range("2024-01-01", periods=100, freq="D")
     signal = pd.Series(np.random.randn(100), index=dates)
     spread = pd.Series(100 + np.random.randn(100), index=dates)
-    
+
     # Test different lag values
     for lag in [0, 1, 2, 5]:
         config = BacktestConfig(signal_lag=lag)
         result = run_backtest(signal, spread, config)
-        
+
         # Result length should be original length minus lag
         expected_length = 100 - lag
         assert len(result.positions) == expected_length
         assert len(result.pnl) == expected_length
-        
+
         # First date should be lag days after original start
         expected_first_date = dates[lag]
         assert result.positions.index[0] == expected_first_date
@@ -403,11 +403,11 @@ def test_signal_lag_with_various_lags() -> None:
 def test_signal_lag_interaction_with_max_holding_days() -> None:
     """Test that signal_lag and max_holding_days work together correctly."""
     dates = pd.date_range("2024-01-01", periods=30, freq="D")
-    
+
     # Strong signal for first 20 days
     signal = pd.Series([3.0] * 20 + [0.0] * 10, index=dates)
     spread = pd.Series([100.0] * 30, index=dates)
-    
+
     config = BacktestConfig(
         entry_threshold=2.0,
         exit_threshold=0.5,
@@ -415,14 +415,14 @@ def test_signal_lag_interaction_with_max_holding_days() -> None:
         signal_lag=1,
     )
     result = run_backtest(signal, spread, config)
-    
+
     # Find positions held
     in_position = result.positions[result.positions["position"] != 0]
-    
+
     if len(in_position) > 0:
         # No position should exceed max_holding_days
         assert in_position["days_held"].max() <= config.max_holding_days
-        
+
         # With lag, entry should be delayed
         first_position_date = in_position.index[0]
         assert first_position_date > dates[0]
@@ -431,22 +431,22 @@ def test_signal_lag_interaction_with_max_holding_days() -> None:
 def test_backtest_with_sparse_signals() -> None:
     """Test backtest behavior with infrequent signal triggers."""
     dates = pd.date_range("2024-01-01", periods=100, freq="D")
-    
+
     # Signal crosses threshold only a few times
     signal = pd.Series([0.0] * 100, index=dates)
     signal.iloc[10] = 2.5  # Single spike
     signal.iloc[50] = -2.5  # Another spike
     signal.iloc[75] = 2.0  # Final spike
-    
+
     spread = pd.Series(100 + np.random.randn(100) * 0.5, index=dates)
-    
+
     config = BacktestConfig(
         entry_threshold=2.0,
         exit_threshold=0.5,
         signal_lag=0,  # No lag for precise testing
     )
     result = run_backtest(signal, spread, config)
-    
+
     # Should have limited trading activity
     trades = (result.positions["position"].diff().fillna(0) != 0).sum()
     assert trades <= 6  # At most 3 entries and 3 exits
@@ -455,24 +455,24 @@ def test_backtest_with_sparse_signals() -> None:
 def test_backtest_with_rapid_signal_changes() -> None:
     """Test backtest with rapidly oscillating signals."""
     dates = pd.date_range("2024-01-01", periods=50, freq="D")
-    
+
     # Alternating strong signals that cross zero
     signal_values = [2.5 if i % 2 == 0 else -2.5 for i in range(50)]
     signal = pd.Series(signal_values, index=dates)
-    
+
     spread = pd.Series([100.0] * 50, index=dates)
-    
+
     config = BacktestConfig(
         entry_threshold=2.0,
         exit_threshold=0.5,
         signal_lag=0,
     )
     result = run_backtest(signal, spread, config)
-    
+
     # With alternating signals, should take positions
     # Entry threshold of 2.0 means signal of 2.5/-2.5 will trigger
     assert (result.positions["position"] != 0).any()
-    
+
     # Verify transaction costs are incurred
     assert result.pnl["cost"].sum() > 0
 
@@ -483,13 +483,13 @@ def test_backtest_alignment_with_mismatched_dates() -> None:
     signal_dates = pd.date_range("2024-01-01", periods=100, freq="D")
     # Spread has less data and different start
     spread_dates = pd.date_range("2024-01-10", periods=50, freq="D")
-    
+
     signal = pd.Series(np.random.randn(100), index=signal_dates)
     spread = pd.Series(100 + np.random.randn(50), index=spread_dates)
-    
+
     config = BacktestConfig(signal_lag=0)
     result = run_backtest(signal, spread, config)
-    
+
     # Result should only include overlapping dates
     assert len(result.positions) == 50
     assert result.positions.index[0] == spread_dates[0]
@@ -500,23 +500,23 @@ def test_backtest_with_signal_lag_and_alignment() -> None:
     """Test interaction between signal lag and data alignment."""
     signal_dates = pd.date_range("2024-01-01", periods=100, freq="D")
     spread_dates = pd.date_range("2024-01-05", periods=90, freq="D")
-    
+
     signal = pd.Series(np.random.randn(100), index=signal_dates)
     spread = pd.Series(100 + np.random.randn(90), index=spread_dates)
-    
+
     # 2-day lag
     config = BacktestConfig(signal_lag=2)
     result = run_backtest(signal, spread, config)
-    
+
     # After lag and alignment, check that we got valid data
     # Signal starts 2024-01-01, spread starts 2024-01-05
     # With 2-day lag, lagged signal starts 2024-01-03
     # Overlap is still full 90 days because signal extends well beyond spread
     assert len(result.positions) == 90
-    
+
     # First date should match spread start (signal has enough coverage)
     assert result.positions.index[0] == spread_dates[0]
-    
+
     # Verify signal_lag is reflected in metadata
     assert result.metadata["config"]["signal_lag"] == 2
 
@@ -526,7 +526,7 @@ def test_backtest_metadata_completeness() -> None:
     dates = pd.date_range("2024-01-01", periods=50, freq="D")
     signal = pd.Series(np.random.randn(50), index=dates)
     spread = pd.Series(100 + np.random.randn(50), index=dates)
-    
+
     config = BacktestConfig(
         entry_threshold=1.8,
         exit_threshold=0.6,
@@ -537,7 +537,7 @@ def test_backtest_metadata_completeness() -> None:
         signal_lag=2,
     )
     result = run_backtest(signal, spread, config)
-    
+
     # Verify all config parameters are in metadata
     assert result.metadata["config"]["entry_threshold"] == 1.8
     assert result.metadata["config"]["exit_threshold"] == 0.6
@@ -546,7 +546,7 @@ def test_backtest_metadata_completeness() -> None:
     assert result.metadata["config"]["max_holding_days"] == 10
     assert result.metadata["config"]["dv01_per_million"] == 5000.0
     assert result.metadata["config"]["signal_lag"] == 2
-    
+
     # Verify summary statistics
     assert "timestamp" in result.metadata
     assert "start_date" in result.metadata["summary"]
@@ -555,9 +555,10 @@ def test_backtest_metadata_completeness() -> None:
     assert "n_trades" in result.metadata["summary"]
     assert "total_pnl" in result.metadata["summary"]
     assert "avg_pnl_per_trade" in result.metadata["summary"]
-    
+
     # Verify timestamp is valid ISO format
     from datetime import datetime
+
     timestamp = datetime.fromisoformat(result.metadata["timestamp"])
     assert timestamp is not None
 
@@ -568,17 +569,17 @@ def test_backtest_determinism() -> None:
     np.random.seed(42)
     signal = pd.Series(np.random.randn(50), index=dates)
     spread = pd.Series(100 + np.random.randn(50), index=dates)
-    
+
     config = BacktestConfig(entry_threshold=1.5)
-    
+
     # Run twice
     result1 = run_backtest(signal, spread, config)
     result2 = run_backtest(signal, spread, config)
-    
+
     # Results should be identical
     pd.testing.assert_frame_equal(result1.positions, result2.positions)
     pd.testing.assert_frame_equal(result1.pnl, result2.pnl)
-    
+
     # Metadata timestamp will differ, but config and summary should match
     assert result1.metadata["config"] == result2.metadata["config"]
     assert result1.metadata["summary"] == result2.metadata["summary"]
@@ -587,21 +588,21 @@ def test_backtest_determinism() -> None:
 def test_backtest_with_zero_threshold() -> None:
     """Test backtest with zero exit threshold (always in position)."""
     dates = pd.date_range("2024-01-01", periods=30, freq="D")
-    
+
     # Signal oscillates around entry threshold
     signal = pd.Series(
         [2.0, 1.0, 0.5, 2.5, 1.5, 0.8] * 5,
         index=dates,
     )
     spread = pd.Series([100.0] * 30, index=dates)
-    
+
     config = BacktestConfig(
         entry_threshold=1.5,
         exit_threshold=0.0,  # Never exit on signal decay
         signal_lag=0,
     )
     result = run_backtest(signal, spread, config)
-    
+
     # Once entered, should stay in position (no signal-based exits)
     first_entry_idx = (result.positions["position"] != 0).idxmax()
     if first_entry_idx:

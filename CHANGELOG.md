@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.9] - 2025-11-15
+
+### Added
+- Intraday cache update feature for Bloomberg data with selective field updates
+  - `update_cached_data()` function for efficient cache refresh
+  - Configurable refresh intervals and field subsets
+  - Comprehensive integration tests validating update workflow
+- Centralized time series transformation module (`data/transforms.py`)
+  - Reusable functions for z-score normalization, returns calculation, rolling statistics
+  - Separation of data processing logic from signal computation
+  - Enhanced code modularity and testability
+
+### Changed
+- Refined evaluation layer positioning and scope in documentation
+  - Clarified relationship between suitability and performance evaluation
+  - Updated governance design with evaluation registry patterns
+  - Enhanced documentation structure guide
+
+### Fixed
+- P&L calculation now correctly computes incremental returns instead of cumulative from entry
+  - Prevents compounding errors in multi-period backtests
+  - Aligns with standard financial performance metrics
+- Resolved test suite failures and improved code quality
+  - Fixed suitability evaluation test configuration patterns
+  - Enhanced error handling in transformation functions
+  - Updated type hints to modern Python syntax
+
+### Documentation
+- Added `CONTRIBUTING.md` with project scope disclaimers and contribution guidelines
+- Added `SECURITY.md` with security policy and research framework limitations
+- Updated evaluation layer documentation for clarity and accuracy
+
 ## [0.1.8] - 2025-11-13
 
 ### Added
@@ -359,6 +391,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.9]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.9
 [0.1.8]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.8
 [0.1.7]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.7
 [0.1.6]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.6
