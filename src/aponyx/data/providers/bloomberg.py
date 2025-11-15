@@ -99,12 +99,32 @@ def fetch_from_bloomberg(
     )
 
     # Import xbbg wrapper
+    # Note: Use BaseException to catch pytest.Skipped from xbbg's importorskip
     try:
         from xbbg import blp
-    except ImportError:
-        raise ImportError(
-            "xbbg not installed. " "Install with: uv pip install --optional bloomberg"
-        )
+    except BaseException as e:
+        # Handle multiple error types:
+        # 1. Direct ImportError when xbbg not installed
+        # 2. ImportError with blpapi in message (nested import failure)
+        # 3. pytest.Skipped exception from xbbg's importorskip
+        error_msg = str(e)
+        
+        if "blpapi" in error_msg.lower():
+            raise ImportError(
+                "Bloomberg API (blpapi) not installed. "
+                "Install with: uv pip install blpapi\n"
+                "Or install all Bloomberg dependencies: uv sync --extra bloomberg\n"
+                "Note: Requires active Bloomberg Terminal subscription."
+            ) from e
+        elif isinstance(e, ImportError):
+            raise ImportError(
+                f"xbbg not installed: {error_msg}\n"
+                "Install with: uv pip install xbbg\n"
+                "Or install all Bloomberg dependencies: uv sync --extra bloomberg"
+            ) from e
+        else:
+            # Re-raise other exceptions (KeyboardInterrupt, SystemExit, etc.)
+            raise
 
     # Fetch historical data using xbbg
     try:
@@ -290,10 +310,29 @@ def fetch_current_from_bloomberg(
 
     try:
         from xbbg import blp
-    except ImportError:
-        raise ImportError(
-            "xbbg not installed. " "Install with: uv pip install --optional bloomberg"
-        )
+    except BaseException as e:
+        # Handle multiple error types:
+        # 1. Direct ImportError when xbbg not installed
+        # 2. ImportError with blpapi in message (nested import failure)
+        # 3. pytest.Skipped exception from xbbg's importorskip
+        error_msg = str(e)
+        
+        if "blpapi" in error_msg.lower():
+            raise ImportError(
+                "Bloomberg API (blpapi) not installed. "
+                "Install with: uv pip install blpapi\n"
+                "Or install all Bloomberg dependencies: uv sync --extra bloomberg\n"
+                "Note: Requires active Bloomberg Terminal subscription."
+            ) from e
+        elif isinstance(e, ImportError):
+            raise ImportError(
+                f"xbbg not installed: {error_msg}\n"
+                "Install with: uv pip install xbbg\n"
+                "Or install all Bloomberg dependencies: uv sync --extra bloomberg"
+            ) from e
+        else:
+            # Re-raise other exceptions (KeyboardInterrupt, SystemExit, etc.)
+            raise
 
     try:
         # Use BDP for current data point
@@ -322,8 +361,8 @@ def fetch_current_from_bloomberg(
     eastern = ZoneInfo("America/New_York")
     today = datetime.now(eastern).strftime("%Y-%m-%d")
     
-    # Replace ticker index with today's date
-    df = current_data.copy()
+    # Extract single ticker row and reassign index to today's date
+    df = current_data.iloc[[0]].copy()  # Keep as DataFrame with single row
     df.index = pd.to_datetime([today])
     df.index.name = "date"
 
