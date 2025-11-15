@@ -84,10 +84,9 @@ src/aponyx/
     config.py         # SignalConfig dataclass
     signal_catalog.json  # Signal metadata catalog
   
-  backtest/           # Simulation, P&L tracking, metrics
+  backtest/           # Execution simulation and P&L tracking
     __init__.py       # Exports: BacktestConfig, run_backtest, StrategyRegistry, etc.
     engine.py         # Core backtest engine
-    metrics.py        # Performance calculations
     config.py         # BacktestConfig dataclass
     protocols.py      # BacktestEngine, PerformanceCalculator
     registry.py       # Strategy registry and metadata

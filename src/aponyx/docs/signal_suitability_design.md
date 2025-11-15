@@ -16,20 +16,19 @@ The suitability evaluation layer provides **quantitative assessment of signal-pr
 3. **Economic Relevance** – Is the predicted effect large enough to be tradeable?  
 4. **Temporal Stability** – Is the relationship persistent across market regimes?
 
-**Decision Framework:**
+**Assessment Framework:**
 
-| Decision | Meaning | Next Action |
-|----------|---------|-------------|
-| PASS     | Signal meets all suitability criteria | Proceed to strategy design and backtesting |
-| HOLD     | Signal shows promise but requires review | Investigate marginal scores before backtesting |
-| FAIL     | Signal lacks predictive value | Archive; do not backtest |
+| Decision | Meaning | Interpretation |
+|----------|---------|----------------|
+| PASS     | Signal meets suitability criteria | High confidence for backtesting |
+| HOLD     | Signal shows promise but has marginal scores | Review before backtesting |
+| FAIL     | Signal lacks predictive evidence | Low confidence; consider improvements |
 
 **Workflow Position:**
 
 ```
 Data → Signal Generation → Suitability Evaluation → Backtest → Performance Analysis
-                                      ↓
-                               PASS/HOLD/FAIL
+                                 (assessment)
 ```
 
 ---
@@ -264,10 +263,10 @@ def score_stability(
 | Economic Relevance    | 0.2            |
 | Temporal Stability    | 0.2            |
 
-* Composite score thresholds:
-  - **≥ 0.70:** PASS (proceed to backtest)
-  - **0.40–0.69:** HOLD (marginal, requires judgment)
-  - **< 0.40:** FAIL (do not backtest)
+* Composite score interpretation:
+  - **≥ 0.70:** High confidence (strong candidate for backtesting)
+  - **0.40–0.69:** Marginal (requires judgment and further review)
+  - **< 0.40:** Low confidence (consider signal improvements)
 
 ---
 
@@ -279,7 +278,7 @@ def score_stability(
 
 1. **Header**  
    - Signal ID, Product ID, Evaluation timestamp  
-   - Composite score and decision (PASS/HOLD/FAIL)
+   - Composite score and assessment category (PASS/HOLD/FAIL)
 
 2. **Summary Table**  
    - Component scores with weights  
@@ -291,10 +290,10 @@ def score_stability(
    - **Economic Relevance:** Effect size (bps), practical context  
    - **Temporal Stability:** Rolling beta statistics, sign consistency ratio, coefficient of variation, number of windows
 
-4. **Decision Rationale**  
+4. **Assessment Notes**  
    - Threshold comparison  
-   - Marginal components (if HOLD)  
-   - Failure reasons (if FAIL)
+   - Marginal components (if applicable)  
+   - Areas for potential improvement
 
 5. **Footer**  
    - Configuration snapshot (lags, rolling_window, thresholds, weights)  

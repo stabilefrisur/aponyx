@@ -190,7 +190,7 @@ Current implementation uses Express; future complexity may require Graph Objects
 - No signal generation or transformation
 - No automatic metric annotations beyond labels
 
-*Rationale:* Computation belongs in `backtest.metrics` or `models`. Visualization consumes pre-computed values.
+*Rationale:* Computation belongs in `evaluation.performance` or `models`. Visualization consumes pre-computed values.
 
 **Styling / Theming**
 - No custom color palettes (use Plotly defaults)

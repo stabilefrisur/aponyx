@@ -77,14 +77,12 @@ etf_df = fetch_etf(FileSource("data/raw/etf_data.parquet"), security="hyg")
 signal_config = SignalConfig(lookback=20, min_periods=10)
 signal = compute_cdx_etf_basis(cdx_df, etf_df, signal_config)
 
-# Evaluate signal-product suitability (optional pre-backtest gate)
+# Evaluate signal-product suitability (optional pre-backtest assessment)
 from aponyx.evaluation import evaluate_signal_suitability, SuitabilityConfig
 suitability_config = SuitabilityConfig(rolling_window=252)  # ~1 year daily data
 result = evaluate_signal_suitability(signal, cdx_df["spread"], suitability_config)
-if result.decision != "PASS":
-    print(f"Signal evaluation: {result.decision} (score: {result.composite_score:.2f})")
-    print(f"Stability: {result.sign_consistency_ratio:.1%} sign consistency, CV={result.beta_cv:.3f}")
-    # Optionally skip backtest for low-quality signals
+print(f"Suitability score: {result.composite_score:.2f}")
+print(f"Stability: {result.sign_consistency_ratio:.1%} sign consistency, CV={result.beta_cv:.3f}")
 
 # Run backtest with transaction costs
 backtest_config = BacktestConfig(
@@ -121,7 +119,7 @@ Aponyx follows a **layered architecture** with clean separation of concerns:
 | **Data** | Load, validate, transform market data | `fetch_cdx`, `fetch_vix`, `fetch_etf`, `apply_transform`, `FileSource`, `BloombergSource` |
 | **Models** | Generate signals for independent evaluation | `compute_cdx_etf_basis`, `compute_cdx_vix_gap`, `SignalRegistry` |
 | **Evaluation** | Pre-backtest screening (rolling window stability) and post-backtest analysis | `evaluate_signal_suitability`, `analyze_backtest_performance`, `PerformanceRegistry` |
-| **Backtest** | Simulate execution and compute metrics | `run_backtest`, `BacktestConfig`, `StrategyRegistry` |
+| **Backtest** | Simulate execution and generate P&L | `run_backtest`, `BacktestConfig`, `StrategyRegistry` |
 | **Visualization** | Interactive charts and dashboards | `plot_equity_curve`, `plot_signal`, `plot_drawdown` |
 | **Persistence** | Save/load data with metadata registry | `save_parquet`, `load_parquet`, `DataRegistry` |
 
@@ -135,15 +133,14 @@ Data Layer (load, validate, transform)
 Models Layer (signal computation)
     ↓
 Evaluation Layer (signal-product suitability)
-    ├─ PASS → Backtest Layer (simulation, metrics)
-    │            ↓
-    │         Evaluation Layer (performance analysis)
-    │            ↓
-    │         Visualization Layer (charts)
-    │            ↓
-    │         Persistence Layer (results)
-    │
-    └─ FAIL → Archive (no backtest)
+    ↓
+Backtest Layer (execution simulation)
+    ↓
+Evaluation Layer (performance metrics & analysis)
+    ↓
+Visualization Layer (charts)
+    ↓
+Persistence Layer (results)
 ```
 
 ## Research Notebooks

@@ -22,7 +22,9 @@ src/aponyx/
   data/               # Loaders, cleaning, transformation, validation
     providers/        # Data provider implementations (Bloomberg, etc.)
   models/             # Signal & strategy logic
-  evaluation/         # Signal-product suitability assessment
+  evaluation/         # Signal-product evaluation framework
+    suitability/      # Signal-product suitability assessment
+    performance/      # Extended performance metrics and attribution
   backtest/           # Backtesting engine and risk tracking
   visualization/      # Plotly & Streamlit dashboards
   persistence/        # Parquet & JSON I/O utilities
@@ -49,7 +51,7 @@ README.md             # Project overview and setup instructions
 
 ## ⚙️ Environment Standards
 
-- **Python:** 3.12  
+- **Python:** 3.12 (strictly `>=3.12,<3.13` — no 3.13+ features)
 - **Type Hints:** Use modern Python syntax (`str | None` instead of `Optional[str]`, `int | float` instead of `Union[int, float]`)
 - **Environment:** managed with [`uv`](https://docs.astral.sh/uv/)  
 - **Linting / Formatting:** `ruff`, `black`, `mypy`
@@ -70,25 +72,42 @@ The project uses a three-pillar governance architecture:
 2. **Registry** (`data/registry.py`) — Dataset tracking with CRUD operations (class-based, mutable)
 3. **Catalog** (`models/signal_catalog.json`, `backtest/strategy_catalog.json`) — Signal and strategy definitions (class-based registries with fail-fast validation)
 
-### Patterns
+### Governance Patterns
 
-- **Import-time constants:** Static configuration (`config/__init__.py`)
-- **Class-based registry:** Mutable state with CRUD (`DataRegistry`)
-- **Class-based catalog:** Immutable metadata with validation (`SignalRegistry`, `StrategyRegistry`)
-- **Functional pattern:** Read-only lookups with lazy loading (Bloomberg config)
+- **Import-time constants:** Static, frozen configuration loaded at module import (`config/__init__.py`)
+- **Mutable registry:** Class-based CRUD operations for dataset tracking (`DataRegistry` in `data/registry.py`)
+- **Immutable catalog:** Class-based registries with fail-fast validation for signal/strategy definitions (`SignalRegistry` in `models/registry.py`, `StrategyRegistry` in `backtest/registry.py`)
+- **Lazy functional lookups:** Read-only, on-demand configuration loading (Bloomberg securities/instruments)
 
 See `src/aponyx/docs/governance_design.md` for complete architecture details.
 
 ### Registry vs Catalog
 
-- **Registry** = Dataset tracking (what data files exist, where they are)
-- **Catalog** = Signal/strategy definitions (what computations are available)
+**Registry** = Dataset tracking (what data files exist, where they are stored)
+- Example: `data/registry.json` tracks `cdx_ig_5y.parquet` location and metadata
+- Mutable: Supports add/update/delete operations
+- Updated programmatically when data is fetched or processed
 
-Both use JSON persistence but serve different purposes and have different mutability patterns.
+**Catalog** = Signal/strategy definitions (what computations are available)
+- Example: `models/signal_catalog.json` defines `cdx_etf_basis` signal parameters
+- Immutable after load: Edits require manual JSON modification and version control
+- Read-only during runtime with fail-fast validation
+
+Both use JSON persistence but have fundamentally different mutability and lifecycle patterns.
 
 ---
 
 ## Agent Behavior Guidelines
+
+### Workflow for Multi-Step Tasks
+
+1. **Understand** — Read relevant files and documentation to grasp context
+2. **Plan** — Break complex tasks into discrete, testable steps
+3. **Implement** — Execute changes with proper type hints and docstrings
+4. **Validate** — Run tests or check for errors after modifications
+5. **Document** — Update only if creating new public APIs or changing behavior
+
+**For simple tasks:** Skip planning and implement directly.
 
 ### General
 1. **Always prioritize modular, PEP 8‑compliant, type‑annotated code.**
@@ -175,15 +194,17 @@ def compute_spread_momentum(
 | Context | Preferred Behavior |
 |----------|--------------------|  
 | Editing `/config/` | Use import-time constants with `Final` type hints. No classes, no dynamic configuration. |
-| Editing `/data/` | Focus on fetch functions, schema validation, and data sources. Use `DataRegistry` for dataset tracking. Support multiple providers (File, Bloomberg, API). |
+| Editing `/data/` | Focus on fetch functions, schema validation, and data sources. Use `DataRegistry` for dataset tracking. Support multiple providers (File, Bloomberg, API). **Never implement authentication** — connections managed externally. |
 | Editing `/models/` | Focus on signal functions and strategy modules. Use `SignalRegistry` for catalog management. **Signal convention: positive values = long credit risk (buy CDX).** |
-| Editing `/evaluation/suitability/` | Focus on 4-component scoring (data health, predictive, economic, stability) and PASS/HOLD/FAIL decisions for signal-product pairs. Use `SuitabilityRegistry` for tracking. |
-| Editing `/evaluation/performance/` | Focus on extended metrics (stability, profit factor, tail ratio), rolling Sharpe analysis, return attribution (directional, signal strength, win/loss), and comprehensive reporting. Use `PerformanceRegistry` for tracking. |
+| Editing `/evaluation/suitability/` | Focus on 4-component scoring (data health, predictive, economic, stability) for signal-product assessment. Use `SuitabilityRegistry` for tracking evaluations. |
+| Editing `/evaluation/performance/` | Focus on extended metrics (stability, profit factor, tail ratio), rolling Sharpe analysis, return attribution (directional, signal strength, win/loss), and comprehensive reporting. Use `PerformanceRegistry` for tracking evaluations. Both evaluation modules follow registry pattern. |
 | Editing `/backtest/` | Implement transparent, deterministic backtest logic. Use `StrategyRegistry` for strategy catalog. Include metadata logging. |
 | Editing `/visualization/` | Generate reusable Plotly/Streamlit components. Separate plotting from computation. |
 | Editing `/persistence/` | Handle Parquet/JSON I/O. No database dependencies. Keep I/O functions pure. |
 | Editing `/notebooks/` | Create workflow notebooks that work in isolation and load from previous steps. Use absolute imports (`from aponyx.config import...`). Include markdown headers explaining workflow position, prerequisites, and outputs. Format tables with `to_markdown()` for clean left-aligned display. |
-| Editing `/tests/` | Write unit tests for determinism, type safety, and reproducibility. Test governance patterns separately in `tests/governance/`. |When generating code, the assistant should **infer module context from file path** and **adhere to functional boundaries** automatically.
+| Editing `/tests/` | Write unit tests for determinism, type safety, and reproducibility. Test governance patterns separately in `tests/governance/`. Mirror source structure: `tests/data/`, `tests/models/`, `tests/backtest/`, etc. |
+
+When generating code, the assistant should **infer module context from file path** and **adhere to functional boundaries** automatically.
 
 ### Signal Sign Convention (Models Layer)
 
@@ -294,26 +315,46 @@ def compute_cdx_vix_gap(
 
 ## The Agent Should Never
 
-- Use old typing syntax (`Optional`, `Union`, `List`, `Dict`).
+**Type System:**
+- Use old typing syntax (`Optional`, `Union`, `List`, `Dict`) instead of modern syntax.
+
+**Logging:**
 - Call `logging.basicConfig()` in library code or use f-strings in log messages.
-- Hardcode file paths or credentials (use `config/` constants).  
-- Generate non‑deterministic results without a fixed random seed.  
+
+**Configuration:**
+- Hardcode file paths or credentials (use `config/` constants).
+- Generate non‑deterministic results without a fixed random seed.
+
+**Architecture:**
 - Mix backtest logic with data ingestion.
 - Mix governance concerns across pillars (config vs registry vs catalog).
-- Produce undocumented or untyped code.  
-- Add notebook cells or magic commands inside modules.
-- Add decorative emojis to code, comments, or docstrings.
+- Create database dependencies (use Parquet/JSON for persistence).
+
+**Code Quality:**
+- Produce undocumented or untyped code.
 - Create classes when a simple function would suffice.
 - Use regular classes for data containers instead of `@dataclass`.
+
+**Development Environment:**
+- Add notebook cells or magic commands inside modules.
+- Use relative imports in notebooks (always use absolute imports like `from aponyx.config import...`).
+- Create notebooks without workflow context headers explaining prerequisites and outputs.
+
+**Documentation:**
+- Add decorative emojis to code, comments, or docstrings (only ✅ and ❌ for clarity).
+- Use decorative emojis in notebook markdown cells.
 - Create README files in implementation directories (`src/aponyx/*/README.md`).
 - Duplicate API documentation outside of module docstrings.
 - Write tutorial-style docs that duplicate runnable examples.
+
+**Scope Boundaries:**
 - Implement authentication for data providers (connections managed externally).
 - Worry about backward compatibility or legacy code (early-stage project, use best practices).
-- Create database dependencies (use Parquet/JSON for persistence).
-- Use relative imports in notebooks (always use absolute imports like `from aponyx.config import...`).
-- Create notebooks without workflow context headers explaining prerequisites and outputs.
-- Use decorative emojis in notebook markdown cells (only ✅ and ❌ for clarity).
+
+**GitHub Issue Management (CRITICAL):**
+- **NEVER use `mcp_github_github_issue_write` with `body` parameter** — This overwrites the original issue description.
+- **To post responses:** ALWAYS use `mcp_github_github_add_issue_comment`.
+- **To close issues:** Use `mcp_github_github_issue_write(state="closed")` WITHOUT the body parameter.
 
 ---
 
@@ -446,4 +487,4 @@ It should:
 
 > Maintained by **stabilefrisur**.  
 > Optimized for VS Code Agent Mode (Claude Sonnet 4.5 / GPT‑5)  
-> Last Updated: November 14, 2025
+> Last Updated: November 15, 2025
