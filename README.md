@@ -78,7 +78,7 @@ signal_config = SignalConfig(lookback=20, min_periods=10)
 signal = compute_cdx_etf_basis(cdx_df, etf_df, signal_config)
 
 # Evaluate signal-product suitability (optional pre-backtest assessment)
-from aponyx.evaluation import evaluate_signal_suitability, SuitabilityConfig
+from aponyx.evaluation.suitability import evaluate_signal_suitability, SuitabilityConfig
 suitability_config = SuitabilityConfig(rolling_window=252)  # ~1 year daily data
 result = evaluate_signal_suitability(signal, cdx_df["spread"], suitability_config)
 print(f"Suitability score: {result.composite_score:.2f}")
