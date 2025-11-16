@@ -108,7 +108,7 @@ def fetch_from_bloomberg(
         # 2. ImportError with blpapi in message (nested import failure)
         # 3. pytest.Skipped exception from xbbg's importorskip
         error_msg = str(e)
-        
+
         if "blpapi" in error_msg.lower():
             raise ImportError(
                 "Bloomberg API (blpapi) not installed. "
@@ -316,7 +316,7 @@ def fetch_current_from_bloomberg(
         # 2. ImportError with blpapi in message (nested import failure)
         # 3. pytest.Skipped exception from xbbg's importorskip
         error_msg = str(e)
-        
+
         if "blpapi" in error_msg.lower():
             raise ImportError(
                 "Bloomberg API (blpapi) not installed. "
@@ -360,7 +360,7 @@ def fetch_current_from_bloomberg(
     # Need: index=dates, columns=fields (to match BDH format)
     eastern = ZoneInfo("America/New_York")
     today = datetime.now(eastern).strftime("%Y-%m-%d")
-    
+
     # Extract single ticker row and reassign index to today's date
     df = current_data.iloc[[0]].copy()  # Keep as DataFrame with single row
     df.index = pd.to_datetime([today])

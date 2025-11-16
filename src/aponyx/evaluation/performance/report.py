@@ -471,9 +471,7 @@ def generate_performance_report(
                 title=title,
             )
         else:
-            logger.debug(
-                "Skipping tearsheet generation - returns not found in result.metadata"
-            )
+            logger.debug("Skipping tearsheet generation - returns not found in result.metadata")
 
     return report
 

@@ -5,6 +5,7 @@ Fetch functions handle data acquisition from any source (file, Bloomberg, API)
 with automatic validation and optional caching.
 """
 
+import hashlib
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -12,6 +13,7 @@ from pathlib import Path
 import pandas as pd
 
 from ..config import DATA_DIR, CACHE_ENABLED, CACHE_TTL_DAYS, REGISTRY_PATH
+from ..persistence import save_json, save_parquet
 from .bloomberg_config import get_bloomberg_ticker
 from .registry import DataRegistry
 from .cache import get_cached_data, save_to_cache
@@ -19,7 +21,6 @@ from .sources import DataSource, FileSource, BloombergSource, resolve_provider
 from .providers.file import fetch_from_file
 from .providers.bloomberg import fetch_from_bloomberg
 from .validation import validate_cdx_schema, validate_vix_schema, validate_etf_schema
-from ..persistence import save_parquet
 
 logger = logging.getLogger(__name__)
 
@@ -71,16 +72,18 @@ def save_to_raw(
 
     # Generate hash from content and metadata for uniqueness
     safe_instrument = instrument.replace(".", "_").replace("/", "_")
-    hash_input = "|".join([
-        provider,
-        instrument,
-        str(df.index.min()),
-        str(df.index.max()),
-        str(len(df)),
-        str(sorted(metadata_params.items())),
-    ])
+    hash_input = "|".join(
+        [
+            provider,
+            instrument,
+            str(df.index.min()),
+            str(df.index.max()),
+            str(len(df)),
+            str(sorted(metadata_params.items())),
+        ]
+    )
     file_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:12]
-    
+
     filename = f"{safe_instrument}_{file_hash}.parquet"
     raw_path = provider_dir / filename
 
@@ -318,6 +321,7 @@ def fetch_cdx(
     # Save Bloomberg data to raw storage (permanent source of truth)
     if isinstance(source, BloombergSource):
         from ..config import RAW_DIR
+
         registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
         save_to_raw(df, "bloomberg", security or instrument, RAW_DIR, registry)
         registry.save()
@@ -464,6 +468,7 @@ def fetch_vix(
     # Save Bloomberg data to raw storage (permanent source of truth)
     if isinstance(source, BloombergSource):
         from ..config import RAW_DIR
+
         registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
         save_to_raw(df, "bloomberg", "vix", RAW_DIR, registry)
         registry.save()
@@ -659,6 +664,7 @@ def fetch_etf(
     # Save Bloomberg data to raw storage (permanent source of truth)
     if isinstance(source, BloombergSource):
         from ..config import RAW_DIR
+
         registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
         save_to_raw(df, "bloomberg", security or instrument, RAW_DIR, registry)
         registry.save()

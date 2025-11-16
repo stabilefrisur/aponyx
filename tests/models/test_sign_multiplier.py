@@ -63,6 +63,7 @@ def test_catalog_sign_multiplier_applied(tmp_path):
 
     catalog_path = tmp_path / "test_catalog.json"
     import json
+
     with open(catalog_path, "w") as f:
         json.dump(catalog_data, f)
 
@@ -85,7 +86,7 @@ def test_catalog_sign_multiplier_applied(tmp_path):
     # With sign_multiplier=-1, should be positive
     assert "spread_momentum" in signals
     signal = signals["spread_momentum"]
-    
+
     # Check that at least some values exist and have expected sign
     valid_values = signal.dropna()
     assert len(valid_values) > 0
@@ -96,9 +97,9 @@ def test_catalog_sign_multiplier_applied(tmp_path):
 def test_registry_loads_catalog_with_sign_multiplier():
     """Test that SignalRegistry properly loads sign_multiplier from catalog JSON."""
     from aponyx.config import SIGNAL_CATALOG_PATH
-    
+
     registry = SignalRegistry(SIGNAL_CATALOG_PATH)
-    
+
     # All signals should have sign_multiplier field
     for name, metadata in registry.list_all().items():
         assert hasattr(metadata, "sign_multiplier")

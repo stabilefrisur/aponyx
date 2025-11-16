@@ -5,6 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.10] - 2025-11-16
+
+### Added
+- Comprehensive raw data storage system with hash-based file naming across all providers
+  - Unified storage under `data/raw/synthetic/`, `data/raw/file/`, `data/raw/bloomberg/`
+  - Deterministic hash-based naming for deduplication and integrity
+  - Metadata JSON files tracking fetch parameters and timestamps
+  - Test suite validating storage patterns across providers
+- Intraday data update capability in single-signal notebook template
+  - `update_cached_data()` workflow for Bloomberg refresh
+  - Configurable field subsets and refresh intervals
+  - Automatic cache validation and staleness checks
+- Signal lag parameter sweep example demonstrating systematic optimization
+  - Grid search across entry/exit thresholds and signal lags
+  - Heatmap visualization of performance surfaces
+  - Best parameter identification workflow
+- Sign multiplier feature in signal catalog for flexible signal inversion
+  - `sign_multiplier` field in signal catalog JSON (+1 or -1)
+  - Automatic signal inversion without code changes
+  - Enhanced signal registry with multiplier validation
+
+### Changed
+- Refactored data architecture to proper raw/cache/processed separation
+  - Raw storage: immutable source data with metadata
+  - Cache: TTL-based Parquet for fetch optimization
+  - Processed: analysis-ready transformed datasets
+  - Clear separation of concerns and data lineage
+- Enhanced synthetic data generation with improved market dynamics
+  - More realistic correlation structures between CDX/VIX/ETF
+  - Configurable regime simulation (normal, stress, recovery)
+  - Better alignment with actual market behavior patterns
+- Streamlined example scripts with improved Bloomberg integration
+  - Enhanced error handling for Terminal connection issues
+  - Better fallback patterns for offline development
+  - Clearer documentation of Bloomberg requirements
+- Integrated quantstats library for enhanced performance analytics
+  - Extended metrics beyond internal calculations
+  - Professional tearsheet generation capability
+  - Comprehensive risk-adjusted performance analysis
+- Converted backtest adapters to protocol-based interface
+  - Clean separation between internal engine and third-party libraries
+  - Extensible adapter pattern for quantstats/vectorbt integration
+  - Improved testability and modularity
+
+### Fixed
+- Bloomberg provider now correctly handles BDP/BDH format differences
+  - BDP returns dict format for static fields
+  - BDH returns DataFrame format for time series
+  - Proper handling of both response types
+- Suitability evaluation import path corrected in Quick Start example
+  - Fixed module path in README.md demonstration
+  - Updated to match actual package structure
+
+### Documentation
+- Added comprehensive raw data storage design document
+  - Hash-based naming rationale and implementation
+  - Provider-specific storage patterns
+  - Metadata schema and validation approach
+- Updated caching design documentation to reflect architecture changes
+  - Clarified cache vs raw storage distinction
+  - Enhanced provider integration patterns
+  - Improved cache invalidation workflows
+
 ## [0.1.9] - 2025-11-15
 
 ### Added
@@ -391,6 +454,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.10]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.10
 [0.1.9]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.9
 [0.1.8]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.8
 [0.1.7]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.7

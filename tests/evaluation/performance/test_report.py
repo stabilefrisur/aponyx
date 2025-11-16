@@ -394,5 +394,3 @@ class TestQuantstatsTearsheet:
         # No tearsheet should be created
         tearsheet_files = list(tmp_path.glob("*_tearsheet.html"))
         assert len(tearsheet_files) == 0
-
-

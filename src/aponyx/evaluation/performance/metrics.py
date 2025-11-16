@@ -123,7 +123,7 @@ def compute_all_metrics(
     >>> from aponyx.evaluation.performance import compute_all_metrics
     >>> metrics = compute_all_metrics(result.pnl, result.positions)
     >>> print(f"Sharpe: {metrics.sharpe_ratio:.2f}, Trades: {metrics.n_trades}")
-    
+
     >>> # With benchmark comparison
     >>> benchmark_returns = pd.Series(...)  # Daily returns
     >>> metrics = compute_all_metrics(
@@ -223,9 +223,7 @@ def compute_all_metrics(
         winning_trades = trade_pnls_array[trade_pnls_array > 0]
         losing_trades = trade_pnls_array[trade_pnls_array < 0]
 
-        hit_rate = (
-            len(winning_trades) / len(trade_pnls_array) if len(trade_pnls_array) > 0 else 0.0
-        )
+        hit_rate = len(winning_trades) / len(trade_pnls_array) if len(trade_pnls_array) > 0 else 0.0
         avg_win = winning_trades.mean() if len(winning_trades) > 0 else 0.0
         avg_loss = losing_trades.mean() if len(losing_trades) > 0 else 0.0
 

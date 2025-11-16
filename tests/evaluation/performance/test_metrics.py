@@ -271,7 +271,6 @@ class TestConvertPnLToReturns:
         assert np.isinf(returns.iloc[1])
 
 
-
 class TestComputeAllMetrics:
     """Test comprehensive metric computation with quantstats integration."""
 
@@ -375,5 +374,3 @@ class TestComputeAllMetrics:
         assert metrics.beta is not None
         assert isinstance(metrics.alpha, (int, float))
         assert isinstance(metrics.beta, (int, float))
-
-

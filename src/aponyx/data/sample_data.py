@@ -318,7 +318,7 @@ def generate_for_fetch_interface(
             df = df.set_index("date")
             df = df[["spread"]].copy()
             df["security"] = security_id
-            
+
             # Generate hash for raw storage naming
             hash_input = f"synthetic|cdx_{security_id}|{df.index.min()}|{df.index.max()}|{len(df)}"
             file_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:12]
@@ -339,7 +339,7 @@ def generate_for_fetch_interface(
             # Transform to VIX schema
             df = df.set_index("date")
             df = df[["level"]].copy()
-            
+
             # Generate hash for raw storage naming
             hash_input = f"synthetic|vix_{security_id}|{df.index.min()}|{df.index.max()}|{len(df)}"
             file_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:12]
@@ -364,7 +364,7 @@ def generate_for_fetch_interface(
             df = df.set_index("date")
             df = df[["spread"]].copy()
             df["security"] = security_id
-            
+
             # Generate hash for raw storage naming
             hash_input = f"synthetic|etf_{security_id}|{df.index.min()}|{df.index.max()}|{len(df)}"
             file_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:12]
@@ -378,7 +378,7 @@ def generate_for_fetch_interface(
 
         # Save data and metadata
         save_parquet(df, file_path)
-        
+
         metadata = {
             "provider": "synthetic",
             "instrument": instrument_type,
@@ -394,8 +394,9 @@ def generate_for_fetch_interface(
             "generation_params": params,
         }
         from ..persistence.json_io import save_json
+
         save_json(metadata, metadata_path)
-        
+
         file_paths[security_id] = file_path
         logger.info("Saved %s to %s (%d rows)", security_id, file_path, len(df))
 
