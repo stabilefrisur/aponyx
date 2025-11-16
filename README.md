@@ -62,15 +62,30 @@ File-based data loading (`FileSource`) works without Bloomberg dependencies.
 
 ## Quick Start
 
+### 1. Generate Synthetic Data (Development)
+
+```bash
+uv run python -m aponyx.notebooks.generate_synthetic_data
+```
+
+This creates test data in `data/raw/synthetic/`.
+
+### 2. Or Download Bloomberg Data (Production)
+
+Run the `01_data_download.ipynb` notebook to fetch from Bloomberg Terminal.
+Data is saved to `data/raw/bloomberg/`.
+
+### 3. Run Analysis
+
 ```python
 from aponyx.data import fetch_cdx, fetch_etf, FileSource
 from aponyx.models import compute_cdx_etf_basis, SignalConfig
 from aponyx.backtest import run_backtest, BacktestConfig
 from aponyx.evaluation.performance import compute_all_metrics
 
-# Load validated market data
-cdx_df = fetch_cdx(FileSource("data/raw/cdx_data.parquet"), security="cdx_ig_5y")
-etf_df = fetch_etf(FileSource("data/raw/etf_data.parquet"), security="hyg")
+# Load validated market data (automatic caching from raw/)
+cdx_df = fetch_cdx(FileSource("data/raw/synthetic/cdx_ig_5y.parquet"), security="cdx_ig_5y")
+etf_df = fetch_etf(FileSource("data/raw/synthetic/hyg.parquet"), security="hyg")
 
 # Generate signal with configuration
 signal_config = SignalConfig(lookback=20, min_periods=10)
@@ -121,6 +136,18 @@ Aponyx follows a **layered architecture** with clean separation of concerns:
 | **Backtest** | Simulate execution and generate P&L | `run_backtest`, `BacktestConfig`, `StrategyRegistry` |
 | **Visualization** | Interactive charts and dashboards | `plot_equity_curve`, `plot_signal`, `plot_drawdown` |
 | **Persistence** | Save/load data with metadata registry | `save_parquet`, `load_parquet`, `DataRegistry` |
+
+### Data Storage
+
+```
+data/
+  raw/              # Original source data (permanent)
+    bloomberg/      # Bloomberg Terminal downloads
+    synthetic/      # Synthetic test data
+  cache/            # Temporary performance cache (regenerable)
+  processed/        # Computed signals and features (regenerable)
+  registry.json     # Dataset tracking catalog
+```
 
 ### Research Workflow
 

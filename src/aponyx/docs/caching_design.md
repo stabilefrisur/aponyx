@@ -6,20 +6,47 @@ The caching layer provides transparent time-to-live (TTL) based caching for data
 
 **Design Goal:** Simple file-based caching with explicit TTL control—no complex invalidation logic or distributed cache dependencies.
 
+## Data Storage Architecture
+
+The project uses a three-tier storage structure:
+
+| Directory | Purpose | Lifecycle | Regenerable |
+|-----------|---------|-----------|-------------|
+| `data/raw/` | Original source data (Bloomberg downloads, synthetic generation) | **Permanent** — Never auto-deleted | ❌ No |
+| `data/cache/` | Performance optimization for repeated reads | **Temporary** — TTL-based expiration | ✅ Yes |
+| `data/processed/` | Computed outputs (signals, features, metrics) | **Temporary** — Recomputable from raw | ✅ Yes |
+
+**Data Flow:**
+```
+Raw Storage (Bloomberg/Synthetic)
+    ↓
+Cache Layer (TTL-based, automatic)
+    ↓
+Models/Signals
+    ↓
+Processed Storage (Results)
+```
+
+**Key Principle:** Raw data is the source of truth. Cache and processed data can always be regenerated from raw.
+
 ## Architecture
 
 ### Cache Location
 
 ```
 data/
+  raw/
+    bloomberg/      # Permanent Bloomberg downloads
+      cdx_ig_5y.parquet
+    synthetic/      # Permanent synthetic data
+      cdx_ig_5y.parquet
   cache/
-    file/           # File-based provider cache
+    file/           # Temporary cache from FileSource loads
       cdx_ig_5y_abc123.parquet
       vix_def456.parquet
-      hyg_ghi789.parquet
-    bloomberg/      # Bloomberg provider cache
-      cdx_ig_5y_jkl012.parquet
 ```
+
+**Cache is automatically created when loading from raw/ using FileSource.**
 
 ### Key Components
 
@@ -37,9 +64,9 @@ data/
 from aponyx.data import fetch_cdx, FileSource
 from aponyx.config import CACHE_ENABLED, CACHE_TTL_DAYS
 
-# Caching is controlled by global config (default: enabled, 7 days TTL)
-# First call: loads from file, caches result
-source = FileSource("data/raw/cdx_data.parquet")
+# Caching is controlled by global config (default: enabled, 1 day TTL)
+# First call: loads from raw, caches result
+source = FileSource("data/raw/bloomberg/cdx_ig_5y.parquet")
 cdx_df = fetch_cdx(source, security="cdx_ig_5y")  # Cache miss → load + cache
 
 # Second call within TTL: returns cached data
@@ -197,18 +224,18 @@ Cache entries automatically expire based on:
 ```python
 # Manual cache clearing via filesystem
 from pathlib import Path
-from aponyx.config import DATA_DIR
+from aponyx.config import CACHE_DIR
 
-cache_dir = DATA_DIR / "cache" / "file"
-
-# Clear entire provider cache
+# Clear entire cache (safe - will regenerate from raw/)
 import shutil
-shutil.rmtree(cache_dir)
-cache_dir.mkdir(parents=True)
+shutil.rmtree(CACHE_DIR)
+CACHE_DIR.mkdir(parents=True)
 
 # Or remove specific cached files
-for cached_file in cache_dir.glob("cdx_*"):
+for cached_file in CACHE_DIR.glob("**/*.parquet"):
     cached_file.unlink()
+
+# Cache regenerates automatically on next load from raw/
 ```
 
 ## Example Usage
@@ -220,9 +247,10 @@ from aponyx.data import fetch_cdx, FileSource
 import time
 
 # Caching is automatic when use_cache=True (default)
-source = FileSource("data/raw/cdx.parquet")
+# Load from raw storage (Bloomberg or synthetic)
+source = FileSource("data/raw/bloomberg/cdx_ig_5y.parquet")
 
-# First load: reads from disk
+# First load: reads from raw, creates cache
 start = time.time()
 df1 = fetch_cdx(source, security="cdx_ig_5y")
 print(f"First load: {time.time() - start:.2f}s")  # ~0.5s
@@ -241,9 +269,10 @@ from aponyx.models import compute_cdx_vix_gap, compute_cdx_etf_basis
 from aponyx.models.config import SignalConfig
 
 # Caching is automatic - load data once, reuse across iterations
-cdx_df = fetch_cdx(FileSource("data/raw/cdx.parquet"), security="cdx_ig_5y")
-vix_df = fetch_vix(FileSource("data/raw/vix.parquet"))
-etf_df = fetch_etf(FileSource("data/raw/etf.parquet"), security="hyg")
+# Load from raw storage (creates cache automatically)
+cdx_df = fetch_cdx(FileSource("data/raw/synthetic/cdx_ig_5y.parquet"), security="cdx_ig_5y")
+vix_df = fetch_vix(FileSource("data/raw/synthetic/vix.parquet"))
+etf_df = fetch_etf(FileSource("data/raw/synthetic/hyg.parquet"), security="hyg")
 
 # Compute multiple signals - data loads are cached
 config = SignalConfig(lookback=20)
@@ -259,7 +288,7 @@ from aponyx.data import fetch_cdx, FileSource
 from aponyx.models import compute_spread_momentum
 from aponyx.models.config import SignalConfig
 
-source = FileSource("data/raw/cdx.parquet")
+source = FileSource("data/raw/bloomberg/cdx_ig_5y.parquet")
 
 # Cell 2: Load data (fast re-execution via automatic caching)
 cdx_df = fetch_cdx(source, security="cdx_ig_5y")  # Instant on re-run

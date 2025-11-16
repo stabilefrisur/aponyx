@@ -38,9 +38,9 @@ logger = logging.getLogger(__name__)
 
 def setup_synthetic_data(years_of_history: int = 5) -> None:
     """
-    Generate and cache synthetic market data for notebook workflows.
+    Generate synthetic market data for development/testing.
 
-    Simple interface for use within notebooks. Generates cache files silently
+    Simple interface for use within notebooks. Generates raw data files silently
     and returns control immediately.
 
     Parameters
@@ -50,12 +50,10 @@ def setup_synthetic_data(years_of_history: int = 5) -> None:
 
     Notes
     -----
-    Creates cache files in data/cache/file/ directory:
-    - cdx_cdx_ig_5y.parquet
-    - vix_vix.parquet
-    - etf_hyg.parquet
+    Creates raw data files in data/raw/synthetic/ directory for all configured
+    securities. These files serve as the source of truth for development workflows.
 
-    These files are automatically discovered by notebooks that use FileSource.
+    Subsequent notebooks will load from these raw files and cache as needed.
 
     Examples
     --------
@@ -65,11 +63,11 @@ def setup_synthetic_data(years_of_history: int = 5) -> None:
     end_date = datetime.now().strftime("%Y-%m-%d")
     start_date = (datetime.now() - timedelta(days=years_of_history * 365)).strftime("%Y-%m-%d")
 
-    cache_dir = DATA_DIR / "cache" / "file"
-    cache_dir.mkdir(parents=True, exist_ok=True)
+    raw_dir = DATA_DIR / "raw" / "synthetic"
+    raw_dir.mkdir(parents=True, exist_ok=True)
 
     generate_for_fetch_interface(
-        output_dir=cache_dir,
+        output_dir=raw_dir,
         start_date=start_date,
         end_date=end_date,
         seed=42,
@@ -95,25 +93,25 @@ def main(years_of_history: int = 5) -> None:
     end_date = datetime.now().strftime("%Y-%m-%d")
     start_date = (datetime.now() - timedelta(days=years_of_history * 365)).strftime("%Y-%m-%d")
 
-    cache_dir = DATA_DIR / "cache" / "file"
-    cache_dir.mkdir(parents=True, exist_ok=True)
+    raw_dir = DATA_DIR / "raw" / "synthetic"
+    raw_dir.mkdir(parents=True, exist_ok=True)
 
     print("Configuration:")
     print(f"  Years of history: {years_of_history}")
     print(f"  Date range: {start_date} to {end_date}")
-    print(f"  Cache directory: {cache_dir}")
+    print(f"  Output directory: {raw_dir}")
     print("\nGenerating synthetic data...")
 
     # Generate all required data files
     file_paths = generate_for_fetch_interface(
-        output_dir=cache_dir,
+        output_dir=raw_dir,
         start_date=start_date,
         end_date=end_date,
         seed=42,
     )
 
     print("\n[OK] Synthetic data generation complete!")
-    print("\nGenerated Files:")
+    print("\nGenerated Files (Raw Storage):")
     for security, path in file_paths.items():
         size_kb = path.stat().st_size / 1024
         print(f"  {security}: {path.name} ({size_kb:.1f} KB)")
@@ -127,7 +125,7 @@ def main(years_of_history: int = 5) -> None:
     print("  3. Run 03_suitability_evaluation.ipynb")
     print("  4. Run 04_backtest_execution.ipynb (when available)")
     print("  5. Run 05_analysis.ipynb (when available)")
-    print("\nNotebooks will auto-detect the synthetic data cache.")
+    print("\nNotebooks will load from raw/synthetic/ and cache automatically.")
     print()
 
 

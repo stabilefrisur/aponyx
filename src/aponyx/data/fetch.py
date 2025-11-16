@@ -6,6 +6,8 @@ with automatic validation and optional caching.
 """
 
 import logging
+from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
 
@@ -17,8 +19,70 @@ from .sources import DataSource, FileSource, BloombergSource, resolve_provider
 from .providers.file import fetch_from_file
 from .providers.bloomberg import fetch_from_bloomberg
 from .validation import validate_cdx_schema, validate_vix_schema, validate_etf_schema
+from ..persistence import save_parquet
 
 logger = logging.getLogger(__name__)
+
+
+def save_to_raw(
+    df: pd.DataFrame,
+    provider: str,
+    instrument: str,
+    raw_dir: Path,
+    registry: DataRegistry | None = None,
+) -> Path:
+    """
+    Save fetched data to raw storage (permanent source of truth).
+
+    Unlike cache, raw data is never deleted automatically.
+    Raw storage represents the original data as fetched from external sources.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Data to save.
+    provider : str
+        Data provider name (e.g., "bloomberg", "synthetic").
+    instrument : str
+        Instrument identifier (e.g., "cdx_ig_5y", "vix", "hyg").
+    raw_dir : Path
+        Base raw directory path.
+    registry : DataRegistry or None
+        Optional registry to track the saved dataset.
+
+    Returns
+    -------
+    Path
+        Path to saved raw file.
+
+    Notes
+    -----
+    Creates provider subdirectory if it doesn't exist.
+    Sanitizes instrument names for filesystem compatibility.
+    """
+    provider_dir = raw_dir / provider
+    provider_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_instrument = instrument.replace(".", "_").replace("/", "_")
+    filename = f"{safe_instrument}.parquet"
+    raw_path = provider_dir / filename
+
+    save_parquet(df, raw_path)
+    logger.info("Saved to raw storage: path=%s, rows=%d", raw_path, len(df))
+
+    # Register in data registry
+    if registry is not None:
+        registry.register_dataset(
+            name=f"raw_{provider}_{instrument}",
+            file_path=raw_path,
+            instrument=instrument,
+            metadata={
+                "provider": provider,
+                "stored_at": datetime.now().isoformat(),
+            },
+        )
+
+    return raw_path
 
 
 def _get_provider_fetch_function(source: DataSource):
@@ -218,6 +282,13 @@ def fetch_cdx(
         df = df[df["security"] == security]
         logger.debug("Filtered to security=%s: %d rows", security, len(df))
 
+    # Save Bloomberg data to raw storage (permanent source of truth)
+    if isinstance(source, BloombergSource):
+        from ..config import RAW_DIR
+        registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
+        save_to_raw(df, "bloomberg", security or instrument, RAW_DIR, registry)
+        registry.save()
+
     # Cache if enabled
     if use_cache:
         registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
@@ -356,6 +427,13 @@ def fetch_vix(
 
     # Validate schema
     df = validate_vix_schema(df)
+
+    # Save Bloomberg data to raw storage (permanent source of truth)
+    if isinstance(source, BloombergSource):
+        from ..config import RAW_DIR
+        registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
+        save_to_raw(df, "bloomberg", "vix", RAW_DIR, registry)
+        registry.save()
 
     # Cache if enabled
     if use_cache:
@@ -544,6 +622,13 @@ def fetch_etf(
             raise ValueError("Cannot filter by security: 'security' column not found")
         df = df[df["security"] == security]
         logger.debug("Filtered to security=%s: %d rows", security, len(df))
+
+    # Save Bloomberg data to raw storage (permanent source of truth)
+    if isinstance(source, BloombergSource):
+        from ..config import RAW_DIR
+        registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
+        save_to_raw(df, "bloomberg", security or instrument, RAW_DIR, registry)
+        registry.save()
 
     # Cache if enabled
     if use_cache:

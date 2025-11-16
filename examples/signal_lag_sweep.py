@@ -10,7 +10,7 @@ Bloomberg Terminal (with --bloomberg flag):
     Fetches live data from Bloomberg Terminal.
 
 Cached File Data (default):
-    Uses pre-generated synthetic data from data/cache/file/.
+    Uses pre-generated synthetic data from data/cache/.
     Run generate_synthetic_data.py first if cache is empty.
 
 Usage
@@ -193,7 +193,7 @@ def main(use_bloomberg: bool = False) -> None:
         logger.info("Loading cached file data")
         from pathlib import Path
         
-        cache_dir = Path("data/cache/file")
+        cache_dir = Path("data/cache")
         
         # Check if cache files exist
         required_files = {

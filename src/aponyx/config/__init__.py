@@ -25,6 +25,10 @@ CACHE_ENABLED: Final[bool] = True
 CACHE_TTL_DAYS: Final[int] = 1  # Daily refresh for market data
 CACHE_DIR: Final[Path] = DATA_DIR / "cache"
 
+# Raw and processed data directories
+RAW_DIR: Final[Path] = DATA_DIR / "raw"
+PROCESSED_DIR: Final[Path] = DATA_DIR / "processed"
+
 # Catalog paths (package-relative, included in distribution)
 SIGNAL_CATALOG_PATH: Final[Path] = PACKAGE_ROOT / "models/signal_catalog.json"
 STRATEGY_CATALOG_PATH: Final[Path] = PACKAGE_ROOT / "backtest/strategy_catalog.json"
@@ -54,8 +58,8 @@ def ensure_directories() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    (DATA_DIR / "raw").mkdir(exist_ok=True)
-    (DATA_DIR / "processed").mkdir(exist_ok=True)
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     EVALUATION_DIR.mkdir(parents=True, exist_ok=True)
     PERFORMANCE_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
