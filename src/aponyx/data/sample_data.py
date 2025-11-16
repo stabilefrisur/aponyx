@@ -12,7 +12,6 @@ import numpy as np
 import pandas as pd
 
 from ..persistence.parquet_io import save_parquet
-from .sources import FileSource
 
 logger = logging.getLogger(__name__)
 
@@ -215,148 +214,6 @@ def generate_etf_sample(
     return df
 
 
-def generate_full_sample_dataset(
-    output_dir: str = "data/raw",
-    start_date: str = "2023-01-01",
-    periods: int = 252,
-    seed: int = 42,
-) -> dict[str, str]:
-    """
-    Generate complete sample dataset for testing.
-
-    Parameters
-    ----------
-    output_dir : str, default "data/raw"
-        Directory to save Parquet files.
-    start_date : str, default "2023-01-01"
-        Start date for all time series.
-    periods : int, default 252
-        Number of daily observations.
-    seed : int, default 42
-        Random seed for reproducibility.
-
-    Returns
-    -------
-    dict[str, str]
-        Dictionary mapping data type to file path.
-
-    Notes
-    -----
-    Generates and saves:
-    - CDX IG 5Y spreads
-    - CDX HY 5Y spreads
-    - VIX volatility
-    - HYG and LQD ETF prices
-    """
-    from pathlib import Path
-
-    logger.info("Generating full sample dataset: output_dir=%s", output_dir)
-
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-
-    # Generate CDX data (multiple indices)
-    cdx_ig = generate_cdx_sample(
-        start_date=start_date,
-        periods=periods,
-        index_name="CDX_IG",
-        tenor="5Y",
-        base_spread=70.0,
-        volatility=3.0,
-        seed=seed,
-    )
-
-    cdx_hy = generate_cdx_sample(
-        start_date=start_date,
-        periods=periods,
-        index_name="CDX_HY",
-        tenor="5Y",
-        base_spread=350.0,
-        volatility=15.0,
-        seed=seed + 1,
-    )
-
-    cdx_all = pd.concat([cdx_ig, cdx_hy], ignore_index=True)
-    cdx_path = output_path / "cdx_spreads.parquet"
-    save_parquet(cdx_all, cdx_path)
-
-    # Generate VIX data
-    vix = generate_vix_sample(start_date=start_date, periods=periods, base_vix=16.0, seed=seed + 2)
-    vix_path = output_path / "vix.parquet"
-    save_parquet(vix, vix_path)
-
-    # Generate ETF data (multiple tickers)
-    hyg = generate_etf_sample(
-        start_date=start_date,
-        periods=periods,
-        ticker="HYG",
-        base_price=75.0,
-        volatility=0.6,
-        seed=seed + 3,
-    )
-
-    lqd = generate_etf_sample(
-        start_date=start_date,
-        periods=periods,
-        ticker="LQD",
-        base_price=110.0,
-        volatility=0.4,
-        seed=seed + 4,
-    )
-
-    etf_all = pd.concat([hyg, lqd], ignore_index=True)
-    etf_path = output_path / "etf_prices.parquet"
-    save_parquet(etf_all, etf_path)
-
-    file_paths = {
-        "cdx": str(cdx_path),
-        "vix": str(vix_path),
-        "etf": str(etf_path),
-    }
-
-    logger.info("Sample dataset generated: %s", file_paths)
-    return file_paths
-
-
-def generate_full_sample_sources(
-    output_dir: str = "data/raw",
-    start_date: str = "2023-01-01",
-    periods: int = 252,
-    seed: int = 42,
-) -> dict[str, FileSource]:
-    """
-    Generate complete sample dataset and return FileSource configs.
-
-    Parameters
-    ----------
-    output_dir : str, default "data/raw"
-        Directory to save Parquet files.
-    start_date : str, default "2023-01-01"
-        Start date for all time series.
-    periods : int, default 252
-        Number of daily observations.
-    seed : int, default 42
-        Random seed for reproducibility.
-
-    Returns
-    -------
-    dict[str, FileSource]
-        Dictionary mapping data type to FileSource configuration.
-
-    Notes
-    -----
-    Convenience wrapper around generate_full_sample_dataset that returns
-    FileSource objects ready to use with fetch functions.
-    """
-    file_paths = generate_full_sample_dataset(output_dir, start_date, periods, seed)
-
-    return {
-        "cdx": FileSource(Path(file_paths["cdx"])),
-        "vix": FileSource(Path(file_paths["vix"])),
-        "etf": FileSource(Path(file_paths["etf"])),
-    }
-
-
 def generate_for_fetch_interface(
     output_dir: str | Path,
     start_date: str = "2020-01-01",
@@ -364,10 +221,10 @@ def generate_for_fetch_interface(
     seed: int = 42,
 ) -> dict[str, Path]:
     """
-    Generate synthetic data matching fetch layer schema requirements.
+    Generate synthetic data for all securities in bloomberg_securities.json.
 
     Creates individual files per security that work with fetch_cdx, fetch_vix,
-    and fetch_etf functions. Data is saved to cache directory structure.
+    and fetch_etf functions. Uses bloomberg_instruments.json for schema mapping.
 
     Parameters
     ----------
@@ -387,11 +244,13 @@ def generate_for_fetch_interface(
 
     Notes
     -----
-    Generates files matching fetch layer expectations:
-    - CDX: spread column, security="cdx_ig_5y"
-    - VIX: level column (renamed from close)
-    - ETF: spread column (prices), security="hyg"
+    Automatically generates data for all securities defined in bloomberg_securities.json:
+    - CDX indices: spread column with realistic credit dynamics
+    - VIX: level column with volatility spikes
+    - ETFs: spread column representing option-adjusted spreads
     """
+    import json
+
     logger.info(
         "Generating synthetic data for fetch interface: %s to %s",
         start_date,
@@ -401,68 +260,112 @@ def generate_for_fetch_interface(
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
+    # Load security and instrument configurations
+    config_dir = Path(__file__).parent
+    with open(config_dir / "bloomberg_securities.json") as f:
+        securities = json.load(f)
+
     # Calculate periods from date range
     start = pd.Timestamp(start_date)
     end = pd.Timestamp(end_date)
     dates = pd.bdate_range(start=start, end=end)
     periods = len(dates)
 
-    # Generate CDX IG 5Y - schema requires "spread" column
-    cdx_df = generate_cdx_sample(
-        start_date=start_date,
-        periods=periods,
-        index_name="CDX_IG",
-        tenor="5Y",
-        base_spread=60.0,
-        volatility=5.0,
-        seed=seed,
-    )
-    # Transform to match CDX schema (spread column, DatetimeIndex)
-    cdx_df = cdx_df.set_index("date")
-    cdx_df = cdx_df[["spread"]].copy()
-    cdx_df["security"] = "cdx_ig_5y"
-    cdx_path = output_path / "cdx_cdx_ig_5y.parquet"
-    save_parquet(cdx_df, cdx_path)
-    logger.info("Saved CDX to %s (%d rows)", cdx_path, len(cdx_df))
+    file_paths = {}
+    seed_offset = 0
 
-    # Generate VIX - schema requires "level" column
-    vix_df = generate_vix_sample(
-        start_date=start_date,
-        periods=periods,
-        base_vix=18.0,
-        volatility=2.5,
-        seed=seed + 1,
-    )
-    # Transform to match VIX schema (level column, DatetimeIndex)
-    vix_df = vix_df.set_index("date")
-    vix_df = vix_df[["level"]].copy()
-    vix_path = output_path / "vix_vix.parquet"
-    save_parquet(vix_df, vix_path)
-    logger.info("Saved VIX to %s (%d rows)", vix_path, len(vix_df))
-
-    # Generate ETF (HYG) - schema requires "spread" column
-    # Use spread directly as it represents OAS-equivalent metric
-    etf_df = generate_etf_sample(
-        start_date=start_date,
-        periods=periods,
-        ticker="HYG",
-        base_price=350.0,  # Spread-like value in bps
-        volatility=15.0,
-        seed=seed + 2,
-    )
-    # Transform to match ETF schema (spread column, DatetimeIndex)
-    etf_df = etf_df.set_index("date")
-    etf_df = etf_df[["spread"]].copy()
-    etf_df["security"] = "hyg"
-    etf_path = output_path / "etf_hyg.parquet"
-    save_parquet(etf_df, etf_path)
-    logger.info("Saved ETF to %s (%d rows)", etf_path, len(etf_df))
-
-    file_paths = {
-        "cdx_ig_5y": cdx_path,
-        "vix": vix_path,
-        "hyg": etf_path,
+    # Default parameters by instrument type
+    default_params = {
+        "cdx": {
+            "cdx_ig_5y": {"base_spread": 60.0, "volatility": 5.0},
+            "cdx_ig_10y": {"base_spread": 70.0, "volatility": 6.0},
+            "cdx_hy_5y": {"base_spread": 350.0, "volatility": 20.0},
+            "itrx_xover_5y": {"base_spread": 280.0, "volatility": 18.0},
+            "itrx_eur_5y": {"base_spread": 55.0, "volatility": 4.5},
+        },
+        "vix": {"base_vix": 18.0, "volatility": 2.5},
+        "etf": {
+            "hyg": {"base_price": 350.0, "volatility": 15.0},
+            "lqd": {"base_price": 100.0, "volatility": 8.0},
+        },
     }
+
+    for security_id, security_config in securities.items():
+        instrument_type = security_config["instrument_type"]
+
+        logger.info("Generating %s data: %s", instrument_type, security_id)
+
+        if instrument_type == "cdx":
+            # Parse tenor from security_id or description
+            tenor = "5Y" if "5y" in security_id.lower() else "10Y"
+            index_name = security_id.upper().replace("_", " ")
+
+            params = default_params["cdx"].get(
+                security_id, {"base_spread": 100.0, "volatility": 10.0}
+            )
+
+            df = generate_cdx_sample(
+                start_date=start_date,
+                periods=periods,
+                index_name=index_name,
+                tenor=tenor,
+                base_spread=params["base_spread"],
+                volatility=params["volatility"],
+                seed=seed + seed_offset,
+            )
+
+            # Transform to CDX schema
+            df = df.set_index("date")
+            df = df[["spread"]].copy()
+            df["security"] = security_id
+            file_path = output_path / f"cdx_{security_id}.parquet"
+
+        elif instrument_type == "vix":
+            params = default_params["vix"]
+
+            df = generate_vix_sample(
+                start_date=start_date,
+                periods=periods,
+                base_vix=params["base_vix"],
+                volatility=params["volatility"],
+                seed=seed + seed_offset,
+            )
+
+            # Transform to VIX schema
+            df = df.set_index("date")
+            df = df[["level"]].copy()
+            file_path = output_path / f"vix_{security_id}.parquet"
+
+        elif instrument_type == "etf":
+            params = default_params["etf"].get(
+                security_id, {"base_price": 200.0, "volatility": 12.0}
+            )
+
+            df = generate_etf_sample(
+                start_date=start_date,
+                periods=periods,
+                ticker=security_id.upper(),
+                base_price=params["base_price"],
+                volatility=params["volatility"],
+                seed=seed + seed_offset,
+            )
+
+            # Transform to ETF schema
+            df = df.set_index("date")
+            df = df[["spread"]].copy()
+            df["security"] = security_id
+            file_path = output_path / f"etf_{security_id}.parquet"
+
+        else:
+            logger.warning("Unknown instrument type: %s", instrument_type)
+            seed_offset += 1
+            continue
+
+        save_parquet(df, file_path)
+        file_paths[security_id] = file_path
+        logger.info("Saved %s to %s (%d rows)", security_id, file_path, len(df))
+
+        seed_offset += 1
 
     logger.info("Synthetic data generation complete: %d files", len(file_paths))
     return file_paths

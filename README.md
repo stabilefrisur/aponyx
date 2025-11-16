@@ -55,9 +55,8 @@ uv sync --extra viz        # Include visualization
 
 > **Note:** Bloomberg data loading requires an active Terminal session and manual `blpapi` installation.
 
-1. Download `blpapi` from Bloomberg's API Library
-2. Install: `pip install path/to/blpapi-*.whl`
-3. Install Bloomberg extra: `pip install aponyx[bloomberg]`
+1. Install `blpapi` by following the instructions here: [Bloomberg API Library](https://www.bloomberg.com/professional/support/api-library/)
+2. Install Bloomberg extra: `pip install aponyx[bloomberg]`
 
 File-based data loading (`FileSource`) works without Bloomberg dependencies.
 

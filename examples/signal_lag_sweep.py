@@ -4,7 +4,22 @@ Example: Signal lag parameter sweep for balanced strategy.
 Tests how different signal_lag values affect Sharpe ratio performance
 across all enabled signals using the balanced strategy thresholds.
 
-Supports both Bloomberg and synthetic data sources.
+Data Sources
+------------
+Bloomberg Terminal (with --bloomberg flag):
+    Fetches live data from Bloomberg Terminal.
+
+Cached File Data (default):
+    Uses pre-generated synthetic data from data/cache/file/.
+    Run generate_synthetic_data.py first if cache is empty.
+
+Usage
+-----
+With cached synthetic data:
+    python examples/signal_lag_sweep.py
+
+With Bloomberg Terminal:
+    python examples/signal_lag_sweep.py --bloomberg
 """
 
 import logging
@@ -180,17 +195,31 @@ def main(use_bloomberg: bool = False) -> None:
         
         cache_dir = Path("data/cache/file")
         
-        # Check if cache files exist, generate if not
-        cdx_cache_file = cache_dir / "cdx_cdx_ig_5y.parquet"
-        if not cdx_cache_file.exists():
-            logger.info("Cache files not found, generating synthetic data")
-            from aponyx.data.sample_data import generate_for_fetch_interface
-            generate_for_fetch_interface(
-                output_dir=cache_dir,
-                start_date="2020-01-01",
-                end_date="2025-01-01",
-                seed=42,
-            )
+        # Check if cache files exist
+        required_files = {
+            "cdx_cdx_ig_5y.parquet": "CDX IG 5Y",
+            "etf_hyg.parquet": "HYG ETF",
+            "vix_vix.parquet": "VIX",
+        }
+        
+        missing_files = [
+            name for file, name in required_files.items()
+            if not (cache_dir / file).exists()
+        ]
+        
+        if missing_files:
+            logger.error("Required cache files not found: %s", ", ".join(missing_files))
+            print("\nERROR: Cache files not found!")
+            print("=" * 80)
+            print("\nMissing data files:")
+            for name in missing_files:
+                print(f"  - {name}")
+            print("\nPlease generate synthetic data first:")
+            print("  python -m aponyx.notebooks.generate_synthetic_data")
+            print("\nOr use Bloomberg Terminal:")
+            print(f"  python {__file__} --bloomberg")
+            print("=" * 80)
+            raise FileNotFoundError(f"Missing cache files: {', '.join(missing_files)}")
         
         # Fetch from cached files
         cdx_df = fetch_cdx(
