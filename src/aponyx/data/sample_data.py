@@ -1,10 +1,10 @@
-"""
-Synthetic data generation for testing and demonstrations.
+"""Synthetic data generation for testing and demonstrations.
 
 Generates realistic market data for CDX, VIX, and ETF instruments
 with configurable volatility, correlation, and trend parameters.
 """
 
+import hashlib
 import logging
 from pathlib import Path
 
@@ -318,7 +318,12 @@ def generate_for_fetch_interface(
             df = df.set_index("date")
             df = df[["spread"]].copy()
             df["security"] = security_id
-            file_path = output_path / f"cdx_{security_id}.parquet"
+            
+            # Generate hash for raw storage naming
+            hash_input = f"synthetic|cdx_{security_id}|{df.index.min()}|{df.index.max()}|{len(df)}"
+            file_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:12]
+            file_path = output_path / f"cdx_{security_id}_{file_hash}.parquet"
+            metadata_path = output_path / f"cdx_{security_id}_{file_hash}.json"
 
         elif instrument_type == "vix":
             params = default_params["vix"]
@@ -334,7 +339,12 @@ def generate_for_fetch_interface(
             # Transform to VIX schema
             df = df.set_index("date")
             df = df[["level"]].copy()
-            file_path = output_path / f"vix_{security_id}.parquet"
+            
+            # Generate hash for raw storage naming
+            hash_input = f"synthetic|vix_{security_id}|{df.index.min()}|{df.index.max()}|{len(df)}"
+            file_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:12]
+            file_path = output_path / f"vix_{security_id}_{file_hash}.parquet"
+            metadata_path = output_path / f"vix_{security_id}_{file_hash}.json"
 
         elif instrument_type == "etf":
             params = default_params["etf"].get(
@@ -354,14 +364,38 @@ def generate_for_fetch_interface(
             df = df.set_index("date")
             df = df[["spread"]].copy()
             df["security"] = security_id
-            file_path = output_path / f"etf_{security_id}.parquet"
+            
+            # Generate hash for raw storage naming
+            hash_input = f"synthetic|etf_{security_id}|{df.index.min()}|{df.index.max()}|{len(df)}"
+            file_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:12]
+            file_path = output_path / f"etf_{security_id}_{file_hash}.parquet"
+            metadata_path = output_path / f"etf_{security_id}_{file_hash}.json"
 
         else:
             logger.warning("Unknown instrument type: %s", instrument_type)
             seed_offset += 1
             continue
 
+        # Save data and metadata
         save_parquet(df, file_path)
+        
+        metadata = {
+            "provider": "synthetic",
+            "instrument": instrument_type,
+            "security": security_id,
+            "stored_at": pd.Timestamp.now().isoformat(),
+            "date_range": {
+                "start": str(df.index.min()),
+                "end": str(df.index.max()),
+            },
+            "row_count": len(df),
+            "columns": list(df.columns),
+            "hash": file_hash,
+            "generation_params": params,
+        }
+        from ..persistence.json_io import save_json
+        save_json(metadata, metadata_path)
+        
         file_paths[security_id] = file_path
         logger.info("Saved %s to %s (%d rows)", security_id, file_path, len(df))
 

@@ -30,12 +30,14 @@ def save_to_raw(
     instrument: str,
     raw_dir: Path,
     registry: DataRegistry | None = None,
+    **metadata_params,
 ) -> Path:
     """
     Save fetched data to raw storage (permanent source of truth).
 
     Unlike cache, raw data is never deleted automatically.
     Raw storage represents the original data as fetched from external sources.
+    Uses hash-based naming for uniqueness and permanence.
 
     Parameters
     ----------
@@ -49,6 +51,8 @@ def save_to_raw(
         Base raw directory path.
     registry : DataRegistry or None
         Optional registry to track the saved dataset.
+    **metadata_params : Any
+        Additional metadata to include in the sidecar JSON file.
 
     Returns
     -------
@@ -58,28 +62,57 @@ def save_to_raw(
     Notes
     -----
     Creates provider subdirectory if it doesn't exist.
-    Sanitizes instrument names for filesystem compatibility.
+    Files are named: {instrument}_{hash}.parquet
+    Metadata is saved as: {instrument}_{hash}.json
+    Hash ensures uniqueness across different date ranges and parameters.
     """
     provider_dir = raw_dir / provider
     provider_dir.mkdir(parents=True, exist_ok=True)
 
+    # Generate hash from content and metadata for uniqueness
     safe_instrument = instrument.replace(".", "_").replace("/", "_")
-    filename = f"{safe_instrument}.parquet"
+    hash_input = "|".join([
+        provider,
+        instrument,
+        str(df.index.min()),
+        str(df.index.max()),
+        str(len(df)),
+        str(sorted(metadata_params.items())),
+    ])
+    file_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:12]
+    
+    filename = f"{safe_instrument}_{file_hash}.parquet"
     raw_path = provider_dir / filename
 
+    # Save data
     save_parquet(df, raw_path)
     logger.info("Saved to raw storage: path=%s, rows=%d", raw_path, len(df))
+
+    # Save metadata sidecar JSON
+    metadata = {
+        "provider": provider,
+        "instrument": instrument,
+        "stored_at": datetime.now().isoformat(),
+        "date_range": {
+            "start": str(df.index.min()),
+            "end": str(df.index.max()),
+        },
+        "row_count": len(df),
+        "columns": list(df.columns),
+        "hash": file_hash,
+        **metadata_params,
+    }
+    metadata_path = provider_dir / f"{safe_instrument}_{file_hash}.json"
+    save_json(metadata, metadata_path)
+    logger.debug("Saved metadata: %s", metadata_path)
 
     # Register in data registry
     if registry is not None:
         registry.register_dataset(
-            name=f"raw_{provider}_{instrument}",
+            name=f"raw_{provider}_{instrument}_{file_hash}",
             file_path=raw_path,
             instrument=instrument,
-            metadata={
-                "provider": provider,
-                "stored_at": datetime.now().isoformat(),
-            },
+            metadata=metadata,
         )
 
     return raw_path

@@ -228,6 +228,7 @@ print(docs_path)  # Path to installed documentation
 
 **Architecture & Design:**
 - [`governance_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/governance_design.md) - Registry, catalog, and config patterns
+- [`raw_data_storage_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/raw_data_storage_design.md) - Raw data storage conventions and hash-based naming
 - [`caching_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/caching_design.md) - Cache layer architecture
 - [`visualization_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/visualization_design.md) - Chart architecture and patterns
 - [`logging_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/logging_design.md) - Logging conventions and metadata
