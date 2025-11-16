@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
 import pytest
 
 from aponyx.evaluation.performance import (
@@ -11,6 +13,17 @@ from aponyx.evaluation.performance import (
     generate_performance_report,
     save_report,
 )
+from aponyx.evaluation.performance.report import generate_quantstats_tearsheet
+
+
+def _quantstats_available() -> bool:
+    """Check if quantstats is available."""
+    try:
+        import quantstats  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
 
 
 @pytest.fixture
@@ -262,3 +275,124 @@ class TestSaveReport:
         saved_content = output_path.read_text(encoding="utf-8")
 
         assert saved_content == report
+
+
+class TestQuantstatsTearsheet:
+    """Test quantstats tearsheet generation."""
+
+    @pytest.mark.skipif(
+        not _quantstats_available(),
+        reason="quantstats not installed",
+    )
+    def test_generate_tearsheet_basic(self, tmp_path: Path) -> None:
+        """Test basic tearsheet generation."""
+        # Create synthetic returns
+        np.random.seed(42)
+        dates = pd.date_range("2020-01-01", periods=252, freq="D")
+        returns = pd.Series(np.random.normal(0.001, 0.02, 252), index=dates)
+
+        output_path = tmp_path / "test_tearsheet.html"
+
+        result = generate_quantstats_tearsheet(
+            returns=returns,
+            benchmark=None,
+            output_path=output_path,
+            title="Test Strategy",
+        )
+
+        assert result == output_path
+        assert output_path.exists()
+        assert output_path.suffix == ".html"
+
+    @pytest.mark.skipif(
+        not _quantstats_available(),
+        reason="quantstats not installed",
+    )
+    def test_generate_tearsheet_with_benchmark(self, tmp_path: Path) -> None:
+        """Test tearsheet generation with benchmark."""
+        np.random.seed(42)
+        dates = pd.date_range("2020-01-01", periods=252, freq="D")
+        returns = pd.Series(np.random.normal(0.001, 0.02, 252), index=dates)
+        benchmark = pd.Series(np.random.normal(0.0005, 0.015, 252), index=dates)
+
+        output_path = tmp_path / "test_tearsheet_benchmark.html"
+
+        result = generate_quantstats_tearsheet(
+            returns=returns,
+            benchmark=benchmark,
+            output_path=output_path,
+            title="Test Strategy vs Benchmark",
+        )
+
+        assert result == output_path
+        assert output_path.exists()
+
+    def test_generate_tearsheet_error_handling(self, tmp_path: Path) -> None:
+        """Test tearsheet generation error handling."""
+        # Test with invalid returns to trigger error
+        dates = pd.date_range("2020-01-01", periods=5, freq="D")
+        returns = pd.Series([np.nan] * 5, index=dates)  # All NaN will cause issues
+
+        output_path = tmp_path / "test_tearsheet.html"
+
+        result = generate_quantstats_tearsheet(
+            returns=returns,
+            benchmark=None,
+            output_path=output_path,
+            title="Test Strategy",
+        )
+
+        # Should return None on error
+        assert result is None
+
+    def test_generate_report_with_tearsheet_enabled(
+        self, tmp_path: Path, sample_performance_result: PerformanceResult
+    ) -> None:
+        """Test report generation with tearsheet enabled."""
+        # Add returns to metadata
+        np.random.seed(42)
+        dates = pd.date_range("2020-01-01", periods=252, freq="D")
+        returns = pd.Series(np.random.normal(0.001, 0.02, 252), index=dates)
+        sample_performance_result.metadata["returns"] = returns
+
+        report = generate_performance_report(
+            sample_performance_result,
+            "test_signal",
+            "test_strategy",
+            generate_tearsheet=True,
+            output_dir=tmp_path,
+        )
+
+        assert isinstance(report, str)
+
+        # Check if tearsheet was created (only if quantstats available)
+        if _quantstats_available():
+            tearsheet_files = list(tmp_path.glob("*_tearsheet.html"))
+            assert len(tearsheet_files) == 1
+            assert "test_signal" in tearsheet_files[0].name
+            assert "test_strategy" in tearsheet_files[0].name
+
+    def test_generate_report_with_tearsheet_disabled(
+        self, tmp_path: Path, sample_performance_result: PerformanceResult
+    ) -> None:
+        """Test report generation with tearsheet disabled."""
+        np.random.seed(42)
+        dates = pd.date_range("2020-01-01", periods=252, freq="D")
+        returns = pd.Series(np.random.normal(0.001, 0.02, 252), index=dates)
+        sample_performance_result.metadata["returns"] = returns
+
+        report = generate_performance_report(
+            sample_performance_result,
+            "test_signal",
+            "test_strategy",
+            generate_tearsheet=False,
+            output_dir=tmp_path,
+        )
+
+        assert isinstance(report, str)
+
+        # No tearsheet should be created
+        tearsheet_files = list(tmp_path.glob("*_tearsheet.html"))
+        assert len(tearsheet_files) == 0
+
+

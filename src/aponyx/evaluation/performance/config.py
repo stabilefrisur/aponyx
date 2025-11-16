@@ -8,6 +8,8 @@ including subperiod analysis, rolling metrics, and reporting options.
 from dataclasses import dataclass, field
 from typing import Any
 
+import pandas as pd
+
 
 @dataclass(frozen=True)
 class PerformanceConfig:
@@ -61,6 +63,8 @@ class PerformanceConfig:
     rolling_window: int = 63
     report_format: str = "markdown"
     attribution_quantiles: int = 3
+    starting_capital: float = 100000.0
+    benchmark: pd.Series | None = None
 
     def __post_init__(self) -> None:
         """
@@ -199,6 +203,12 @@ class PerformanceMetrics:
     tail_ratio: float
     profit_factor: float
     consistency_score: float
+
+    # Benchmark metrics (optional, populated when benchmark provided)
+    alpha: float | None = None
+    beta: float | None = None
+    information_ratio: float | None = None
+    r_squared: float | None = None
 
     def to_dict(self) -> dict[str, float | int]:
         """

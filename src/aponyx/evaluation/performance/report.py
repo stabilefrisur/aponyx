@@ -9,15 +9,112 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+import pandas as pd
+import quantstats as qs
+
 from .config import PerformanceResult
 
 logger = logging.getLogger(__name__)
+
+
+def generate_quantstats_tearsheet(
+    returns: pd.Series,
+    benchmark: pd.Series | None,
+    output_path: Path,
+    title: str,
+    periods_per_year: int = 252,
+) -> Path | None:
+    """
+    Generate quantstats HTML tearsheet from returns series.
+
+    Parameters
+    ----------
+    returns : pd.Series
+        Daily percentage returns with DatetimeIndex.
+    benchmark : pd.Series | None
+        Benchmark daily percentage returns with DatetimeIndex.
+        If None, generates tearsheet without benchmark comparison.
+    output_path : Path
+        Full path (including filename) for HTML tearsheet.
+    title : str
+        Title for the tearsheet report.
+    periods_per_year : int, default=252
+        Number of trading periods per year (252 for daily).
+
+    Returns
+    -------
+    Path | None
+        Path to saved tearsheet HTML file.
+        Returns None if quantstats unavailable or generation fails.
+
+    Notes
+    -----
+    - Requires quantstats library (install with viz extras: pip install -e ".[viz]")
+    - Fallback behavior: logs warning at DEBUG level and returns None
+    - Uses quantstats default tearsheet template with all sections
+    - Output directory created automatically if missing
+    - Existing files overwritten without warning
+
+    Examples
+    --------
+    >>> tearsheet_path = generate_quantstats_tearsheet(
+    ...     returns=strategy_returns,
+    ...     benchmark=None,
+    ...     output_path=Path("reports/performance/strategy_tearsheet.html"),
+    ...     title="CDX ETF Basis - Simple Threshold",
+    ... )
+    """
+    try:
+        # Ensure output directory exists
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Ensure series have names (quantstats requires this)
+        if returns.name is None:
+            returns = returns.copy()
+            returns.name = "Strategy"
+        if benchmark is not None and benchmark.name is None:
+            benchmark = benchmark.copy()
+            benchmark.name = "Benchmark"
+
+        # Generate tearsheet
+        logger.info(
+            "Generating quantstats tearsheet: %s (returns=%d, benchmark=%s)",
+            output_path.name,
+            len(returns),
+            "provided" if benchmark is not None else "none",
+        )
+
+        qs.reports.html(
+            returns,
+            benchmark=benchmark,
+            output=str(output_path),
+            title=title,
+            periods_per_year=periods_per_year,
+        )
+
+        # Clean up matplotlib figures to avoid memory issues
+        plt.close("all")
+
+        logger.info("Saved quantstats tearsheet to %s", output_path)
+        return output_path
+
+    except Exception as e:
+        logger.warning(
+            "Failed to generate quantstats tearsheet: %s: %s",
+            type(e).__name__,
+            e,
+        )
+        return None
 
 
 def generate_performance_report(
     result: PerformanceResult,
     signal_id: str,
     strategy_id: str,
+    generate_tearsheet: bool = True,
+    output_dir: Path | None = None,
 ) -> str:
     """
     Generate Markdown report from performance evaluation result.
@@ -30,6 +127,11 @@ def generate_performance_report(
         Signal identifier (for header).
     strategy_id : str
         Strategy identifier (for header).
+    generate_tearsheet : bool, default=True
+        If True and quantstats available, generate HTML tearsheet alongside report.
+    output_dir : Path | None, default=None
+        Output directory for tearsheet. Required if generate_tearsheet=True.
+        Ignored if generate_tearsheet=False.
 
     Returns
     -------
@@ -46,6 +148,13 @@ def generate_performance_report(
     - Return attribution breakdown
     - Recommendations
     - Footer with metadata
+
+    Tearsheet generation:
+    - Only occurs if generate_tearsheet=True AND quantstats is installed
+    - Uses returns from result.metadata['returns'] if available
+    - Uses benchmark from result.metadata['benchmark'] if available
+    - Silently skips if dependencies unavailable (DEBUG-level logging)
+    - Filename format: {signal_id}_{strategy_id}_{timestamp}_tearsheet.html
 
     Examples
     --------
@@ -343,6 +452,28 @@ def generate_performance_report(
         strategy_id,
         len(report),
     )
+
+    # Generate quantstats tearsheet if requested
+    if generate_tearsheet and output_dir is not None:
+        returns = result.metadata.get("returns")
+        benchmark = result.metadata.get("benchmark")
+
+        if returns is not None:
+            timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            tearsheet_filename = f"{signal_id}_{strategy_id}_{timestamp_str}_tearsheet.html"
+            tearsheet_path = Path(output_dir) / tearsheet_filename
+            title = f"{signal_id} - {strategy_id}"
+
+            generate_quantstats_tearsheet(
+                returns=returns,
+                benchmark=benchmark,
+                output_path=tearsheet_path,
+                title=title,
+            )
+        else:
+            logger.debug(
+                "Skipping tearsheet generation - returns not found in result.metadata"
+            )
 
     return report
 

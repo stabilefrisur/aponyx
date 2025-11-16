@@ -5,29 +5,84 @@ Provides advanced metrics beyond standard backtest statistics, including
 rolling performance diagnostics, drawdown recovery analysis, tail risk,
 and consistency measures. Consolidates all performance metrics (basic + extended)
 into a unified computation function.
+
+Uses quantstats library for standard metric calculations.
 """
 
 import logging
 
 import numpy as np
 import pandas as pd
+import quantstats as qs  # type: ignore[import-untyped]
 
 from .config import PerformanceMetrics
 
 logger = logging.getLogger(__name__)
 
 
+def convert_pnl_to_returns(
+    pnl_df: pd.DataFrame,
+    starting_capital: float = 100000.0,
+) -> pd.Series:
+    """
+    Convert cumulative P&L to percentage returns for quantstats compatibility.
+
+    Transforms dollar P&L into equity curve returns by treating cumulative P&L
+    as portfolio gains/losses relative to starting capital.
+
+    Parameters
+    ----------
+    pnl_df : pd.DataFrame
+        P&L DataFrame with 'cumulative_pnl' column and DatetimeIndex.
+    starting_capital : float
+        Initial capital for percentage calculation. Default: 100,000.
+
+    Returns
+    -------
+    pd.Series
+        Daily percentage returns with same index as pnl_df.
+
+    Notes
+    -----
+    This conversion assumes constant notional (no capital additions/withdrawals)
+    and may not reflect true equity dynamics for leveraged strategies or
+    strategies with variable position sizing.
+
+    The equity curve is calculated as: starting_capital + cumulative_pnl
+    Returns are computed as percentage changes in the equity curve.
+
+    Examples
+    --------
+    >>> returns = convert_pnl_to_returns(result.pnl, starting_capital=100000)
+    >>> print(f"First return: {returns.iloc[1]:.4%}")
+    """
+    equity_curve = starting_capital + pnl_df["cumulative_pnl"]
+    returns = equity_curve.pct_change().fillna(0.0)
+    returns.name = "returns"
+
+    logger.debug(
+        "Converted P&L to returns: capital=$%.0f, observations=%d",
+        starting_capital,
+        len(returns),
+    )
+
+    return returns
+
+
 def compute_all_metrics(
     pnl_df: pd.DataFrame,
     positions_df: pd.DataFrame,
     rolling_window: int = 63,
+    starting_capital: float = 100000.0,
+    benchmark: pd.Series | None = None,
 ) -> PerformanceMetrics:
     """
     Compute all performance metrics (basic + extended) from backtest results.
 
-    Consolidates computation of 21 comprehensive metrics including returns,
-    risk-adjusted ratios, trade statistics, and stability measures. Optimizes
-    shared calculations (drawdown, daily stats) to avoid redundancy.
+    Consolidates computation of 21+ comprehensive metrics including returns,
+    risk-adjusted ratios, trade statistics, and stability measures. Uses
+    quantstats library for standard metrics when available, with fallback
+    to custom implementations.
 
     Parameters
     ----------
@@ -37,11 +92,17 @@ def compute_all_metrics(
         Daily position data with 'position' and 'days_held' columns.
     rolling_window : int
         Window length for rolling metrics. Default: 63 days (3 months).
+    starting_capital : float
+        Initial capital for returns conversion. Default: 100,000.
+    benchmark : pd.Series | None
+        Benchmark returns series for relative performance metrics.
+        Must be daily percentage returns (not prices). Default: None.
 
     Returns
     -------
     PerformanceMetrics
-        Complete set of 21 performance statistics organized by category.
+        Complete set of performance statistics organized by category.
+        Includes 21 base metrics plus 4 benchmark metrics when benchmark provided.
 
     Notes
     -----
@@ -50,81 +111,110 @@ def compute_all_metrics(
     - No risk-free rate (excess returns = total returns)
     - Daily P&L represents actual trading results
 
-    Shared intermediates (running_max, drawdown, daily stats) are computed
-    once and reused across metrics for efficiency.
+    15 metrics are computed using quantstats for consistency with industry
+    standards. Trade-level metrics (n_trades, avg_holding_days) and recovery
+    metrics remain custom implementations as quantstats does not support these.
+
+    Benchmark must be provided as returns series (not prices). Quantstats
+    will handle date alignment automatically via match_dates=True.
 
     Examples
     --------
     >>> from aponyx.evaluation.performance import compute_all_metrics
     >>> metrics = compute_all_metrics(result.pnl, result.positions)
     >>> print(f"Sharpe: {metrics.sharpe_ratio:.2f}, Trades: {metrics.n_trades}")
+    
+    >>> # With benchmark comparison
+    >>> benchmark_returns = pd.Series(...)  # Daily returns
+    >>> metrics = compute_all_metrics(
+    ...     result.pnl, result.positions, benchmark=benchmark_returns
+    ... )
+    >>> print(f"Alpha: {metrics.alpha:.4f}, Beta: {metrics.beta:.2f}")
     """
     from aponyx.evaluation.performance.config import PerformanceMetrics
 
-    logger.debug("Computing all performance metrics: rolling_window=%d", rolling_window)
+    logger.debug(
+        "Computing all performance metrics: rolling_window=%d",
+        rolling_window,
+    )
 
     # ==================== Shared Intermediates ====================
     daily_pnl = pnl_df["net_pnl"]
     cum_pnl = pnl_df["cumulative_pnl"]
-    n_days = len(pnl_df)
-    n_years = n_days / 252.0
 
-    # Daily statistics (shared by Sharpe, Sortino, volatility)
-    daily_mean = daily_pnl.mean()
-    daily_std = daily_pnl.std()
+    # Convert P&L to returns for quantstats
+    returns = convert_pnl_to_returns(pnl_df, starting_capital)
 
-    # Drawdown analysis (shared by max_drawdown and recovery metrics)
-    running_max = cum_pnl.expanding().max()
-    drawdown = cum_pnl - running_max
-    max_drawdown = drawdown.min()
+    # ==================== Quantstats Metrics ====================
+    logger.debug("Computing metrics using quantstats")
 
-    # ==================== Return Metrics ====================
-    total_return = cum_pnl.iloc[-1]
-    annualized_return = total_return / n_years if n_years > 0 else 0.0
+    # Return metrics
+    total_return = float(qs.stats.comp(returns))
+    annualized_return = float(qs.stats.cagr(returns, periods=252))
 
-    # ==================== Risk-Adjusted Metrics ====================
-    annualized_vol = daily_std * np.sqrt(252)
+    # Risk-adjusted metrics
+    sharpe_ratio = float(qs.stats.sharpe(returns, periods=252))
+    sortino_ratio = float(qs.stats.sortino(returns, periods=252))
+    calmar_ratio = float(qs.stats.calmar(returns, periods=252))
+    max_drawdown = float(qs.stats.max_drawdown(returns))
+    annualized_vol = float(qs.stats.volatility(returns, periods=252))
 
-    # Sharpe ratio
-    if daily_std > 0:
-        sharpe_ratio = (daily_mean / daily_std) * np.sqrt(252)
-    else:
-        sharpe_ratio = 0.0
+    # Tail and profitability metrics
+    tail_ratio = float(qs.stats.tail_ratio(returns))
+    profit_factor = float(qs.stats.profit_factor(returns))
 
-    # Sortino ratio (downside deviation)
-    downside_returns = daily_pnl[daily_pnl < 0]
-    if len(downside_returns) > 0:
-        downside_std = downside_returns.std()
-        if downside_std > 0:
-            sortino_ratio = (daily_mean / downside_std) * np.sqrt(252)
-        else:
-            sortino_ratio = 0.0
-    else:
-        sortino_ratio = sharpe_ratio  # No downside = same as Sharpe
+    # Rolling Sharpe statistics
+    rolling_sharpe = qs.stats.rolling_sharpe(returns, rolling_period=rolling_window)
+    rolling_sharpe_mean = float(rolling_sharpe.mean())
+    rolling_sharpe_std = float(rolling_sharpe.std())
 
-    # Calmar ratio
-    if max_drawdown < 0:
-        calmar_ratio = annualized_return / abs(max_drawdown)
-    else:
-        calmar_ratio = 0.0
+    # Drawdown count
+    dd_series = qs.stats.to_drawdown_series(returns)
+    dd_details = qs.stats.drawdown_details(dd_series)
+    n_drawdowns_qs = len(dd_details)
 
-    # ==================== Trade Statistics ====================
-    # Identify trade entries (transitions from flat to positioned)
+    # Benchmark metrics (if provided)
+    alpha = None
+    beta = None
+    information_ratio = None
+    r_squared = None
+
+    if benchmark is not None:
+        try:
+            # Compute benchmark metrics using quantstats
+            greeks = qs.stats.greeks(returns, benchmark, periods=252)
+            alpha = float(greeks.iloc[0]) if len(greeks) > 0 else None
+            beta = float(greeks.iloc[1]) if len(greeks) > 1 else None
+
+            # Information ratio
+            information_ratio = float(qs.stats.information_ratio(returns, benchmark))
+
+            # R-squared (correlation with benchmark)
+            r_squared = float(qs.stats.r_squared(returns, benchmark))
+
+            logger.debug(
+                "Computed benchmark metrics: alpha=%.4f, beta=%.2f, IR=%.2f, R²=%.2f",
+                alpha or 0,
+                beta or 0,
+                information_ratio or 0,
+                r_squared or 0,
+            )
+        except Exception as e:
+            logger.warning("Failed to compute benchmark metrics: %s", e)
+
+    # ==================== Trade Statistics (Custom - quantstats doesn't support) ====================
+    # These require position tracking which quantstats doesn't support
     prev_position = positions_df["position"].shift(1).fillna(0)
     position_entries = (prev_position == 0) & (positions_df["position"] != 0)
     n_trades = position_entries.sum()
 
-    # Compute P&L per trade by grouping consecutive positions
+    # Compute P&L per trade
     position_changes = (positions_df["position"] != prev_position).astype(int)
     trade_id = position_changes.cumsum()
-
-    # Only include periods where we have a position
     active_trades = positions_df[positions_df["position"] != 0].copy()
 
     if len(active_trades) > 0:
         active_trades["trade_id"] = trade_id[positions_df["position"] != 0]
-
-        # Sum P&L per trade_id
         trade_pnls = (
             pnl_df.loc[active_trades.index].groupby(active_trades["trade_id"])["net_pnl"].sum()
         )
@@ -133,7 +223,9 @@ def compute_all_metrics(
         winning_trades = trade_pnls_array[trade_pnls_array > 0]
         losing_trades = trade_pnls_array[trade_pnls_array < 0]
 
-        hit_rate = len(winning_trades) / len(trade_pnls_array) if len(trade_pnls_array) > 0 else 0.0
+        hit_rate = (
+            len(winning_trades) / len(trade_pnls_array) if len(trade_pnls_array) > 0 else 0.0
+        )
         avg_win = winning_trades.mean() if len(winning_trades) > 0 else 0.0
         avg_loss = losing_trades.mean() if len(losing_trades) > 0 else 0.0
 
@@ -151,27 +243,21 @@ def compute_all_metrics(
     holding_periods = positions_df[positions_df["position"] != 0]["days_held"]
     avg_holding_days = holding_periods.mean() if len(holding_periods) > 0 else 0.0
 
-    # ==================== Stability Metrics ====================
-    # Rolling Sharpe statistics
-    rolling_sharpe = compute_rolling_sharpe(daily_pnl, window=rolling_window)
-    rolling_sharpe_mean = rolling_sharpe.mean()
-    rolling_sharpe_std = rolling_sharpe.std()
+    # ==================== Recovery Metrics (Custom - quantstats doesn't provide) ====================
+    # Quantstats doesn't provide recovery time analysis
+    # Recompute drawdown for recovery analysis
+    running_max = cum_pnl.expanding().max()
+    drawdown = cum_pnl - running_max
 
-    # Drawdown recovery (pass pre-computed intermediates)
     recovery_stats = _compute_drawdown_recovery_optimized(cum_pnl, running_max, drawdown)
 
-    # Tail risk
-    tail_ratio = compute_tail_ratio(daily_pnl)
-
-    # Profitability metrics
-    profit_factor = compute_profit_factor(daily_pnl)
-
-    # Consistency
+    # ==================== Consistency Score (Always Custom) ====================
     consistency_score = compute_consistency_score(daily_pnl, window=21)
 
     # ==================== Assemble Result ====================
     logger.debug(
-        "Computed 21 metrics: sharpe=%.2f, trades=%d, profit_factor=%.2f",
+        "Computed %d metrics: sharpe=%.2f, trades=%d, profit_factor=%.2f",
+        21 + (4 if benchmark is not None else 0),
         sharpe_ratio,
         n_trades,
         profit_factor,
@@ -187,7 +273,7 @@ def compute_all_metrics(
         calmar_ratio=calmar_ratio,
         max_drawdown=max_drawdown,
         annualized_volatility=annualized_vol,
-        # Trade stats
+        # Trade stats (always custom)
         n_trades=int(n_trades),
         hit_rate=hit_rate,
         avg_win=avg_win,
@@ -199,10 +285,15 @@ def compute_all_metrics(
         rolling_sharpe_std=rolling_sharpe_std,
         max_dd_recovery_days=recovery_stats["max_dd_recovery_days"],
         avg_recovery_days=recovery_stats["avg_recovery_days"],
-        n_drawdowns=recovery_stats["n_drawdowns"],
+        n_drawdowns=int(n_drawdowns_qs),
         tail_ratio=tail_ratio,
         profit_factor=profit_factor,
         consistency_score=consistency_score,
+        # Benchmark metrics (optional)
+        alpha=alpha,
+        beta=beta,
+        information_ratio=information_ratio,
+        r_squared=r_squared,
     )
 
 

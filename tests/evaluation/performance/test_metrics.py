@@ -5,13 +5,25 @@ import pandas as pd
 import pytest
 
 from aponyx.evaluation.performance.metrics import (
+    compute_all_metrics,
     compute_consistency_score,
     compute_drawdown_recovery_time,
     compute_extended_metrics,
     compute_profit_factor,
     compute_rolling_sharpe,
     compute_tail_ratio,
+    convert_pnl_to_returns,
 )
+
+
+def _quantstats_available() -> bool:
+    """Check if quantstats is available."""
+    try:
+        import quantstats  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
 
 
 @pytest.fixture
@@ -220,3 +232,148 @@ class TestExtendedMetrics:
         assert metrics["tail_ratio"] >= 0
         assert metrics["profit_factor"] >= 0
         assert 0 <= metrics["consistency_score"] <= 1
+
+
+class TestConvertPnLToReturns:
+    """Test P&L to returns conversion."""
+
+    def test_convert_pnl_to_returns_basic(self) -> None:
+        """Test basic P&L to returns conversion."""
+        dates = pd.date_range("2020-01-01", periods=5, freq="D")
+        cumulative_pnl = pd.Series([0, 100, 150, 200, 180], index=dates)
+        pnl_df = pd.DataFrame({"cumulative_pnl": cumulative_pnl})
+
+        returns = convert_pnl_to_returns(pnl_df, starting_capital=10000.0)
+
+        # Check length
+        assert len(returns) == len(cumulative_pnl)
+
+        # First return should be cumulative_pnl[0] / starting_capital
+        assert returns.iloc[0] == pytest.approx(0.0 / 10000.0)
+
+        # Second return should be change in P&L / (starting_capital + prev cumulative P&L)
+        assert returns.iloc[1] == pytest.approx(100.0 / 10000.0)
+
+        # Third return
+        assert returns.iloc[2] == pytest.approx(50.0 / 10100.0, rel=1e-4)
+
+    def test_convert_pnl_to_returns_zero_starting_capital(self) -> None:
+        """Test conversion handles zero starting capital."""
+        dates = pd.date_range("2020-01-01", periods=3, freq="D")
+        cumulative_pnl = pd.Series([0, 100, 200], index=dates)
+        pnl_df = pd.DataFrame({"cumulative_pnl": cumulative_pnl})
+
+        returns = convert_pnl_to_returns(pnl_df, starting_capital=0.0)
+
+        # First return is 0 (0 P&L / 0 capital = 0)
+        assert returns.iloc[0] == 0.0
+        # Second return is inf (100 P&L / 0 equity)
+        assert np.isinf(returns.iloc[1])
+
+
+
+class TestComputeAllMetrics:
+    """Test comprehensive metric computation with quantstats integration."""
+
+    def test_compute_all_metrics_custom(self, sample_pnl_df: pd.DataFrame) -> None:
+        """Test compute_all_metrics with quantstats implementation."""
+        # Create minimal positions dataframe
+        positions_df = pd.DataFrame(
+            {"position": [0] * len(sample_pnl_df), "days_held": [0] * len(sample_pnl_df)},
+            index=sample_pnl_df.index,
+        )
+
+        # Compute metrics using quantstats
+        metrics = compute_all_metrics(
+            sample_pnl_df,
+            positions_df=positions_df,
+        )
+
+        # Check metrics is PerformanceMetrics dataclass
+        from aponyx.evaluation.performance.config import PerformanceMetrics
+
+        assert isinstance(metrics, PerformanceMetrics)
+
+        # Check key attributes present
+        assert hasattr(metrics, "total_return")
+        assert hasattr(metrics, "sharpe_ratio")
+        assert hasattr(metrics, "n_trades")
+        assert hasattr(metrics, "tail_ratio")
+        assert hasattr(metrics, "consistency_score")
+
+    @pytest.mark.skipif(
+        not _quantstats_available(),
+        reason="quantstats not installed",
+    )
+    def test_compute_all_metrics_quantstats(self, sample_pnl_df: pd.DataFrame) -> None:
+        """Test compute_all_metrics with quantstats implementation."""
+        from aponyx.evaluation.performance.config import PerformanceMetrics
+
+        # Create minimal positions dataframe
+        positions_df = pd.DataFrame(
+            {"position": [0] * len(sample_pnl_df), "days_held": [0] * len(sample_pnl_df)},
+            index=sample_pnl_df.index,
+        )
+
+        # Use quantstats (always enabled)
+        metrics = compute_all_metrics(
+            sample_pnl_df,
+            positions_df=positions_df,
+            starting_capital=100000.0,
+        )
+
+        # Check metrics is PerformanceMetrics dataclass
+        assert isinstance(metrics, PerformanceMetrics)
+
+        # Check quantstats metrics present
+        assert hasattr(metrics, "sharpe_ratio")
+        assert hasattr(metrics, "sortino_ratio")
+        assert hasattr(metrics, "max_drawdown")
+
+        # Trade stats should still be custom
+        assert hasattr(metrics, "n_trades")
+
+    @pytest.mark.skipif(
+        not _quantstats_available(),
+        reason="quantstats not installed",
+    )
+    def test_compute_all_metrics_with_benchmark(self, sample_pnl_df: pd.DataFrame) -> None:
+        """Test compute_all_metrics with benchmark."""
+        from aponyx.evaluation.performance.config import PerformanceMetrics
+
+        # Create minimal positions dataframe
+        positions_df = pd.DataFrame(
+            {"position": [0] * len(sample_pnl_df), "days_held": [0] * len(sample_pnl_df)},
+            index=sample_pnl_df.index,
+        )
+
+        # Create synthetic benchmark
+        np.random.seed(123)
+        benchmark = pd.Series(
+            np.random.normal(0.0001, 0.01, len(sample_pnl_df)),
+            index=sample_pnl_df.index,
+        )
+
+        metrics = compute_all_metrics(
+            sample_pnl_df,
+            positions_df=positions_df,
+            starting_capital=100000.0,
+            benchmark=benchmark,
+        )
+
+        # Check metrics is PerformanceMetrics dataclass
+        assert isinstance(metrics, PerformanceMetrics)
+
+        # Check benchmark metrics present
+        assert hasattr(metrics, "alpha")
+        assert hasattr(metrics, "beta")
+        assert hasattr(metrics, "information_ratio")
+        assert hasattr(metrics, "r_squared")
+
+        # Values should be numeric (not None)
+        assert metrics.alpha is not None
+        assert metrics.beta is not None
+        assert isinstance(metrics.alpha, (int, float))
+        assert isinstance(metrics.beta, (int, float))
+
+
