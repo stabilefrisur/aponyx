@@ -126,20 +126,8 @@ def load_signal(signal_name: str) -> pd.Series:
     -------
     pd.Series
         Signal series with DatetimeIndex.
-        
-    Raises
-    ------
-    FileNotFoundError
-        If signal file does not exist.
     """
     signal_path = PROCESSED_DIR / "signals" / f"{signal_name}.parquet"
-    
-    if not signal_path.exists():
-        raise FileNotFoundError(
-            f"Signal file not found: {signal_path}. "
-            f"Run 04_compute_signal.py first."
-        )
-    
     signal_df = load_parquet(signal_path)
     return signal_df["value"]
 
@@ -164,9 +152,7 @@ def load_spread_data(product: str) -> pd.Series:
     """
     data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
     
-    # Find dataset with matching security parameter in metadata
     all_datasets = data_registry.list_datasets()
-    matching_dataset = None
     
     for dataset_name in all_datasets:
         info = data_registry.get_dataset_info(dataset_name)
@@ -174,18 +160,10 @@ def load_spread_data(product: str) -> pd.Series:
         params = metadata.get("params", {})
         
         if params.get("security") == product:
-            matching_dataset = dataset_name
-            break
+            spread_df = load_parquet(info["file_path"])
+            return spread_df["spread"]
     
-    if not matching_dataset:
-        raise ValueError(
-            f"No datasets found for product '{product}'. "
-            f"Run data fetching workflow first."
-        )
-    
-    info = data_registry.get_dataset_info(matching_dataset)
-    spread_df = load_parquet(info["file_path"])
-    return spread_df["spread"]
+    raise ValueError(f"No dataset found for product: {product}")
 
 
 def load_strategy_config(strategy_name: str):

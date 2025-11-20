@@ -93,28 +93,10 @@ def _find_data_file(directory: Path, security: str) -> Path:
     -------
     Path
         Path to data file.
-
-    Raises
-    ------
-    FileNotFoundError
-        If no matching file found or multiple files match.
     """
     safe_security = security.replace(".", "_").replace("/", "_")
     pattern = f"{safe_security}_*.parquet"
     matches = list(directory.glob(pattern))
-
-    if not matches:
-        raise FileNotFoundError(
-            f"No data file found for security '{security}' in {directory}. "
-            f"Pattern: {pattern}. Run 01_generate_synthetic_data.py first."
-        )
-
-    if len(matches) > 1:
-        raise FileNotFoundError(
-            f"Multiple data files found for security '{security}': {matches}. "
-            "Expected exactly one file."
-        )
-
     return matches[0]
 
 

@@ -94,11 +94,6 @@ def load_backtest_result(
     BacktestResult
         Backtest result with positions and P&L DataFrames.
         
-    Raises
-    ------
-    FileNotFoundError
-        If backtest result files do not exist.
-        
     Notes
     -----
     Loads positions and P&L from separate parquet files saved
@@ -109,18 +104,6 @@ def load_backtest_result(
     
     positions_path = backtests_dir / f"{signal_name}_{strategy_name}_positions.parquet"
     pnl_path = backtests_dir / f"{signal_name}_{strategy_name}_pnl.parquet"
-    
-    if not positions_path.exists():
-        raise FileNotFoundError(
-            f"Positions file not found: {positions_path}. "
-            f"Run 06_run_backtest.py first."
-        )
-    
-    if not pnl_path.exists():
-        raise FileNotFoundError(
-            f"P&L file not found: {pnl_path}. "
-            f"Run 06_run_backtest.py first."
-        )
     
     positions = load_parquet(positions_path)
     pnl = load_parquet(pnl_path)
