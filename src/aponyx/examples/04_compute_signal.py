@@ -17,6 +17,7 @@ Workflow
 Outputs
 -------
 Dict of computed signals (one pd.Series per enabled signal).
+Saved to data/processed/signals/{signal_name}.parquet for next steps.
 
 Examples
 --------
@@ -29,10 +30,10 @@ Expected: 3 signals (cdx_etf_basis, cdx_vix_gap, spread_momentum).
 
 import pandas as pd
 
-from aponyx.config import REGISTRY_PATH, DATA_DIR, SIGNAL_CATALOG_PATH
+from aponyx.config import REGISTRY_PATH, DATA_DIR, SIGNAL_CATALOG_PATH, PROCESSED_DIR
 from aponyx.data.registry import DataRegistry
 from aponyx.models import SignalConfig, SignalRegistry, get_required_data_keys, compute_registered_signals
-from aponyx.persistence import load_parquet
+from aponyx.persistence import load_parquet, save_parquet
 
 
 def main() -> dict[str, pd.Series]:
@@ -49,7 +50,9 @@ def main() -> dict[str, pd.Series]:
     """
     config = define_signal_config()
     market_data = load_all_required_data()
-    return compute_all_signals(market_data, config)
+    signals = compute_all_signals(market_data, config)
+    save_all_signals(signals)
+    return signals
 
 
 def define_signal_config() -> SignalConfig:
@@ -136,6 +139,28 @@ def compute_all_signals(
     """
     signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
     return compute_registered_signals(signal_registry, market_data, config)
+
+
+def save_all_signals(signals: dict[str, pd.Series]) -> None:
+    """
+    Save computed signals to processed directory.
+    
+    Parameters
+    ----------
+    signals : dict[str, pd.Series]
+        Mapping from signal name to computed signal series.
+        
+    Notes
+    -----
+    Saves each signal as data/processed/signals/{signal_name}.parquet.
+    """
+    signals_dir = PROCESSED_DIR / "signals"
+    signals_dir.mkdir(parents=True, exist_ok=True)
+    
+    for signal_name, signal_series in signals.items():
+        signal_path = signals_dir / f"{signal_name}.parquet"
+        signal_df = signal_series.to_frame(name="value")
+        save_parquet(signal_df, signal_path)
 
 
 if __name__ == "__main__":
