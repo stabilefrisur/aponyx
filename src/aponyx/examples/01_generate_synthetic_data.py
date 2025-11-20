@@ -41,14 +41,12 @@ def main() -> None:
     """
     output_dir = RAW_DIR / "synthetic"
     
-    file_paths = generate_for_fetch_interface(
+    generate_for_fetch_interface(
         output_dir=output_dir,
         start_date="2020-01-01",
         end_date="2025-01-01",
         seed=42,
     )
-    
-    return file_paths
 
 
 if __name__ == "__main__":
