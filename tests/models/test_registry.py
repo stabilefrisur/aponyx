@@ -8,7 +8,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Generator
 
-from aponyx.models.registry import SignalRegistry, SignalMetadata
+from aponyx.models.metadata import SignalMetadata
+from aponyx.models.registry import SignalRegistry
 
 
 @pytest.fixture
@@ -97,7 +98,7 @@ def test_signal_metadata_validates_arg_mapping() -> None:
         )
 
     # arg_mapping contains key not in data_requirements
-    with pytest.raises(ValueError, match="arg_mapping contains keys not in data_requirements"):
+    with pytest.raises(ValueError, match="must contain exactly the same keys"):
         SignalMetadata(
             name="test",
             description="Test",

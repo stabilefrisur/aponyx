@@ -229,7 +229,7 @@ def generate_for_fetch_interface(
     Parameters
     ----------
     output_dir : str or Path
-        Base directory for cache files (e.g., "data/cache/file").
+        Base directory for raw files (e.g., "data/raw/file").
     start_date : str, default "2020-01-01"
         Start date for time series.
     end_date : str, default "2025-01-01"
@@ -319,11 +319,12 @@ def generate_for_fetch_interface(
             df = df[["spread"]].copy()
             df["security"] = security_id
 
-            # Generate hash for raw storage naming
-            hash_input = f"synthetic|cdx_{security_id}|{df.index.min()}|{df.index.max()}|{len(df)}"
+            # Generate hash for raw storage naming (consistent with save_to_raw)
+            safe_instrument = security_id.replace(".", "_").replace("/", "_")
+            hash_input = f"synthetic|{security_id}|{df.index.min()}|{df.index.max()}|{len(df)}"
             file_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:12]
-            file_path = output_path / f"cdx_{security_id}_{file_hash}.parquet"
-            metadata_path = output_path / f"cdx_{security_id}_{file_hash}.json"
+            file_path = output_path / f"{safe_instrument}_{file_hash}.parquet"
+            metadata_path = output_path / f"{safe_instrument}_{file_hash}.json"
 
         elif instrument_type == "vix":
             params = default_params["vix"]
@@ -340,11 +341,12 @@ def generate_for_fetch_interface(
             df = df.set_index("date")
             df = df[["level"]].copy()
 
-            # Generate hash for raw storage naming
-            hash_input = f"synthetic|vix_{security_id}|{df.index.min()}|{df.index.max()}|{len(df)}"
+            # Generate hash for raw storage naming (consistent with save_to_raw)
+            safe_instrument = security_id.replace(".", "_").replace("/", "_")
+            hash_input = f"synthetic|{security_id}|{df.index.min()}|{df.index.max()}|{len(df)}"
             file_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:12]
-            file_path = output_path / f"vix_{security_id}_{file_hash}.parquet"
-            metadata_path = output_path / f"vix_{security_id}_{file_hash}.json"
+            file_path = output_path / f"{safe_instrument}_{file_hash}.parquet"
+            metadata_path = output_path / f"{safe_instrument}_{file_hash}.json"
 
         elif instrument_type == "etf":
             params = default_params["etf"].get(
@@ -365,11 +367,12 @@ def generate_for_fetch_interface(
             df = df[["spread"]].copy()
             df["security"] = security_id
 
-            # Generate hash for raw storage naming
-            hash_input = f"synthetic|etf_{security_id}|{df.index.min()}|{df.index.max()}|{len(df)}"
+            # Generate hash for raw storage naming (consistent with save_to_raw)
+            safe_instrument = security_id.replace(".", "_").replace("/", "_")
+            hash_input = f"synthetic|{security_id}|{df.index.min()}|{df.index.max()}|{len(df)}"
             file_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:12]
-            file_path = output_path / f"etf_{security_id}_{file_hash}.parquet"
-            metadata_path = output_path / f"etf_{security_id}_{file_hash}.json"
+            file_path = output_path / f"{safe_instrument}_{file_hash}.parquet"
+            metadata_path = output_path / f"{safe_instrument}_{file_hash}.json"
 
         else:
             logger.warning("Unknown instrument type: %s", instrument_type)

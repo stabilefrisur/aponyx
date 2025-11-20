@@ -1,73 +1,36 @@
-"""Signal registry for managing signal metadata and catalog persistence."""
+"""
+Signal registry for managing signal catalog persistence and validation.
+
+This module manages the signal catalog lifecycle:
+- Loading signal metadata from JSON
+- Validating signal definitions (compute functions exist)
+- Querying enabled/disabled signals
+- Persisting catalog changes
+"""
 
 import json
 import logging
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
 from pathlib import Path
 
 from . import signals
+from .metadata import SignalMetadata
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True)
-class SignalMetadata:
-    """
-    Metadata for a registered signal computation.
-
-    Attributes
-    ----------
-    name : str
-        Unique signal identifier (e.g., "cdx_etf_basis").
-    description : str
-        Human-readable description of signal purpose and logic.
-    compute_function_name : str
-        Name of the compute function in signals module (e.g., "compute_cdx_etf_basis").
-    data_requirements : dict[str, str]
-        Mapping from market data keys to required column names.
-        Example: {"cdx": "spread", "etf": "spread"}
-    arg_mapping : list[str]
-        Ordered list of data keys to pass as positional arguments to compute function.
-        Example: ["cdx", "etf"] means call compute_fn(market_data["cdx"], market_data["etf"], config)
-    enabled : bool
-        Whether signal should be included in computation.
-    sign_multiplier : int
-        Multiplier to apply to signal output for sign correction.
-        Use -1 to invert signals with negative Sharpe ratios.
-        Default is 1 (no inversion).
-    """
-
-    name: str
-    description: str
-    compute_function_name: str
-    data_requirements: dict[str, str]
-    arg_mapping: list[str]
-    enabled: bool = True
-    sign_multiplier: int = 1
-
-    def __post_init__(self) -> None:
-        """Validate signal metadata."""
-        if not self.name:
-            raise ValueError("Signal name cannot be empty")
-        if not self.compute_function_name:
-            raise ValueError("Compute function name cannot be empty")
-        if not self.arg_mapping:
-            raise ValueError("arg_mapping cannot be empty")
-        # Validate arg_mapping is subset of data_requirements keys
-        missing_args = set(self.arg_mapping) - set(self.data_requirements.keys())
-        if missing_args:
-            raise ValueError(f"arg_mapping contains keys not in data_requirements: {missing_args}")
-        # Validate sign_multiplier is ±1
-        if self.sign_multiplier not in (-1, 1):
-            raise ValueError(f"sign_multiplier must be -1 or 1, got {self.sign_multiplier}")
-
-
 class SignalRegistry:
     """
-    Registry for signal metadata with JSON catalog persistence.
+    Registry for signal catalog with JSON persistence and fail-fast validation.
 
-    Manages signal definitions, enabling/disabling signals, and catalog I/O.
-    Follows pattern from data.registry.DataRegistry.
+    Manages signal definitions from the catalog JSON file, validates that
+    referenced compute functions exist, and provides query interfaces for
+    enabled/disabled signals.
+
+    This class follows the catalog governance pattern (see governance_design.md):
+    - Immutable after load (frozen dataclass metadata)
+    - Fail-fast validation at initialization
+    - Read-only during runtime (edits require manual JSON modification)
 
     Parameters
     ----------
@@ -76,7 +39,8 @@ class SignalRegistry:
 
     Examples
     --------
-    >>> registry = SignalRegistry("src/aponyx/models/signal_catalog.json")
+    >>> from aponyx.config import SIGNAL_CATALOG_PATH
+    >>> registry = SignalRegistry(SIGNAL_CATALOG_PATH)
     >>> enabled = registry.get_enabled()
     >>> metadata = registry.get_metadata("cdx_etf_basis")
     """

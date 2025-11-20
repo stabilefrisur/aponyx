@@ -174,7 +174,10 @@ registry.register_dataset(
 
 ### 6.3 SignalRegistry — Class-Based Catalog with Fail-Fast Validation
 
-**File:** `src/aponyx/models/registry.py`
+**Files:** 
+- `src/aponyx/models/metadata.py` — SignalMetadata dataclass
+- `src/aponyx/models/registry.py` — SignalRegistry class
+- `src/aponyx/models/orchestrator.py` — compute_registered_signals() function
 
 **Lifecycle:**
 
@@ -186,7 +189,8 @@ from aponyx.models import SignalRegistry, SignalConfig, compute_registered_signa
 registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 # Validation happens automatically in __init__:
 # - Checks all compute functions exist in signals module
-# - Raises ValueError if function missing
+# - Validates arg_mapping matches data_requirements exactly
+# - Raises ValueError if function missing or validation fails
 
 # 2. INSPECT: Query signal metadata
 enabled = registry.get_enabled()  # Only enabled signals
@@ -203,7 +207,27 @@ signals = compute_registered_signals(registry, market_data, config)
 # registry.save_catalog()  # Overwrites original JSON
 ```
 
-**Pattern:** Class-based registry with fail-fast validation. Validates compute function existence using `hasattr(signals, func_name)` at load time.
+**Pattern:** 
+- Class-based registry with fail-fast validation
+- Validates compute function existence using `hasattr(signals, func_name)` at load time
+- Validates arg_mapping equals data_requirements keys (not just subset)
+- SignalMetadata separated into metadata.py for clarity
+- Orchestration function in orchestrator.py bridges catalog and computation
+
+**Module Organization (Option B):**
+```
+models/
+  metadata.py      # SignalMetadata dataclass definition
+  registry.py      # SignalRegistry catalog management
+  orchestrator.py  # compute_registered_signals() batch computation
+  signals.py       # Individual signal compute functions
+  config.py        # SignalConfig dataclass
+```
+
+This separation clarifies responsibilities:
+- `metadata.py` = data structure definition
+- `registry.py` = catalog lifecycle management
+- `orchestrator.py` = catalog usage and computation
 
 ---
 

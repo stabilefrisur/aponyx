@@ -1,16 +1,93 @@
 """
 Signal computation orchestration using registry pattern.
+
+This module orchestrates batch signal computation from the signal catalog.
+It bridges the gap between signal metadata (registry.py, metadata.py) and
+signal computation functions (signals.py).
+
+Design Notes
+------------
+market_data dict pattern:
+    The orchestrator accepts a dict mapping generic keys (e.g., "cdx", "etf")
+    to DataFrame objects. This enables catalog-driven computation where:
+    
+    1. Different signals require different data combinations
+    2. Catalog defines requirements declaratively via data_requirements
+    3. Orchestrator resolves data dynamically using arg_mapping
+    
+    Alternative approaches considered:
+    - Named parameters: Inflexible, requires knowing all data types upfront
+    - Auto-loading from DataRegistry: Couples signal computation to data loading
+    
+    The dict pattern is kept for flexibility despite adding indirection.
+
+arg_mapping pattern:
+    Uses positional argument mapping for simplicity in pilot phase.
+    Alternative keyword-based approach ({"cdx": "cdx_param"}) was considered
+    but rejected to avoid complexity. May revisit in future if needed.
 """
 
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
 from . import signals
 from .config import SignalConfig
-from .registry import SignalRegistry, SignalMetadata
+from .metadata import SignalMetadata
+
+if TYPE_CHECKING:
+    from .registry import SignalRegistry
 
 logger = logging.getLogger(__name__)
+
+
+def get_required_data_keys(registry: SignalRegistry) -> set[str]:
+    """
+    Get union of all data keys required by enabled signals.
+    
+    Use this to determine what market data to load before calling
+    compute_registered_signals(). The correct workflow is:
+    
+    1. Get required data keys from registry
+    2. Load all required data into market_data dict
+    3. Compute all enabled signals at once
+    
+    Parameters
+    ----------
+    registry : SignalRegistry
+        Signal registry containing enabled signals.
+    
+    Returns
+    -------
+    set[str]
+        Set of data keys (e.g., {"cdx", "etf", "vix"}) required
+        by all enabled signals.
+    
+    Examples
+    --------
+    >>> registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+    >>> data_keys = get_required_data_keys(registry)
+    >>> # Load all required data
+    >>> market_data = {}
+    >>> for key in data_keys:
+    ...     market_data[key] = load_data_for(key)
+    >>> # Compute all signals at once
+    >>> signals = compute_registered_signals(registry, market_data, config)
+    """
+    all_data_keys = set()
+    for metadata in registry.get_enabled().values():
+        all_data_keys.update(metadata.data_requirements.keys())
+    
+    logger.debug(
+        "Required data keys for %d enabled signals: %s",
+        len(registry.get_enabled()),
+        sorted(all_data_keys),
+    )
+    
+    return all_data_keys
 
 
 def compute_registered_signals(
@@ -23,6 +100,18 @@ def compute_registered_signals(
 
     Validates data requirements, resolves compute functions dynamically,
     and executes signal computations in registration order.
+    
+    Correct Usage Pattern
+    ---------------------
+    1. Get all required data keys: `get_required_data_keys(registry)`
+    2. Load all required data into market_data dict
+    3. Compute all enabled signals at once with this function
+    4. Select individual signals for evaluation/backtesting
+    
+    This batch computation approach is efficient because:
+    - Data is loaded once (not per-signal)
+    - All signals computed in single pass
+    - Results can be cached/reused for different analyses
 
     Parameters
     ----------
@@ -30,7 +119,11 @@ def compute_registered_signals(
         Signal registry containing metadata and catalog.
     market_data : dict[str, pd.DataFrame]
         Market data mapping. Keys should match signal data_requirements.
+        Must contain ALL data keys required by ANY enabled signal.
         Example: {"cdx": cdx_df, "etf": etf_df, "vix": vix_df}
+        
+        The dict pattern enables catalog-driven computation where different
+        signals can specify different data requirements without hardcoding.
     config : SignalConfig
         Configuration parameters for signal computation (lookback, min_periods).
 
@@ -38,6 +131,7 @@ def compute_registered_signals(
     -------
     dict[str, pd.Series]
         Mapping from signal name to computed signal series.
+        Contains one entry per enabled signal in the registry.
 
     Raises
     ------
@@ -48,10 +142,37 @@ def compute_registered_signals(
 
     Examples
     --------
+    Correct pattern (load all data once, compute all signals):
+    
+    >>> from aponyx.models import SignalRegistry, SignalConfig
+    >>> from aponyx.models import get_required_data_keys, compute_registered_signals
+    >>> 
+    >>> # 1. Get required data keys from registry
     >>> registry = SignalRegistry("signal_catalog.json")
-    >>> market_data = {"cdx": cdx_df, "etf": etf_df, "vix": vix_df}
+    >>> required_keys = get_required_data_keys(registry)  # {"cdx", "etf", "vix"}
+    >>> 
+    >>> # 2. Load all required data once
+    >>> market_data = {}
+    >>> for key in required_keys:
+    ...     market_data[key] = load_data_for(key)
+    >>> 
+    >>> # 3. Compute all enabled signals
     >>> config = SignalConfig(lookback=20)
-    >>> signals_dict = compute_registered_signals(registry, market_data, config)
+    >>> all_signals = compute_registered_signals(registry, market_data, config)
+    >>> 
+    >>> # 4. Use individual signals for analysis
+    >>> basis_signal = all_signals["cdx_etf_basis"]
+    >>> gap_signal = all_signals["cdx_vix_gap"]
+    
+    Notes
+    -----
+    The market_data dict keys must match the keys in each signal's
+    data_requirements field from the catalog. For example, if a signal
+    specifies {"cdx": "spread", "vix": "level"}, then market_data must
+    contain keys "cdx" and "vix" with DataFrames having those columns.
+    
+    Use get_required_data_keys() to determine what data to load before
+    calling this function.
     """
     enabled_signals = registry.get_enabled()
 

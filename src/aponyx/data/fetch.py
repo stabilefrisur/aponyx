@@ -324,7 +324,6 @@ def fetch_cdx(
 
         registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
         save_to_raw(df, "bloomberg", security or instrument, RAW_DIR, registry)
-        registry.save()
 
     # Cache if enabled
     if use_cache:
@@ -471,7 +470,6 @@ def fetch_vix(
 
         registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
         save_to_raw(df, "bloomberg", "vix", RAW_DIR, registry)
-        registry.save()
 
     # Cache if enabled
     if use_cache:
@@ -667,7 +665,6 @@ def fetch_etf(
 
         registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
         save_to_raw(df, "bloomberg", security or instrument, RAW_DIR, registry)
-        registry.save()
 
     # Cache if enabled
     if use_cache:

@@ -9,9 +9,10 @@ import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from aponyx.models.catalog import compute_registered_signals, _validate_data_requirements
+from aponyx.models.orchestrator import compute_registered_signals, _validate_data_requirements, get_required_data_keys
 from aponyx.models.config import SignalConfig
-from aponyx.models.registry import SignalRegistry, SignalMetadata
+from aponyx.models.metadata import SignalMetadata
+from aponyx.models.registry import SignalRegistry
 
 
 @pytest.fixture
@@ -218,7 +219,7 @@ def test_validate_data_requirements_missing_key() -> None:
         description="Test",
         compute_function_name="compute_test",
         data_requirements={"cdx": "spread", "missing_key": "close"},
-        arg_mapping=["cdx"],
+        arg_mapping=["cdx", "missing_key"],  # Updated to match data_requirements
     )
 
     market_data = {
@@ -281,3 +282,53 @@ def test_compute_registered_signals_respects_config_parameters(
     for name in signals_short.keys():
         # At least some values should differ
         assert not signals_short[name].equals(signals_long[name])
+
+
+def test_get_required_data_keys(test_catalog_path: Path) -> None:
+    """Test that get_required_data_keys returns union of all enabled signals' requirements."""
+    registry = SignalRegistry(test_catalog_path)
+    
+    required_keys = get_required_data_keys(registry)
+    
+    # Should include all keys from all 3 enabled signals
+    assert "cdx" in required_keys
+    assert "etf" in required_keys
+    assert "vix" in required_keys
+    
+    # Should have exactly 3 keys (union of cdx_etf_basis, cdx_vix_gap, spread_momentum)
+    assert len(required_keys) == 3
+
+
+def test_get_required_data_keys_with_disabled(mock_market_data: dict[str, pd.DataFrame]) -> None:
+    """Test that get_required_data_keys only includes enabled signals."""
+    catalog_data = [
+        {
+            "name": "enabled_signal",
+            "description": "Enabled",
+            "compute_function_name": "compute_spread_momentum",
+            "data_requirements": {"cdx": "spread"},
+            "arg_mapping": ["cdx"],
+            "enabled": True,
+        },
+        {
+            "name": "disabled_signal",
+            "description": "Disabled",
+            "compute_function_name": "compute_cdx_vix_gap",
+            "data_requirements": {"cdx": "spread", "vix": "level", "extra": "data"},
+            "arg_mapping": ["cdx", "vix", "extra"],
+            "enabled": False,
+        },
+    ]
+
+    with TemporaryDirectory() as tmpdir:
+        catalog_path = Path(tmpdir) / "catalog.json"
+        with open(catalog_path, "w") as f:
+            json.dump(catalog_data, f)
+
+        registry = SignalRegistry(catalog_path)
+        required_keys = get_required_data_keys(registry)
+
+        # Should only include keys from enabled signal
+        assert required_keys == {"cdx"}
+        assert "vix" not in required_keys
+        assert "extra" not in required_keys

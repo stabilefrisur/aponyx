@@ -3,9 +3,10 @@
 import pandas as pd
 import pytest
 
-from aponyx.models.catalog import compute_registered_signals
+from aponyx.models.orchestrator import compute_registered_signals
 from aponyx.models.config import SignalConfig
-from aponyx.models.registry import SignalMetadata, SignalRegistry
+from aponyx.models.metadata import SignalMetadata
+from aponyx.models.registry import SignalRegistry
 
 
 def test_sign_multiplier_in_metadata():
