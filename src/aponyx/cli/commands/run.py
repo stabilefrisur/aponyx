@@ -101,8 +101,8 @@ def run(
     # Command-line options override config file
     signal_name = signal or config_dict.get("signal")
     strategy_name = strategy or config_dict.get("strategy")
-    product_id = product if product != "cdx_ig_5y" else config_dict.get("product", "cdx_ig_5y")
-    data_source = data if data != "synthetic" else config_dict.get("data", "synthetic")
+    product_id = product or config_dict.get("product", "cdx_ig_5y")
+    data_source = data or config_dict.get("data", "synthetic")
     force_rerun = force or config_dict.get("force", False)
     
     # Parse steps

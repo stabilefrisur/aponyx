@@ -11,6 +11,9 @@ from typing import Final
 # From src/aponyx/config/__init__.py -> src/aponyx
 PACKAGE_ROOT: Final[Path] = Path(__file__).parent.parent
 
+# Config directory (package-relative, included in distribution)
+CONFIG_DIR: Final[Path] = PACKAGE_ROOT / "config"
+
 # Project root for development (when working in repo)
 # From src/aponyx/config/__init__.py -> src/aponyx -> src -> project_root
 PROJECT_ROOT: Final[Path] = Path(__file__).parent.parent.parent.parent

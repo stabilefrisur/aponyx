@@ -3,6 +3,7 @@
 
 signal: spread_momentum
 strategy: balanced
+product: cdx_ig_5y
 data: synthetic
 
 # Only run specific steps

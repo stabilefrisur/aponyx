@@ -52,7 +52,7 @@ class WorkflowConfig:
     """
     signal_name: str
     strategy_name: str
-    product: str = "cdx_hy_5y"
+    product: str
     data_source: DataSource = "synthetic"
     steps: list[StepName] | None = None
     force_rerun: bool = False

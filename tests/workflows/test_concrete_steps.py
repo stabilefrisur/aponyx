@@ -28,6 +28,7 @@ def workflow_config(tmp_path: Path) -> WorkflowConfig:
     return WorkflowConfig(
         signal_name="spread_momentum",
         strategy_name="balanced",
+        product="cdx_ig_5y",
         output_dir=tmp_path / "workflows",
     )
 
@@ -179,6 +180,7 @@ class TestDataStep:
         bloomberg_config = WorkflowConfig(
             signal_name="test_signal",
             strategy_name="test_strategy",
+            product="cdx_ig_5y",
             data_source="bloomberg",
         )
         
@@ -300,14 +302,14 @@ class TestSuitabilityStep:
         # Mock strategy registry to provide product
         mock_strategy_registry = Mock()
         mock_metadata = Mock()
-        mock_metadata.product = "cdx_hy_5y"  # Match workflow_config.product
+        mock_metadata.product = "cdx_ig_5y"  # Match workflow_config.product
         mock_strategy_registry.get_metadata.return_value = mock_metadata
         mock_strategy_registry_class.return_value = mock_strategy_registry
         
         # Mock data registry to provide spread data
         mock_data_registry = Mock()
         mock_data_registry.list_datasets.return_value = ["cdx_data"]
-        mock_info = {"file_path": "/data/cdx.parquet", "metadata": {"params": {"security": "cdx_hy_5y"}}}
+        mock_info = {"file_path": "/data/cdx.parquet", "metadata": {"params": {"security": "cdx_ig_5y"}}}
         mock_data_registry.get_dataset_info.return_value = mock_info
         mock_data_registry_class.return_value = mock_data_registry
         

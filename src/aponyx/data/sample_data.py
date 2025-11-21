@@ -274,21 +274,10 @@ def generate_for_fetch_interface(
     file_paths = {}
     seed_offset = 0
 
-    # Default parameters by instrument type
-    default_params = {
-        "cdx": {
-            "cdx_ig_5y": {"base_spread": 60.0, "volatility": 5.0},
-            "cdx_ig_10y": {"base_spread": 70.0, "volatility": 6.0},
-            "cdx_hy_5y": {"base_spread": 350.0, "volatility": 20.0},
-            "itrx_xover_5y": {"base_spread": 280.0, "volatility": 18.0},
-            "itrx_eur_5y": {"base_spread": 55.0, "volatility": 4.5},
-        },
-        "vix": {"base_vix": 18.0, "volatility": 2.5},
-        "etf": {
-            "hyg": {"base_price": 350.0, "volatility": 15.0},
-            "lqd": {"base_price": 100.0, "volatility": 8.0},
-        },
-    }
+    # Load parameters from config file
+    config_path = Path(__file__).parent / "synthetic_params.json"
+    with open(config_path, encoding="utf-8") as f:
+        default_params = json.load(f)
 
     for security_id, security_config in securities.items():
         instrument_type = security_config["instrument_type"]
@@ -301,7 +290,7 @@ def generate_for_fetch_interface(
             index_name = security_id.upper().replace("_", " ")
 
             params = default_params["cdx"].get(
-                security_id, {"base_spread": 100.0, "volatility": 10.0}
+                security_id, default_params["cdx"]["default"]
             )
 
             df = generate_cdx_sample(
@@ -350,7 +339,7 @@ def generate_for_fetch_interface(
 
         elif instrument_type == "etf":
             params = default_params["etf"].get(
-                security_id, {"base_price": 200.0, "volatility": 12.0}
+                security_id, default_params["etf"]["default"]
             )
 
             df = generate_etf_sample(

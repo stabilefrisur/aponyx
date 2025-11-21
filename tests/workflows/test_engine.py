@@ -45,6 +45,7 @@ def test_workflow_config_validation():
     config = WorkflowConfig(
         signal_name="spread_momentum",
         strategy_name="balanced",
+        product="cdx_ig_5y",
         steps=["data", "signal"],
     )
     assert config.steps == ["data", "signal"]
@@ -54,6 +55,7 @@ def test_workflow_config_validation():
         WorkflowConfig(
             signal_name="spread_momentum",
             strategy_name="balanced",
+            product="cdx_ig_5y",
             steps=["data", "invalid_step"],
         )
 
@@ -63,6 +65,7 @@ def test_workflow_engine_execution_order():
     config = WorkflowConfig(
         signal_name="test_signal",
         strategy_name="test_strategy",
+        product="cdx_ig_5y",
     )
     
     execution_order = []
@@ -110,6 +113,7 @@ def test_workflow_engine_caching():
     config = WorkflowConfig(
         signal_name="test_signal",
         strategy_name="test_strategy",
+        product="cdx_ig_5y",
     )
     
     class CachedMockStep(BaseWorkflowStep):
@@ -162,6 +166,7 @@ def test_workflow_engine_force_rerun():
     config = WorkflowConfig(
         signal_name="test_signal",
         strategy_name="test_strategy",
+        product="cdx_ig_5y",
         force_rerun=True,
     )
     
@@ -209,6 +214,7 @@ def test_workflow_engine_error_handling():
     config = WorkflowConfig(
         signal_name="test_signal",
         strategy_name="test_strategy",
+        product="cdx_ig_5y",
     )
     
     with patch("aponyx.workflows.engine.StepRegistry") as mock_registry_class:
@@ -240,6 +246,7 @@ def test_workflow_engine_context_passing():
     config = WorkflowConfig(
         signal_name="test_signal",
         strategy_name="test_strategy",
+        product="cdx_ig_5y",
     )
     
     received_contexts = []
@@ -288,6 +295,7 @@ def test_workflow_engine_subset_execution():
     config = WorkflowConfig(
         signal_name="test_signal",
         strategy_name="test_strategy",
+        product="cdx_ig_5y",
         steps=["data", "backtest"],  # Skip signal
     )
     
