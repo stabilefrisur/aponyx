@@ -26,7 +26,110 @@ The Bloomberg provider requires manual installation of the `blpapi` library:
 
 The `xbbg` wrapper is included in the `bloomberg` optional dependency, but `blpapi` itself must be installed separately due to Bloomberg's proprietary distribution.
 
-**Intraday Updates:** Bloomberg provider supports efficient current-day updates via BDP (see [Caching Design](caching_design.md#intraday-cache-updates) for details).
+**Intraday Updates:** Bloomberg provider supports efficient current-day updates via BDP.
+
+---
+
+## Data Storage Architecture
+
+The project uses a three-tier storage structure:
+
+| Directory | Purpose | Lifecycle | Regenerable |
+|-----------|---------|-----------|-------------|
+| `data/raw/` | Original source data (Bloomberg downloads, synthetic generation) | **Permanent** — Never auto-deleted | ❌ No |
+| `data/cache/` | Performance optimization for repeated reads | **Temporary** — TTL-based expiration | ✅ Yes |
+| `data/processed/` | Computed outputs (signals, features, metrics) | **Temporary** — Recomputable from raw | ✅ Yes |
+
+**Data Flow:**
+```
+Raw Storage (Bloomberg/Synthetic)
+    ↓
+Cache Layer (TTL-based, automatic)
+    ↓
+Models/Signals
+    ↓
+Processed Storage (Results)
+```
+
+**Key Principle:** Raw data is the source of truth. Cache and processed data can always be regenerated from raw.
+
+### Raw Data Storage
+
+**File Naming:** `{instrument}_{security}_{hash}.parquet`
+
+**Examples:**
+```
+cdx_cdx_ig_5y_b1f849bfe3a1.parquet
+vix_vix_00252a34df0f.parquet
+etf_hyg_108d48a6a616.parquet
+```
+
+**Hash Generation:**
+- 12-character SHA256 hash prefix
+- Computed from: provider, instrument, date range, row count, metadata
+- Ensures uniqueness across different data pulls
+
+**Metadata Sidecar:** Each `.parquet` file has a corresponding `.json` metadata file:
+
+```json
+{
+  "provider": "synthetic",
+  "instrument": "cdx",
+  "security": "cdx_ig_5y",
+  "stored_at": "2025-11-16T20:32:53.953000",
+  "date_range": {
+    "start": "2020-11-17",
+    "end": "2025-11-16"
+  },
+  "row_count": 1304,
+  "columns": ["spread", "security"],
+  "hash": "b1f849bfe3a1",
+  "generation_params": {
+    "base_spread": 100.0,
+    "volatility": 5.0
+  }
+}
+```
+
+### Cache Layer
+
+**Purpose:** Transparent time-to-live (TTL) based caching for data fetching operations.
+
+**Cache Location:**
+```
+data/
+  cache/
+    file/           # Temporary cache from FileSource loads
+      cdx_ig_5y_abc123.parquet
+```
+
+**Configuration:**
+```python
+from aponyx.config import CACHE_ENABLED, CACHE_TTL_DAYS
+
+# Default: enabled, 1 day TTL
+# Control per fetch call:
+df = fetch_cdx(source, security="cdx_ig_5y", use_cache=True)  # Use cache
+df = fetch_cdx(source, security="cdx_ig_5y", use_cache=False)  # Skip cache
+```
+
+**Automatic Invalidation:**
+1. **TTL expiration:** Entry older than `CACHE_TTL_DAYS`
+2. **Source modification:** Source file modified after cache creation
+
+**Intraday Updates (Bloomberg only):**
+```python
+# Morning: Full history
+cdx_df = fetch_cdx(BloombergSource(), security="cdx_ig_5y")
+
+# Afternoon: Update only today (~10x faster)
+cdx_df = fetch_cdx(BloombergSource(), security="cdx_ig_5y", update_current_day=True)
+```
+
+**Benefits:**
+- ~10x faster than full refetch
+- 500x less data transfer (1 point vs 1800 days)
+- Preserves historical data in cache
 
 ### Provider Interface
 

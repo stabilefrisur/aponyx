@@ -237,51 +237,11 @@ Current implementation uses Express; future complexity may require Graph Objects
 
 ## Extension Points
 
-### Planned Additions
+The visualization layer is designed for extensibility through:
 
-**Implementation Status:** These features are designed but not yet implemented. Function stubs exist in `plots.py` but raise `NotImplementedError`.
+## Extension Points
 
-**Signal Attribution (`plot_attribution`)** — 🔜 Planned
-- **Input:** `pd.DataFrame` with columns per signal's P&L contribution
-- **Output:** Stacked area chart showing decomposition over time
-- **Design question:** Absolute P&L or percentage contribution?
-- **Blocker:** Requires backtest engine to track per-signal attribution
-- **Current status:** Stub raises `NotImplementedError`
-
-**Position Exposures (`plot_exposures`)** — 🔜 Planned
-- **Input:** `pd.DataFrame` with notional, delta, DV01 columns
-- **Output:** Multi-line chart with dual y-axes (notional vs Greeks)
-- **Design question:** Single chart or separate panels?
-- **Blocker:** Requires position tracking beyond simple long/short
-- **Current status:** Stub raises `NotImplementedError`
-
-**Multi-Panel Dashboard (`plot_dashboard`)** — 🔜 Planned
-- **Input:** Complete backtest results dictionary
-- **Output:** Plotly subplots (2×2 grid: equity, drawdown, signals, metrics)
-- **Design question:** Fixed layout or configurable panels?
-- **Implementation:** Use `plotly.subplots.make_subplots()`
-- **Current status:** Stub raises `NotImplementedError`
-
-### Streamlit Integration
-
-**Status:** Placeholder implementation in `app.py`
-
-The Streamlit dashboard (`visualization/app.py`) currently contains only a stub:
-
-```python
-import streamlit as st
-
-st.write("Placeholder for Streamlit dashboard")
-```
-
-**Planned features:**
-- Interactive parameter controls for backtests
-- Multi-strategy comparison views
-- Real-time signal monitoring (future consideration)
-
-**Timeline:** Will be implemented after core plotting functions are complete.
-
-### Extensibility Mechanisms
+The visualization layer is designed for extensibility through:
 
 **Subclassing `Visualizer`:**
 ```python
@@ -298,7 +258,6 @@ class CustomVisualizer(Visualizer):
 
 **Custom Themes:**
 ```python
-# Define in visualizer.py
 CUSTOM_THEMES = {
     "dark_mode": "plotly_dark",
     "minimal": "simple_white",
@@ -317,51 +276,7 @@ fig.add_annotation(x="2024-06-01", y=100, text="Regime change")
 fig.add_vrect(x0="2024-01-01", x1="2024-03-01", fillcolor="red", opacity=0.1)
 ```
 
-## Open Design Questions
-
-### 1. Caching Strategy
-
-**Question:** Should `Visualizer` cache generated figures?
-
-**Options:**
-- **No caching:** Simple, stateless (current approach)
-- **LRU cache:** Automatic memoization based on inputs
-- **Explicit cache:** `viz.equity_curve(pnl, cache_key="strategy_1")`
-
-**Considerations:**
-- Caching requires hashable inputs (DataFrames aren't hashable)
-- Figure objects are large (serialization overhead)
-- Use case: redraw same chart with different themes
-
-**Decision:** Defer until performance becomes an issue.
-
-### 2. Export Utilities
-
-**Question:** Should export be automatic or explicit?
-
-**Current:** `Visualizer(export_path="./output")` enables auto-export (not yet implemented)
-
-**Alternative:** Explicit export method: `viz.export_all(path="./output", format="html")`
-
-**Considerations:**
-- Auto-export: convenient but magical
-- Explicit export: verbose but clear
-- Batch reporting favors automation
-
-**Decision:** Implement both—auto-export via constructor, explicit via method.
-
-### 3. Real-Time Updates
-
-**Question:** How to handle streaming data / live backtests?
-
-**Challenge:** Plotly figures are static; updates require re-rendering.
-
-**Options:**
-- **Dash framework:** Real-time callbacks (heavy dependency)
-- **Streamlit reruns:** Simple but full page refresh
-- **Incremental updates:** Modify figure traces in-place
-
-**Decision:** Not in scope for initial release. Revisit if real-time monitoring required.
+---
 
 ## References
 
