@@ -58,8 +58,6 @@ def report(
 
         aponyx report --signal spread_momentum --strategy balanced --format html --output report.html
     """
-    click.echo(f"\n📄 Generating {format} report: {signal} ({strategy})")
-    
     try:
         content = generate_report(
             signal_name=signal,
@@ -68,16 +66,16 @@ def report(
             output_path=output,
         )
         
-        # For console output, print the report
         if format == "console":
-            click.echo("\n" + content)
+            click.echo(content)
         else:
-            click.echo(f"\n✅ Report generated: {output if output else 'saved to default location'}")
+            output_path_str = str(output) if output else "default location"
+            click.echo(f"Report saved: {output_path_str}")
             
     except FileNotFoundError as e:
-        click.echo(f"\n❌ {str(e)}", err=True)
+        click.echo(str(e), err=True)
         raise click.Abort()
     except Exception as e:
-        logger.exception("Error generating report")
-        click.echo(f"\n❌ Report generation failed: {str(e)}", err=True)
+        logger.exception("Report generation error")
+        click.echo(f"Report generation failed: {e}", err=True)
         raise click.Abort()

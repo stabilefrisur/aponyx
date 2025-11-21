@@ -89,14 +89,16 @@ def test_cli_help(runner):
 
 
 def test_cli_verbose_flag(runner, mock_signal_registry):
-    """Test verbose flag enables DEBUG logging."""
-    result = runner.invoke(cli, ["--verbose", "list", "signals"])
+    """Test verbose flag (removed in refactor - kept for compatibility)."""
+    # Verbose/quiet flags removed - CLI is always concise now
+    result = runner.invoke(cli, ["list", "signals"])
     assert result.exit_code == 0
 
 
 def test_cli_quiet_flag(runner, mock_signal_registry):
-    """Test quiet flag suppresses non-error output."""
-    result = runner.invoke(cli, ["--quiet", "list", "signals"])
+    """Test quiet flag (removed in refactor - kept for compatibility)."""
+    # Verbose/quiet flags removed - CLI is always concise now
+    result = runner.invoke(cli, ["list", "signals"])
     assert result.exit_code == 0
 
 
@@ -123,21 +125,21 @@ def test_run_command_requires_signal_and_strategy(runner):
     """Test run command validates required arguments."""
     result = runner.invoke(cli, ["run"])
     assert result.exit_code != 0
-    assert "Missing required parameters" in result.output or "Missing option" in result.output
+    assert "Missing" in result.output and "--signal" in result.output
 
 
 def test_run_command_missing_signal(runner):
     """Test run command requires signal parameter."""
     result = runner.invoke(cli, ["run", "--strategy", "balanced"])
     assert result.exit_code != 0
-    assert "Missing required parameters" in result.output
+    assert "Missing" in result.output
 
 
 def test_run_command_missing_strategy(runner):
     """Test run command requires strategy parameter."""
     result = runner.invoke(cli, ["run", "--signal", "spread_momentum"])
     assert result.exit_code != 0
-    assert "Missing required parameters" in result.output
+    assert "Missing" in result.output
 
 
 def test_run_command_with_mock_workflow(runner, mock_workflow_engine):
@@ -149,9 +151,10 @@ def test_run_command_with_mock_workflow(runner, mock_workflow_engine):
     ])
     
     assert result.exit_code == 0
-    assert "Starting workflow: spread_momentum (balanced)" in result.output
-    assert "Workflow complete" in result.output
-    assert "Steps completed: 6" in result.output
+    assert "Running: spread_momentum (balanced)" in result.output
+    assert "Inputs:" in result.output
+    assert "Product:" in result.output
+    assert "Completed 6 steps" in result.output
 
 
 def test_run_command_with_data_source(runner, mock_workflow_engine):
@@ -164,7 +167,8 @@ def test_run_command_with_data_source(runner, mock_workflow_engine):
     ])
     
     assert result.exit_code == 0
-    assert "Data source: file" in result.output
+    assert "Data: file" in result.output
+    assert "Inputs:" in result.output
 
 
 def test_run_command_with_invalid_data_source(runner):
@@ -202,7 +206,7 @@ def test_run_command_with_workflow_error(runner):
         
         assert result.exit_code != 0
         assert "Workflow failed" in result.output
-        assert "Error in signal" in result.output
+        assert "signal:" in result.output
 
 
 def test_run_command_with_steps_option(runner, mock_workflow_engine):
@@ -245,7 +249,7 @@ def test_run_command_with_yaml_config(runner, mock_workflow_engine, tmp_path):
     result = runner.invoke(cli, ["run", "--config", str(config_file)])
     
     assert result.exit_code == 0
-    assert "Starting workflow: spread_momentum (balanced)" in result.output
+    assert "Running: spread_momentum (balanced)" in result.output
 
 
 def test_run_command_yaml_overrides_with_cli_options(runner, mock_workflow_engine, tmp_path):
@@ -264,7 +268,7 @@ def test_run_command_yaml_overrides_with_cli_options(runner, mock_workflow_engin
     ])
     
     assert result.exit_code == 0
-    assert "spread_momentum" in result.output
+    assert "Running: spread_momentum" in result.output
 
 
 def test_run_command_invalid_yaml_config(runner, tmp_path):
@@ -320,7 +324,7 @@ def test_run_command_with_skipped_steps(runner):
         ])
         
         assert result.exit_code == 0
-        assert "Steps skipped: 2" in result.output
+        assert "Skipped 2" in result.output
 
 
 # ============================================================================
@@ -332,7 +336,6 @@ def test_list_signals_command(runner, mock_signal_registry):
     """Test list signals command."""
     result = runner.invoke(cli, ["list", "signals"])
     assert result.exit_code == 0
-    assert "Available Signals:" in result.output
     assert "spread_momentum" in result.output
     assert "cdx_vix_gap" in result.output
 
@@ -341,7 +344,6 @@ def test_list_strategies_command(runner, mock_strategy_registry):
     """Test list strategies command."""
     result = runner.invoke(cli, ["list", "strategies"])
     assert result.exit_code == 0
-    assert "Available Strategies:" in result.output
     assert "balanced" in result.output
     assert "aggressive" in result.output
 
@@ -350,7 +352,6 @@ def test_list_datasets_command(runner, mock_data_registry):
     """Test list datasets command."""
     result = runner.invoke(cli, ["list", "datasets"])
     assert result.exit_code == 0
-    assert "Registered Datasets:" in result.output
     assert "cdx_ig_5y" in result.output
 
 
@@ -375,7 +376,6 @@ def test_list_signals_empty(runner):
         
         result = runner.invoke(cli, ["list", "signals"])
         assert result.exit_code == 0
-        assert "Available Signals:" in result.output
 
 
 def test_list_strategies_empty(runner):
@@ -387,7 +387,6 @@ def test_list_strategies_empty(runner):
         
         result = runner.invoke(cli, ["list", "strategies"])
         assert result.exit_code == 0
-        assert "Available Strategies:" in result.output
 
 
 def test_list_datasets_empty(runner):
@@ -399,7 +398,6 @@ def test_list_datasets_empty(runner):
         
         result = runner.invoke(cli, ["list", "datasets"])
         assert result.exit_code == 0
-        assert "Registered Datasets:" in result.output
 
 
 # ============================================================================
@@ -519,7 +517,6 @@ def test_report_command_generates_output(runner):
         ])
         
         assert result.exit_code == 0
-        assert "Generating console report" in result.output
         assert "Mock report content" in result.output
 
 
@@ -536,7 +533,7 @@ def test_report_command_markdown_format(runner):
         ])
         
         assert result.exit_code == 0
-        assert "markdown report" in result.output
+        assert "Report saved" in result.output
 
 
 def test_report_command_html_format(runner):
@@ -552,7 +549,7 @@ def test_report_command_html_format(runner):
         ])
         
         assert result.exit_code == 0
-        assert "html report" in result.output
+        assert "Report saved" in result.output
 
 
 def test_report_command_with_output_path(runner, tmp_path):

@@ -81,7 +81,9 @@ def test_full_workflow_integration(runner, mock_all_registries, tmp_path):
             "--strategy", "balanced",
         ])
         assert result.exit_code == 0
-        assert "Workflow complete" in result.output
+        assert "Running: spread_momentum (balanced)" in result.output
+        assert "Inputs:" in result.output
+        assert "Product:" in result.output
     
     # Step 4: Generate report
     with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
@@ -132,7 +134,7 @@ def test_workflow_with_all_data_sources(runner):
             ])
             
             assert result.exit_code == 0
-            assert f"Data source: {source}" in result.output
+            assert f"Data: {source}" in result.output
 
 
 def test_workflow_with_partial_steps(runner):
@@ -165,7 +167,7 @@ def test_workflow_with_partial_steps(runner):
             ])
             
             assert result.exit_code == 0
-            assert f"Steps completed: {step_count}" in result.output
+            assert f"Completed {step_count} steps" in result.output
 
 
 def test_report_all_formats(runner):
@@ -184,7 +186,6 @@ def test_report_all_formats(runner):
             ])
             
             assert result.exit_code == 0
-            assert f"{format_type} report" in result.output.lower()
 
 
 def test_clean_with_different_scopes(runner, tmp_path):
@@ -296,22 +297,8 @@ force: false
         
         result = runner.invoke(cli, ["run", "--config", str(config_file)])
         assert result.exit_code == 0
-        assert "spread_momentum" in result.output
+        assert "Running: spread_momentum (balanced)" in result.output
 
-
-def test_verbose_quiet_logging_integration(runner, mock_all_registries):
-    """Test logging configuration across different commands."""
-    # Test verbose mode
-    result = runner.invoke(cli, ["--verbose", "list", "signals"])
-    assert result.exit_code == 0
-    
-    # Test quiet mode
-    result = runner.invoke(cli, ["--quiet", "list", "strategies"])
-    assert result.exit_code == 0
-    
-    # Test default (info) mode
-    result = runner.invoke(cli, ["list", "datasets"])
-    assert result.exit_code == 0
 
 
 def test_concurrent_command_safety(runner, tmp_path):
@@ -361,4 +348,3 @@ def test_empty_registry_workflow(runner):
         
         result = runner.invoke(cli, ["list", "signals"])
         assert result.exit_code == 0
-        assert "Available Signals:" in result.output

@@ -11,6 +11,8 @@ import click
 import yaml
 
 from aponyx.workflows import WorkflowEngine, WorkflowConfig
+from aponyx.models.registry import SignalRegistry
+from aponyx.config import SIGNAL_CATALOG_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,12 @@ logger = logging.getLogger(__name__)
     "--strategy",
     type=str,
     help="Strategy name from strategy catalog",
+)
+@click.option(
+    "--product",
+    type=str,
+    default="cdx_ig_5y",
+    help="Product identifier for backtesting (default: cdx_ig_5y)",
 )
 @click.option(
     "--data",
@@ -50,6 +58,7 @@ logger = logging.getLogger(__name__)
 def run(
     signal: str | None,
     strategy: str | None,
+    product: str,
     data: str,
     steps: str | None,
     force: bool,
@@ -70,6 +79,8 @@ def run(
 
         aponyx run --signal cdx_vix_gap --strategy aggressive --data bloomberg
 
+        aponyx run --signal spread_momentum --strategy balanced --product cdx_ig_5y
+
         aponyx run --signal spread_momentum --strategy balanced --steps data,signal,backtest --force
 
         aponyx run --config workflow.yaml
@@ -84,12 +95,13 @@ def run(
                 config_dict = yaml.safe_load(f) or {}
             logger.info("Loaded configuration from %s", config)
         except Exception as e:
-            click.echo(f"❌ Failed to load config file: {e}", err=True)
+            click.echo(f"Failed to load config file: {e}", err=True)
             raise click.Abort()
     
     # Command-line options override config file
     signal_name = signal or config_dict.get("signal")
     strategy_name = strategy or config_dict.get("strategy")
+    product_id = product if product != "cdx_ig_5y" else config_dict.get("product", "cdx_ig_5y")
     data_source = data if data != "synthetic" else config_dict.get("data", "synthetic")
     force_rerun = force or config_dict.get("force", False)
     
@@ -102,10 +114,7 @@ def run(
     
     # Validate required parameters
     if not signal_name or not strategy_name:
-        click.echo(
-            "❌ Missing required parameters: --signal and --strategy (or --config file)",
-            err=True,
-        )
+        click.echo("Error: Missing --signal and --strategy", err=True)
         raise click.Abort()
         
     # Create config
@@ -113,33 +122,48 @@ def run(
         workflow_config = WorkflowConfig(
             signal_name=signal_name,
             strategy_name=strategy_name,
+            product=product_id,
             data_source=data_source,  # type: ignore
             steps=step_list,  # type: ignore
             force_rerun=force_rerun,
         )
     except ValueError as e:
-        click.echo(f"❌ Configuration error: {e}", err=True)
+        click.echo(f"Configuration error: {e}", err=True)
         raise click.Abort()
         
-    # Execute workflow
-    click.echo(f"\n🚀 Starting workflow: {signal_name} ({strategy_name})")
-    click.echo(f"   Data source: {data_source}")
+    # Get signal metadata to show input instruments
+    try:
+        signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+        signal_metadata = signal_registry.get_metadata(signal_name)
+        input_instruments = list(signal_metadata.data_requirements.keys())
+        instruments_str = ", ".join(input_instruments)
+    except Exception:
+        instruments_str = "unknown"
+    
+    # Display workflow config
+    click.echo(f"Running: {signal_name} ({strategy_name})")
+    click.echo(f"Inputs: {instruments_str} → Product: {product_id}")
+    click.echo(f"Data: {data_source}")
     if step_list:
-        click.echo(f"   Steps: {', '.join(step_list)}")
+        click.echo(f"Steps: {', '.join(step_list)}")
     if force_rerun:
-        click.echo("   Mode: Force re-run")
+        click.echo("Mode: Force re-run")
+    click.echo()
         
+    # Execute workflow
     engine = WorkflowEngine(workflow_config)
     results = engine.execute()
     
     # Display results
     if results["errors"]:
-        click.echo(f"\n❌ Workflow failed after {results['steps_completed']} steps", err=True)
+        click.echo(f"Workflow failed: {results['steps_completed']} steps completed", err=True)
         for error in results["errors"]:
-            click.echo(f"   Error in {error['step']}: {error['error']}", err=True)
+            click.echo(f"  {error['step']}: {error['error']}", err=True)
         raise click.Abort()
-    else:
-        click.echo(f"\n✅ Workflow complete ({results['duration_seconds']:.1f}s)")
-        click.echo(f"   Steps completed: {results['steps_completed']}")
-        click.echo(f"   Steps skipped: {results['steps_skipped']}")
-        click.echo(f"   Results: {results['output_dir']}")
+    
+    click.echo(
+        f"Completed {results['steps_completed']} steps in {results['duration_seconds']:.1f}s"
+    )
+    if results["steps_skipped"] > 0:
+        click.echo(f"Skipped {results['steps_skipped']} cached steps")
+    click.echo(f"Results: {results['output_dir']}")

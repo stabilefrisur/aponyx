@@ -34,6 +34,8 @@ class WorkflowConfig:
         Signal name from signal catalog.
     strategy_name : str
         Strategy name from strategy catalog.
+    product : str
+        Product identifier for backtesting (e.g., "cdx_ig_5y", "cdx_hy_5y").
     data_source : DataSource
         Data source type (synthetic, file, bloomberg).
     steps : list[StepName] | None
@@ -50,6 +52,7 @@ class WorkflowConfig:
     """
     signal_name: str
     strategy_name: str
+    product: str = "cdx_hy_5y"
     data_source: DataSource = "synthetic"
     steps: list[StepName] | None = None
     force_rerun: bool = False

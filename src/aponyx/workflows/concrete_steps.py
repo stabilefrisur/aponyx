@@ -98,6 +98,11 @@ class DataStep(BaseWorkflowStep):
     
     def get_output_path(self) -> Path:
         return PROCESSED_DIR / "workflows" / "data" / self.config.signal_name
+    
+    def load_cached_output(self) -> dict[str, Any]:
+        """Load cached market data (always reload from registry)."""
+        # Data step always reloads from registry, never uses cache
+        return self.execute({})
 
 
 class SignalStep(BaseWorkflowStep):
@@ -143,6 +148,13 @@ class SignalStep(BaseWorkflowStep):
     
     def get_output_path(self) -> Path:
         return PROCESSED_DIR / "workflows" / "signals" / self.config.signal_name
+    
+    def load_cached_output(self) -> dict[str, Any]:
+        """Load cached signal from disk."""
+        signal_path = self.get_output_path() / f"{self.config.signal_name}.parquet"
+        signal_df = load_parquet(signal_path)
+        signal = signal_df["value"]
+        return {"signal": signal}
 
 
 class SuitabilityStep(BaseWorkflowStep):
@@ -157,10 +169,8 @@ class SuitabilityStep(BaseWorkflowStep):
         
         signal = context["signal"]["signal"]
         
-        # Get product from strategy catalog
-        strategy_registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
-        strategy_metadata = strategy_registry.get_metadata(self.config.strategy_name)
-        product = strategy_metadata.product
+        # Get product from workflow config
+        product = self.config.product
         
         # Load spread data for product
         data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
@@ -195,6 +205,15 @@ class SuitabilityStep(BaseWorkflowStep):
     
     def get_output_path(self) -> Path:
         return EVALUATION_DIR
+    
+    def load_cached_output(self) -> dict[str, Any]:
+        """Load cached suitability evaluation (report only, re-run for full data)."""
+        # Get product from workflow config
+        product = self.config.product
+        
+        # We only cache the product info, not the full evaluation result
+        # Report exists on disk but we don't load it back into memory
+        return {"suitability_result": None, "product": product}
     
     def _load_spread_for_product(
         self, data_registry: DataRegistry, product: str
@@ -244,7 +263,8 @@ class BacktestStep(BaseWorkflowStep):
         self._log_start()
         
         signal = context["signal"]["signal"]
-        product = context["suitability"]["product"]
+        # Get product from config, or from suitability step if available
+        product = context.get("suitability", {}).get("product") or self.config.product
         
         # Load spread data for backtest
         data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
@@ -302,6 +322,25 @@ class BacktestStep(BaseWorkflowStep):
             / "backtests"
             / f"{self.config.signal_name}_{self.config.strategy_name}"
         )
+    
+    def load_cached_output(self) -> dict[str, Any]:
+        """Load cached backtest results from disk."""
+        from aponyx.backtest import BacktestResult
+        
+        output_dir = self.get_output_path()
+        pnl = load_parquet(output_dir / "pnl.parquet")
+        positions = load_parquet(output_dir / "positions.parquet")
+        
+        # Create minimal metadata for cached results
+        metadata = {
+            "signal_name": self.config.signal_name,
+            "strategy_name": self.config.strategy_name,
+            "product": self.config.product,
+            "cached": True,
+        }
+        
+        result = BacktestResult(pnl=pnl, positions=positions, metadata=metadata)
+        return {"backtest_result": result}
     
     def _load_spread_for_product(
         self, data_registry: DataRegistry, product: str
@@ -361,8 +400,8 @@ class PerformanceStep(BaseWorkflowStep):
         
         logger.debug(
             "Performance metrics: sharpe=%.2f, max_dd=%.2f%%",
-            performance.metrics.sharpe,
-            performance.metrics.max_drawdown_pct * 100,
+            performance.metrics.sharpe_ratio,
+            performance.metrics.max_drawdown * 100,
         )
         
         # Generate and save report
@@ -394,6 +433,11 @@ class PerformanceStep(BaseWorkflowStep):
     
     def get_output_path(self) -> Path:
         return PERFORMANCE_REPORTS_DIR
+    
+    def load_cached_output(self) -> dict[str, Any]:
+        """Load cached performance evaluation (report only, no in-memory data)."""
+        # Performance report exists on disk but we don't load it back
+        return {"performance": None}
 
 
 class VisualizationStep(BaseWorkflowStep):
@@ -455,3 +499,8 @@ class VisualizationStep(BaseWorkflowStep):
             / "visualizations"
             / f"{self.config.signal_name}_{self.config.strategy_name}"
         )
+    
+    def load_cached_output(self) -> dict[str, Any]:
+        """Load cached visualizations (charts only, no in-memory figures)."""
+        # Charts exist as HTML files on disk but we don't load them back
+        return {"equity_fig": None, "drawdown_fig": None, "signal_fig": None}

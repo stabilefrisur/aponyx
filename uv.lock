@@ -37,9 +37,11 @@ name = "aponyx"
 version = "0.1.10"
 source = { editable = "." }
 dependencies = [
+    { name = "click" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "pyarrow" },
+    { name = "pyyaml" },
     { name = "quantstats" },
     { name = "scipy" },
 ]
@@ -70,6 +72,7 @@ viz = [
 [package.metadata]
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=24.0.0" },
+    { name = "click", specifier = ">=8.1.0" },
     { name = "ipykernel", marker = "extra == 'viz'", specifier = ">=6.29.0" },
     { name = "jupyter", marker = "extra == 'viz'", specifier = ">=1.0.0" },
     { name = "matplotlib", marker = "extra == 'viz'", specifier = ">=3.3.0" },
@@ -82,6 +85,7 @@ requires-dist = [
     { name = "pyarrow", specifier = ">=12.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "quantstats", specifier = ">=0.0.77" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6.0" },
     { name = "scipy", specifier = ">=1.7.0" },

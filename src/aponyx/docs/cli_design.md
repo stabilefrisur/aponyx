@@ -125,18 +125,36 @@ aponyx run --signal cdx_vix_gap --strategy aggressive \
 aponyx run --signal spread_momentum --strategy balanced --force
 ```
 
+**Example Output (with steps and force):**
+```
+Running: cdx_vix_gap (aggressive)
+Inputs: cdx, vix → Product: cdx_ig_5y
+Data: synthetic
+Steps: signal, backtest, performance
+Mode: Force re-run
+
+Completed 3 steps in 8.5s
+Results: data/processed/workflows/cdx_vix_gap_aggressive_20251120_143445/
+```
+
+**Multi-instrument signal example:**
+```
+Running: cdx_etf_basis (balanced)
+Inputs: cdx, etf → Product: cdx_ig_5y
+Data: synthetic
+
+Completed 6 steps in 12.3s
+Results: data/processed/workflows/cdx_etf_basis_balanced_20251120_143500/
+```
+
 **Output:**
 ```
-[2025-11-20 14:32:15] Starting workflow: spread_momentum (balanced)
-[2025-11-20 14:32:15] Step 1/6: Data (loading from registry) ✓
-[2025-11-20 14:32:18] Step 2/6: Signal computation ✓
-[2025-11-20 14:32:21] Step 3/6: Suitability evaluation ✓
-[2025-11-20 14:32:24] Step 4/6: Backtest execution ✓
-[2025-11-20 14:32:27] Step 5/6: Performance analysis ✓
-[2025-11-20 14:32:30] Step 6/6: Visualization ✓
+Running: spread_momentum (balanced)
+Inputs: cdx → Product: cdx_ig_5y
+Data: synthetic
 
-✅ Workflow complete (15.2s)
-📊 Results: data/processed/workflows/spread_momentum_balanced_20251120_143230/
+Completed 6 steps in 15.2s
+Results: data/processed/workflows/spread_momentum_balanced_20251120_143230/
 ```
 
 ---
@@ -191,15 +209,13 @@ aponyx list datasets
 
 **Output:**
 ```
-Available Signals:
-  • spread_momentum      — CDX spread momentum (z-score)
-  • cdx_etf_basis        — CDX-ETF basis divergence
-  • cdx_vix_gap          — VIX-CDX cross-asset gap
+spread_momentum      CDX spread momentum (z-score)
+cdx_etf_basis        CDX-ETF basis divergence
+cdx_vix_gap          VIX-CDX cross-asset gap
 
-Available Strategies:
-  • balanced             — 50% exposure, ±2 thresholds
-  • aggressive           — 100% exposure, ±1 thresholds
-  • conservative         — 25% exposure, ±3 thresholds
+balanced             50% exposure, ±2 thresholds
+aggressive           100% exposure, ±1 thresholds
+conservative         25% exposure, ±3 thresholds
 ```
 
 ---

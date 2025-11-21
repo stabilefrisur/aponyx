@@ -50,7 +50,7 @@ def clean(
     workflows_dir = PROCESSED_DIR / "workflows"
     
     if not workflows_dir.exists():
-        click.echo("\nNo cached results found")
+        click.echo("No cached results found")
         return
         
     # Determine what to clean
@@ -65,22 +65,21 @@ def clean(
         raise click.Abort()
         
     if not targets:
-        click.echo(f"\nNo cached results found for: {signal}")
+        click.echo(f"No cached results found for: {signal}")
         return
         
     # Show/delete targets
-    click.echo()
     for target in targets:
         if dry_run:
-            click.echo(f"   Would delete: {target}")
+            click.echo(f"Would delete: {target}")
         else:
-            click.echo(f"   Deleting: {target}")
+            logger.info("Deleting %s", target)
             if target.is_dir():
                 shutil.rmtree(target)
             else:
                 target.unlink()
                 
     if dry_run:
-        click.echo("\nDry run complete (no files deleted)")
+        click.echo(f"Dry run: {len(targets)} item(s) would be deleted")
     else:
-        click.echo(f"\nCleaned {len(targets)} item(s)")
+        click.echo(f"Cleaned {len(targets)} item(s)")

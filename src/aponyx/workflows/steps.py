@@ -88,6 +88,29 @@ class WorkflowStep(Protocol):
             Directory where step outputs are saved.
         """
         ...
+    
+    def load_cached_output(self) -> dict[str, Any]:
+        """
+        Load cached output from previous execution.
+        
+        Returns
+        -------
+        dict[str, Any]
+            Cached step output data.
+            
+        Raises
+        ------
+        FileNotFoundError
+            If cached output files don't exist.
+        ValueError
+            If cached output is invalid or corrupted.
+            
+        Notes
+        -----
+        Called when step is skipped due to caching.
+        Must restore same output structure as execute() would return.
+        """
+        ...
 
 
 class BaseWorkflowStep(ABC):
@@ -125,6 +148,28 @@ class BaseWorkflowStep(ABC):
     def get_output_path(self) -> Path:
         """Get output directory."""
         ...
+    
+    def load_cached_output(self) -> dict[str, Any]:
+        """
+        Load cached output from previous execution.
+        
+        Default implementation raises NotImplementedError.
+        Steps that support caching must override this method.
+        
+        Returns
+        -------
+        dict[str, Any]
+            Cached step output data.
+            
+        Raises
+        ------
+        NotImplementedError
+            If step doesn't support loading cached outputs.
+        """
+        raise NotImplementedError(
+            f"Step {self.name} doesn't support loading cached outputs. "
+            "Override load_cached_output() method."
+        )
     
     def _log_start(self) -> None:
         """Log step start."""

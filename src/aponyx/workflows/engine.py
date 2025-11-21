@@ -98,8 +98,20 @@ class WorkflowEngine:
             # Check cache
             if self._should_skip_step(step):
                 logger.info("Step %s: %s (cached)", step_num, step.name)
-                skipped += 1
-                continue
+                # Load cached output into context for downstream steps
+                try:
+                    cached_output = step.load_cached_output()
+                    self._context[step.name] = cached_output
+                except Exception as e:
+                    logger.warning(
+                        "Failed to load cached output for %s: %s. Re-running step.",
+                        step.name,
+                        str(e),
+                    )
+                    # Fall through to execute step instead
+                else:
+                    skipped += 1
+                    continue
                 
             # Execute step
             try:

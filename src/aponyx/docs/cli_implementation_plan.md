@@ -1051,32 +1051,14 @@ from aponyx.cli.commands import run, report, list_items, clean
 logger = logging.getLogger(__name__)
 
 
-@click.group(name="aponyx")
-@click.option(
-    "--verbose",
-    "-v",
-    is_flag=True,
-    help="Enable verbose logging (DEBUG level)",
-)
-@click.option(
-    "--quiet",
-    "-q",
-    is_flag=True,
-    help="Suppress all output except errors",
-)
-def cli(verbose: bool, quiet: bool) -> None:
+@click.group(name="aponyx", context_settings={"help_option_names": ["-h", "--help"]})
+def cli() -> None:
     """
     Systematic Macro Credit Research CLI.
     
     Run research workflows, generate reports, and manage catalog items.
     """
-    # Configure logging
-    if quiet:
-        level = logging.ERROR
-    elif verbose:
-        level = logging.DEBUG
-    else:
-        level = logging.INFO
+    pass
         
     logging.basicConfig(
         level=level,
@@ -1107,9 +1089,9 @@ if __name__ == "__main__":
 
 **Key Design Points:**
 - Use `click.group()` for command grouping
-- Global `--verbose` and `--quiet` flags
-- Centralized logging configuration
+- Centralized module-level logging
 - Exception handling at top level
+- Clean, minimal output by default
 
 ---
 
@@ -1750,7 +1732,7 @@ Phase 4 Complete: ✅ ALL CRITERIA MET
 - `aponyx report` - Generate comprehensive reports (console/markdown/HTML)
 - `aponyx list` - Show available signals/strategies/datasets
 - `aponyx clean` - Clear cached results (with dry-run support)
-- Global `--verbose` and `--quiet` flags
+- Simplified, clean output without decorative elements
 
 **Reporting System:**
 - Console reports with formatted tables

@@ -82,6 +82,7 @@ aponyx run [OPTIONS]
 |--------|------|---------|-------------|
 | `--signal` | TEXT | Required | Signal name from signal catalog |
 | `--strategy` | TEXT | Required | Strategy name from strategy catalog |
+| `--product` | TEXT | cdx_ig_5y | Product identifier for backtesting |
 | `--data` | CHOICE | synthetic | Data source: `synthetic`, `file`, `bloomberg` |
 | `--steps` | TEXT | all | Comma-separated step list (e.g., `data,signal,backtest`) |
 | `--force` | FLAG | false | Force re-run even if cached outputs exist |
@@ -92,6 +93,16 @@ aponyx run [OPTIONS]
 Basic workflow:
 ```bash
 aponyx run --signal spread_momentum --strategy balanced
+```
+
+**Output:**
+```
+Running: spread_momentum (balanced)
+Inputs: cdx → Product: cdx_ig_5y
+Data: synthetic
+
+Completed 6 steps in 15.2s
+Results: data/processed/workflows/spread_momentum_balanced_20251121_143230/
 ```
 
 Custom data source:
@@ -107,6 +118,33 @@ aponyx run --signal spread_momentum --strategy balanced --steps data,signal,back
 Force re-run:
 ```bash
 aponyx run --signal spread_momentum --strategy balanced --force
+```
+
+**Output with force flag:**
+```
+Running: spread_momentum (balanced)
+Inputs: cdx → Product: cdx_ig_5y
+Data: synthetic
+Mode: Force re-run
+
+Completed 6 steps in 15.2s
+Results: data/processed/workflows/spread_momentum_balanced_20251121_143230/
+```
+
+**Multi-instrument signal:**
+```bash
+aponyx run --signal cdx_etf_basis --strategy balanced
+```
+
+**Output:**
+```
+Running: cdx_etf_basis (balanced)
+Inputs: cdx, etf → Product: cdx_ig_5y
+Data: synthetic
+
+Completed 6 steps in 12.3s
+Skipped 0 cached steps
+Results: data/processed/workflows/cdx_etf_basis_balanced_20251121_143500/
 ```
 
 Use config file:
@@ -182,10 +220,9 @@ aponyx list datasets
 **Sample Output:**
 
 ```
-Available Signals:
-  • spread_momentum     — Short-term momentum in CDX spreads
-  • cdx_vix_gap         — VIX-CDX divergence signal
-  • cdx_etf_basis       — CDX-HYG basis signal
+spread_momentum      Short-term momentum in CDX spreads
+cdx_vix_gap          VIX-CDX divergence signal
+cdx_etf_basis        CDX-HYG basis signal
 ```
 
 ---
@@ -442,7 +479,7 @@ Clear stale cached results:
 
 **Solution:**
 1. **Check logs** for detailed error messages
-2. **Run with verbose logging:** `aponyx --verbose run --signal <name> --strategy <name>`
+2. **Review command output** for specific errors
 3. **Common issues:**
    - **Data step:** No datasets in registry → Run data fetching workflow first
    - **Signal step:** Missing market data → Check required data keys
@@ -486,19 +523,15 @@ Clear stale cached results:
 
 ## Global Options
 
-All commands support global options:
+All commands support the `--help` option:
 
 | Option | Description |
 |--------|-------------|
-| `--verbose`, `-v` | Enable verbose logging (DEBUG level) |
-| `--quiet`, `-q` | Suppress all output except errors |
 | `--help`, `-h` | Show help message and exit |
 
 **Examples:**
 
 ```bash
-aponyx --verbose run --signal spread_momentum --strategy balanced
-aponyx --quiet clean --all
 aponyx run --help
 aponyx list -h
 ```

@@ -40,32 +40,27 @@ def list_items(item_type: str) -> None:
 
         aponyx list datasets
     """
-    click.echo()
-    
     if item_type == "signals":
         registry = SignalRegistry(SIGNAL_CATALOG_PATH)
         signals = registry.list_all()
         
-        click.echo("Available Signals:")
         for signal_name, metadata in signals.items():
-            click.echo(f"  • {signal_name:<20} — {metadata.description}")
+            click.echo(f"{signal_name:<20} {metadata.description}")
             
     elif item_type == "strategies":
         registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
         strategies = registry.list_all()
         
-        click.echo("Available Strategies:")
         for strategy_name, metadata in strategies.items():
-            click.echo(f"  • {strategy_name:<20} — {metadata.description}")
+            click.echo(f"{strategy_name:<20} {metadata.description}")
             
     elif item_type == "datasets":
         registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
         datasets = registry.list_datasets()
         
-        click.echo("Registered Datasets:")
         for dataset in datasets:
             info = registry.get_dataset_info(dataset)
-            instrument = info.get("metadata", {}).get("params", {}).get("security", "unknown")
-            click.echo(f"  • {dataset:<30} — {instrument}")
-            
-    click.echo()
+            # Try to get security from params, fall back to instrument type
+            params = info.get("metadata", {}).get("params", {})
+            instrument = params.get("security") or info.get("instrument", "unknown")
+            click.echo(f"{dataset:<30} {instrument}")
