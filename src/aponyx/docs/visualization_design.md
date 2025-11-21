@@ -95,20 +95,6 @@ The class is **optional**—all functionality accessible via pure functions.
 
 ## Integration Patterns
 
-### Jupyter Notebooks
-
-**Use case:** Exploratory analysis, iterative development.
-
-```python
-from aponyx.visualization import plot_equity_curve, plot_signal
-
-# Inline display
-plot_equity_curve(backtest.pnl).show()
-plot_signal(cdx_vix_gap, threshold_lines=[-2, 2]).show()
-```
-
-**Design consideration:** `.show()` not called automatically to allow figure modification.
-
 ### Streamlit Dashboards
 
 **Use case:** Interactive web interface, parameter exploration.

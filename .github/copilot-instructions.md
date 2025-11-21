@@ -33,7 +33,7 @@ src/aponyx/
     maintenance/      # Fork/upstream sync workflows
     prompts/          # Strategy and implementation prompts
   __init__.py         # Package initialization
-  main.py             # CLI entry point / notebook runner
+  main.py             # CLI entry point
 
 tests/                # Unit tests for reproducibility
   data/
@@ -190,11 +190,10 @@ def compute_spread_momentum(
 | **API Reference** | Module docstrings | Function/class contracts, type info, parameters |
 | **Quickstart** | `README.md` | Installation, quick examples, navigation |
 | **Design Docs** | `src/aponyx/docs/*.md` | Architecture, standards, strategy rationale |
-| **Notebooks** | `src/aponyx/notebooks/*.ipynb` | Complete workflow demonstrations |
+
 
 **What to document where:**
 - **Docstrings**: API contracts (parameters, returns, raises), edge cases, usage notes
-- **Notebooks**: Workflow demonstrations with markdown explanations
 - **Design docs**: Architectural decisions, cross-cutting concerns (*why*, not *how*)
 - **README**: Installation, project structure, quickstart commands
 
@@ -220,7 +219,6 @@ def compute_spread_momentum(
 | Editing `/backtest/` | Implement transparent, deterministic backtest logic. Use `StrategyRegistry` for strategy catalog. Include metadata logging. |
 | Editing `/visualization/` | Generate reusable Plotly/Streamlit components. Separate plotting from computation. |
 | Editing `/persistence/` | Handle Parquet/JSON I/O. No database dependencies. Keep I/O functions pure. |
-| Editing `/notebooks/` | Create workflow notebooks that work in isolation and load from previous steps. Use absolute imports (`from aponyx.config import...`). Include markdown headers explaining workflow position, prerequisites, and outputs. Format tables with `to_markdown()` for clean left-aligned display. |
 | Editing `/tests/` | Write unit tests for determinism, type safety, and reproducibility. Test governance patterns separately in `tests/governance/`. Mirror source structure: `tests/data/`, `tests/models/`, `tests/backtest/`, etc. |
 
 When generating code, the assistant should **infer module context from file path** and **adhere to functional boundaries** automatically.
@@ -355,15 +353,11 @@ def compute_cdx_vix_gap(
 - Use regular classes for data containers instead of `@dataclass`.
 
 **Development Environment:**
-- Add notebook cells or magic commands inside modules.
-- Use relative imports in notebooks (always use absolute imports like `from aponyx.config import...`).
-- Create notebooks without workflow context headers explaining prerequisites and outputs.
 - Run Python commands without `uv run` prefix (always use `uv run python`, `uv run pytest`, `uv run aponyx`).
 - Activate virtual environments manually (use `uv run` instead of `.venv/Scripts/activate`).
 
 **Documentation:**
 - Add decorative emojis to code, comments, or docstrings (only ✅ and ❌ for clarity).
-- Use decorative emojis in notebook markdown cells.
 - Create README files in implementation directories (`src/aponyx/*/README.md`).
 - Duplicate API documentation outside of module docstrings.
 - Write tutorial-style docs that duplicate runnable examples.

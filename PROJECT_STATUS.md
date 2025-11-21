@@ -750,7 +750,7 @@ src/aponyx/
 - Test error handling (missing columns, empty data)
 - Do NOT test visual rendering or external services
 
-### ✅ Documentation (`src/aponyx/docs/`, `src/aponyx/notebooks/`)
+### ✅ Documentation (`src/aponyx/docs/`)
 
 **Implemented:**
 - Comprehensive design documents (12 files in `src/aponyx/docs/`):
@@ -766,14 +766,6 @@ src/aponyx/
   - `documentation_structure.md` - Single source of truth principles
   - `governance_design.md` - Strategy registry and governance pattern
   - `project_setup_process.md` - Project setup and installation
-- Research workflow notebooks (`src/aponyx/notebooks/`):
-  - `01_data_download.ipynb` - Bloomberg data acquisition (23 cells)
-  - `02_signal_computation.ipynb` - Signal generation workflow (17 cells)
-  - `03_suitability_evaluation.ipynb` - Pre-backtest screening (18 cells)
-  - `04_backtest_execution.ipynb` - Backtest execution (9 cells)
-  - `05_performance_analysis.ipynb` - Post-backtest performance analysis (31 cells)
-  - `06_single_signal_template.ipynb` - End-to-end single-signal research template (29 cells)
-  - `generate_synthetic_data.py` - Generate synthetic market data for development
 - NumPy-style docstrings throughout codebase
 - Copilot instructions for AI-assisted development (`.github/copilot-instructions.md`)
 
@@ -781,14 +773,6 @@ src/aponyx/
 - **API Reference:** Module docstrings
 - **Quickstart:** `README.md`
 - **Design Docs:** `src/aponyx/docs/*.md` (included in PyPI distribution)
-- **Notebooks:** `src/aponyx/notebooks/*.ipynb` (included in PyPI distribution)
-
-**Notebook Conventions:**
-- Use absolute imports (`from aponyx.config import...`)
-- Include workflow context headers (position, prerequisites, outputs)
-- Format tables with `to_markdown()` for clean left-aligned display
-- Each notebook works in isolation, loading from previous steps
-- Only ✅ and ❌ emojis for clarity (no decorative emojis)
 
 ---
 
@@ -1319,12 +1303,6 @@ aponyx/
 │   │   ├── __init__.py
 │   │   ├── parquet_io.py    # Parquet read/write
 │   │   └── json_io.py       # JSON read/write
-│   └── notebooks/           # Research workflow notebooks
-│       ├── 01_data_download.ipynb
-│       ├── 02_signal_computation.ipynb
-│       ├── 03_suitability_evaluation.ipynb
-│       ├── 04_backtest_execution.ipynb
-│       └── 05_performance_analysis.ipynb
 │
 ├── tests/                   # Unit tests (mirrors src/ structure)
 │   ├── data/
@@ -1427,7 +1405,6 @@ This document provides comprehensive context for GPT-based AI assistants working
 - Code standards: `.github/copilot-instructions.md`, `src/aponyx/docs/python_guidelines.md`
 - Investment context: `src/aponyx/docs/cdx_overlay_strategy.md`
 - Signal workflow: `src/aponyx/docs/signal_registry_usage.md`
-- Workflows: `src/aponyx/notebooks/*.ipynb` for complete demonstrations
 
 ---
 

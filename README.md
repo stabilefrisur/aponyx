@@ -65,20 +65,7 @@ File-based data loading (`FileSource`) works without Bloomberg dependencies.
 
 ## Quick Start
 
-### 1. Generate Synthetic Data (Development)
-
-```bash
-uv run python -m aponyx.notebooks.generate_synthetic_data
-```
-
-This creates test data in `data/raw/synthetic/`.
-
-### 2. Or Download Bloomberg Data (Production)
-
-Run the `01_data_download.ipynb` notebook to fetch from Bloomberg Terminal.
-Data is saved to `data/raw/bloomberg/`.
-
-### 3. Run Analysis
+### 1. Run Analysis
 
 **Option A: Use CLI (Recommended)**
 
@@ -291,43 +278,7 @@ Persistence Layer (results + metadata)
 - YAML config support for reproducible workflows
 - Error handling preserves partial results
 
-## Research Notebooks
 
-Complete workflow notebooks are included in the package for end-to-end research workflows.
-
-**Access installed notebooks:**
-
-```python
-# Locate notebook directory
-from pathlib import Path
-import aponyx
-notebooks_dir = Path(aponyx.__file__).parent / "notebooks"
-print(notebooks_dir)
-```
-
-**Workflow notebooks:**
-
-| Notebook | Description |
-|----------|-------------|
-| `01_data_download.ipynb` | Download market data from Bloomberg Terminal |
-| `02_signal_computation.ipynb` | Generate signals using SignalRegistry |
-| `03_suitability_evaluation.ipynb` | Pre-backtest signal screening and evaluation |
-| `04_backtest_execution.ipynb` | Execute backtests and save raw results |
-| `05_performance_analysis.ipynb` | Comprehensive post-backtest performance analysis |
-| `06_single_signal_template.ipynb` | End-to-end single-signal research template |
-
-> **Note:** Notebook 01 requires Bloomberg Terminal. Notebooks 02-06 work with any data source (file-based or Bloomberg).
-
-**Usage:**
-
-```bash
-# Copy notebooks to your workspace
-pip install aponyx[viz]  # Install with notebook dependencies
-python -c "from pathlib import Path; import aponyx, shutil; src = Path(aponyx.__file__).parent / 'notebooks'; shutil.copytree(src, 'notebooks')"
-jupyter notebook notebooks/
-```
-
-Notebooks demonstrate the complete systematic research workflow from data acquisition through performance analysis.
 
 ## Documentation
 
@@ -450,5 +401,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 **Maintained by stabilefrisur**  
-**Version**: 0.1.11-dev (unreleased)  
 **Last Updated**: November 21, 2025

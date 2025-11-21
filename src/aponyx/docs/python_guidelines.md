@@ -595,7 +595,7 @@ from .base import BaseModel
 
 ✅ **Use absolute imports from outside package:**
 ```python
-# In tests/ or notebooks/
+# In tests/
 from aponyx.models.cdx_overlay_model import CDXOverlayModel
 from aponyx.persistence import save_parquet
 ```

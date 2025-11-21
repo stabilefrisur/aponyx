@@ -39,6 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `pyproject.toml` to include `pyyaml>=6.0` dependency
 - Added `aponyx` CLI entry point in `[project.scripts]`
 - Enhanced project structure with `cli/` and `reporting/` packages
+
+### Removed
+- Jupyter notebooks directory (`src/aponyx/notebooks/`) - CLI workflows now provide complete orchestration
+- `NOTEBOOK_TROUBLESHOOTING.md` - no longer needed after notebook removal
+- All notebook-related documentation from README.md, copilot-instructions.md, and design docs
 - Improved documentation structure with comprehensive CLI guides
 
 ## [0.1.10] - 2025-11-16
