@@ -128,6 +128,12 @@ cdx_df = fetch_cdx(source, security="cdx_ig_5y")
 
 Aponyx provides a CLI for running research workflows without writing code.
 
+**Get started:**
+
+```bash
+aponyx --help  # or aponyx -h
+```
+
 ### Run Complete Workflow
 
 ```bash

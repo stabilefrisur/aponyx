@@ -51,11 +51,11 @@ def report(
     references into a single document. Supports console output, markdown, and HTML.
     
     Examples:
-    
+
         aponyx report --signal spread_momentum --strategy balanced
-        
+
         aponyx report --signal spread_momentum --strategy balanced --format markdown
-        
+
         aponyx report --signal spread_momentum --strategy balanced --format html --output report.html
     """
     click.echo(f"\n📄 Generating {format} report: {signal} ({strategy})")

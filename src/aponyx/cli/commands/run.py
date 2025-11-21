@@ -65,15 +65,15 @@ def run(
     Command-line options override values from config file.
     
     Examples:
-    
+
         aponyx run --signal spread_momentum --strategy balanced
-        
+
         aponyx run --signal cdx_vix_gap --strategy aggressive --data bloomberg
-        
+
         aponyx run --signal spread_momentum --strategy balanced --steps data,signal,backtest --force
-        
+
         aponyx run --config workflow.yaml
-        
+
         aponyx run --config workflow.yaml --force
     """
     # Load config from YAML if provided

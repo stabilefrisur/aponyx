@@ -15,7 +15,7 @@ from aponyx.cli.commands import run, report, list_items, clean
 logger = logging.getLogger(__name__)
 
 
-@click.group(name="aponyx")
+@click.group(name="aponyx", context_settings={"help_option_names": ["-h", "--help"]})
 @click.option(
     "--verbose",
     "-v",

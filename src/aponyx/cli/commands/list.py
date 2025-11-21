@@ -33,11 +33,11 @@ def list_items(item_type: str) -> None:
     ITEM_TYPE can be: signals, strategies, or datasets
     
     Examples:
-    
+
         aponyx list signals
-        
+
         aponyx list strategies
-        
+
         aponyx list datasets
     """
     click.echo()

@@ -492,7 +492,7 @@ All commands support global options:
 |--------|-------------|
 | `--verbose`, `-v` | Enable verbose logging (DEBUG level) |
 | `--quiet`, `-q` | Suppress all output except errors |
-| `--help` | Show help message and exit |
+| `--help`, `-h` | Show help message and exit |
 
 **Examples:**
 
@@ -500,6 +500,7 @@ All commands support global options:
 aponyx --verbose run --signal spread_momentum --strategy balanced
 aponyx --quiet clean --all
 aponyx run --help
+aponyx list -h
 ```
 
 ---

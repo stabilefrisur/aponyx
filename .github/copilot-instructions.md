@@ -62,6 +62,22 @@ README.md             # Project overview and setup instructions
 All dependencies live in `pyproject.toml`.  
 Use relative imports and avoid global state.
 
+### Running Commands with uv
+
+**CRITICAL:** This project uses `uv` for dependency and environment management. Always prefix Python commands with `uv run`:
+
+- ✅ **Correct:** `uv run python -m pytest tests/`
+- ✅ **Correct:** `uv run python -m aponyx.cli run --signal spread_momentum --strategy balanced`
+- ✅ **Correct:** `uv run aponyx run --signal spread_momentum --strategy balanced` (installed CLI)
+- ✅ **Correct:** `uv run python script.py`
+- ❌ **Wrong:** `pytest tests/`
+- ❌ **Wrong:** `python -m pytest tests/`
+- ❌ **Wrong:** `.venv/Scripts/python script.py`
+
+**Why:** `uv run` ensures commands execute within the correct virtual environment with all dependencies available, preventing "module not found" errors.
+
+**Prefer `-m` flag:** Use `python -m module` instead of direct command calls for better portability and explicit module resolution.
+
 ---
 
 ## Governance System
@@ -339,6 +355,8 @@ def compute_cdx_vix_gap(
 - Add notebook cells or magic commands inside modules.
 - Use relative imports in notebooks (always use absolute imports like `from aponyx.config import...`).
 - Create notebooks without workflow context headers explaining prerequisites and outputs.
+- Run Python commands without `uv run` prefix (always use `uv run python`, `uv run pytest`, `uv run aponyx`).
+- Activate virtual environments manually (use `uv run` instead of `.venv/Scripts/activate`).
 
 **Documentation:**
 - Add decorative emojis to code, comments, or docstrings (only ✅ and ❌ for clarity).
@@ -365,6 +383,7 @@ def compute_cdx_vix_gap(
 - Include lightweight tests for data I/O, signal correctness, and regression.
 - Use module-level loggers: `logger = logging.getLogger(__name__)`
 - Log at **INFO** for user operations, **DEBUG** for details, **WARNING** for errors.
+- **Always run tests with `uv run pytest`** — never use bare `pytest` or direct Python invocation.
 
 Example:
 ```python
@@ -388,6 +407,13 @@ def run_backtest(params: dict) -> dict:
     
     logger.info("Backtest complete: sharpe=%.2f, trades=%d", sharpe, n_trades)
     return results
+```
+
+**Running Tests:**
+```bash
+uv run python -m pytest                    # All tests
+uv run python -m pytest --cov=aponyx      # With coverage
+uv run python -m pytest tests/models/      # Specific module
 ```
 
 ---
