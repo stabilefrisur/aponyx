@@ -17,14 +17,15 @@
 | **Maturity Level** | Early-stage research framework |
 | **Breaking Changes** | May occur without deprecation warnings |
 | **License** | MIT |
+| **Test Coverage** | 680 tests across all layers |
 
 **Core Dependencies:**
-- `pandas>=2.0.0`, `numpy>=1.24.0`, `pyarrow>=12.0.0`, `scipy>=1.7.0`, `quantstats>=0.0.77`, `click>=8.1.0`, `pyyaml>=6.0`
+- `pandas>=2.0.0`, `numpy>=1.24.0`, `pyarrow>=12.0.0`, `scipy>=1.7.0`, `statsmodels>=0.14.0`, `quantstats>=0.0.77`, `click>=8.1.0`, `pyyaml>=6.0`
 
 **Optional Dependencies:**
 - `bloomberg`: `xbbg>=0.7.0` (Bloomberg Terminal integration)
-- `viz`: `plotly>=5.24.0`, `streamlit>=1.39.0` (visualization)
-- `dev`: `pytest>=8.0.0`, `ruff>=0.6.0`, `black>=24.0.0`, `mypy>=1.11.0` (development tools)
+- `viz`: `plotly>=5.24.0`, `streamlit>=1.39.0`, `nbformat>=5.10.0`, `ipykernel>=6.29.0`, `tabulate>=0.9.0`, `jupyter>=1.0.0`, `matplotlib>=3.3.0`, `seaborn>=0.11.0` (visualization)
+- `dev`: `pytest>=8.0.0`, `pytest-cov>=5.0.0`, `ruff>=0.6.0`, `black>=24.0.0`, `mypy>=1.11.0`, `pandas-stubs>=2.0.0` (development tools)
 
 ---
 
@@ -55,6 +56,27 @@ src/aponyx/
   __init__.py         # Package initialization with version
   main.py             # CLI entry point (placeholder)
   py.typed            # PEP 561 type marker for mypy
+  
+  cli/                # Command-line interface
+    __init__.py       # Command exports
+    main.py           # CLI entry point with click
+    commands/         # Command implementations
+      run.py          # Workflow execution command
+      report.py       # Report generation command
+      list.py         # Catalog browsing command
+      clean.py        # Cache management command
+  
+  workflows/          # Workflow orchestration engine
+    __init__.py       # Workflow exports
+    engine.py         # WorkflowEngine with caching and dependency tracking
+    config.py         # WorkflowConfig dataclass
+    steps.py          # WorkflowStep protocol
+    concrete_steps.py # Six concrete workflow steps
+    registry.py       # Step factory and ordering
+  
+  reporting/          # Multi-format report generation
+    __init__.py       # Reporting exports
+    generator.py      # Console/markdown/HTML report generation
   
   config/             # Paths, constants, defaults
     __init__.py       # PROJECT_ROOT, DATA_DIR, CACHE_ENABLED, SIGNAL_CATALOG_PATH, STRATEGY_CATALOG_PATH, etc.
@@ -123,12 +145,37 @@ src/aponyx/
     __init__.py       # Exports: save_*, load_*
     parquet_io.py     # Parquet read/write
     json_io.py        # JSON read/write
+  
+  examples/           # Standalone workflow scripts (included in distribution)
+    01_generate_synthetic_data.py  # Synthetic data generation
+    02_fetch_data_file.py          # File-based data loading
+    03_fetch_data_bloomberg.py     # Bloomberg Terminal fetch
+    04_compute_signal.py           # Signal computation
+    05_evaluate_suitability.py     # Suitability assessment
+    06_run_backtest.py             # Strategy backtesting
+    07_analyze_performance.py      # Performance analysis
+    08_visualize_results.py        # Results visualization
+  
+  docs/               # Design documentation (included in distribution)
+    cdx_overlay_strategy.md       # Investment strategy
+    python_guidelines.md          # Code standards
+    logging_design.md             # Logging conventions
+    signal_registry_usage.md      # Signal management
+    signal_suitability_design.md  # Suitability evaluation
+    performance_evaluation_design.md  # Performance analysis
+    visualization_design.md       # Chart architecture
+    governance_design.md          # Governance patterns
+    cli_guide.md                  # CLI user guide
+    adding_data_providers.md      # Provider extension
 ```
 
 ### Layer Responsibilities
 
 | Layer | Purpose | Can Import From | Cannot Import From |
 |-------|---------|-----------------|-------------------|
+| **cli/** | Command-line interface | `workflows`, `reporting`, `config` | Core layers (uses via workflows) |
+| **workflows/** | Pipeline orchestration | `data`, `models`, `backtest`, `evaluation`, `visualization`, `reporting`, `persistence`, `config` | `cli` |
+| **reporting/** | Report generation | `evaluation`, `persistence`, `config` | `data`, `models`, `backtest`, `visualization` |
 | **data/** | Data loading, cleaning, validation | `config`, `persistence` | `models`, `backtest`, `evaluation`, `visualization` |
 | **models/** | Signal computation | `config`, `data` (schemas only) | `backtest`, `evaluation`, `visualization` |
 | **evaluation/** | Signal screening and performance analysis | `config`, `backtest`, `persistence` | `data` (direct), `models`, `visualization` |
@@ -200,17 +247,17 @@ src/aponyx/
 - Cache enabled by default (`CACHE_ENABLED = True`)
 - 1-day TTL for market data (`CACHE_TTL_DAYS = 1`)
 - Data directory structure: `data/raw/`, `data/processed/`, `data/cache/`
-- Registry path: `data/registry.json` (from `config.REGISTRY_PATH`)
-- Signal catalog path: `src/aponyx/models/signal_catalog.json` (from `config.SIGNAL_CATALOG_PATH`)
-- Strategy catalog path: `src/aponyx/backtest/strategy_catalog.json` (from `config.STRATEGY_CATALOG_PATH`)
-- Bloomberg config paths: `src/aponyx/data/bloomberg_securities.json`, `bloomberg_instruments.json`
-- Suitability registry path: `src/aponyx/evaluation/suitability/suitability_registry.json` (from `config.SUITABILITY_REGISTRY_PATH`)
-- Performance registry path: `src/aponyx/evaluation/performance/performance_registry.json` (from `config.PERFORMANCE_REGISTRY_PATH`)
-- DataRegistry lives in data layer (`src/aponyx/data/registry.py`)
-- SignalRegistry lives in models layer (`src/aponyx/models/registry.py`)
-- StrategyRegistry lives in backtest layer (`src/aponyx/backtest/registry.py`)
-- SuitabilityRegistry lives in evaluation/suitability layer (`src/aponyx/evaluation/suitability/registry.py`)
-- PerformanceRegistry lives in evaluation/performance layer (`src/aponyx/evaluation/performance/registry.py`)
+- Data registry path: `data/registry.json` (runtime-generated, from `config.REGISTRY_PATH`)
+- Signal catalog path: `src/aponyx/models/signal_catalog.json` (static, from `config.SIGNAL_CATALOG_PATH`)
+- Strategy catalog path: `src/aponyx/backtest/strategy_catalog.json` (static, from `config.STRATEGY_CATALOG_PATH`)
+- Bloomberg config paths: `src/aponyx/data/bloomberg_securities.json`, `bloomberg_instruments.json` (static)
+- Suitability registry path: `src/aponyx/evaluation/suitability/suitability_registry.json` (runtime-generated, from `config.SUITABILITY_REGISTRY_PATH`)
+- Performance registry path: `src/aponyx/evaluation/performance/performance_registry.json` (runtime-generated, from `config.PERFORMANCE_REGISTRY_PATH`)
+- **DataRegistry** - Data layer (`src/aponyx/data/registry.py`) - Runtime JSON at `data/registry.json`
+- **SignalRegistry** - Models layer (`src/aponyx/models/registry.py`) - Static catalog at `src/aponyx/models/signal_catalog.json`
+- **StrategyRegistry** - Backtest layer (`src/aponyx/backtest/registry.py`) - Static catalog at `src/aponyx/backtest/strategy_catalog.json`
+- **SuitabilityRegistry** - Evaluation/suitability layer (`src/aponyx/evaluation/suitability/registry.py`) - Runtime JSON (not tracked in git)
+- **PerformanceRegistry** - Evaluation/performance layer (`src/aponyx/evaluation/performance/registry.py`) - Runtime JSON (not tracked in git)
 
 **Requirements:**
 - Bloomberg integration is optional (install with `pip install aponyx[bloomberg]`)
@@ -355,14 +402,16 @@ src/aponyx/
 - Component weights: data_health=0.2, predictive=0.4, economic=0.2, stability=0.2
 - Pass threshold: 0.7, Hold threshold: 0.4
 - Minimum observations: 500 (default)
-- Registry path: `src/aponyx/evaluation/suitability/suitability_registry.json`
+- Suitability registry: Runtime JSON (not in version control)
+- Performance registry: Runtime JSON (not in version control)
 
 **Implementation Notes:**
 - Standalone pre-backtest assessment (no trading rules or costs)
 - Uses statsmodels for OLS regression
 - Rolling window stability replaces fixed subperiod analysis
 - Registry pattern consistent with SignalRegistry and StrategyRegistry
-- Comprehensive test coverage (87 tests across 6 modules)
+- Comprehensive test coverage (154 tests in evaluation layer)
+- Reports saved to `reports/suitability/` and `reports/performance/`
 
 ### ✅ CLI Layer (`src/aponyx/cli/`)
 
@@ -569,14 +618,14 @@ src/aponyx/
   - Component weights: data_health=0.2, predictive=0.4, economic=0.2, stability=0.2
   - Pass threshold: 0.7, Hold threshold: 0.4
   - Minimum observations: 252 (default)
-  - Registry path: `src/aponyx/evaluation/suitability/suitability_registry.json`
+  - Suitability registry: Runtime JSON (not in version control)
 - **Performance:**
   - Minimum observations: 252 (default)
   - Subperiods: 4 (quarterly analysis)
   - Rolling window: 63 days (3 months)
   - Attribution quantiles: 3 (terciles)
   - Risk-free rate: 0.0
-  - Registry path: `src/aponyx/evaluation/performance/performance_registry.json`
+  - Performance registry: Runtime JSON (not in version control)
 
 **Implementation Notes:**
 - Standalone evaluation modules (no trading rules or execution logic)
@@ -732,16 +781,20 @@ src/aponyx/
 ### ✅ Testing (`tests/`)
 
 **Implemented:**
-- Unit tests for all layers:
-  - `tests/data/` - Data validation and loading
-  - `tests/models/` - Signal computation, registry, catalog
-  - `tests/backtest/` - Engine and metrics
-  - `tests/governance/` - Strategy registry, integration tests
-  - `tests/persistence/` - I/O operations and registry
-  - `tests/visualization/` - Plotting functions
+- Comprehensive test coverage across all layers (680 tests total):
+  - `tests/backtest/` - 36 tests (engine, P&L, protocols)
+  - `tests/cli/` - 83 tests (commands, error handling, integration)
+  - `tests/data/` - 223 tests (validation, loading, caching, providers)
+  - `tests/evaluation/` - 154 tests (suitability and performance)
+  - `tests/governance/` - 19 tests (registry integration)
+  - `tests/models/` - 74 tests (signals, registry, catalog)
+  - `tests/persistence/` - 27 tests (I/O operations)
+  - `tests/reporting/` - 18 tests (report generation)
+  - `tests/visualization/` - 19 tests (plotting functions)
+  - `tests/workflows/` - 27 tests (engine, steps)
 - Deterministic test data with fixed seeds
 - Pytest configuration with coverage tracking
-- Comprehensive test coverage
+- All tests passing (no errors or failures)
 
 **Testing Philosophy:**
 - Test API contracts (return types, shapes, edge cases)
@@ -753,19 +806,17 @@ src/aponyx/
 ### ✅ Documentation (`src/aponyx/docs/`)
 
 **Implemented:**
-- Comprehensive design documents (12 files in `src/aponyx/docs/`):
+- Comprehensive design documents (10 files in `src/aponyx/docs/`):
   - `cdx_overlay_strategy.md` - Investment strategy and signal definitions
   - `python_guidelines.md` - Code standards and best practices
   - `logging_design.md` - Logging conventions and metadata
   - `signal_registry_usage.md` - Signal management workflow
-  - `signal_suitability_evaluation.md` - Pre-backtest evaluation framework
+  - `signal_suitability_design.md` - Pre-backtest evaluation framework
   - `performance_evaluation_design.md` - Post-backtest analysis framework
   - `visualization_design.md` - Chart architecture
-  - `caching_design.md` - Cache layer architecture
-  - `adding_data_providers.md` - Provider extension guide
-  - `documentation_structure.md` - Single source of truth principles
   - `governance_design.md` - Strategy registry and governance pattern
-  - `project_setup_process.md` - Project setup and installation
+  - `cli_guide.md` - Complete CLI orchestrator reference
+  - `adding_data_providers.md` - Provider extension guide
 - NumPy-style docstrings throughout codebase
 - Copilot instructions for AI-assisted development (`.github/copilot-instructions.md`)
 
@@ -1241,6 +1292,24 @@ aponyx/
 │   ├── __init__.py          # Package initialization with version
 │   ├── main.py              # CLI entry point (placeholder)
 │   ├── py.typed             # PEP 561 type marker for mypy
+│   ├── cli/                 # Command-line interface
+│   │   ├── __init__.py
+│   │   ├── main.py          # CLI entry point with click
+│   │   └── commands/        # Command implementations
+│   │       ├── run.py       # Workflow execution
+│   │       ├── report.py    # Report generation
+│   │       ├── list.py      # Catalog browsing
+│   │       └── clean.py     # Cache management
+│   ├── workflows/           # Workflow orchestration
+│   │   ├── __init__.py
+│   │   ├── engine.py        # WorkflowEngine
+│   │   ├── config.py        # WorkflowConfig
+│   │   ├── steps.py         # WorkflowStep protocol
+│   │   ├── concrete_steps.py # Step implementations
+│   │   └── registry.py      # Step factory
+│   ├── reporting/           # Report generation
+│   │   ├── __init__.py
+│   │   └── generator.py     # Multi-format output
 │   ├── config/              # Constants and configuration
 │   │   └── __init__.py      # PROJECT_ROOT, DATA_DIR, CACHE_ENABLED, etc.
 │   ├── data/                # Data loading, validation, caching
@@ -1269,7 +1338,6 @@ aponyx/
 │   ├── backtest/            # Backtesting engine
 │   │   ├── __init__.py
 │   │   ├── engine.py        # Core backtest engine
-│   │   ├── metrics.py       # Performance calculations
 │   │   ├── config.py        # BacktestConfig
 │   │   ├── protocols.py     # Type protocols
 │   │   ├── registry.py      # Strategy registry
@@ -1283,8 +1351,8 @@ aponyx/
 │   │   │   ├── scoring.py
 │   │   │   ├── report.py
 │   │   │   ├── registry.py
-│   │   │   ├── config.py
-│   │   │   └── suitability_registry.json
+│   │   │   └── config.py
+│   │   │   # suitability_registry.json (runtime-generated, not in git)
 │   │   └── performance/     # Post-backtest analysis
 │   │       ├── __init__.py
 │   │       ├── analyzer.py
@@ -1292,8 +1360,8 @@ aponyx/
 │   │       ├── risk_metrics.py
 │   │       ├── report.py
 │   │       ├── registry.py
-│   │       ├── config.py
-│   │       └── performance_registry.json
+│   │       └── config.py
+│   │       # performance_registry.json (runtime-generated, not in git)
 │   ├── visualization/       # Plotting and dashboards
 │   │   ├── __init__.py
 │   │   ├── plots.py         # Plotting functions
@@ -1303,50 +1371,68 @@ aponyx/
 │   │   ├── __init__.py
 │   │   ├── parquet_io.py    # Parquet read/write
 │   │   └── json_io.py       # JSON read/write
+│   ├── examples/            # Standalone workflow scripts (in distribution)
+│   │   ├── 01_generate_synthetic_data.py
+│   │   ├── 02_fetch_data_file.py
+│   │   ├── 03_fetch_data_bloomberg.py
+│   │   ├── 04_compute_signal.py
+│   │   ├── 05_evaluate_suitability.py
+│   │   ├── 06_run_backtest.py
+│   │   ├── 07_analyze_performance.py
+│   │   └── 08_visualize_results.py
+│   └── docs/                # Design documentation (in distribution)
+│       ├── cdx_overlay_strategy.md
+│       ├── python_guidelines.md
+│       ├── logging_design.md
+│       ├── signal_registry_usage.md
+│       ├── signal_suitability_design.md
+│       ├── performance_evaluation_design.md
+│       ├── visualization_design.md
+│       ├── governance_design.md
+│       ├── cli_guide.md
+│       └── adding_data_providers.md
 │
-├── tests/                   # Unit tests (mirrors src/ structure)
-│   ├── data/
-│   ├── models/
-│   ├── backtest/
-│   ├── persistence/
-│   └── visualization/
+├── tests/                   # Unit tests (680 tests total)
+│   ├── backtest/            # 36 tests
+│   ├── cli/                 # 83 tests
+│   ├── data/                # 223 tests
+│   ├── evaluation/          # 154 tests
+│   ├── governance/          # 19 tests
+│   ├── models/              # 74 tests
+│   ├── persistence/         # 27 tests
+│   ├── reporting/           # 18 tests
+│   ├── visualization/       # 19 tests
+│   └── workflows/           # 27 tests
 │
-├── src/aponyx/
-│   ├── docs/                    # Design documentation (included in package)
-│   │   ├── cdx_overlay_strategy.md       # Investment strategy
-│   │   ├── python_guidelines.md          # Code standards
-│   │   ├── logging_design.md             # Logging conventions
-│   │   ├── signal_registry_usage.md      # Signal management
-│   │   ├── visualization_design.md       # Chart architecture
-│   │   ├── caching_design.md             # Cache layer
-│   │   ├── adding_data_providers.md      # Provider extension
-│   │   ├── documentation_structure.md    # Doc principles
-│   │   ├── governance_design.md          # Governance patterns
-│   │   ├── project_setup_process.md      # Setup guide
-│   │   ├── maintenance/         # Advanced workflows
-│   │   │   ├── MAINTENANCE.md
-│   │   │   └── Update-Upstream.ps1
-│   │   └── prompts/             # LLM context
-│   │       ├── investment strategy.txt
-│   │       └── technical implementation.txt
+├── examples/                # YAML workflow configurations
+│   ├── workflow_basic.yaml
+│   ├── workflow_bloomberg.yaml
+│   └── workflow_custom_steps.yaml
 │
-├── data/                    # Data storage
-│   ├── registry.json        # Dataset registry
+├── data/                    # Data storage (not in git)
+│   ├── registry.json        # Dataset registry (runtime)
 │   ├── raw/                 # Source data files
 │   ├── processed/           # Transformed data
+│   │   ├── reports/
+│   │   └── workflows/       # Workflow outputs
+│   │       ├── backtests/
+│   │       ├── signals/
+│   │       └── visualizations/
 │   └── cache/               # TTL-based cache
 │       ├── bloomberg/
-│       └── file/
+│       ├── file/
+│       └── synthetic/
 │
-├── logs/                    # Run metadata and logs
-│   ├── backtest_metadata.json
-│   ├── performance_evaluation_metadata.json
-│   ├── signal_computation_metadata.json
-│   └── suitability_evaluation_metadata.json
+├── logs/                    # Run metadata (not in git)
 │
-├── reports/                 # Generated reports
-│   ├── suitability/         # Pre-backtest evaluation reports
-│   └── performance/         # Post-backtest analysis reports
+├── reports/                 # Generated reports (not in git)
+│   ├── suitability/         # Pre-backtest evaluations
+│   └── performance/         # Post-backtest analyses
+│
+├── scripts/                 # Utility scripts (not in git)
+│   ├── clean_pycache.py
+│   ├── clean_runtime_data.py
+│   └── README.md
 │
 ├── .github/
 │   └── copilot-instructions.md  # AI assistant configuration
@@ -1354,6 +1440,10 @@ aponyx/
 ├── pyproject.toml           # Project metadata and dependencies
 ├── README.md                # Quickstart guide
 ├── LICENSE                  # MIT license
+├── CHANGELOG.md             # Version history
+├── CONTRIBUTING.md          # Contribution guidelines
+├── SECURITY.md              # Security policy
+└── PROJECT_STATUS.md        # This file
 ├── TODO.md                  # Task tracking
 ├── PROJECT_STATUS.md        # This file
 ├── CHANGELOG.md             # Version history

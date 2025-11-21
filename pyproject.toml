@@ -51,7 +51,7 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-root = "src"
 
-# Include JSON catalog files, type marker, docs, and notebooks in package distribution
+# Include JSON catalog files, type marker, docs, and examples in package distribution
 include-package-data = [
     "aponyx/py.typed",
     "aponyx/models/signal_catalog.json",
@@ -59,7 +59,7 @@ include-package-data = [
     "aponyx/data/bloomberg_securities.json",
     "aponyx/data/bloomberg_instruments.json",
     "aponyx/docs/*.md",
-    "aponyx/notebooks/*.ipynb",
+    "aponyx/examples/*.py",
 ]
 
 [project.optional-dependencies]
