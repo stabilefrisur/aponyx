@@ -80,26 +80,35 @@ Data is saved to `data/raw/bloomberg/`.
 
 ### 3. Run Analysis
 
+**Option A: Use CLI (Recommended)**
+
+```bash
+aponyx run --signal cdx_etf_basis --strategy balanced
+```
+
+**Option B: Python API**
+
 ```python
 from aponyx.data import fetch_cdx, fetch_etf, FileSource
 from aponyx.models import compute_cdx_etf_basis, SignalConfig
 from aponyx.backtest import run_backtest, BacktestConfig
 from aponyx.evaluation.performance import compute_all_metrics
+from aponyx.evaluation.suitability import evaluate_signal_suitability, SuitabilityConfig
 
-# Load validated market data (automatic caching from raw/)
-cdx_df = fetch_cdx(FileSource("data/raw/synthetic/cdx_ig_5y.parquet"), security="cdx_ig_5y")
-etf_df = fetch_etf(FileSource("data/raw/synthetic/hyg.parquet"), security="hyg")
+# Load validated market data
+# Note: After generating synthetic data, find actual filenames in data/raw/synthetic/
+# Files use hash-based naming: cdx_ig_5y_<hash>.parquet, hyg_<hash>.parquet
+cdx_df = fetch_cdx(FileSource("data/raw/synthetic/cdx_ig_5y_<hash>.parquet"), security="cdx_ig_5y")
+etf_df = fetch_etf(FileSource("data/raw/synthetic/hyg_<hash>.parquet"), security="hyg")
 
 # Generate signal with configuration
 signal_config = SignalConfig(lookback=20, min_periods=10)
 signal = compute_cdx_etf_basis(cdx_df, etf_df, signal_config)
 
 # Evaluate signal-product suitability (optional pre-backtest assessment)
-from aponyx.evaluation.suitability import evaluate_signal_suitability, SuitabilityConfig
 suitability_config = SuitabilityConfig(rolling_window=252)  # ~1 year daily data
-result = evaluate_signal_suitability(signal, cdx_df["spread"], suitability_config)
-print(f"Suitability score: {result.composite_score:.2f}")
-print(f"Stability: {result.sign_consistency_ratio:.1%} sign consistency, CV={result.beta_cv:.3f}")
+suitability = evaluate_signal_suitability(signal, cdx_df["spread"], suitability_config)
+print(f"Suitability: {suitability.composite_score:.2f} ({suitability.decision})")
 
 # Run backtest with transaction costs
 backtest_config = BacktestConfig(
@@ -114,8 +123,8 @@ metrics = compute_all_metrics(results.pnl, results.positions)
 
 # Analyze results
 print(f"Sharpe Ratio: {metrics.sharpe_ratio:.2f}")
-print(f"Max Drawdown: ${metrics.max_drawdown:,.0f}")
-print(f"Hit Rate: {metrics.hit_rate:.2%}")
+print(f"Total Return: ${metrics.total_return:,.0f}")
+print(f"Win Rate: {metrics.hit_rate:.1%}")
 ```
 
 **Bloomberg Terminal alternative:**
@@ -331,27 +340,37 @@ docs_path = get_docs_dir()
 print(docs_path)  # Path to installed documentation
 ```
 
-**Available documentation:**
+### Getting Started
 
-**Strategy & Research:**
-- [`cdx_overlay_strategy.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/cdx_overlay_strategy.md) - Investment thesis and pilot implementation
-- [`signal_registry_usage.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/signal_registry_usage.md) - Signal management workflow
-- [`signal_suitability_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/signal_suitability_design.md) - Pre-backtest evaluation framework
-- [`performance_evaluation_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/performance_evaluation_design.md) - Post-backtest analysis framework
+| Document | Description |
+|----------|-------------|
+| [`cli_guide.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/cli_guide.md) | Complete CLI orchestrator reference and advanced usage |
+| [`cdx_overlay_strategy.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/cdx_overlay_strategy.md) | Investment thesis and pilot signal implementations |
 
-**Architecture & Design:**
-- [`governance_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/governance_design.md) - Registry, catalog, and config patterns
-- [`raw_data_storage_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/raw_data_storage_design.md) - Raw data storage conventions and hash-based naming
-- [`caching_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/caching_design.md) - Cache layer architecture
-- [`visualization_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/visualization_design.md) - Chart architecture and patterns
-- [`logging_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/logging_design.md) - Logging conventions and metadata
+### Research Workflow
 
-**Development:**
-- [`python_guidelines.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/python_guidelines.md) - Code standards and best practices
-- [`adding_data_providers.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/adding_data_providers.md) - Provider extension guide
-- [`documentation_structure.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/documentation_structure.md) - Documentation organization principles
+| Document | Description |
+|----------|-------------|
+| [`signal_registry_usage.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/signal_registry_usage.md) | Signal management and catalog workflow |
+| [`signal_suitability_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/signal_suitability_design.md) | Pre-backtest signal-product evaluation framework |
+| [`performance_evaluation_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/performance_evaluation_design.md) | Post-backtest performance analysis framework |
 
-**All documentation** is included in the package and also available on [GitHub](https://github.com/stabilefrisur/aponyx/tree/master/src/aponyx/docs).
+### System Architecture
+
+| Document | Description |
+|----------|-------------|
+| [`governance_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/governance_design.md) | Registry, catalog, and config governance patterns |
+| [`visualization_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/visualization_design.md) | Chart architecture and Plotly/Streamlit patterns |
+| [`logging_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/logging_design.md) | Logging conventions and metadata tracking |
+
+### Development Reference
+
+| Document | Description |
+|----------|-------------|
+| [`python_guidelines.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/python_guidelines.md) | Code standards, type hints, and best practices |
+| [`adding_data_providers.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/adding_data_providers.md) | Data provider extension guide |
+
+**All documentation** is included in the package and available on [GitHub](https://github.com/stabilefrisur/aponyx/tree/master/src/aponyx/docs).
 
 ## What's Included
 
