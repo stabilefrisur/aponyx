@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **CLI Orchestrator** for automated research workflows
+  - `aponyx run` command for executing complete signal-strategy pipelines
+  - `aponyx report` command for generating comprehensive analysis reports (console/markdown/HTML)
+  - `aponyx list` command for browsing available signals, strategies, and datasets
+  - `aponyx clean` command for managing cached workflow results
+  - YAML configuration file support for reproducible workflows
+  - Smart caching with automatic skip of completed steps
+  - Force re-run option for invalidating cache
+  - Subset execution for running specific workflow steps
+  - Example config files in `examples/` directory
+  - Comprehensive CLI user guide (`src/aponyx/docs/cli_user_guide.md`)
+- **Workflow Engine** infrastructure
+  - `WorkflowEngine` for sequential pipeline execution with dependency tracking
+  - `WorkflowConfig` for immutable workflow configuration
+  - Protocol-based step abstraction with `WorkflowStep` interface
+  - Six concrete workflow steps: data, signal, suitability, backtest, performance, visualization
+  - `StepRegistry` for centralized step factory and ordering
+  - Error handling with partial result preservation
+  - Structured logging with progress indicators
+- **Reporting Package** for analysis aggregation
+  - `generate_report()` function with multiple output formats
+  - Console reports with table formatting
+  - Markdown reports with embedded visualization links
+  - HTML reports with styled formatting
+  - Automatic aggregation of suitability and performance evaluations
+  - Smart report data collection from workflow outputs
+
+### Changed
+- Updated `pyproject.toml` to include `pyyaml>=6.0` dependency
+- Added `aponyx` CLI entry point in `[project.scripts]`
+- Enhanced project structure with `cli/` and `reporting/` packages
+- Improved documentation structure with comprehensive CLI guides
+
 ## [0.1.10] - 2025-11-16
 
 ### Added

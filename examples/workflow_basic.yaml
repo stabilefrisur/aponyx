@@ -1,0 +1,6 @@
+# Basic workflow configuration example
+# Usage: aponyx run --config workflow_basic.yaml
+
+signal: spread_momentum
+strategy: balanced
+data: synthetic

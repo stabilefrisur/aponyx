@@ -1,0 +1,15 @@
+# Custom steps workflow configuration
+# Usage: aponyx run --config workflow_custom_steps.yaml
+
+signal: spread_momentum
+strategy: balanced
+data: synthetic
+
+# Only run specific steps
+steps:
+  - data
+  - signal
+  - backtest
+
+# Force re-run even if cached outputs exist
+force: true

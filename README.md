@@ -124,6 +124,67 @@ source = BloombergSource()
 cdx_df = fetch_cdx(source, security="cdx_ig_5y")
 ```
 
+## Command-Line Interface
+
+Aponyx provides a CLI for running research workflows without writing code.
+
+### Run Complete Workflow
+
+```bash
+# Execute full workflow with synthetic data
+aponyx run --signal spread_momentum --strategy balanced
+
+# Use Bloomberg data
+aponyx run --signal spread_momentum --strategy balanced --data bloomberg
+
+# Force re-run (skip cache)
+aponyx run --signal spread_momentum --strategy balanced --force
+```
+
+### Generate Reports
+
+```bash
+# Console output
+aponyx report --signal spread_momentum --strategy balanced
+
+# Markdown file
+aponyx report --signal spread_momentum --strategy balanced --format markdown
+
+# HTML file
+aponyx report --signal spread_momentum --strategy balanced --format html --output report.html
+```
+
+### List Available Items
+
+```bash
+aponyx list signals
+aponyx list strategies
+aponyx list datasets
+```
+
+### Using Configuration Files
+
+Create `workflow.yaml`:
+
+```yaml
+signal: spread_momentum
+strategy: balanced
+data: synthetic
+steps:
+  - data
+  - signal
+  - backtest
+force: false
+```
+
+Run with config:
+
+```bash
+aponyx run --config workflow.yaml
+```
+
+**See [CLI User Guide](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/cli_user_guide.md) for complete documentation.**
+
 ## Architecture
 
 Aponyx follows a **layered architecture** with clean separation of concerns:

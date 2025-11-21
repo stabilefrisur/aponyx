@@ -35,7 +35,7 @@ def test_run_command_requires_signal_and_strategy(runner):
     """Test run command validates required arguments."""
     result = runner.invoke(cli, ["run"])
     assert result.exit_code != 0
-    assert "Missing option '--signal'" in result.output or "Error" in result.output
+    assert "Missing required parameters" in result.output or "Missing option" in result.output
 
 
 def test_run_command_with_mock_workflow(runner):
@@ -183,12 +183,12 @@ def test_clean_command_dry_run(runner):
         assert "Would delete" in result.output or "Dry run complete" in result.output
 
 
-def test_report_command_placeholder(runner):
-    """Test report command shows placeholder message."""
+def test_report_command_generates_output(runner):
+    """Test report command generates output (may show report or error if no results)."""
     result = runner.invoke(cli, [
         "report",
         "--signal", "spread_momentum",
         "--strategy", "balanced",
     ])
-    assert result.exit_code == 0
-    assert "not yet implemented" in result.output
+    # Should either show report or error about missing workflow results
+    assert "spread_momentum" in result.output or "No workflow results" in result.output
