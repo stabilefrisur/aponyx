@@ -209,6 +209,9 @@ def compute_spread_momentum(
 
 | Context | Preferred Behavior |
 |----------|--------------------|  
+| Editing `/cli/` | Focus on command implementation with click decorators. Use `WorkflowEngine` for orchestration. Keep commands thin - delegate logic to workflows/reporting. Provide clear help text and validation messages. |
+| Editing `/workflows/` | Implement `WorkflowStep` protocol for new steps. Use `StepRegistry` for step management. Ensure deterministic execution with metadata logging. Handle errors gracefully with partial result preservation. |
+| Editing `/reporting/` | Focus on multi-format output generation (console/markdown/HTML). Aggregate data from suitability and performance registries. Keep formatting logic separate from data collection. |
 | Editing `/config/` | Use import-time constants with `Final` type hints. No classes, no dynamic configuration. |
 | Editing `/data/` | Focus on fetch functions, schema validation, and data sources. Use `DataRegistry` for dataset tracking. Support multiple providers (File, Bloomberg, API). **Never implement authentication** — connections managed externally. |
 | Editing `/models/` | Focus on signal functions and strategy modules. Use `SignalRegistry` for catalog management. **Signal convention: positive values = long credit risk (buy CDX).** |
@@ -513,4 +516,4 @@ It should:
 
 > Maintained by **stabilefrisur**.  
 > Optimized for VS Code Agent Mode (Claude Sonnet 4.5 / GPT‑5)  
-> Last Updated: November 15, 2025
+> Last Updated: November 21, 2025

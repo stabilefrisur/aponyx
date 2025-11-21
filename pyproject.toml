@@ -28,6 +28,7 @@ dependencies = [
     "numpy>=1.24.0",
     "pyarrow>=12.0.0",
     "scipy>=1.7.0",
+    "statsmodels>=0.14.0",
     "quantstats>=0.0.77",
     "click>=8.1.0",
     "pyyaml>=6.0",
@@ -58,8 +59,6 @@ include-package-data = [
     "aponyx/data/bloomberg_securities.json",
     "aponyx/data/bloomberg_instruments.json",
     "aponyx/docs/*.md",
-    "aponyx/docs/utilities/*.md",
-    "aponyx/docs/utilities/*.ps1",
     "aponyx/notebooks/*.ipynb",
 ]
 

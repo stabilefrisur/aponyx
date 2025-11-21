@@ -1,7 +1,7 @@
 # Project Status — aponyx
 
-**Last Updated:** November 16, 2025  
-**Version:** 0.1.10  
+**Last Updated:** November 21, 2025  
+**Version:** 0.1.11-dev (unreleased)  
 **Maintainer:** stabilefrisur
 
 ---
@@ -19,7 +19,7 @@
 | **License** | MIT |
 
 **Core Dependencies:**
-- `pandas>=2.2.0`, `numpy>=2.0.0`, `pyarrow>=17.0.0`
+- `pandas>=2.0.0`, `numpy>=1.24.0`, `pyarrow>=12.0.0`, `scipy>=1.7.0`, `quantstats>=0.0.77`, `click>=8.1.0`, `pyyaml>=6.0`
 
 **Optional Dependencies:**
 - `bloomberg`: `xbbg>=0.7.0` (Bloomberg Terminal integration)
@@ -363,6 +363,138 @@ src/aponyx/
 - Rolling window stability replaces fixed subperiod analysis
 - Registry pattern consistent with SignalRegistry and StrategyRegistry
 - Comprehensive test coverage (87 tests across 6 modules)
+
+### ✅ CLI Layer (`src/aponyx/cli/`)
+
+**Implemented:**
+- **Command-Line Interface:**
+  - `aponyx run` - Execute complete or partial research workflows
+  - `aponyx report` - Generate multi-format analysis reports
+  - `aponyx list` - Browse signals, strategies, and datasets
+  - `aponyx clean` - Manage workflow cache
+- **Configuration:**
+  - YAML configuration file support for reproducible workflows
+  - CLI argument parsing with click framework
+  - Example config files in `examples/` directory
+- **Error Handling:**
+  - Graceful error messages with exit codes
+  - Validation of signal/strategy/product combinations
+
+**Key Features:**
+- Single-command execution of 6-step research pipeline
+- Smart defaults with explicit override options
+- Help text with `-h` or `--help` flags
+- Integration with workflow engine for orchestration
+
+**Key Files:**
+- `main.py` - CLI entry point and command registration
+- `commands/run.py` - Workflow execution command
+- `commands/report.py` - Report generation command
+- `commands/list.py` - Catalog browsing command
+- `commands/clean.py` - Cache management command
+
+**CLI Options:**
+- Signal/strategy/product selection
+- Data source choice (synthetic/file/bloomberg)
+- Step subset execution
+- Force re-run flag
+- Output format selection (console/markdown/HTML)
+
+**Documentation:**
+- Complete CLI user guide (`docs/cli_guide.md`)
+- Example YAML configurations in `examples/`
+
+### ✅ Workflows Layer (`src/aponyx/workflows/`)
+
+**Implemented:**
+- **Workflow Engine:**
+  - `WorkflowEngine` - Sequential pipeline execution with dependency tracking
+  - Smart caching with automatic skip of completed steps
+  - Force re-run option for cache invalidation
+  - Error handling with partial result preservation
+- **Configuration:**
+  - `WorkflowConfig` - Frozen dataclass for immutable workflow parameters
+  - Step selection (all or subset)
+  - Data source configuration
+  - Output directory management
+- **Step Registry:**
+  - `StepRegistry` - Centralized step factory and ordering
+  - Protocol-based step abstraction (`WorkflowStep`)
+  - Six concrete steps: data, signal, suitability, backtest, performance, visualization
+- **Concrete Steps:**
+  - Data step - Load and validate market data
+  - Signal step - Compute signals from registry
+  - Suitability step - Pre-backtest evaluation
+  - Backtest step - Execute strategy simulation
+  - Performance step - Comprehensive analysis
+  - Visualization step - Generate charts
+
+**Key Features:**
+- Dependency tracking ensures correct execution order
+- Structured logging with progress indicators
+- Step completion time tracking
+- Output metadata persistence
+- Cache validation with timestamp checks
+
+**Key Files:**
+- `engine.py` - Core workflow orchestration
+- `config.py` - Configuration dataclass
+- `steps.py` - WorkflowStep protocol
+- `concrete_steps.py` - Step implementations
+- `registry.py` - Step factory and ordering
+
+**Workflow Steps:**
+1. Data - Load CDX/VIX/ETF data from configured source
+2. Signal - Compute signal using signal registry
+3. Suitability - Evaluate signal-product fit (PASS/HOLD/FAIL)
+4. Backtest - Execute strategy with transaction costs
+5. Performance - Extended metrics and attribution analysis
+6. Visualization - Generate equity curves and diagnostic charts
+
+**Caching Strategy:**
+- Outputs saved to `data/processed/workflows/<signal>_<strategy>_<timestamp>/`
+- Metadata JSON tracks execution parameters and timestamps
+- Cache hit skips step execution unless `force_rerun=True`
+- Partial results preserved on error for debugging
+
+### ✅ Reporting Layer (`src/aponyx/reporting/`)
+
+**Implemented:**
+- **Report Generation:**
+  - `generate_report()` - Multi-format report aggregation
+  - Console reports with formatted tables
+  - Markdown reports with embedded visualization links
+  - HTML reports with styled formatting
+- **Data Aggregation:**
+  - Automatic collection from suitability registry
+  - Automatic collection from performance registry
+  - Signal-strategy-product combination matching
+  - Timestamp-based result retrieval
+- **Format Support:**
+  - Console - Tabulated output with color support
+  - Markdown - GitHub-flavored markdown with tables
+  - HTML - Styled report with CSS formatting
+
+**Key Features:**
+- Single function for all output formats
+- Smart data collection from multiple registries
+- Comprehensive metrics aggregation
+- Visualization reference linking
+- Custom output path support
+
+**Key Files:**
+- `generator.py` - Core report generation logic
+
+**Report Sections:**
+- Suitability Evaluation Summary (4-component scores, decision)
+- Performance Analysis Summary (extended metrics, attribution)
+- Backtest Statistics (trades, P&L, Sharpe)
+- Signal Characteristics (z-score stats, regime analysis)
+
+**Output Locations:**
+- Console: stdout
+- Markdown: `reports/<signal>_<strategy>_<timestamp>.md`
+- HTML: `reports/<signal>_<strategy>_<timestamp>.html` or custom path
 
 ### ✅ Evaluation Layer - Performance Analysis (`src/aponyx/evaluation/performance/`)
 

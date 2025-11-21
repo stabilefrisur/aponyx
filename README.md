@@ -12,12 +12,15 @@ Type-safe, reproducible research environment for tactical fixed-income strategie
 
 ## Key Features
 
+- **CLI orchestrator** for automated end-to-end research workflows (run, report, list, clean)
+- **Workflow engine** with smart caching and dependency tracking across pipeline steps
 - **Type-safe data loading** with schema validation (Parquet, CSV, Bloomberg Terminal)
 - **Modular signal framework** with composable transformations and registry management
 - **Deterministic backtesting** with transaction cost modeling and comprehensive metrics
 - **Interactive visualization** with Plotly charts (equity curves, signals, drawdown)
 - **File-based persistence** with metadata tracking and versioning
 - **Strategy governance** with centralized registry and configuration management
+- **Multi-format reporting** with console, markdown, and HTML output
 
 ## Installation
 
@@ -126,7 +129,7 @@ cdx_df = fetch_cdx(source, security="cdx_ig_5y")
 
 ## Command-Line Interface
 
-Aponyx provides a CLI for running research workflows without writing code.
+Aponyx provides a **complete CLI orchestrator** for running research workflows from data loading through performance analysis.
 
 **Get started:**
 
@@ -137,35 +140,55 @@ aponyx --help  # or aponyx -h
 ### Run Complete Workflow
 
 ```bash
-# Execute full workflow with synthetic data
+# Execute full 6-step workflow with synthetic data
 aponyx run --signal spread_momentum --strategy balanced
 
-# Use Bloomberg data
+# Use Bloomberg data (requires active Terminal session)
 aponyx run --signal spread_momentum --strategy balanced --data bloomberg
 
-# Force re-run (skip cache)
+# Run specific steps only
+aponyx run --signal spread_momentum --strategy balanced --steps signal,backtest,performance
+
+# Force re-run (skip cache, regenerate all outputs)
 aponyx run --signal spread_momentum --strategy balanced --force
+
+# Custom product
+aponyx run --signal cdx_etf_basis --strategy aggressive --product cdx_hy_5y
 ```
+
+**Workflow steps:** data → signal → suitability → backtest → performance → visualization
 
 ### Generate Reports
 
 ```bash
-# Console output
+# Console output with formatted tables
 aponyx report --signal spread_momentum --strategy balanced
 
-# Markdown file
+# Markdown file (default location: reports/)
 aponyx report --signal spread_momentum --strategy balanced --format markdown
 
-# HTML file
-aponyx report --signal spread_momentum --strategy balanced --format html --output report.html
+# HTML file with styled formatting
+aponyx report --signal spread_momentum --strategy balanced --format html --output custom_report.html
 ```
+
+Reports aggregate suitability evaluation and performance analysis with comprehensive metrics and visualizations.
 
 ### List Available Items
 
 ```bash
-aponyx list signals
-aponyx list strategies
-aponyx list datasets
+aponyx list signals      # View signal catalog
+aponyx list strategies   # View strategy catalog
+aponyx list datasets     # View data registry
+```
+
+### Clean Workflow Cache
+
+```bash
+# Remove cached workflow outputs for specific signal-strategy
+aponyx clean --signal spread_momentum --strategy balanced
+
+# Clean all cached workflows
+aponyx clean --all
 ```
 
 ### Using Configuration Files
@@ -175,11 +198,12 @@ Create `workflow.yaml`:
 ```yaml
 signal: spread_momentum
 strategy: balanced
+product: cdx_ig_5y
 data: synthetic
 steps:
-  - data
   - signal
   - backtest
+  - performance
 force: false
 ```
 
@@ -189,7 +213,14 @@ Run with config:
 aponyx run --config workflow.yaml
 ```
 
-**See [CLI User Guide](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/cli_user_guide.md) for complete documentation.**
+**Benefits:**
+- **Reproducible workflows** via YAML configuration
+- **Smart caching** skips completed steps automatically
+- **Dependency tracking** ensures correct execution order
+- **Error handling** with partial result preservation
+- **Progress logging** with step completion times
+
+**See [CLI Guide](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/cli_guide.md) for complete documentation and advanced usage.**
 
 ## Architecture
 
@@ -197,6 +228,9 @@ Aponyx follows a **layered architecture** with clean separation of concerns:
 
 | Layer | Purpose | Key Modules |
 |-------|---------|-------------|
+| **CLI** | Command-line orchestration and user interface | `aponyx run`, `aponyx report`, `aponyx list`, `aponyx clean` |
+| **Workflows** | Pipeline orchestration with dependency tracking | `WorkflowEngine`, `WorkflowConfig`, `StepRegistry`, concrete steps |
+| **Reporting** | Multi-format report generation | `generate_report`, console/markdown/HTML formatters |
 | **Data** | Load, validate, transform market data | `fetch_cdx`, `fetch_vix`, `fetch_etf`, `apply_transform`, `FileSource`, `BloombergSource` |
 | **Models** | Generate signals for independent evaluation | `compute_cdx_etf_basis`, `compute_cdx_vix_gap`, `SignalRegistry` |
 | **Evaluation** | Pre-backtest screening (rolling window stability) and post-backtest analysis | `evaluate_signal_suitability`, `analyze_backtest_performance`, `PerformanceRegistry` |
@@ -218,23 +252,35 @@ data/
 
 ### Research Workflow
 
+**CLI-Orchestrated Pipeline:**
+
 ```
-Raw Data (Parquet/CSV/Bloomberg)
+CLI Command (aponyx run)
     ↓
-Data Layer (load, validate, transform)
+Workflow Engine (dependency tracking + caching)
     ↓
-Models Layer (signal computation)
+[Step 1] Data Layer (load, validate, transform)
     ↓
-Evaluation Layer (signal-product suitability)
+[Step 2] Models Layer (signal computation)
     ↓
-Backtest Layer (execution simulation)
+[Step 3] Evaluation Layer (signal-product suitability)
     ↓
-Evaluation Layer (performance metrics & analysis)
+[Step 4] Backtest Layer (execution simulation)
     ↓
-Visualization Layer (charts)
+[Step 5] Evaluation Layer (performance metrics & analysis)
     ↓
-Persistence Layer (results)
+[Step 6] Visualization Layer (charts)
+    ↓
+Reporting Layer (multi-format output)
+    ↓
+Persistence Layer (results + metadata)
 ```
+
+**Key Features:**
+- Smart caching skips completed steps
+- Dependency validation ensures correct execution order
+- YAML config support for reproducible workflows
+- Error handling preserves partial results
 
 ## Research Notebooks
 
@@ -385,5 +431,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 **Maintained by stabilefrisur**  
-**Version**: 0.1.10  
-**Last Updated**: November 16, 2025
+**Version**: 0.1.11-dev (unreleased)  
+**Last Updated**: November 21, 2025
