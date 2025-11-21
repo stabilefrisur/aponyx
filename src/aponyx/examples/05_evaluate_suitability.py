@@ -49,10 +49,10 @@ from aponyx.persistence import load_parquet
 def main() -> SuitabilityResult:
     """
     Execute suitability evaluation workflow.
-    
+
     Evaluates one signal against its target product using
     4-component scoring framework.
-    
+
     Returns
     -------
     SuitabilityResult
@@ -69,12 +69,12 @@ def main() -> SuitabilityResult:
 def define_evaluation_pair() -> tuple[str, str]:
     """
     Define signal-product pair for evaluation.
-    
+
     Returns
     -------
     tuple[str, str]
         Signal name and product identifier.
-        
+
     Notes
     -----
     Choose one signal from catalog for demonstration.
@@ -91,19 +91,19 @@ def prepare_evaluation_data(
 ) -> tuple[pd.Series, pd.Series]:
     """
     Load signal and compute target returns for evaluation.
-    
+
     Parameters
     ----------
     signal_name : str
         Name of signal to load from processed directory.
     product : str
         Product identifier for target returns.
-    
+
     Returns
     -------
     tuple[pd.Series, pd.Series]
         Signal series and target change series (aligned).
-        
+
     Notes
     -----
     Loads signal saved by previous step (04_compute_signal.py).
@@ -111,23 +111,23 @@ def prepare_evaluation_data(
     """
     signal = load_signal(signal_name)
     spread_df = load_spread_data(product)
-    
+
     # Compute forward returns for 1-day ahead (default evaluation horizon)
     forward_returns = compute_forward_returns(spread_df["spread"], lags=[1])
     target_change = forward_returns[1]
-    
+
     return signal, target_change
 
 
 def load_signal(signal_name: str) -> pd.Series:
     """
     Load signal from processed directory.
-    
+
     Parameters
     ----------
     signal_name : str
         Name of signal file (without .parquet extension).
-    
+
     Returns
     -------
     pd.Series
@@ -141,40 +141,40 @@ def load_signal(signal_name: str) -> pd.Series:
 def load_spread_data(product: str) -> pd.DataFrame:
     """
     Load spread data for target product.
-    
+
     Parameters
     ----------
     product : str
         Product identifier (e.g., "cdx_ig_5y").
-    
+
     Returns
     -------
     pd.DataFrame
         Spread data with DatetimeIndex.
-        
+
     Notes
     -----
     Searches registry for datasets with matching security in metadata.
     """
     data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
-    
+
     all_datasets = data_registry.list_datasets()
-    
+
     for dataset_name in all_datasets:
         info = data_registry.get_dataset_info(dataset_name)
         metadata = info.get("metadata", {})
         params = metadata.get("params", {})
-        
+
         if params.get("security") == product:
             return load_parquet(info["file_path"])
-    
+
     raise ValueError(f"No dataset found for product: {product}")
 
 
 def define_evaluation_config() -> SuitabilityConfig:
     """
     Define suitability evaluation configuration.
-    
+
     Returns
     -------
     SuitabilityConfig
@@ -190,7 +190,7 @@ def evaluate_suitability(
 ) -> SuitabilityResult:
     """
     Run suitability evaluation with 4-component scoring.
-    
+
     Parameters
     ----------
     signal : pd.Series
@@ -199,7 +199,7 @@ def evaluate_suitability(
         Forward target returns.
     config : SuitabilityConfig
         Evaluation configuration.
-    
+
     Returns
     -------
     SuitabilityResult
@@ -215,7 +215,7 @@ def save_and_register_evaluation(
 ) -> None:
     """
     Save markdown report and register evaluation.
-    
+
     Parameters
     ----------
     result : SuitabilityResult
@@ -227,7 +227,7 @@ def save_and_register_evaluation(
     """
     report = generate_suitability_report(result, signal_name, product)
     save_report(report, signal_name, product, EVALUATION_DIR)
-    
+
     registry = SuitabilityRegistry(SUITABILITY_REGISTRY_PATH)
     registry.register_evaluation(result, signal_name, product)
 

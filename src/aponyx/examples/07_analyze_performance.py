@@ -40,10 +40,10 @@ from aponyx.persistence import load_parquet
 def main() -> PerformanceResult:
     """
     Execute performance analysis workflow.
-    
+
     Loads backtest results, computes comprehensive metrics,
     generates interpretive report, and saves outputs.
-    
+
     Returns
     -------
     PerformanceResult
@@ -60,12 +60,12 @@ def main() -> PerformanceResult:
 def define_analysis_parameters() -> tuple[str, str]:
     """
     Define analysis parameters.
-    
+
     Returns
     -------
     tuple[str, str]
         Signal name and strategy name.
-        
+
     Notes
     -----
     Must match the signal-strategy combination from backtest step.
@@ -81,19 +81,19 @@ def load_backtest_result(
 ) -> BacktestResult:
     """
     Load backtest results from processed directory.
-    
+
     Parameters
     ----------
     signal_name : str
         Name of signal.
     strategy_name : str
         Name of strategy.
-    
+
     Returns
     -------
     BacktestResult
         Backtest result with positions and P&L DataFrames.
-        
+
     Notes
     -----
     Loads positions and P&L from separate parquet files saved
@@ -101,18 +101,18 @@ def load_backtest_result(
     with minimal metadata for analysis.
     """
     backtests_dir = PROCESSED_DIR / "backtests"
-    
+
     positions_path = backtests_dir / f"{signal_name}_{strategy_name}_positions.parquet"
     pnl_path = backtests_dir / f"{signal_name}_{strategy_name}_pnl.parquet"
-    
+
     positions = load_parquet(positions_path)
     pnl = load_parquet(pnl_path)
-    
+
     metadata = {
         "signal_id": signal_name,
         "strategy_id": strategy_name,
     }
-    
+
     return BacktestResult(
         positions=positions,
         pnl=pnl,
@@ -123,12 +123,12 @@ def load_backtest_result(
 def define_performance_config() -> PerformanceConfig:
     """
     Define performance evaluation configuration.
-    
+
     Returns
     -------
     PerformanceConfig
         Configuration with analysis parameters.
-        
+
     Notes
     -----
     Uses quarterly subperiod analysis (n_subperiods=4) and
@@ -152,19 +152,19 @@ def compute_performance_metrics(
 ) -> PerformanceResult:
     """
     Compute comprehensive performance metrics.
-    
+
     Parameters
     ----------
     backtest_result : BacktestResult
         Backtest output with positions and P&L.
     config : PerformanceConfig
         Performance evaluation configuration.
-    
+
     Returns
     -------
     PerformanceResult
         Complete performance analysis with metrics, attribution, and summary.
-        
+
     Notes
     -----
     Orchestrates all performance computations:
@@ -185,7 +185,7 @@ def save_performance_report(
 ) -> None:
     """
     Generate and save performance report.
-    
+
     Parameters
     ----------
     performance : PerformanceResult
@@ -194,7 +194,7 @@ def save_performance_report(
         Name of signal.
     strategy_name : str
         Name of strategy.
-        
+
     Notes
     -----
     Generates markdown report with formatted tables and saves to

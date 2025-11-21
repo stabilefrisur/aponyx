@@ -40,7 +40,7 @@ def main() -> None:
     the data fetch interface.
     """
     output_dir = RAW_DIR / "synthetic"
-    
+
     generate_for_fetch_interface(
         output_dir=output_dir,
         start_date="2020-01-01",

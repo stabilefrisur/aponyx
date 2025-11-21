@@ -7,18 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.11] - 2025-11-21
+
 ### Added
 - **CLI Orchestrator** for automated research workflows
   - `aponyx run` command for executing complete signal-strategy pipelines
   - `aponyx report` command for generating comprehensive analysis reports (console/markdown/HTML)
   - `aponyx list` command for browsing available signals, strategies, and datasets
-  - `aponyx clean` command for managing cached workflow results
+  - `aponyx clean` command for managing cached workflow results with improved feedback
   - YAML configuration file support for reproducible workflows
   - Smart caching with automatic skip of completed steps
   - Force re-run option for invalidating cache
   - Subset execution for running specific workflow steps
-  - Example config files in `examples/` directory
+  - Example workflow YAML files in `examples/` directory
   - Comprehensive CLI user guide (`src/aponyx/docs/cli_user_guide.md`)
+  - Help text shorthand (`-h`) for all commands
+  - Comprehensive CLI layer test suite with 28 tests
 - **Workflow Engine** infrastructure
   - `WorkflowEngine` for sequential pipeline execution with dependency tracking
   - `WorkflowConfig` for immutable workflow configuration
@@ -27,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `StepRegistry` for centralized step factory and ordering
   - Error handling with partial result preservation
   - Structured logging with progress indicators
+  - Cache-then-raw fallback for workflow data loading
+  - Decoupled data step from instrument-specific logic
 - **Reporting Package** for analysis aggregation
   - `generate_report()` function with multiple output formats
   - Console reports with table formatting
@@ -34,17 +40,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - HTML reports with styled formatting
   - Automatic aggregation of suitability and performance evaluations
   - Smart report data collection from workflow outputs
+- **Example Scripts** for standalone workflow execution
+  - `01_generate_synthetic_data.py` - Synthetic data generation
+  - `02_fetch_data_file.py` - File-based data loading
+  - `03_fetch_data_bloomberg.py` - Bloomberg Terminal data fetch
+  - `04_compute_signal.py` - Signal computation
+  - `05_evaluate_suitability.py` - Signal-product suitability assessment
+  - `06_run_backtest.py` - Strategy backtesting
+  - `07_analyze_performance.py` - Performance analysis
+  - `08_visualize_results.py` - Results visualization
 
 ### Changed
-- Updated `pyproject.toml` to include `pyyaml>=6.0` dependency
-- Added `aponyx` CLI entry point in `[project.scripts]`
-- Enhanced project structure with `cli/` and `reporting/` packages
+- **Architecture Improvements**
+  - Decoupled configuration from specific instruments for better modularity
+  - Separated signal metadata, registry, and orchestration into distinct modules
+  - Removed defensive error handling from example scripts for clarity
+- **CLI Enhancements**
+  - Simplified CLI output for better readability
+  - Changed default product to `cdx_ig_5y` for consistency
+  - Improved help formatting with better descriptions
+- **Documentation Overhaul**
+  - Consolidated and streamlined documentation structure
+  - Updated all docs for CLI/workflow infrastructure
+  - Fixed README Quick Start example and documentation links
+  - Removed all notebook-related documentation
+- **Testing**
+  - Resolved all 28 failing tests
+  - Added comprehensive CLI layer test coverage
+- **Dependencies**
+  - Updated `pyproject.toml` to include `pyyaml>=6.0` dependency
+  - Added `aponyx` CLI entry point in `[project.scripts]`
 
 ### Removed
-- Jupyter notebooks directory (`src/aponyx/notebooks/`) - CLI workflows now provide complete orchestration
-- `NOTEBOOK_TROUBLESHOOTING.md` - no longer needed after notebook removal
-- All notebook-related documentation from README.md, copilot-instructions.md, and design docs
-- Improved documentation structure with comprehensive CLI guides
+- **Jupyter Notebooks** - Complete removal of notebook workflow
+  - Deleted entire `src/aponyx/notebooks/` directory with all workflow notebooks
+  - Removed `NOTEBOOK_TROUBLESHOOTING.md`
+  - Removed notebook-related sections from README.md
+  - Removed notebook context from copilot-instructions.md
+  - Cleaned up notebook references from design docs (performance_evaluation, visualization, python_guidelines)
+  - Removed notebook references from PROJECT_STATUS.md
+  - CLI workflows now provide complete orchestration, making notebooks redundant
 
 ## [0.1.10] - 2025-11-16
 
@@ -495,6 +530,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.11]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.11
 [0.1.10]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.10
 [0.1.9]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.9
 [0.1.8]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.8

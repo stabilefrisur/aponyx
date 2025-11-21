@@ -29,9 +29,9 @@ logger = logging.getLogger(__name__)
 def list_items(item_type: str) -> None:
     """
     List available catalog items.
-    
+
     ITEM_TYPE can be: signals, strategies, or datasets
-    
+
     Examples:
 
         aponyx list signals
@@ -43,21 +43,21 @@ def list_items(item_type: str) -> None:
     if item_type == "signals":
         registry = SignalRegistry(SIGNAL_CATALOG_PATH)
         signals = registry.list_all()
-        
+
         for signal_name, metadata in signals.items():
             click.echo(f"{signal_name:<20} {metadata.description}")
-            
+
     elif item_type == "strategies":
         registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
         strategies = registry.list_all()
-        
+
         for strategy_name, metadata in strategies.items():
             click.echo(f"{strategy_name:<20} {metadata.description}")
-            
+
     elif item_type == "datasets":
         registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
         datasets = registry.list_datasets()
-        
+
         for dataset in datasets:
             info = registry.get_dataset_info(dataset)
             # Try to get security from params, fall back to instrument type

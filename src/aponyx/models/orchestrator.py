@@ -10,15 +10,15 @@ Design Notes
 market_data dict pattern:
     The orchestrator accepts a dict mapping generic keys (e.g., "cdx", "etf")
     to DataFrame objects. This enables catalog-driven computation where:
-    
+
     1. Different signals require different data combinations
     2. Catalog defines requirements declaratively via data_requirements
     3. Orchestrator resolves data dynamically using arg_mapping
-    
+
     Alternative approaches considered:
     - Named parameters: Inflexible, requires knowing all data types upfront
     - Auto-loading from DataRegistry: Couples signal computation to data loading
-    
+
     The dict pattern is kept for flexibility despite adding indirection.
 
 arg_mapping pattern:
@@ -54,14 +54,14 @@ def compute_registered_signals(
 
     Validates data requirements, resolves compute functions dynamically,
     and executes signal computations in registration order.
-    
+
     Correct Usage Pattern
     ---------------------
     1. Get all required data keys: `aponyx.data.requirements.get_required_data_keys()`
     2. Load all required data into market_data dict
     3. Compute all enabled signals at once with this function
     4. Select individual signals for evaluation/backtesting
-    
+
     This batch computation approach is efficient because:
     - Data is loaded once (not per-signal)
     - All signals computed in single pass
@@ -75,7 +75,7 @@ def compute_registered_signals(
         Market data mapping. Keys should match signal data_requirements.
         Must contain ALL data keys required by ANY enabled signal.
         Example: {"cdx": cdx_df, "etf": etf_df, "vix": vix_df}
-        
+
         The dict pattern enables catalog-driven computation where different
         signals can specify different data requirements without hardcoding.
     config : SignalConfig
@@ -97,35 +97,35 @@ def compute_registered_signals(
     Examples
     --------
     Correct pattern (load all data once, compute all signals):
-    
+
     >>> from aponyx.config import SIGNAL_CATALOG_PATH
     >>> from aponyx.data.requirements import get_required_data_keys
     >>> from aponyx.models import SignalRegistry, SignalConfig, compute_registered_signals
-    >>> 
+    >>>
     >>> # 1. Get required data keys from catalog
     >>> required_keys = get_required_data_keys(SIGNAL_CATALOG_PATH)  # {"cdx", "etf", "vix"}
-    >>> 
+    >>>
     >>> # 2. Load all required data once
     >>> market_data = {}
     >>> for key in required_keys:
     ...     market_data[key] = load_data_for(key)
-    >>> 
+    >>>
     >>> # 3. Compute all enabled signals
     >>> registry = SignalRegistry(SIGNAL_CATALOG_PATH)
     >>> config = SignalConfig(lookback=20)
     >>> all_signals = compute_registered_signals(registry, market_data, config)
-    >>> 
+    >>>
     >>> # 4. Use individual signals for analysis
     >>> basis_signal = all_signals["cdx_etf_basis"]
     >>> gap_signal = all_signals["cdx_vix_gap"]
-    
+
     Notes
     -----
     The market_data dict keys must match the keys in each signal's
     data_requirements field from the catalog. For example, if a signal
     specifies {"cdx": "spread", "vix": "level"}, then market_data must
     contain keys "cdx" and "vix" with DataFrames having those columns.
-    
+
     Use aponyx.data.requirements.get_required_data_keys() to determine
     what data to load before calling this function.
     """

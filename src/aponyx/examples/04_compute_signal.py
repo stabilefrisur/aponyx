@@ -23,7 +23,7 @@ Examples
 --------
 Run from project root:
     python -m aponyx.examples.04_compute_signal
-    
+
 Returns dict with signal names as keys and pd.Series as values.
 Expected: 3 signals (cdx_etf_basis, cdx_vix_gap, spread_momentum).
 """
@@ -40,10 +40,10 @@ from aponyx.persistence import load_parquet, save_parquet
 def main() -> dict[str, pd.Series]:
     """
     Execute batch signal computation workflow.
-    
+
     Loads all required market data from registry, then computes
     all enabled signals in a single pass.
-    
+
     Returns
     -------
     dict[str, pd.Series]
@@ -59,7 +59,7 @@ def main() -> dict[str, pd.Series]:
 def define_signal_config() -> SignalConfig:
     """
     Define signal computation configuration.
-    
+
     Returns
     -------
     SignalConfig
@@ -74,42 +74,42 @@ def define_signal_config() -> SignalConfig:
 def load_all_required_data() -> dict[str, pd.DataFrame]:
     """
     Load all market data required by enabled signals.
-    
+
     Correct pattern: Load union of all data requirements ONCE,
     then compute all signals with complete market_data dict.
-    
+
     Returns
     -------
     dict[str, pd.DataFrame]
         Market data mapping with all required instruments.
         Keys are generic identifiers (e.g., "cdx", "etf", "vix").
-        
+
     Notes
     -----
     Uses get_required_data_keys() to determine what data to load
     based on ALL enabled signals in the catalog.
     """
     data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
-    
+
     required_keys = get_required_data_keys(SIGNAL_CATALOG_PATH)
-    
+
     market_data = {}
-    
+
     for data_key in sorted(required_keys):
         matching_datasets = data_registry.list_datasets(instrument=data_key)
-        
+
         if not matching_datasets:
             raise ValueError(
                 f"No datasets found for instrument '{data_key}'. "
                 f"Run data fetching workflow first."
             )
-        
+
         dataset_name = sorted(matching_datasets)[-1]
         info = data_registry.get_dataset_info(dataset_name)
         df = load_parquet(info["file_path"])
-        
+
         market_data[data_key] = df
-    
+
     return market_data
 
 
@@ -119,19 +119,19 @@ def compute_all_signals(
 ) -> dict[str, pd.Series]:
     """
     Compute all enabled signals using complete market data.
-    
+
     Parameters
     ----------
     market_data : dict[str, pd.DataFrame]
         Complete market data with all required instruments.
     config : SignalConfig
         Signal computation configuration.
-        
+
     Returns
     -------
     dict[str, pd.Series]
         Mapping from signal name to computed signal series.
-        
+
     Notes
     -----
     Orchestrator computes ALL enabled signals in one pass.
@@ -144,19 +144,19 @@ def compute_all_signals(
 def save_all_signals(signals: dict[str, pd.Series]) -> None:
     """
     Save computed signals to processed directory.
-    
+
     Parameters
     ----------
     signals : dict[str, pd.Series]
         Mapping from signal name to computed signal series.
-        
+
     Notes
     -----
     Saves each signal as data/processed/signals/{signal_name}.parquet.
     """
     signals_dir = PROCESSED_DIR / "signals"
     signals_dir.mkdir(parents=True, exist_ok=True)
-    
+
     for signal_name, signal_series in signals.items():
         signal_path = signals_dir / f"{signal_name}.parquet"
         signal_df = signal_series.to_frame(name="value")

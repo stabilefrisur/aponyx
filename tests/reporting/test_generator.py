@@ -76,7 +76,7 @@ class TestReportData:
             has_visualizations=True,
             workflow_dir=Path("/test/dir"),
         )
-        
+
         assert data.signal_name == "spread_momentum"
         assert data.strategy_name == "balanced"
         assert data.suitability_report == "Test suitability"
@@ -87,7 +87,7 @@ class TestReportData:
             signal_name="test_signal",
             strategy_name="test_strategy",
         )
-        
+
         assert data.suitability_report is None
         assert data.performance_report is None
         assert data.has_visualizations is False
@@ -114,28 +114,28 @@ class TestCollectReportData:
         eval_dir = tmp_path / "evaluation"
         perf_dir = tmp_path / "performance"
         workflows_dir = tmp_path / "workflows"
-        
+
         eval_dir.mkdir()
         perf_dir.mkdir()
         workflows_dir.mkdir()
-        
+
         mock_eval_dir.glob = lambda pattern: eval_dir.glob(pattern)
         mock_perf_dir.glob = lambda pattern: perf_dir.glob(pattern)
         mock_processed_dir.__truediv__ = lambda self, other: workflows_dir / other
-        
+
         # Create test reports
         suitability_file = eval_dir / "spread_momentum_20241120_123456.md"
         suitability_file.write_text(sample_suitability_report)
-        
+
         performance_file = perf_dir / "spread_momentum_balanced_20241120_123456.md"
         performance_file.write_text(sample_performance_report)
-        
+
         # Create workflow directory
         workflow_dir = workflows_dir / "spread_momentum_balanced_20241120_123456"
         workflow_dir.mkdir()
-        
+
         data = _collect_report_data("spread_momentum", "balanced")
-        
+
         assert data.signal_name == "spread_momentum"
         assert data.strategy_name == "balanced"
         assert sample_suitability_report.strip() in data.suitability_report
@@ -154,10 +154,10 @@ class TestCollectReportData:
         perf_dir = tmp_path / "performance"
         eval_dir.mkdir()
         perf_dir.mkdir()
-        
+
         mock_eval_dir.glob = lambda pattern: eval_dir.glob(pattern)
         mock_perf_dir.glob = lambda pattern: perf_dir.glob(pattern)
-        
+
         with pytest.raises(FileNotFoundError, match="No workflow results found"):
             _collect_report_data("nonexistent_signal", "nonexistent_strategy")
 
@@ -173,9 +173,9 @@ class TestGenerateConsoleReport:
             suitability_report="Test suitability content",
             performance_report="Test performance content",
         )
-        
+
         report = _generate_console_report(data)
-        
+
         assert "test_signal" in report
         assert "test_strategy" in report
         assert "SUITABILITY EVALUATION" in report
@@ -184,25 +184,23 @@ class TestGenerateConsoleReport:
     def test_generate_console_report_with_visualizations(self, tmp_path):
         """Test console report includes visualization references."""
         from aponyx.config import PROCESSED_DIR
-        
+
         # Create mock visualization directory
-        viz_dir = (
-            PROCESSED_DIR / "workflows" / "visualizations" / "test_signal_test_strategy"
-        )
+        viz_dir = PROCESSED_DIR / "workflows" / "visualizations" / "test_signal_test_strategy"
         viz_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Create mock visualization file
         viz_file = viz_dir / "equity_curve.html"
         viz_file.write_text("<html>chart</html>")
-        
+
         data = ReportData(
             signal_name="test_signal",
             strategy_name="test_strategy",
             has_visualizations=True,
         )
-        
+
         report = _generate_console_report(data)
-        
+
         assert "VISUALIZATIONS" in report
 
 
@@ -221,9 +219,9 @@ class TestGenerateMarkdownReport:
             suitability_report=sample_suitability_report,
             performance_report=sample_performance_report,
         )
-        
+
         report = _generate_markdown_report(data)
-        
+
         assert "# Research Report: test_signal (test_strategy)" in report
         assert "## Suitability Evaluation" in report
         assert "## Performance Analysis" in report
@@ -236,9 +234,9 @@ class TestGenerateMarkdownReport:
             strategy_name="test_strategy",
             workflow_dir=Path("/test/workflows/test_signal_20241120"),
         )
-        
+
         report = _generate_markdown_report(data)
-        
+
         assert "## Workflow Details" in report
         assert "test_signal_20241120" in report
 
@@ -254,9 +252,9 @@ class TestGenerateHTMLReport:
             suitability_report="# Test\n\n**Bold text**",
             performance_report="## Metrics\n\n`code`",
         )
-        
+
         report = _generate_html_report(data)
-        
+
         assert "<!DOCTYPE html>" in report
         assert "<html" in report
         assert "</html>" in report
@@ -270,9 +268,9 @@ class TestGenerateHTMLReport:
             strategy_name="test_strategy",
             suitability_report="**Bold** and `code`",
         )
-        
+
         report = _generate_html_report(data)
-        
+
         assert "<strong>Bold</strong>" in report
         assert "<code>code</code>" in report
 
@@ -288,9 +286,9 @@ class TestGenerateHTMLReport:
 | Return | 20% |
 """,
         )
-        
+
         report = _generate_html_report(data)
-        
+
         assert "<table>" in report
         assert "<th>" in report
         assert "<td>" in report
@@ -307,13 +305,13 @@ class TestGenerateReport:
             strategy_name="test_strategy",
             suitability_report="Test content",
         )
-        
+
         report = generate_report(
             "test_signal",
             "test_strategy",
             format=ReportFormat.CONSOLE,
         )
-        
+
         assert isinstance(report, str)
         assert "test_signal" in report
 
@@ -325,16 +323,16 @@ class TestGenerateReport:
             strategy_name="test_strategy",
             performance_report="Test content",
         )
-        
+
         output_path = tmp_path / "report.md"
-        
+
         report = generate_report(
             "test_signal",
             "test_strategy",
             format=ReportFormat.MARKDOWN,
             output_path=output_path,
         )
-        
+
         assert output_path.exists()
         assert "test_signal" in report
 
@@ -346,16 +344,16 @@ class TestGenerateReport:
             strategy_name="test_strategy",
             suitability_report="Test content",
         )
-        
+
         output_path = tmp_path / "report.html"
-        
+
         report = generate_report(
             "test_signal",
             "test_strategy",
             format=ReportFormat.HTML,
             output_path=output_path,
         )
-        
+
         assert output_path.exists()
         assert "<!DOCTYPE html>" in report
 
@@ -366,13 +364,13 @@ class TestGenerateReport:
             signal_name="test_signal",
             strategy_name="test_strategy",
         )
-        
+
         report = generate_report(
             "test_signal",
             "test_strategy",
             format="markdown",
         )
-        
+
         assert isinstance(report, str)
 
 
@@ -385,9 +383,9 @@ class TestEdgeCases:
             signal_name="test_signal",
             strategy_name="test_strategy",
         )
-        
+
         report = _generate_console_report(data)
-        
+
         assert "test_signal" in report
         assert "test_strategy" in report
 
@@ -397,9 +395,9 @@ class TestEdgeCases:
             signal_name="test_signal",
             strategy_name="test_strategy",
         )
-        
+
         report = _generate_markdown_report(data)
-        
+
         # Should still have header
         assert "# Research Report" in report
         assert "test_signal" in report

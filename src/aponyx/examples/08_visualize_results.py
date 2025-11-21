@@ -34,15 +34,15 @@ from aponyx.visualization import plot_equity_curve, plot_drawdown, plot_signal
 def main() -> dict[str, go.Figure]:
     """
     Execute visualization workflow.
-    
+
     Loads backtest results and generates three key charts:
     equity curve, drawdown, and signal time series.
-    
+
     Returns
     -------
     dict[str, go.Figure]
         Dictionary of figure names to Plotly figure objects.
-        
+
     Notes
     -----
     Figures are returned for flexible rendering (Streamlit, Jupyter, HTML).
@@ -58,12 +58,12 @@ def main() -> dict[str, go.Figure]:
 def define_visualization_parameters() -> tuple[str, str]:
     """
     Define visualization parameters.
-    
+
     Returns
     -------
     tuple[str, str]
         Signal name and strategy name.
-        
+
     Notes
     -----
     Must match the signal-strategy combination from backtest step.
@@ -79,19 +79,19 @@ def load_backtest_data(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Load P&L and positions from backtest results.
-    
+
     Parameters
     ----------
     signal_name : str
         Name of signal.
     strategy_name : str
         Name of strategy.
-    
+
     Returns
     -------
     tuple[pd.DataFrame, pd.DataFrame]
         P&L DataFrame and positions DataFrame.
-        
+
     Notes
     -----
     Loads data saved by 06_run_backtest.py from processed directory.
@@ -99,13 +99,13 @@ def load_backtest_data(
     Positions DataFrame contains signal column for signal plot.
     """
     backtests_dir = PROCESSED_DIR / "backtests"
-    
+
     pnl_path = backtests_dir / f"{signal_name}_{strategy_name}_pnl.parquet"
     positions_path = backtests_dir / f"{signal_name}_{strategy_name}_positions.parquet"
-    
+
     pnl = load_parquet(pnl_path)
     positions = load_parquet(positions_path)
-    
+
     return pnl, positions
 
 
@@ -117,7 +117,7 @@ def generate_all_charts(
 ) -> dict[str, go.Figure]:
     """
     Generate all visualization charts.
-    
+
     Parameters
     ----------
     pnl : pd.DataFrame
@@ -128,12 +128,12 @@ def generate_all_charts(
         Signal name for titles.
     strategy_name : str
         Strategy name for titles.
-    
+
     Returns
     -------
     dict[str, go.Figure]
         Dictionary with keys: equity_curve, drawdown, signal.
-        
+
     Notes
     -----
     Charts are configured for research presentation:
@@ -142,24 +142,24 @@ def generate_all_charts(
     - Signal includes ±2 threshold lines for regime boundaries
     """
     figures = {}
-    
+
     figures["equity_curve"] = create_equity_curve(
         pnl,
         signal_name,
         strategy_name,
     )
-    
+
     figures["drawdown"] = create_drawdown_chart(
         pnl,
         signal_name,
         strategy_name,
     )
-    
+
     figures["signal"] = create_signal_chart(
         positions,
         signal_name,
     )
-    
+
     return figures
 
 
@@ -170,7 +170,7 @@ def create_equity_curve(
 ) -> go.Figure:
     """
     Create equity curve chart with drawdown shading.
-    
+
     Parameters
     ----------
     pnl : pd.DataFrame
@@ -179,12 +179,12 @@ def create_equity_curve(
         Signal name for title.
     strategy_name : str
         Strategy name for title.
-    
+
     Returns
     -------
     go.Figure
         Plotly equity curve figure.
-        
+
     Notes
     -----
     Uses net_pnl column for cumulative P&L calculation.
@@ -205,7 +205,7 @@ def create_drawdown_chart(
 ) -> go.Figure:
     """
     Create drawdown chart showing peak-to-trough decline.
-    
+
     Parameters
     ----------
     pnl : pd.DataFrame
@@ -214,12 +214,12 @@ def create_drawdown_chart(
         Signal name for title.
     strategy_name : str
         Strategy name for title.
-    
+
     Returns
     -------
     go.Figure
         Plotly drawdown figure.
-        
+
     Notes
     -----
     Uses underwater chart format (absolute dollars).
@@ -239,19 +239,19 @@ def create_signal_chart(
 ) -> go.Figure:
     """
     Create signal time series chart with threshold lines.
-    
+
     Parameters
     ----------
     positions : pd.DataFrame
         Positions data with signal column.
     signal_name : str
         Signal name for title.
-    
+
     Returns
     -------
     go.Figure
         Plotly signal figure.
-        
+
     Notes
     -----
     Threshold lines at ±2 mark typical entry/exit levels.
@@ -260,7 +260,7 @@ def create_signal_chart(
     title = f"Signal: {signal_name}"
     signal = positions["signal"]
     signal.name = signal_name
-    
+
     return plot_signal(
         signal,
         title=title,

@@ -46,10 +46,10 @@ def report(
 ) -> None:
     """
     Generate comprehensive research report from existing results.
-    
+
     Aggregates suitability evaluation, performance metrics, and visualization
     references into a single document. Supports console output, markdown, and HTML.
-    
+
     Examples:
 
         aponyx report --signal spread_momentum --strategy balanced
@@ -65,13 +65,13 @@ def report(
             format=format,
             output_path=output,
         )
-        
+
         if format == "console":
             click.echo(content)
         else:
             output_path_str = str(output) if output else "default location"
             click.echo(f"Report saved: {output_path_str}")
-            
+
     except FileNotFoundError as e:
         click.echo(str(e), err=True)
         raise click.Abort()

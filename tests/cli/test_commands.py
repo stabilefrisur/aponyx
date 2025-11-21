@@ -144,12 +144,17 @@ def test_run_command_missing_strategy(runner):
 
 def test_run_command_with_mock_workflow(runner, mock_workflow_engine):
     """Test run command executes workflow."""
-    result = runner.invoke(cli, [
-        "run",
-        "--signal", "spread_momentum",
-        "--strategy", "balanced",
-    ])
-    
+    result = runner.invoke(
+        cli,
+        [
+            "run",
+            "--signal",
+            "spread_momentum",
+            "--strategy",
+            "balanced",
+        ],
+    )
+
     assert result.exit_code == 0
     assert "Running: spread_momentum (balanced)" in result.output
     assert "Inputs:" in result.output
@@ -159,13 +164,19 @@ def test_run_command_with_mock_workflow(runner, mock_workflow_engine):
 
 def test_run_command_with_data_source(runner, mock_workflow_engine):
     """Test run command accepts data source option."""
-    result = runner.invoke(cli, [
-        "run",
-        "--signal", "spread_momentum",
-        "--strategy", "balanced",
-        "--data", "file",
-    ])
-    
+    result = runner.invoke(
+        cli,
+        [
+            "run",
+            "--signal",
+            "spread_momentum",
+            "--strategy",
+            "balanced",
+            "--data",
+            "file",
+        ],
+    )
+
     assert result.exit_code == 0
     assert "Data: file" in result.output
     assert "Inputs:" in result.output
@@ -173,13 +184,19 @@ def test_run_command_with_data_source(runner, mock_workflow_engine):
 
 def test_run_command_with_invalid_data_source(runner):
     """Test run command rejects invalid data source."""
-    result = runner.invoke(cli, [
-        "run",
-        "--signal", "spread_momentum",
-        "--strategy", "balanced",
-        "--data", "invalid",
-    ])
-    
+    result = runner.invoke(
+        cli,
+        [
+            "run",
+            "--signal",
+            "spread_momentum",
+            "--strategy",
+            "balanced",
+            "--data",
+            "invalid",
+        ],
+    )
+
     assert result.exit_code != 0
 
 
@@ -192,18 +209,21 @@ def test_run_command_with_workflow_error(runner):
             "steps_skipped": 0,
             "output_dir": "/mock/output",
             "duration_seconds": 5.0,
-            "errors": [
-                {"step": "signal", "error": "Mock error", "type": "RuntimeError"}
-            ],
+            "errors": [{"step": "signal", "error": "Mock error", "type": "RuntimeError"}],
         }
         mock_engine_class.return_value = mock_engine
-        
-        result = runner.invoke(cli, [
-            "run",
-            "--signal", "spread_momentum",
-            "--strategy", "balanced",
-        ])
-        
+
+        result = runner.invoke(
+            cli,
+            [
+                "run",
+                "--signal",
+                "spread_momentum",
+                "--strategy",
+                "balanced",
+            ],
+        )
+
         assert result.exit_code != 0
         assert "Workflow failed" in result.output
         assert "signal:" in result.output
@@ -211,26 +231,37 @@ def test_run_command_with_workflow_error(runner):
 
 def test_run_command_with_steps_option(runner, mock_workflow_engine):
     """Test run command accepts steps option."""
-    result = runner.invoke(cli, [
-        "run",
-        "--signal", "spread_momentum",
-        "--strategy", "balanced",
-        "--steps", "data,signal",
-    ])
-    
+    result = runner.invoke(
+        cli,
+        [
+            "run",
+            "--signal",
+            "spread_momentum",
+            "--strategy",
+            "balanced",
+            "--steps",
+            "data,signal",
+        ],
+    )
+
     assert result.exit_code == 0
     assert "Steps: data, signal" in result.output
 
 
 def test_run_command_with_force_flag(runner, mock_workflow_engine):
     """Test run command accepts force flag."""
-    result = runner.invoke(cli, [
-        "run",
-        "--signal", "spread_momentum",
-        "--strategy", "balanced",
-        "--force",
-    ])
-    
+    result = runner.invoke(
+        cli,
+        [
+            "run",
+            "--signal",
+            "spread_momentum",
+            "--strategy",
+            "balanced",
+            "--force",
+        ],
+    )
+
     assert result.exit_code == 0
     assert "Mode: Force re-run" in result.output
 
@@ -245,9 +276,9 @@ def test_run_command_with_yaml_config(runner, mock_workflow_engine, tmp_path):
         "force": True,
     }
     config_file.write_text(yaml.dump(config_data))
-    
+
     result = runner.invoke(cli, ["run", "--config", str(config_file)])
-    
+
     assert result.exit_code == 0
     assert "Running: spread_momentum (balanced)" in result.output
 
@@ -260,13 +291,18 @@ def test_run_command_yaml_overrides_with_cli_options(runner, mock_workflow_engin
         "strategy": "aggressive",
     }
     config_file.write_text(yaml.dump(config_data))
-    
-    result = runner.invoke(cli, [
-        "run",
-        "--config", str(config_file),
-        "--signal", "spread_momentum",  # Override YAML
-    ])
-    
+
+    result = runner.invoke(
+        cli,
+        [
+            "run",
+            "--config",
+            str(config_file),
+            "--signal",
+            "spread_momentum",  # Override YAML
+        ],
+    )
+
     assert result.exit_code == 0
     assert "Running: spread_momentum" in result.output
 
@@ -275,9 +311,9 @@ def test_run_command_invalid_yaml_config(runner, tmp_path):
     """Test run command handles invalid YAML config."""
     config_file = tmp_path / "invalid.yaml"
     config_file.write_text("invalid: yaml: content:")
-    
+
     result = runner.invoke(cli, ["run", "--config", str(config_file)])
-    
+
     assert result.exit_code != 0
     assert "Failed to load config file" in result.output
 
@@ -285,7 +321,7 @@ def test_run_command_invalid_yaml_config(runner, tmp_path):
 def test_run_command_missing_yaml_config(runner):
     """Test run command handles missing YAML config file."""
     result = runner.invoke(cli, ["run", "--config", "nonexistent.yaml"])
-    
+
     assert result.exit_code != 0
 
 
@@ -298,9 +334,9 @@ def test_run_command_yaml_with_steps(runner, mock_workflow_engine, tmp_path):
         "steps": ["data", "signal", "backtest"],
     }
     config_file.write_text(yaml.dump(config_data))
-    
+
     result = runner.invoke(cli, ["run", "--config", str(config_file)])
-    
+
     assert result.exit_code == 0
 
 
@@ -316,13 +352,18 @@ def test_run_command_with_skipped_steps(runner):
             "errors": [],
         }
         mock_engine_class.return_value = mock_engine
-        
-        result = runner.invoke(cli, [
-            "run",
-            "--signal", "spread_momentum",
-            "--strategy", "balanced",
-        ])
-        
+
+        result = runner.invoke(
+            cli,
+            [
+                "run",
+                "--signal",
+                "spread_momentum",
+                "--strategy",
+                "balanced",
+            ],
+        )
+
         assert result.exit_code == 0
         assert "Skipped 2" in result.output
 
@@ -373,7 +414,7 @@ def test_list_signals_empty(runner):
         mock_registry = MagicMock()
         mock_registry.list_all.return_value = {}
         mock_registry_class.return_value = mock_registry
-        
+
         result = runner.invoke(cli, ["list", "signals"])
         assert result.exit_code == 0
 
@@ -384,7 +425,7 @@ def test_list_strategies_empty(runner):
         mock_registry = MagicMock()
         mock_registry.list_all.return_value = {}
         mock_registry_class.return_value = mock_registry
-        
+
         result = runner.invoke(cli, ["list", "strategies"])
         assert result.exit_code == 0
 
@@ -395,7 +436,7 @@ def test_list_datasets_empty(runner):
         mock_registry = MagicMock()
         mock_registry.list_datasets.return_value = []
         mock_registry_class.return_value = mock_registry
-        
+
         result = runner.invoke(cli, ["list", "datasets"])
         assert result.exit_code == 0
 
@@ -420,9 +461,9 @@ def test_clean_command_dry_run(runner, tmp_path):
         workflows_dir.mkdir(parents=True)
         test_file = workflows_dir / "spread_momentum_balanced_20251120_123456"
         test_file.mkdir()
-        
+
         result = runner.invoke(cli, ["clean", "--all", "--dry-run"])
-        
+
         assert result.exit_code == 0
         assert "Would delete" in result.output
         assert test_file.exists()  # Should not be deleted
@@ -435,9 +476,9 @@ def test_clean_command_all(runner, tmp_path):
         workflows_dir.mkdir(parents=True)
         test_file = workflows_dir / "test_file.txt"
         test_file.write_text("test")
-        
+
         result = runner.invoke(cli, ["clean", "--all"])
-        
+
         assert result.exit_code == 0
         assert not test_file.exists()
 
@@ -447,15 +488,15 @@ def test_clean_command_specific_signal(runner, tmp_path):
     with patch("aponyx.cli.commands.clean.PROCESSED_DIR", tmp_path):
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir(parents=True)
-        
+
         # Create files for different signals
         target_file = workflows_dir / "spread_momentum_balanced_20251120_123456"
         target_file.mkdir()
         other_file = workflows_dir / "cdx_vix_gap_aggressive_20251120_123456"
         other_file.mkdir()
-        
+
         result = runner.invoke(cli, ["clean", "--signal", "spread_momentum"])
-        
+
         assert result.exit_code == 0
         assert not target_file.exists()
         assert other_file.exists()  # Other signal should remain
@@ -465,7 +506,7 @@ def test_clean_command_no_cached_results(runner, tmp_path):
     """Test clean command with no cached results."""
     with patch("aponyx.cli.commands.clean.PROCESSED_DIR", tmp_path):
         result = runner.invoke(cli, ["clean", "--all"])
-        
+
         assert result.exit_code == 0
         assert "No cached results" in result.output
 
@@ -475,9 +516,9 @@ def test_clean_command_signal_not_found(runner, tmp_path):
     with patch("aponyx.cli.commands.clean.PROCESSED_DIR", tmp_path):
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir(parents=True)
-        
+
         result = runner.invoke(cli, ["clean", "--signal", "nonexistent_signal"])
-        
+
         assert result.exit_code == 0
         assert "No cached results found" in result.output
 
@@ -509,13 +550,18 @@ def test_report_command_generates_output(runner):
     """Test report command generates console output."""
     with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
         mock_generate.return_value = "Mock report content"
-        
-        result = runner.invoke(cli, [
-            "report",
-            "--signal", "spread_momentum",
-            "--strategy", "balanced",
-        ])
-        
+
+        result = runner.invoke(
+            cli,
+            [
+                "report",
+                "--signal",
+                "spread_momentum",
+                "--strategy",
+                "balanced",
+            ],
+        )
+
         assert result.exit_code == 0
         assert "Mock report content" in result.output
 
@@ -524,14 +570,20 @@ def test_report_command_markdown_format(runner):
     """Test report command generates markdown format."""
     with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
         mock_generate.return_value = "# Mock Report"
-        
-        result = runner.invoke(cli, [
-            "report",
-            "--signal", "spread_momentum",
-            "--strategy", "balanced",
-            "--format", "markdown",
-        ])
-        
+
+        result = runner.invoke(
+            cli,
+            [
+                "report",
+                "--signal",
+                "spread_momentum",
+                "--strategy",
+                "balanced",
+                "--format",
+                "markdown",
+            ],
+        )
+
         assert result.exit_code == 0
         assert "Report saved" in result.output
 
@@ -540,14 +592,20 @@ def test_report_command_html_format(runner):
     """Test report command generates HTML format."""
     with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
         mock_generate.return_value = "<html>Mock Report</html>"
-        
-        result = runner.invoke(cli, [
-            "report",
-            "--signal", "spread_momentum",
-            "--strategy", "balanced",
-            "--format", "html",
-        ])
-        
+
+        result = runner.invoke(
+            cli,
+            [
+                "report",
+                "--signal",
+                "spread_momentum",
+                "--strategy",
+                "balanced",
+                "--format",
+                "html",
+            ],
+        )
+
         assert result.exit_code == 0
         assert "Report saved" in result.output
 
@@ -557,15 +615,22 @@ def test_report_command_with_output_path(runner, tmp_path):
     with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
         mock_generate.return_value = "Mock report"
         output_file = tmp_path / "custom_report.md"
-        
-        result = runner.invoke(cli, [
-            "report",
-            "--signal", "spread_momentum",
-            "--strategy", "balanced",
-            "--format", "markdown",
-            "--output", str(output_file),
-        ])
-        
+
+        result = runner.invoke(
+            cli,
+            [
+                "report",
+                "--signal",
+                "spread_momentum",
+                "--strategy",
+                "balanced",
+                "--format",
+                "markdown",
+                "--output",
+                str(output_file),
+            ],
+        )
+
         assert result.exit_code == 0
         mock_generate.assert_called_once_with(
             signal_name="spread_momentum",
@@ -579,13 +644,18 @@ def test_report_command_no_workflow_results(runner):
     """Test report command handles missing workflow results."""
     with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
         mock_generate.side_effect = FileNotFoundError("No workflow results")
-        
-        result = runner.invoke(cli, [
-            "report",
-            "--signal", "spread_momentum",
-            "--strategy", "balanced",
-        ])
-        
+
+        result = runner.invoke(
+            cli,
+            [
+                "report",
+                "--signal",
+                "spread_momentum",
+                "--strategy",
+                "balanced",
+            ],
+        )
+
         assert result.exit_code != 0
         assert "No workflow results" in result.output
 
@@ -594,26 +664,37 @@ def test_report_command_generation_error(runner):
     """Test report command handles generation errors."""
     with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
         mock_generate.side_effect = RuntimeError("Mock generation error")
-        
-        result = runner.invoke(cli, [
-            "report",
-            "--signal", "spread_momentum",
-            "--strategy", "balanced",
-        ])
-        
+
+        result = runner.invoke(
+            cli,
+            [
+                "report",
+                "--signal",
+                "spread_momentum",
+                "--strategy",
+                "balanced",
+            ],
+        )
+
         assert result.exit_code != 0
         assert "Report generation failed" in result.output
 
 
 def test_report_command_invalid_format(runner):
     """Test report command rejects invalid format."""
-    result = runner.invoke(cli, [
-        "report",
-        "--signal", "spread_momentum",
-        "--strategy", "balanced",
-        "--format", "invalid",
-    ])
-    
+    result = runner.invoke(
+        cli,
+        [
+            "report",
+            "--signal",
+            "spread_momentum",
+            "--strategy",
+            "balanced",
+            "--format",
+            "invalid",
+        ],
+    )
+
     assert result.exit_code != 0
 
 

@@ -37,7 +37,7 @@ def workflow_config(tmp_path: Path) -> WorkflowConfig:
 def sample_market_data() -> dict[str, pd.DataFrame]:
     """Generate sample market data."""
     dates = pd.date_range("2024-01-01", periods=100, freq="D")
-    
+
     return {
         "cdx": pd.DataFrame(
             {"spread": 100 + pd.Series(range(100)) * 0.5},
@@ -59,6 +59,7 @@ def sample_signal() -> pd.Series:
     """Generate sample signal."""
     dates = pd.date_range("2024-01-01", periods=100, freq="D")
     import numpy as np
+
     np.random.seed(42)
     values = np.random.randn(100) * 0.5
     return pd.Series(values, index=dates, name="signal")
@@ -68,11 +69,12 @@ def sample_signal() -> pd.Series:
 def sample_backtest_result():
     """Generate sample backtest result."""
     from aponyx.backtest.engine import BacktestResult
-    
+
     dates = pd.date_range("2024-01-01", periods=100, freq="D")
     import numpy as np
+
     np.random.seed(42)
-    
+
     # Create positions DataFrame
     positions_data = {
         "signal": np.random.randn(100) * 0.5,
@@ -81,7 +83,7 @@ def sample_backtest_result():
         "spread": 100.0 + np.random.randn(100) * 5,
     }
     positions_df = pd.DataFrame(positions_data, index=dates)
-    
+
     # Create PnL DataFrame
     pnl_data = {
         "spread_pnl": np.random.randn(100) * 0.5,
@@ -90,7 +92,7 @@ def sample_backtest_result():
     }
     pnl_df = pd.DataFrame(pnl_data, index=dates)
     pnl_df["cumulative_pnl"] = pnl_df["net_pnl"].cumsum()
-    
+
     # Create metadata
     metadata = {
         "timestamp": "2024-01-01T00:00:00",
@@ -104,7 +106,7 @@ def sample_backtest_result():
             "total_pnl": float(pnl_df["cumulative_pnl"].iloc[-1]),
         },
     }
-    
+
     return BacktestResult(
         positions=positions_df,
         pnl=pnl_df,
@@ -134,7 +136,7 @@ class TestDataStep:
         """Test DataStep loads all required market data."""
         # Mock required keys
         mock_get_keys.return_value = {"cdx", "etf"}
-        
+
         # Mock registry
         mock_registry = MagicMock()
         mock_registry.list_datasets.side_effect = lambda instrument: [f"{instrument}_data"]
@@ -142,15 +144,13 @@ class TestDataStep:
             "file_path": Path(f"/data/{name}.parquet")
         }
         mock_data_registry_class.return_value = mock_registry
-        
+
         # Mock file loading
-        mock_load_parquet.side_effect = lambda path: sample_market_data[
-            path.stem.split("_")[0]
-        ]
-        
+        mock_load_parquet.side_effect = lambda path: sample_market_data[path.stem.split("_")[0]]
+
         step = DataStep(workflow_config)
         result = step.execute({})
-        
+
         assert "market_data" in result
         assert "cdx" in result["market_data"]
         assert "etf" in result["market_data"]
@@ -170,22 +170,23 @@ class TestDataStep:
     ):
         """Test DataStep raises error when dataset not found."""
         mock_get_keys.return_value = {"cdx"}  # Use valid instrument
-        
+
         mock_registry = MagicMock()
         mock_registry.list_datasets.return_value = []
         mock_data_registry_class.return_value = mock_registry
-        
+
         # Create config with bloomberg source to trigger "dataset not found" error
         from aponyx.workflows.config import WorkflowConfig
+
         bloomberg_config = WorkflowConfig(
             signal_name="test_signal",
             strategy_name="test_strategy",
             product="cdx_ig_5y",
             data_source="bloomberg",
         )
-        
+
         step = DataStep(bloomberg_config)
-        
+
         with pytest.raises(ValueError, match="No datasets found"):
             step.execute({})
 
@@ -213,11 +214,11 @@ class TestSignalStep:
         mock_compute.return_value = {
             "spread_momentum": sample_signal,
         }
-        
+
         step = SignalStep(workflow_config)
         context = {"data": {"market_data": sample_market_data}}
         result = step.execute(context)
-        
+
         assert "signal" in result
         assert isinstance(result["signal"], pd.Series)
         mock_save.assert_called_once()
@@ -234,11 +235,11 @@ class TestSignalStep:
     ):
         """Test SignalStep creates output in correct location."""
         mock_compute.return_value = {"spread_momentum": sample_signal}
-        
+
         step = SignalStep(workflow_config)
         context = {"data": {"market_data": sample_market_data}}
         step.execute(context)
-        
+
         output_path = step.get_output_path()
         assert "signals" in str(output_path)
         assert workflow_config.signal_name in str(output_path)
@@ -247,24 +248,23 @@ class TestSignalStep:
         """Test SignalStep checks for existing output."""
         # Create mock output directory structure
         from aponyx.config import PROCESSED_DIR
-        signal_dir = (
-            PROCESSED_DIR / "workflows" / "signals" / workflow_config.signal_name
-        )
+
+        signal_dir = PROCESSED_DIR / "workflows" / "signals" / workflow_config.signal_name
         signal_dir.mkdir(parents=True, exist_ok=True)
-        
+
         step = SignalStep(workflow_config)
         signal_path = signal_dir / f"{workflow_config.signal_name}.parquet"
-        
+
         # Remove file if it exists from previous test
         if signal_path.exists():
             signal_path.unlink()
-        
+
         # Should not exist initially
         assert not step.output_exists()
-        
+
         # Create the file
         signal_path.write_text("dummy")
-        
+
         # Now should exist
         assert step.output_exists()
 
@@ -298,24 +298,27 @@ class TestSuitabilityStep:
         """Test SuitabilityStep evaluates signal quality."""
         from aponyx.evaluation.suitability import SuitabilityResult
         from unittest.mock import Mock
-        
+
         # Mock strategy registry to provide product
         mock_strategy_registry = Mock()
         mock_metadata = Mock()
         mock_metadata.product = "cdx_ig_5y"  # Match workflow_config.product
         mock_strategy_registry.get_metadata.return_value = mock_metadata
         mock_strategy_registry_class.return_value = mock_strategy_registry
-        
+
         # Mock data registry to provide spread data
         mock_data_registry = Mock()
         mock_data_registry.list_datasets.return_value = ["cdx_data"]
-        mock_info = {"file_path": "/data/cdx.parquet", "metadata": {"params": {"security": "cdx_ig_5y"}}}
+        mock_info = {
+            "file_path": "/data/cdx.parquet",
+            "metadata": {"params": {"security": "cdx_ig_5y"}},
+        }
         mock_data_registry.get_dataset_info.return_value = mock_info
         mock_data_registry_class.return_value = mock_data_registry
-        
+
         # Mock spread data
         mock_load_parquet.return_value = sample_market_data["cdx"]
-        
+
         # Mock evaluation
         mock_result = SuitabilityResult(
             decision="pass",
@@ -338,14 +341,14 @@ class TestSuitabilityStep:
         )
         mock_evaluate.return_value = mock_result
         mock_generate_report.return_value = "Test report"
-        
+
         step = SuitabilityStep(workflow_config)
         context = {
             "signal": {"signal": sample_signal},
             "data": {"market_data": sample_market_data},
         }
         result = step.execute(context)
-        
+
         assert "suitability_result" in result
         mock_evaluate.assert_called_once()
         mock_save_report.assert_called_once()
@@ -376,18 +379,21 @@ class TestBacktestStep:
     ):
         """Test BacktestStep runs strategy backtest."""
         from unittest.mock import Mock
-        
+
         # Mock data registry
         mock_registry = Mock()
         mock_registry.list_datasets.return_value = ["cdx_data"]
-        mock_info = {"file_path": "/data/cdx.parquet", "metadata": {"params": {"security": "cdx_ig_5y"}}}
+        mock_info = {
+            "file_path": "/data/cdx.parquet",
+            "metadata": {"params": {"security": "cdx_ig_5y"}},
+        }
         mock_registry.get_dataset_info.return_value = mock_info
         mock_data_registry_class.return_value = mock_registry
-        
+
         # Mock spread data
         mock_load_parquet.return_value = sample_market_data["cdx"]
         mock_run_backtest.return_value = sample_backtest_result
-        
+
         step = BacktestStep(workflow_config)
         context = {
             "signal": {"signal": sample_signal},
@@ -395,7 +401,7 @@ class TestBacktestStep:
             "suitability": {"product": "cdx_ig_5y"},
         }
         result = step.execute(context)
-        
+
         assert "backtest_result" in result
         mock_run_backtest.assert_called_once()
 
@@ -416,18 +422,21 @@ class TestBacktestStep:
     ):
         """Test BacktestStep loads strategy config from registry."""
         from unittest.mock import Mock
-        
+
         # Mock data registry
         mock_registry = Mock()
         mock_registry.list_datasets.return_value = ["cdx_data"]
-        mock_info = {"file_path": "/data/cdx.parquet", "metadata": {"params": {"security": "cdx_ig_5y"}}}
+        mock_info = {
+            "file_path": "/data/cdx.parquet",
+            "metadata": {"params": {"security": "cdx_ig_5y"}},
+        }
         mock_registry.get_dataset_info.return_value = mock_info
         mock_data_registry_class.return_value = mock_registry
-        
+
         # Mock spread data
         mock_load_parquet.return_value = sample_market_data["cdx"]
         mock_run_backtest.return_value = sample_backtest_result
-        
+
         step = BacktestStep(workflow_config)
         context = {
             "signal": {"signal": sample_signal},
@@ -435,7 +444,7 @@ class TestBacktestStep:
             "suitability": {"product": "cdx_ig_5y"},
         }
         step.execute(context)
-        
+
         # Verify run_backtest was called with signal and config
         call_args = mock_run_backtest.call_args
         assert call_args is not None
@@ -463,24 +472,24 @@ class TestPerformanceStep:
     ):
         """Test PerformanceStep computes extended metrics."""
         from unittest.mock import Mock
-        
+
         # Mock analysis result with proper attributes
         mock_metrics = Mock()
         mock_metrics.sharpe_ratio = 1.5
         mock_metrics.max_drawdown = 0.15  # As decimal, not percentage
-        
+
         mock_result = Mock()
         mock_result.metrics = mock_metrics
         mock_analyze.return_value = mock_result
         mock_generate_report.return_value = "Performance report"
-        
+
         step = PerformanceStep(workflow_config)
         context = {
             "backtest": {"backtest_result": sample_backtest_result},
             "signal": {"signal": sample_signal},
         }
         result = step.execute(context)
-        
+
         assert "performance" in result
         mock_analyze.assert_called_once()
         mock_save_report.assert_called_once()
@@ -512,14 +521,14 @@ class TestVisualizationStep:
         mock_plot_equity.return_value = mock_fig
         mock_plot_drawdown.return_value = mock_fig
         mock_plot_signal.return_value = mock_fig
-        
+
         step = VisualizationStep(workflow_config)
         context = {
             "backtest": {"backtest_result": sample_backtest_result},
             "signal": {"signal": sample_signal},
         }
         result = step.execute(context)
-        
+
         assert "equity_fig" in result
         assert "drawdown_fig" in result
         assert "signal_fig" in result
@@ -545,14 +554,14 @@ class TestVisualizationStep:
         mock_plot_equity.return_value = mock_fig
         mock_plot_drawdown.return_value = mock_fig
         mock_plot_signal.return_value = mock_fig
-        
+
         step = VisualizationStep(workflow_config)
         context = {
             "backtest": {"backtest_result": sample_backtest_result},
             "signal": {"signal": sample_signal},
         }
         step.execute(context)
-        
+
         # Verify write_html was called on figures
         assert mock_fig.write_html.call_count >= 3
 
@@ -581,26 +590,24 @@ class TestStepIntegration:
         mock_get_keys.return_value = {"cdx"}
         mock_registry = MagicMock()
         mock_registry.list_datasets.return_value = ["cdx_data"]
-        mock_registry.get_dataset_info.return_value = {
-            "file_path": Path("/data/cdx.parquet")
-        }
+        mock_registry.get_dataset_info.return_value = {"file_path": Path("/data/cdx.parquet")}
         mock_data_registry_class.return_value = mock_registry
         mock_load_parquet.return_value = sample_market_data["cdx"]
-        
+
         # Setup SignalStep
         mock_compute.return_value = {"spread_momentum": sample_signal}
-        
+
         # Execute DataStep
         data_step = DataStep(workflow_config)
         context = {}
         data_output = data_step.execute(context)
         context["data"] = data_output
-        
+
         # Execute SignalStep with DataStep output
         signal_step = SignalStep(workflow_config)
         signal_output = signal_step.execute(context)
         context["signal"] = signal_output
-        
+
         # Verify signal was computed with data from DataStep
         assert "signal" in signal_output
         mock_compute.assert_called_once()
@@ -610,12 +617,12 @@ class TestStepIntegration:
         data_step = DataStep(workflow_config)
         signal_step = SignalStep(workflow_config)
         backtest_step = BacktestStep(workflow_config)
-        
+
         # All paths should be under workflows directory
         assert "workflows" in str(data_step.get_output_path())
         assert "workflows" in str(signal_step.get_output_path())
         assert "workflows" in str(backtest_step.get_output_path())
-        
+
         # Each step should have its own subdirectory
         assert "data" in str(data_step.get_output_path())
         assert "signals" in str(signal_step.get_output_path())

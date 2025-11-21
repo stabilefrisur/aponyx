@@ -105,8 +105,7 @@ def handle_duplicate_index(
     if strategy == "raise":
         n_dups = df.index.duplicated().sum()
         raise ValueError(
-            f"Found {n_dups} duplicate index entries"
-            + (f" for {context}" if context else "")
+            f"Found {n_dups} duplicate index entries" + (f" for {context}" if context else "")
         )
 
     # Remove duplicates

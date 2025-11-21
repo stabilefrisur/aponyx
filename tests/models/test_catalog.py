@@ -9,7 +9,8 @@ import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from aponyx.models.orchestrator import compute_registered_signals, _validate_data_requirements, get_required_data_keys
+from aponyx.models.orchestrator import compute_registered_signals, _validate_data_requirements
+from aponyx.data.requirements import get_required_data_keys
 from aponyx.models.config import SignalConfig
 from aponyx.models.metadata import SignalMetadata
 from aponyx.models.registry import SignalRegistry
@@ -287,14 +288,14 @@ def test_compute_registered_signals_respects_config_parameters(
 def test_get_required_data_keys(test_catalog_path: Path) -> None:
     """Test that get_required_data_keys returns union of all enabled signals' requirements."""
     registry = SignalRegistry(test_catalog_path)
-    
-    required_keys = get_required_data_keys(registry)
-    
+
+    required_keys = get_required_data_keys(test_catalog_path)
+
     # Should include all keys from all 3 enabled signals
     assert "cdx" in required_keys
     assert "etf" in required_keys
     assert "vix" in required_keys
-    
+
     # Should have exactly 3 keys (union of cdx_etf_basis, cdx_vix_gap, spread_momentum)
     assert len(required_keys) == 3
 
@@ -326,7 +327,7 @@ def test_get_required_data_keys_with_disabled(mock_market_data: dict[str, pd.Dat
             json.dump(catalog_data, f)
 
         registry = SignalRegistry(catalog_path)
-        required_keys = get_required_data_keys(registry)
+        required_keys = get_required_data_keys(catalog_path)
 
         # Should only include keys from enabled signal
         assert required_keys == {"cdx"}

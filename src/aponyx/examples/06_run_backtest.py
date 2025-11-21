@@ -41,10 +41,10 @@ from aponyx.persistence import load_parquet, save_parquet
 def main() -> BacktestResult:
     """
     Execute backtest workflow.
-    
+
     Loads signal and spread data, selects strategy from catalog,
     runs backtest, and saves results.
-    
+
     Returns
     -------
     BacktestResult
@@ -61,12 +61,12 @@ def main() -> BacktestResult:
 def define_backtest_parameters() -> tuple[str, str, str]:
     """
     Define backtest parameters.
-    
+
     Returns
     -------
     tuple[str, str, str]
         Signal name, product identifier, and strategy name.
-        
+
     Notes
     -----
     Choose one signal-product-strategy combination for demonstration.
@@ -84,19 +84,19 @@ def load_backtest_data(
 ) -> tuple[pd.Series, pd.Series]:
     """
     Load signal and spread data for backtest.
-    
+
     Parameters
     ----------
     signal_name : str
         Name of signal to load from processed directory.
     product : str
         Product identifier for spread data.
-    
+
     Returns
     -------
     tuple[pd.Series, pd.Series]
         Signal series and spread series (aligned).
-        
+
     Notes
     -----
     Loads signal saved by previous step (04_compute_signal.py).
@@ -104,24 +104,24 @@ def load_backtest_data(
     """
     signal = load_signal(signal_name)
     spread = load_spread_data(product)
-    
+
     # Align signal and spread to common dates
     common_idx = signal.index.intersection(spread.index)
     signal = signal.loc[common_idx]
     spread = spread.loc[common_idx]
-    
+
     return signal, spread
 
 
 def load_signal(signal_name: str) -> pd.Series:
     """
     Load signal from processed directory.
-    
+
     Parameters
     ----------
     signal_name : str
         Name of signal file (without .parquet extension).
-    
+
     Returns
     -------
     pd.Series
@@ -135,51 +135,51 @@ def load_signal(signal_name: str) -> pd.Series:
 def load_spread_data(product: str) -> pd.Series:
     """
     Load spread data for target product.
-    
+
     Parameters
     ----------
     product : str
         Product identifier (e.g., "cdx_ig_5y").
-    
+
     Returns
     -------
     pd.Series
         Spread series with DatetimeIndex.
-        
+
     Notes
     -----
     Searches registry for datasets with matching security in metadata.
     """
     data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
-    
+
     all_datasets = data_registry.list_datasets()
-    
+
     for dataset_name in all_datasets:
         info = data_registry.get_dataset_info(dataset_name)
         metadata = info.get("metadata", {})
         params = metadata.get("params", {})
-        
+
         if params.get("security") == product:
             spread_df = load_parquet(info["file_path"])
             return spread_df["spread"]
-    
+
     raise ValueError(f"No dataset found for product: {product}")
 
 
 def load_strategy_config(strategy_name: str):
     """
     Load strategy configuration from catalog.
-    
+
     Parameters
     ----------
     strategy_name : str
         Name of strategy in catalog (e.g., "balanced", "conservative").
-    
+
     Returns
     -------
     BacktestConfig
         Backtest configuration with strategy parameters.
-        
+
     Notes
     -----
     Reads strategy metadata from catalog and converts to BacktestConfig.
@@ -196,7 +196,7 @@ def execute_backtest(
 ) -> BacktestResult:
     """
     Run backtest with signal and spread data.
-    
+
     Parameters
     ----------
     signal : pd.Series
@@ -205,7 +205,7 @@ def execute_backtest(
         Spread series with DatetimeIndex.
     config : BacktestConfig
         Backtest configuration.
-    
+
     Returns
     -------
     BacktestResult
@@ -221,7 +221,7 @@ def save_backtest_result(
 ) -> None:
     """
     Save backtest results to processed directory.
-    
+
     Parameters
     ----------
     result : BacktestResult
@@ -230,7 +230,7 @@ def save_backtest_result(
         Name of signal.
     strategy_name : str
         Name of strategy.
-        
+
     Notes
     -----
     Saves positions and P&L DataFrames to separate parquet files.
@@ -239,11 +239,11 @@ def save_backtest_result(
     """
     backtests_dir = PROCESSED_DIR / "backtests"
     backtests_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Save positions
     positions_path = backtests_dir / f"{signal_name}_{strategy_name}_positions.parquet"
     save_parquet(result.positions, positions_path)
-    
+
     # Save P&L
     pnl_path = backtests_dir / f"{signal_name}_{strategy_name}_pnl.parquet"
     save_parquet(result.pnl, pnl_path)

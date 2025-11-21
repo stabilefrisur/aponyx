@@ -289,9 +289,7 @@ def generate_for_fetch_interface(
             tenor = "5Y" if "5y" in security_id.lower() else "10Y"
             index_name = security_id.upper().replace("_", " ")
 
-            params = default_params["cdx"].get(
-                security_id, default_params["cdx"]["default"]
-            )
+            params = default_params["cdx"].get(security_id, default_params["cdx"]["default"])
 
             df = generate_cdx_sample(
                 start_date=start_date,
@@ -338,9 +336,7 @@ def generate_for_fetch_interface(
             metadata_path = output_path / f"{safe_instrument}_{file_hash}.json"
 
         elif instrument_type == "etf":
-            params = default_params["etf"].get(
-                security_id, default_params["etf"]["default"]
-            )
+            params = default_params["etf"].get(security_id, default_params["etf"]["default"])
 
             df = generate_etf_sample(
                 start_date=start_date,

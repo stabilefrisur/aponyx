@@ -27,7 +27,7 @@ DataSource = Literal["synthetic", "file", "bloomberg"]
 class WorkflowConfig:
     """
     Immutable workflow execution configuration.
-    
+
     Attributes
     ----------
     signal_name : str
@@ -44,12 +44,13 @@ class WorkflowConfig:
         Force re-execution even if cached outputs exist.
     output_dir : Path
         Base directory for workflow outputs.
-        
+
     Notes
     -----
     Configuration is frozen to prevent accidental mutation during execution.
     Use dataclasses.replace() to create modified copies if needed.
     """
+
     signal_name: str
     strategy_name: str
     product: str
@@ -57,13 +58,17 @@ class WorkflowConfig:
     steps: list[StepName] | None = None
     force_rerun: bool = False
     output_dir: Path = field(default_factory=lambda: PROCESSED_DIR / "workflows")
-    
+
     def __post_init__(self) -> None:
         """Validate configuration on initialization."""
         if self.steps is not None:
             valid_steps = {
-                "data", "signal", "suitability",
-                "backtest", "performance", "visualization",
+                "data",
+                "signal",
+                "suitability",
+                "backtest",
+                "performance",
+                "visualization",
             }
             invalid = set(self.steps) - valid_steps
             if invalid:

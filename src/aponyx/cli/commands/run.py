@@ -66,13 +66,13 @@ def run(
 ) -> None:
     """
     Run research workflow for signal-strategy combination.
-    
+
     Executes full pipeline: data -> signal -> evaluation -> backtest -> visualization.
     Skips completed steps unless --force is specified.
-    
+
     Configuration can be provided via command-line options or a YAML config file.
     Command-line options override values from config file.
-    
+
     Examples:
 
         aponyx run --signal spread_momentum --strategy balanced
@@ -97,26 +97,26 @@ def run(
         except Exception as e:
             click.echo(f"Failed to load config file: {e}", err=True)
             raise click.Abort()
-    
+
     # Command-line options override config file
     signal_name = signal or config_dict.get("signal")
     strategy_name = strategy or config_dict.get("strategy")
     product_id = product or config_dict.get("product", "cdx_ig_5y")
     data_source = data or config_dict.get("data", "synthetic")
     force_rerun = force or config_dict.get("force", False)
-    
+
     # Parse steps
     step_list = None
     if steps:
         step_list = [s.strip() for s in steps.split(",")]
     elif "steps" in config_dict:
         step_list = config_dict["steps"]
-    
+
     # Validate required parameters
     if not signal_name or not strategy_name:
         click.echo("Error: Missing --signal and --strategy", err=True)
         raise click.Abort()
-        
+
     # Create config
     try:
         workflow_config = WorkflowConfig(
@@ -130,7 +130,7 @@ def run(
     except ValueError as e:
         click.echo(f"Configuration error: {e}", err=True)
         raise click.Abort()
-        
+
     # Get signal metadata to show input instruments
     try:
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
@@ -139,7 +139,7 @@ def run(
         instruments_str = ", ".join(input_instruments)
     except Exception:
         instruments_str = "unknown"
-    
+
     # Display workflow config
     click.echo(f"Running: {signal_name} ({strategy_name})")
     click.echo(f"Inputs: {instruments_str} → Product: {product_id}")
@@ -149,18 +149,18 @@ def run(
     if force_rerun:
         click.echo("Mode: Force re-run")
     click.echo()
-        
+
     # Execute workflow
     engine = WorkflowEngine(workflow_config)
     results = engine.execute()
-    
+
     # Display results
     if results["errors"]:
         click.echo(f"Workflow failed: {results['steps_completed']} steps completed", err=True)
         for error in results["errors"]:
             click.echo(f"  {error['step']}: {error['error']}", err=True)
         raise click.Abort()
-    
+
     click.echo(
         f"Completed {results['steps_completed']} steps in {results['duration_seconds']:.1f}s"
     )

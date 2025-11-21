@@ -23,7 +23,7 @@ class TestSignalMetadataCreation:
             enabled=True,
             sign_multiplier=1,
         )
-        
+
         assert metadata.name == "test_signal"
         assert metadata.description == "Test signal description"
         assert metadata.compute_function_name == "compute_test_signal"
@@ -41,7 +41,7 @@ class TestSignalMetadataCreation:
             data_requirements={"cdx": "spread"},
             arg_mapping=["cdx"],
         )
-        
+
         # Defaults
         assert metadata.enabled is True
         assert metadata.sign_multiplier == 1
@@ -55,7 +55,7 @@ class TestSignalMetadataCreation:
             data_requirements={"cdx": "spread"},
             arg_mapping=["cdx"],
         )
-        
+
         with pytest.raises(AttributeError):
             metadata.name = "new_name"  # type: ignore
 
@@ -155,7 +155,7 @@ class TestSignalMetadataWithMultipleDataSources:
             data_requirements={"cdx": "spread", "etf": "spread"},
             arg_mapping=["cdx", "etf"],
         )
-        
+
         assert len(metadata.data_requirements) == 2
         assert len(metadata.arg_mapping) == 2
         assert "cdx" in metadata.data_requirements
@@ -174,7 +174,7 @@ class TestSignalMetadataWithMultipleDataSources:
             },
             arg_mapping=["cdx", "etf", "vix"],
         )
-        
+
         assert len(metadata.data_requirements) == 3
         assert len(metadata.arg_mapping) == 3
 
@@ -187,7 +187,7 @@ class TestSignalMetadataWithMultipleDataSources:
             data_requirements={"a": "col1", "b": "col2", "c": "col3"},
             arg_mapping=["c", "a", "b"],  # Different order
         )
-        
+
         # Order should be preserved as specified
         assert metadata.arg_mapping == ["c", "a", "b"]
 
@@ -205,7 +205,7 @@ class TestSignalMetadataSignMultiplier:
             arg_mapping=["cdx"],
             sign_multiplier=1,
         )
-        
+
         assert metadata.sign_multiplier == 1
 
     def test_signal_metadata_negative_multiplier(self):
@@ -218,7 +218,7 @@ class TestSignalMetadataSignMultiplier:
             arg_mapping=["cdx"],
             sign_multiplier=-1,
         )
-        
+
         assert metadata.sign_multiplier == -1
 
 
@@ -234,7 +234,7 @@ class TestSignalMetadataEquality:
             data_requirements={"cdx": "spread"},
             arg_mapping=["cdx"],
         )
-        
+
         metadata2 = SignalMetadata(
             name="test_signal",
             description="Test",
@@ -242,7 +242,7 @@ class TestSignalMetadataEquality:
             data_requirements={"cdx": "spread"},
             arg_mapping=["cdx"],
         )
-        
+
         assert metadata1 == metadata2
 
     def test_signal_metadata_inequality_name(self):
@@ -254,7 +254,7 @@ class TestSignalMetadataEquality:
             data_requirements={"cdx": "spread"},
             arg_mapping=["cdx"],
         )
-        
+
         metadata2 = SignalMetadata(
             name="signal2",
             description="Test",
@@ -262,7 +262,7 @@ class TestSignalMetadataEquality:
             data_requirements={"cdx": "spread"},
             arg_mapping=["cdx"],
         )
-        
+
         assert metadata1 != metadata2
 
     def test_signal_metadata_inequality_multiplier(self):
@@ -275,7 +275,7 @@ class TestSignalMetadataEquality:
             arg_mapping=["cdx"],
             sign_multiplier=1,
         )
-        
+
         metadata2 = SignalMetadata(
             name="test_signal",
             description="Test",
@@ -284,7 +284,7 @@ class TestSignalMetadataEquality:
             arg_mapping=["cdx"],
             sign_multiplier=-1,
         )
-        
+
         assert metadata1 != metadata2
 
 
@@ -300,7 +300,7 @@ class TestEdgeCases:
             data_requirements={"cdx": "spread"},
             arg_mapping=["cdx"],
         )
-        
+
         assert "μ" in metadata.description
         assert "σ" in metadata.description
 
@@ -317,7 +317,7 @@ class TestEdgeCases:
             },
             arg_mapping=["cdx", "vix", "etf"],
         )
-        
+
         # Each source can require different column
         assert metadata.data_requirements["cdx"] == "spread"
         assert metadata.data_requirements["vix"] == "level"
@@ -333,5 +333,5 @@ class TestEdgeCases:
             arg_mapping=["cdx"],
             enabled=False,
         )
-        
+
         assert metadata.enabled is False
