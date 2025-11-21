@@ -168,13 +168,21 @@ class TestDataStep:
         workflow_config,
     ):
         """Test DataStep raises error when dataset not found."""
-        mock_get_keys.return_value = {"missing_instrument"}
+        mock_get_keys.return_value = {"cdx"}  # Use valid instrument
         
         mock_registry = MagicMock()
         mock_registry.list_datasets.return_value = []
         mock_data_registry_class.return_value = mock_registry
         
-        step = DataStep(workflow_config)
+        # Create config with bloomberg source to trigger "dataset not found" error
+        from aponyx.workflows.config import WorkflowConfig
+        bloomberg_config = WorkflowConfig(
+            signal_name="test_signal",
+            strategy_name="test_strategy",
+            data_source="bloomberg",
+        )
+        
+        step = DataStep(bloomberg_config)
         
         with pytest.raises(ValueError, match="No datasets found"):
             step.execute({})
@@ -292,14 +300,14 @@ class TestSuitabilityStep:
         # Mock strategy registry to provide product
         mock_strategy_registry = Mock()
         mock_metadata = Mock()
-        mock_metadata.product = "cdx_ig_5y"
+        mock_metadata.product = "cdx_hy_5y"  # Match workflow_config.product
         mock_strategy_registry.get_metadata.return_value = mock_metadata
         mock_strategy_registry_class.return_value = mock_strategy_registry
         
         # Mock data registry to provide spread data
         mock_data_registry = Mock()
         mock_data_registry.list_datasets.return_value = ["cdx_data"]
-        mock_info = {"file_path": "/data/cdx.parquet", "metadata": {"params": {"security": "cdx_ig_5y"}}}
+        mock_info = {"file_path": "/data/cdx.parquet", "metadata": {"params": {"security": "cdx_hy_5y"}}}
         mock_data_registry.get_dataset_info.return_value = mock_info
         mock_data_registry_class.return_value = mock_data_registry
         
@@ -456,8 +464,8 @@ class TestPerformanceStep:
         
         # Mock analysis result with proper attributes
         mock_metrics = Mock()
-        mock_metrics.sharpe = 1.5
-        mock_metrics.max_drawdown_pct = 0.15
+        mock_metrics.sharpe_ratio = 1.5
+        mock_metrics.max_drawdown = 0.15  # As decimal, not percentage
         
         mock_result = Mock()
         mock_result.metrics = mock_metrics

@@ -56,6 +56,65 @@ def _check_duplicate_dates(df: pd.DataFrame, context: str = "") -> None:
             logger.warning("Found %d duplicate dates", n_dups)
 
 
+def handle_duplicate_index(
+    df: pd.DataFrame,
+    strategy: str = "last",
+    context: str = "",
+) -> pd.DataFrame:
+    """
+    Remove duplicate index entries with logging.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with potential duplicate indices.
+    strategy : str, default "last"
+        Deduplication strategy:
+        - "first": Keep first occurrence
+        - "last": Keep last occurrence
+        - "raise": Raise ValueError if duplicates found
+    context : str, optional
+        Context for logging (e.g., "CDX IG 5Y").
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with duplicates removed.
+
+    Raises
+    ------
+    ValueError
+        If strategy="raise" and duplicates are found, or if strategy is invalid.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"value": [1, 2, 3]}, index=pd.DatetimeIndex(["2024-01-01", "2024-01-01", "2024-01-02"]))
+    >>> clean_df = handle_duplicate_index(df, strategy="last")
+    >>> clean_df = handle_duplicate_index(df, strategy="raise")  # Raises ValueError
+    """
+    if strategy not in ("first", "last", "raise"):
+        raise ValueError(f"Invalid strategy '{strategy}'. Must be 'first', 'last', or 'raise'")
+
+    if not df.index.duplicated().any():
+        return df
+
+    # Log duplicates
+    _check_duplicate_dates(df, context)
+
+    # Handle based on strategy
+    if strategy == "raise":
+        n_dups = df.index.duplicated().sum()
+        raise ValueError(
+            f"Found {n_dups} duplicate index entries"
+            + (f" for {context}" if context else "")
+        )
+
+    # Remove duplicates
+    df_clean = df[~df.index.duplicated(keep=strategy)]
+    logger.debug("Removed duplicates using strategy='%s'", strategy)
+    return df_clean
+
+
 def validate_cdx_schema(df: pd.DataFrame, schema: CDXSchema = CDXSchema()) -> pd.DataFrame:
     """
     Validate CDX index data against expected schema.
@@ -164,9 +223,7 @@ def validate_vix_schema(df: pd.DataFrame, schema: VIXSchema = VIXSchema()) -> pd
     df = _ensure_datetime_index(df, schema.date_col)
 
     # Check for duplicates (remove duplicates for VIX)
-    if df.index.duplicated().any():
-        _check_duplicate_dates(df)
-        df = df[~df.index.duplicated(keep="first")]
+    df = handle_duplicate_index(df, strategy="first", context="VIX")
 
     logger.debug("VIX validation passed: date_range=%s to %s", df.index.min(), df.index.max())
     return df

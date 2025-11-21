@@ -130,6 +130,9 @@ def test_workflow_engine_caching():
         def output_exists(self) -> bool:
             return self._is_cached
         
+        def load_cached_output(self) -> dict[str, Any]:
+            return {"result": f"{self.name}_cached"}
+        
         def get_output_path(self) -> Path:
             return Path("/mock")
     

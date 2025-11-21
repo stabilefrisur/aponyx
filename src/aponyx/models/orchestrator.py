@@ -44,52 +44,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def get_required_data_keys(registry: SignalRegistry) -> set[str]:
-    """
-    Get union of all data keys required by enabled signals.
-    
-    Use this to determine what market data to load before calling
-    compute_registered_signals(). The correct workflow is:
-    
-    1. Get required data keys from registry
-    2. Load all required data into market_data dict
-    3. Compute all enabled signals at once
-    
-    Parameters
-    ----------
-    registry : SignalRegistry
-        Signal registry containing enabled signals.
-    
-    Returns
-    -------
-    set[str]
-        Set of data keys (e.g., {"cdx", "etf", "vix"}) required
-        by all enabled signals.
-    
-    Examples
-    --------
-    >>> registry = SignalRegistry(SIGNAL_CATALOG_PATH)
-    >>> data_keys = get_required_data_keys(registry)
-    >>> # Load all required data
-    >>> market_data = {}
-    >>> for key in data_keys:
-    ...     market_data[key] = load_data_for(key)
-    >>> # Compute all signals at once
-    >>> signals = compute_registered_signals(registry, market_data, config)
-    """
-    all_data_keys = set()
-    for metadata in registry.get_enabled().values():
-        all_data_keys.update(metadata.data_requirements.keys())
-    
-    logger.debug(
-        "Required data keys for %d enabled signals: %s",
-        len(registry.get_enabled()),
-        sorted(all_data_keys),
-    )
-    
-    return all_data_keys
-
-
 def compute_registered_signals(
     registry: SignalRegistry,
     market_data: dict[str, pd.DataFrame],
@@ -103,7 +57,7 @@ def compute_registered_signals(
     
     Correct Usage Pattern
     ---------------------
-    1. Get all required data keys: `get_required_data_keys(registry)`
+    1. Get all required data keys: `aponyx.data.requirements.get_required_data_keys()`
     2. Load all required data into market_data dict
     3. Compute all enabled signals at once with this function
     4. Select individual signals for evaluation/backtesting
@@ -144,12 +98,12 @@ def compute_registered_signals(
     --------
     Correct pattern (load all data once, compute all signals):
     
-    >>> from aponyx.models import SignalRegistry, SignalConfig
-    >>> from aponyx.models import get_required_data_keys, compute_registered_signals
+    >>> from aponyx.config import SIGNAL_CATALOG_PATH
+    >>> from aponyx.data.requirements import get_required_data_keys
+    >>> from aponyx.models import SignalRegistry, SignalConfig, compute_registered_signals
     >>> 
-    >>> # 1. Get required data keys from registry
-    >>> registry = SignalRegistry("signal_catalog.json")
-    >>> required_keys = get_required_data_keys(registry)  # {"cdx", "etf", "vix"}
+    >>> # 1. Get required data keys from catalog
+    >>> required_keys = get_required_data_keys(SIGNAL_CATALOG_PATH)  # {"cdx", "etf", "vix"}
     >>> 
     >>> # 2. Load all required data once
     >>> market_data = {}
@@ -157,6 +111,7 @@ def compute_registered_signals(
     ...     market_data[key] = load_data_for(key)
     >>> 
     >>> # 3. Compute all enabled signals
+    >>> registry = SignalRegistry(SIGNAL_CATALOG_PATH)
     >>> config = SignalConfig(lookback=20)
     >>> all_signals = compute_registered_signals(registry, market_data, config)
     >>> 
@@ -171,8 +126,8 @@ def compute_registered_signals(
     specifies {"cdx": "spread", "vix": "level"}, then market_data must
     contain keys "cdx" and "vix" with DataFrames having those columns.
     
-    Use get_required_data_keys() to determine what data to load before
-    calling this function.
+    Use aponyx.data.requirements.get_required_data_keys() to determine
+    what data to load before calling this function.
     """
     enabled_signals = registry.get_enabled()
 

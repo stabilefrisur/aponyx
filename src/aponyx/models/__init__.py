@@ -20,7 +20,7 @@ from .signals import (
 from .config import SignalConfig
 from .metadata import SignalMetadata
 from .registry import SignalRegistry
-from .orchestrator import compute_registered_signals, get_required_data_keys
+from .orchestrator import compute_registered_signals
 
 __all__ = [
     "compute_cdx_etf_basis",
@@ -30,5 +30,4 @@ __all__ = [
     "SignalMetadata",
     "SignalRegistry",
     "compute_registered_signals",
-    "get_required_data_keys",
 ]

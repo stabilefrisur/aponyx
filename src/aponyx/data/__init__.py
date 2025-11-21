@@ -16,10 +16,18 @@ available for signal generation and analysis.
 
 from .fetch import fetch_cdx, fetch_vix, fetch_etf
 from .sources import FileSource, BloombergSource, APISource, DataSource
-from .validation import validate_cdx_schema, validate_vix_schema, validate_etf_schema
+from .validation import (
+    validate_cdx_schema,
+    validate_vix_schema,
+    validate_etf_schema,
+    handle_duplicate_index,
+)
 from .bloomberg_config import validate_bloomberg_registry
 from .registry import DataRegistry, DatasetEntry
 from .transforms import apply_transform, TransformType
+from .requirements import get_required_data_keys
+from .fetch_registry import get_fetch_spec, list_instruments
+from .loaders import find_raw_file, load_instrument_from_raw
 
 __all__ = [
     # Fetch functions
@@ -36,10 +44,19 @@ __all__ = [
     "validate_vix_schema",
     "validate_etf_schema",
     "validate_bloomberg_registry",
+    "handle_duplicate_index",
     # Registry
     "DataRegistry",
     "DatasetEntry",
     # Transformations
     "apply_transform",
     "TransformType",
+    # Requirements
+    "get_required_data_keys",
+    # Fetch registry
+    "get_fetch_spec",
+    "list_instruments",
+    # Loaders
+    "find_raw_file",
+    "load_instrument_from_raw",
 ]

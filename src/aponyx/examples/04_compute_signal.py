@@ -32,7 +32,8 @@ import pandas as pd
 
 from aponyx.config import REGISTRY_PATH, DATA_DIR, SIGNAL_CATALOG_PATH, PROCESSED_DIR
 from aponyx.data.registry import DataRegistry
-from aponyx.models import SignalConfig, SignalRegistry, get_required_data_keys, compute_registered_signals
+from aponyx.data.requirements import get_required_data_keys
+from aponyx.models import SignalConfig, SignalRegistry, compute_registered_signals
 from aponyx.persistence import load_parquet, save_parquet
 
 
@@ -89,9 +90,8 @@ def load_all_required_data() -> dict[str, pd.DataFrame]:
     based on ALL enabled signals in the catalog.
     """
     data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
-    signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
     
-    required_keys = get_required_data_keys(signal_registry)
+    required_keys = get_required_data_keys(SIGNAL_CATALOG_PATH)
     
     market_data = {}
     

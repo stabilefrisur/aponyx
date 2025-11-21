@@ -7,6 +7,7 @@ from aponyx.data.validation import (
     validate_cdx_schema,
     validate_vix_schema,
     validate_etf_schema,
+    handle_duplicate_index,
 )
 
 
@@ -158,3 +159,76 @@ def test_validate_cdx_schema_already_indexed() -> None:
 
     assert isinstance(validated.index, pd.DatetimeIndex)
     assert len(validated) == 3
+
+
+def test_handle_duplicate_index_last() -> None:
+    """Test duplicate index handling with 'last' strategy."""
+    df = pd.DataFrame(
+        {"value": [1, 2, 3]},
+        index=pd.DatetimeIndex(["2024-01-01", "2024-01-01", "2024-01-02"]),
+    )
+
+    result = handle_duplicate_index(df, strategy="last")
+
+    assert len(result) == 2
+    assert not result.index.duplicated().any()
+    assert result.loc["2024-01-01", "value"] == 2  # Kept last
+
+
+def test_handle_duplicate_index_first() -> None:
+    """Test duplicate index handling with 'first' strategy."""
+    df = pd.DataFrame(
+        {"value": [1, 2, 3]},
+        index=pd.DatetimeIndex(["2024-01-01", "2024-01-01", "2024-01-02"]),
+    )
+
+    result = handle_duplicate_index(df, strategy="first")
+
+    assert len(result) == 2
+    assert not result.index.duplicated().any()
+    assert result.loc["2024-01-01", "value"] == 1  # Kept first
+
+
+def test_handle_duplicate_index_raise() -> None:
+    """Test duplicate index handling with 'raise' strategy."""
+    df = pd.DataFrame(
+        {"value": [1, 2, 3]},
+        index=pd.DatetimeIndex(["2024-01-01", "2024-01-01", "2024-01-02"]),
+    )
+
+    with pytest.raises(ValueError, match="Found 1 duplicate index entries"):
+        handle_duplicate_index(df, strategy="raise")
+
+
+def test_handle_duplicate_index_no_duplicates() -> None:
+    """Test duplicate index handling with no duplicates."""
+    df = pd.DataFrame(
+        {"value": [1, 2, 3]},
+        index=pd.DatetimeIndex(["2024-01-01", "2024-01-02", "2024-01-03"]),
+    )
+
+    result = handle_duplicate_index(df, strategy="last")
+
+    assert len(result) == 3
+    pd.testing.assert_frame_equal(result, df)
+
+
+def test_handle_duplicate_index_invalid_strategy() -> None:
+    """Test error when providing invalid strategy."""
+    df = pd.DataFrame({"value": [1]}, index=pd.DatetimeIndex(["2024-01-01"]))
+
+    with pytest.raises(ValueError, match="Invalid strategy 'invalid'"):
+        handle_duplicate_index(df, strategy="invalid")
+
+
+def test_handle_duplicate_index_with_context() -> None:
+    """Test duplicate index handling with context for logging."""
+    df = pd.DataFrame(
+        {"value": [1, 2]},
+        index=pd.DatetimeIndex(["2024-01-01", "2024-01-01"]),
+    )
+
+    # Should not raise, context is for logging only
+    result = handle_duplicate_index(df, strategy="last", context="CDX IG 5Y")
+
+    assert len(result) == 1
