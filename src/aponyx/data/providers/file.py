@@ -5,18 +5,18 @@ Handles local file loading with automatic format detection.
 """
 
 import logging
-from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
 from ...persistence.parquet_io import load_parquet
+from ..sources import FileSource
 
 logger = logging.getLogger(__name__)
 
 
 def fetch_from_file(
-    file_path: str | Path,
+    source: FileSource,
     instrument: str,
     start_date: str | None = None,
     end_date: str | None = None,
@@ -27,8 +27,8 @@ def fetch_from_file(
 
     Parameters
     ----------
-    file_path : str or Path
-        Path to data file.
+    source : FileSource
+        File source configuration with path.
     instrument : str
         Instrument identifier (for logging).
     start_date : str or None
@@ -56,7 +56,7 @@ def fetch_from_file(
     - Date filtering applied after loading (files assumed small enough)
     - Does not perform schema validation (handled by fetch layer)
     """
-    file_path = Path(file_path)
+    file_path = source.path
     logger.info("Fetching %s from file: %s", instrument, file_path)
 
     if not file_path.exists():
@@ -67,6 +67,11 @@ def fetch_from_file(
         df = load_parquet(file_path)
     elif file_path.suffix == ".csv":
         df = pd.read_csv(file_path)
+        # Convert 'date' column to DatetimeIndex if present
+        if "date" in df.columns:
+            df["date"] = pd.to_datetime(df["date"])
+            df = df.set_index("date")
+            logger.debug("Converted 'date' column to DatetimeIndex")
     else:
         raise ValueError(f"Unsupported file format: {file_path.suffix}")
 

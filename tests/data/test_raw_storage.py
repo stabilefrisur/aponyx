@@ -17,7 +17,8 @@ def test_save_to_raw_creates_directory(tmp_path):
 
     assert result.exists()
     assert result.parent == tmp_path / "bloomberg"
-    assert result.name == "test_instrument.parquet"
+    assert result.name.startswith("test_instrument_")
+    assert result.name.endswith(".parquet")
 
 
 def test_save_to_raw_sanitizes_filename(tmp_path):
@@ -29,7 +30,9 @@ def test_save_to_raw_sanitizes_filename(tmp_path):
 
     result = save_to_raw(df, "bloomberg", "CDX.IG.5Y", tmp_path)
 
-    assert result.name == "CDX_IG_5Y.parquet"
+    assert result.name.startswith("CDX_IG_5Y_")
+    assert result.name.endswith(".parquet")
+    assert "." not in result.stem.split("_")[0]  # Dots replaced with underscores
 
 
 def test_save_to_raw_handles_slashes(tmp_path):
@@ -41,7 +44,8 @@ def test_save_to_raw_handles_slashes(tmp_path):
 
     result = save_to_raw(df, "bloomberg", "path/to/instrument", tmp_path)
 
-    assert result.name == "path_to_instrument.parquet"
+    assert result.name.startswith("path_to_instrument_")
+    assert result.name.endswith(".parquet")
     assert "/" not in result.name
 
 
@@ -57,9 +61,11 @@ def test_save_to_raw_registers_dataset(tmp_path):
     save_to_raw(df, "bloomberg", "test", tmp_path, registry)
 
     datasets = registry.list_datasets()
-    assert "raw_bloomberg_test" in datasets
+    # Dataset name includes hash suffix now
+    matching_datasets = [d for d in datasets if d.startswith("raw_bloomberg_test_")]
+    assert len(matching_datasets) == 1
 
-    entry = registry.get_dataset_entry("raw_bloomberg_test")
+    entry = registry.get_dataset_entry(matching_datasets[0])
     assert entry.instrument == "test"
     assert entry.metadata["provider"] == "bloomberg"
     assert "stored_at" in entry.metadata
@@ -96,7 +102,7 @@ def test_save_to_raw_multiple_providers(tmp_path):
 
 
 def test_save_to_raw_overwrites_existing(tmp_path):
-    """Test that save_to_raw overwrites existing files."""
+    """Test that save_to_raw creates separate files for different content."""
     df1 = pd.DataFrame(
         {"value": [1, 2, 3]},
         index=pd.date_range("2024-01-01", periods=3),
@@ -109,11 +115,17 @@ def test_save_to_raw_overwrites_existing(tmp_path):
     path1 = save_to_raw(df1, "bloomberg", "test", tmp_path)
     path2 = save_to_raw(df2, "bloomberg", "test", tmp_path)
 
-    assert path1 == path2
+    # Different data creates different hash, so different files
+    assert path1 != path2
+    assert path1.parent == path2.parent
 
-    # Verify new data was saved
+    # Verify both files exist with correct data
     from aponyx.persistence import load_parquet
 
-    loaded = load_parquet(path2)
-    assert len(loaded) == 4
-    assert loaded["value"].tolist() == [4, 5, 6, 7]
+    loaded1 = load_parquet(path1)
+    assert len(loaded1) == 3
+    assert loaded1["value"].tolist() == [1, 2, 3]
+
+    loaded2 = load_parquet(path2)
+    assert len(loaded2) == 4
+    assert loaded2["value"].tolist() == [4, 5, 6, 7]
