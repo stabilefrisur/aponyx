@@ -20,12 +20,20 @@ from aponyx.config import (
     PROCESSED_DIR,
     REGISTRY_PATH,
     DATA_DIR,
+    RAW_DIR,
     SIGNAL_CATALOG_PATH,
     STRATEGY_CATALOG_PATH,
     EVALUATION_DIR,
     PERFORMANCE_REPORTS_DIR,
 )
-from aponyx.data import DataRegistry
+from aponyx.data import (
+    DataRegistry,
+    FileSource,
+    fetch_cdx,
+    fetch_vix,
+    fetch_etf,
+)
+from aponyx.data.bloomberg_config import list_securities
 from aponyx.models import (
     compute_registered_signals,
     get_required_data_keys,
@@ -54,8 +62,36 @@ from .steps import BaseWorkflowStep
 logger = logging.getLogger(__name__)
 
 
+def _find_raw_data_file(data_dir: Path, instrument: str, security: str | None = None) -> Path | None:
+    """
+    Find raw data file for given instrument/security.
+    
+    Parameters
+    ----------
+    data_dir : Path
+        Directory to search (e.g., data/raw/synthetic).
+    instrument : str
+        Instrument type (cdx, vix, etf).
+    security : str or None
+        Security identifier if applicable.
+        
+    Returns
+    -------
+    Path or None
+        Path to data file if found, None otherwise.
+    """
+    search_pattern = security if security else instrument
+    matches = list(data_dir.glob(f"{search_pattern}_*.parquet"))
+    
+    if matches:
+        # Return most recent file (by modification time)
+        return sorted(matches, key=lambda p: p.stat().st_mtime)[-1]
+    
+    return None
+
+
 class DataStep(BaseWorkflowStep):
-    """Load all required market data from registry."""
+    """Load all required market data from registry or raw files."""
     
     @property
     def name(self) -> str:
@@ -68,25 +104,125 @@ class DataStep(BaseWorkflowStep):
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
         required_keys = get_required_data_keys(signal_registry)
         
-        # Load all required data from registry
+        # Initialize registry
         data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
         market_data = {}
         
         for data_key in sorted(required_keys):
+            # Try loading from registry first (cached/processed data)
             matching_datasets = data_registry.list_datasets(instrument=data_key)
             
-            if not matching_datasets:
+            if matching_datasets:
+                # Use most recent dataset from registry
+                dataset_name = sorted(matching_datasets)[-1]
+                info = data_registry.get_dataset_info(dataset_name)
+                df = load_parquet(info["file_path"])
+                market_data[data_key] = df
+                logger.debug("Loaded %s from registry: %d rows", data_key, len(df))
+                continue
+            
+            # Registry empty - try loading from raw files
+            if self.config.data_source == "bloomberg":
                 raise ValueError(
                     f"No datasets found for instrument '{data_key}'. "
-                    f"Run data fetching workflow first."
+                    f"Bloomberg data source requires running data download workflow first. "
+                    f"See notebooks/01_data_download.ipynb"
                 )
             
-            # Use most recent dataset
-            dataset_name = sorted(matching_datasets)[-1]
-            info = data_registry.get_dataset_info(dataset_name)
-            df = load_parquet(info["file_path"])
+            # For file/synthetic sources, try to load from raw directory
+            raw_data_dir = RAW_DIR / self.config.data_source
+            
+            if not raw_data_dir.exists():
+                raise ValueError(
+                    f"No datasets found for instrument '{data_key}'. "
+                    f"Raw data directory does not exist: {raw_data_dir}"
+                )
+            
+            logger.info(
+                "No cached data for %s - attempting to load from %s",
+                data_key,
+                raw_data_dir,
+            )
+            
+            # Map data_key to appropriate fetch function and find file
+            df = None
+            
+            if data_key == "cdx":
+                # Find CDX security files and load all
+                cdx_securities = list_securities(instrument_type="cdx")
+                cdx_dfs = []
+                
+                for security in cdx_securities:
+                    file_path = _find_raw_data_file(raw_data_dir, "cdx", security)
+                    if file_path:
+                        logger.debug("Loading %s from %s", security, file_path)
+                        df_sec = fetch_cdx(
+                            FileSource(file_path),
+                            security=security,
+                            use_cache=True,  # This will update registry
+                        )
+                        cdx_dfs.append(df_sec)
+                
+                if not cdx_dfs:
+                    raise ValueError(
+                        f"No CDX data files found in {raw_data_dir}. "
+                        f"Run data generation or download workflow first."
+                    )
+                
+                # Concatenate with outer join to handle different date ranges
+                df = pd.concat(cdx_dfs, axis=0).sort_index()
+                # Remove duplicate index entries (keep last if any)
+                if df.index.duplicated().any():
+                    logger.warning("Found duplicate indices in CDX data, keeping last")
+                    df = df[~df.index.duplicated(keep='last')]
+                
+            elif data_key == "vix":
+                file_path = _find_raw_data_file(raw_data_dir, "vix")
+                if not file_path:
+                    raise ValueError(
+                        f"No VIX data file found in {raw_data_dir}. "
+                        f"Run data generation or download workflow first."
+                    )
+                
+                logger.debug("Loading VIX from %s", file_path)
+                df = fetch_vix(
+                    FileSource(file_path),
+                    use_cache=True,  # This will update registry
+                )
+                
+            elif data_key == "etf":
+                # Find ETF security files and load all
+                etf_securities = list_securities(instrument_type="etf")
+                etf_dfs = []
+                
+                for security in etf_securities:
+                    file_path = _find_raw_data_file(raw_data_dir, "etf", security)
+                    if file_path:
+                        logger.debug("Loading %s from %s", security, file_path)
+                        df_sec = fetch_etf(
+                            FileSource(file_path),
+                            security=security,
+                            use_cache=True,  # This will update registry
+                        )
+                        etf_dfs.append(df_sec)
+                
+                if not etf_dfs:
+                    raise ValueError(
+                        f"No ETF data files found in {raw_data_dir}. "
+                        f"Run data generation or download workflow first."
+                    )
+                
+                # Concatenate with outer join to handle different date ranges
+                df = pd.concat(etf_dfs, axis=0).sort_index()
+                # Remove duplicate index entries (keep last if any)
+                if df.index.duplicated().any():
+                    logger.warning("Found duplicate indices in ETF data, keeping last")
+                    df = df[~df.index.duplicated(keep='last')]
+            else:
+                raise ValueError(f"Unknown data key: {data_key}")
+            
             market_data[data_key] = df
-            logger.debug("Loaded %s: %d rows", data_key, len(df))
+            logger.info("Loaded %s from raw files: %d rows", data_key, len(df))
         
         output = {"market_data": market_data}
         self._log_complete(output)

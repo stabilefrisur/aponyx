@@ -281,7 +281,7 @@ def fetch_cdx(
 
     if isinstance(source, FileSource):
         df = fetch_fn(
-            file_path=source.path,
+            source=source,
             instrument=instrument,
             start_date=start_date,
             end_date=end_date,
@@ -444,7 +444,7 @@ def fetch_vix(
 
     if isinstance(source, FileSource):
         df = fetch_fn(
-            file_path=source.path,
+            source=source,
             instrument=instrument,
             start_date=start_date,
             end_date=end_date,
@@ -622,7 +622,7 @@ def fetch_etf(
 
     if isinstance(source, FileSource):
         df = fetch_fn(
-            file_path=source.path,
+            source=source,
             instrument=instrument,
             start_date=start_date,
             end_date=end_date,
