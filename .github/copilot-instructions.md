@@ -19,6 +19,10 @@ The framework supports:
 
 ```
 src/aponyx/
+  cli/                # Command-line orchestration (run, report, list, clean)
+    commands/         # Command implementations
+  workflows/          # Pipeline engine with caching and dependency tracking
+  reporting/          # Multi-format report generation (console/markdown/HTML)
   data/               # Loaders, cleaning, transformation, validation
     providers/        # Data provider implementations (Bloomberg, etc.)
   models/             # Signal & strategy logic
@@ -29,16 +33,18 @@ src/aponyx/
   visualization/      # Plotly & Streamlit dashboards
   persistence/        # Parquet & JSON I/O utilities
   config/             # Paths, constants, environment
+  examples/           # Standalone workflow scripts (included in distribution)
   docs/               # Documentation and strategy specs
-    maintenance/      # Fork/upstream sync workflows
-    prompts/          # Strategy and implementation prompts
   __init__.py         # Package initialization
   main.py             # CLI entry point
 
 tests/                # Unit tests for reproducibility
+  cli/                # CLI command tests
+  workflows/          # Workflow engine tests
   data/
   models/
   backtest/
+  evaluation/
   visualization/
   persistence/
   governance/         # Registry and catalog integration tests
@@ -86,7 +92,9 @@ The project uses a three-pillar governance architecture:
 
 1. **Config** (`config/`) — Import-time constants for paths, cache settings, catalog locations
 2. **Registry** (`data/registry.py`) — Dataset tracking with CRUD operations (class-based, mutable)
+   - Runtime JSON files in `data/.registries/`: `registry.json`, `suitability.json`, `performance.json`
 3. **Catalog** (`models/signal_catalog.json`, `backtest/strategy_catalog.json`) — Signal and strategy definitions (class-based registries with fail-fast validation)
+   - Static JSON files in package directories (version controlled)
 
 ### Governance Patterns
 
@@ -99,17 +107,26 @@ See `src/aponyx/docs/governance_design.md` for complete architecture details.
 
 ### Registry vs Catalog
 
-**Registry** = Dataset tracking (what data files exist, where they are stored)
-- Example: `data/registry.json` tracks `cdx_ig_5y.parquet` location and metadata
+**Registry** = Runtime tracking of dynamic data (datasets, evaluations, performance)
+- Location: `data/.registries/` (not version controlled)
+- Examples:
+  - `registry.json` — Dataset files and metadata (DataRegistry)
+  - `suitability.json` — Signal-product evaluation results (SuitabilityRegistry)
+  - `performance.json` — Backtest performance analyses (PerformanceRegistry)
 - Mutable: Supports add/update/delete operations
-- Updated programmatically when data is fetched or processed
+- Updated programmatically during workflow execution
+- Path resolution: Registry stores relative paths, resolves to absolute on read
 
-**Catalog** = Signal/strategy definitions (what computations are available)
-- Example: `models/signal_catalog.json` defines `cdx_etf_basis` signal parameters
+**Catalog** = Static definitions of computations and configurations
+- Location: Package directories (version controlled)
+- Examples:
+  - `models/signal_catalog.json` — Signal definitions (SignalRegistry)
+  - `backtest/strategy_catalog.json` — Strategy configurations (StrategyRegistry)
 - Immutable after load: Edits require manual JSON modification and version control
 - Read-only during runtime with fail-fast validation
+- Included in package distribution
 
-Both use JSON persistence but have fundamentally different mutability and lifecycle patterns.
+Both use JSON persistence but have fundamentally different mutability, lifecycle, and storage patterns.
 
 ---
 
@@ -208,18 +225,18 @@ def compute_spread_momentum(
 
 | Context | Preferred Behavior |
 |----------|--------------------|  
-| Editing `/cli/` | Focus on command implementation with click decorators. Use `WorkflowEngine` for orchestration. Keep commands thin - delegate logic to workflows/reporting. Provide clear help text and validation messages. |
-| Editing `/workflows/` | Implement `WorkflowStep` protocol for new steps. Use `StepRegistry` for step management. Ensure deterministic execution with metadata logging. Handle errors gracefully with partial result preservation. |
-| Editing `/reporting/` | Focus on multi-format output generation (console/markdown/HTML). Aggregate data from suitability and performance registries. Keep formatting logic separate from data collection. |
-| Editing `/config/` | Use import-time constants with `Final` type hints. No classes, no dynamic configuration. |
-| Editing `/data/` | Focus on fetch functions, schema validation, and data sources. Use `DataRegistry` for dataset tracking. Support multiple providers (File, Bloomberg, API). **Never implement authentication** — connections managed externally. |
-| Editing `/models/` | Focus on signal functions and strategy modules. Use `SignalRegistry` for catalog management. **Signal convention: positive values = long credit risk (buy CDX).** |
-| Editing `/evaluation/suitability/` | Focus on 4-component scoring (data health, predictive, economic, stability) for signal-product assessment. Use `SuitabilityRegistry` for tracking evaluations. |
-| Editing `/evaluation/performance/` | Focus on extended metrics (stability, profit factor, tail ratio), rolling Sharpe analysis, return attribution (directional, signal strength, win/loss), and comprehensive reporting. Use `PerformanceRegistry` for tracking evaluations. Both evaluation modules follow registry pattern. |
-| Editing `/backtest/` | Implement transparent, deterministic backtest logic. Use `StrategyRegistry` for strategy catalog. Include metadata logging. |
-| Editing `/visualization/` | Generate reusable Plotly/Streamlit components. Separate plotting from computation. |
-| Editing `/persistence/` | Handle Parquet/JSON I/O. No database dependencies. Keep I/O functions pure. |
-| Editing `/tests/` | Write unit tests for determinism, type safety, and reproducibility. Test governance patterns separately in `tests/governance/`. Mirror source structure: `tests/data/`, `tests/models/`, `tests/backtest/`, etc. |
+| Editing `/cli/` | Focus on command implementation with click decorators. Use `WorkflowEngine` for orchestration. Keep commands thin - delegate logic to workflows/reporting. Provide clear help text and validation messages. Commands: `run`, `report`, `list`, `clean`. |
+| Editing `/workflows/` | Implement `WorkflowStep` protocol for new steps. Use `StepRegistry` for step management. Ensure deterministic execution with metadata logging. Handle errors gracefully with partial result preservation. All outputs go to timestamped workflow directories. |
+| Editing `/reporting/` | Focus on multi-format output generation (console/markdown/HTML). Aggregate data from suitability and performance registries. Keep formatting logic separate from data collection. Reports saved to workflow directories. |
+| Editing `/config/` | Use import-time constants with `Final` type hints. No classes, no dynamic configuration. Key paths: `DATA_REGISTRIES_DIR`, `DATA_WORKFLOWS_DIR`, `REGISTRY_PATH`, `SUITABILITY_REGISTRY_PATH`, `PERFORMANCE_REGISTRY_PATH`. |
+| Editing `/data/` | Focus on fetch functions, schema validation, and data sources. Use `DataRegistry` for dataset tracking (stores relative paths, resolves to absolute). Support multiple providers (File, Bloomberg, API). **Never implement authentication** — connections managed externally. Registry at `data/.registries/registry.json`. |
+| Editing `/models/` | Focus on signal functions and strategy modules. Use `SignalRegistry` for catalog management. **Signal convention: positive values = long credit risk (buy CDX).** Catalog at `src/aponyx/models/signal_catalog.json` (static). |
+| Editing `/evaluation/suitability/` | Focus on 4-component scoring (data health, predictive, economic, stability) for signal-product assessment. Use `SuitabilityRegistry` for tracking evaluations. Registry at `data/.registries/suitability.json` (runtime). Reports in workflow directories. |
+| Editing `/evaluation/performance/` | Focus on extended metrics (stability, profit factor, tail ratio), rolling Sharpe analysis, return attribution (directional, signal strength, win/loss), and comprehensive reporting. Use `PerformanceRegistry` for tracking evaluations. Registry at `data/.registries/performance.json` (runtime). Reports in workflow directories. |
+| Editing `/backtest/` | Implement transparent, deterministic backtest logic. Use `StrategyRegistry` for strategy catalog. Include metadata logging. Catalog at `src/aponyx/backtest/strategy_catalog.json` (static). |
+| Editing `/visualization/` | Generate reusable Plotly/Streamlit components. Separate plotting from computation. Returns `Figure` objects without auto-display. |
+| Editing `/persistence/` | Handle Parquet/JSON I/O. No database dependencies. Keep I/O functions pure. Support automatic directory creation. |
+| Editing `/tests/` | Write unit tests for determinism, type safety, and reproducibility. Test governance patterns separately in `tests/governance/`. Mirror source structure: `tests/cli/`, `tests/workflows/`, `tests/data/`, `tests/models/`, `tests/backtest/`, etc. |
 
 When generating code, the assistant should **infer module context from file path** and **adhere to functional boundaries** automatically.
 
@@ -500,6 +517,40 @@ Avoid generic prompts like *"optimize this code"* — always specify layer and i
 
 ---
 
+## Data Storage Structure
+
+**Current directory layout:**
+
+```
+data/
+  .registries/          # Runtime registries (not in git)
+    registry.json       # DataRegistry - dataset tracking
+    suitability.json    # SuitabilityRegistry - evaluation results
+    performance.json    # PerformanceRegistry - performance analyses
+  raw/                  # Source data files
+    synthetic/          # Synthetic test data
+    bloomberg/          # Bloomberg Terminal downloads (if used)
+  cache/                # TTL-based cache (regenerable)
+    file/
+    bloomberg/
+  workflows/            # Timestamped workflow outputs
+    {signal}_{strategy}_{timestamp}/
+      metadata.json     # Workflow execution metadata
+      reports/          # Suitability and performance reports
+        suitability_*.md
+        performance_*.md
+      data.parquet      # Loaded market data
+      signal.parquet    # Computed signal values
+      backtest.parquet  # Backtest results
+      charts/           # Visualization outputs (optional)
+```
+
+**Key principles:**
+- Runtime registries in `.registries/` (not version controlled)
+- Workflow outputs in timestamped directories (single source of truth)
+- Reports saved within workflow directories (not top-level `reports/`)
+- All workflow artifacts grouped together for easy archival/sharing
+
 ## Summary
 
 Copilot should behave like a **quantitative developer assistant**, not a strategy designer.  
@@ -507,7 +558,9 @@ It should:
 - Maintain modularity, transparency, and reproducibility.
 - Focus on infrastructure excellence and analytical clarity.
 - Produce code ready for production research pipelines.
+- Use CLI orchestration (`aponyx run`) for end-to-end workflows.
+- Respect consolidated data storage structure with workflow directories.
 
 > Maintained by **stabilefrisur**.  
 > Optimized for VS Code Agent Mode (Claude Sonnet 4.5 / GPT‑5)  
-> Last Updated: November 21, 2025
+> Last Updated: November 22, 2025
