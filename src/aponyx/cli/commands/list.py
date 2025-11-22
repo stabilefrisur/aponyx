@@ -66,12 +66,12 @@ def list_items(item_type: str) -> None:
             # Extract source from metadata
             source = info.get("metadata", {}).get("provider", "unknown")
             click.echo(f"{dataset:<30} {instrument:<20} {source}")
-    
+
     elif item_type == "steps":
         # Display canonical workflow step order with descriptions
         step_registry = StepRegistry()
         steps = step_registry.get_canonical_order()
-        
+
         click.echo("Workflow steps (canonical order):\n")
         for i, step_name in enumerate(steps, 1):
             # Get description from step class docstring

@@ -7,19 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.12] - 2025-11-22
+
+### Added
+- **Utility Scripts** for build and maintenance workflows
+  - `scripts/clean_pycache.py` - Remove Python bytecode and `__pycache__` directories
+  - `scripts/clean_runtime_data.py` - Clean runtime data (cache, registries, workflows)
+  - `scripts/README.md` - Comprehensive documentation for utility scripts
+- **CLI Enhancements**
+  - Global `-v/--verbose` flag for DEBUG-level logging across all commands
+  - Dynamic data source discovery from filesystem in `list` command
+  - Extended `list` command with 'steps' category for workflow step browsing
+  - Improved help text formatting with categorized examples
+  - Source column in dataset listings showing data provider
+- **Documentation Improvements**
+  - Comprehensive copilot instructions with scaffolding templates (2600+ lines)
+  - Workflow guidance with 5-step process for multi-step tasks
+  - Git commit standards with conventional commits format
+  - Enhanced signal naming consistency guidelines
+  - Cross-reference table in PROJECT_STATUS for documentation navigation
+  - Python guidelines with modern type hints and code patterns
+
+### Changed
+- **Workflow Architecture**
+  - Consolidated all workflow outputs to timestamped directories (`data/workflows/{signal}_{strategy}_{timestamp}/`)
+  - Registry files moved to `data/.registries/` directory
+  - Bloomberg data fetcher now uses smart refresh (update current day data only)
+  - Force flag (`--force`) now documented as cache invalidation mechanism
+- **Documentation Structure**
+  - Streamlined PROJECT_STATUS to focus on implementation status vs code patterns
+  - Removed redundant code patterns from PROJECT_STATUS (deferred to copilot-instructions)
+  - Updated all documentation dates to November 22, 2025
+  - Fixed Python version consistency (py312) across all documentation
+  - Removed `scripts/` from .gitignore to track utility scripts
+
 ### Fixed
 - **Synthetic Data Generation** duplicate dates issue
-  - Changed date generation from calendar days (`freq="D"`) to business days (`pd.bdate_range()`) in `generate_cdx_sample`, `generate_vix_sample`, and `generate_etf_sample`
+  - Changed date generation from calendar days (`freq="D"`) to business days (`pd.bdate_range()`)
   - Eliminated ~520 duplicate weekend dates that were causing validation warnings
-  - Fixed mismatch between period calculation (business days) and data generation (calendar days)
+  - Fixed mismatch between period calculation and data generation
 - **Data Validation** logging behavior
-  - Reduced duplicate date removal logging from WARNING to DEBUG level in `validate_cdx_schema` and `validate_etf_schema`
+  - Reduced duplicate date removal logging from WARNING to DEBUG level
   - Updated `concat_multi_security` to handle expected multi-security duplicates silently
-  - Removed confusing "Found 5224 duplicate dates for CDX" and "Found 1306 duplicate dates for ETF" warnings
   - Duplicates from multi-security concatenation now logged at DEBUG level with context
 - **Test Suite** validation test expectations
   - Updated `test_validate_cdx_schema_duplicate_dates` to verify silent duplicate removal
   - All 223 data layer tests passing
+
+### Breaking Changes
+- Workflow outputs now use timestamped directory structure instead of scattered files
+- Registry files relocated to `data/.registries/` (migration handled automatically)
 
 ## [0.1.11] - 2025-11-21
 
@@ -544,6 +581,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.12]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.12
 [0.1.11]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.11
 [0.1.10]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.10
 [0.1.9]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.9

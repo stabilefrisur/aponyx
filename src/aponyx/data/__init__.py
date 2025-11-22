@@ -15,7 +15,6 @@ available for signal generation and analysis.
 """
 
 import logging
-from pathlib import Path
 
 from ..config import RAW_DIR
 from .fetch import fetch_cdx, fetch_vix, fetch_etf
@@ -38,12 +37,12 @@ logger = logging.getLogger(__name__)
 
 def get_available_sources() -> list[str]:
     """Get list of available data sources from RAW_DIR subdirectories.
-    
+
     Returns
     -------
     list[str]
         List of available source names (subdirectory names under RAW_DIR).
-        
+
     Notes
     -----
     Scans RAW_DIR for subdirectories and returns their names.
@@ -52,17 +51,17 @@ def get_available_sources() -> list[str]:
     if not RAW_DIR.exists():
         logger.warning("RAW_DIR does not exist: %s", RAW_DIR)
         return []
-    
+
     sources = []
     for item in RAW_DIR.iterdir():
         if item.is_dir():
             source_name = item.name
             sources.append(source_name)
-            
+
             # Warn if directory is empty
             if not any(item.iterdir()):
                 logger.debug("Data source directory is empty: %s", source_name)
-    
+
     return sorted(sources)
 
 

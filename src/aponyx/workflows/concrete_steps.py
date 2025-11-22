@@ -91,12 +91,12 @@ class DataStep(BaseWorkflowStep):
                     "No cached data for %s - fetching from Bloomberg",
                     data_key,
                 )
-                
+
                 from aponyx.data import fetch_cdx, fetch_vix, fetch_etf, BloombergSource
                 from aponyx.data.bloomberg_config import list_securities
-                
+
                 source = BloombergSource()
-                
+
                 # Determine which fetch function to use based on instrument type
                 if data_key == "vix":
                     df = fetch_vix(
@@ -122,7 +122,7 @@ class DataStep(BaseWorkflowStep):
                         security=security,
                         update_current_day=self.config.force_rerun,
                     )
-                
+
                 market_data[data_key] = df
                 logger.info(
                     "Fetched %s from Bloomberg: %d rows",
@@ -153,6 +153,7 @@ class DataStep(BaseWorkflowStep):
             securities = None
             if fetch_spec.requires_security:
                 from aponyx.data.bloomberg_config import list_securities
+
                 securities = list_securities(instrument_type=data_key)
 
             # Load instrument data using generic loader
@@ -503,9 +504,7 @@ class PerformanceStep(BaseWorkflowStep):
         # Check for performance report markdown file
         output_dir = self.get_output_path()
         report_files = list(
-            output_dir.glob(
-                f"{self.config.signal_name}_{self.config.strategy_name}_*.md"
-            )
+            output_dir.glob(f"{self.config.signal_name}_{self.config.strategy_name}_*.md")
         )
         return len(report_files) > 0
 

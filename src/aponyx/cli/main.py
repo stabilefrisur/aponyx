@@ -25,7 +25,7 @@ def cli(ctx: click.Context, verbose: bool) -> None:
         format="%(levelname)s - %(name)s - %(message)s",
         force=True,
     )
-    
+
     # Store verbose flag in context for commands to access
     ctx.ensure_object(dict)
     ctx.obj["verbose"] = verbose

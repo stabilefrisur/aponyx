@@ -159,9 +159,7 @@ class DataRegistry:
             return str(relative).replace("\\", "/")  # Use forward slashes
         except ValueError:
             # Path is outside data_directory, store as-is
-            logger.warning(
-                "Path outside data directory, storing absolute: %s", p
-            )
+            logger.warning("Path outside data directory, storing absolute: %s", p)
             return str(p)
 
     def register_dataset(
@@ -266,7 +264,7 @@ class DataRegistry:
         """
         if name not in self._catalog:
             raise KeyError(f"Dataset '{name}' not found in registry")
-        
+
         info = self._catalog[name].copy()
         # Resolve relative path to absolute for consumers
         info["file_path"] = str(self._resolve_path(info["file_path"]))

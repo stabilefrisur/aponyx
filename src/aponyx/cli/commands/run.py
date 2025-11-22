@@ -77,19 +77,19 @@ def run(
     Examples:
         # Basic usage
         aponyx run --signal spread_momentum --strategy balanced
-        
+
         # Bloomberg data source
         aponyx run --signal cdx_vix_gap --strategy aggressive --data bloomberg
-        
+
         # Custom product
         aponyx run --signal spread_momentum --strategy balanced --product cdx_hy_5y
-        
+
         # Partial pipeline
         aponyx run --signal spread_momentum --strategy balanced --steps data,signal,backtest
-        
+
         # Force re-run (refreshes Bloomberg data if --data bloomberg)
         aponyx run --signal spread_momentum --strategy balanced --force
-        
+
         # YAML configuration
         aponyx run --config workflow.yaml
     """

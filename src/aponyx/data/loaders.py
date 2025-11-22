@@ -10,7 +10,6 @@ from pathlib import Path
 
 import pandas as pd
 
-from .validation import handle_duplicate_index
 
 logger = logging.getLogger(__name__)
 

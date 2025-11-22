@@ -163,13 +163,13 @@ def _collect_report_data(signal_name: str, strategy_name: str) -> ReportData:
 
     # Find most recent workflow run directory
     workflow_dirs = sorted(DATA_WORKFLOWS_DIR.glob(f"{signal_name}_{strategy_name}_*"))
-    
+
     if not workflow_dirs:
         raise FileNotFoundError(
             f"No workflow results found for {signal_name} ({strategy_name}). "
             f"Run workflow first: aponyx run --signal {signal_name} --strategy {strategy_name}"
         )
-    
+
     latest_dir = workflow_dirs[-1]
     data.workflow_dir = latest_dir
     logger.debug("Found workflow directory: %s", latest_dir.name)

@@ -90,7 +90,7 @@ class WorkflowEngine:
 
         # Create workflow output directory upfront
         output_dir = self._create_output_directory()
-        
+
         # Add output_dir to context for steps to use
         self._context["output_dir"] = output_dir
 
@@ -228,6 +228,7 @@ class WorkflowEngine:
         output_dir = self.config.output_dir / dirname
         output_dir.mkdir(parents=True, exist_ok=True)
         return output_dir
+
     def _save_metadata(
         self,
         output_dir: Path,
