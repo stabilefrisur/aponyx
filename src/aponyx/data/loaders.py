@@ -92,9 +92,15 @@ def concat_multi_security(
     # Concatenate with outer join for different date ranges
     df = pd.concat(dfs, axis=0).sort_index()
 
-    # Remove duplicates if present
+    # Remove duplicates if present (expected when combining securities)
     if df.index.duplicated().any():
-        df = handle_duplicate_index(df, strategy="last", context=instrument)
+        n_dups = df.index.duplicated().sum()
+        logger.debug(
+            "Removing %d duplicate dates from %d securities (expected for multi-security instruments)",
+            n_dups,
+            len(dfs),
+        )
+        df = df[~df.index.duplicated(keep="last")]
 
     return df
 

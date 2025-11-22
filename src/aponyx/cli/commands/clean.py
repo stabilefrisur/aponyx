@@ -70,12 +70,10 @@ def clean(
     """
     Clear cached workflow results.
 
+    \b
     Examples:
-
         aponyx clean --signal spread_momentum
-
         aponyx clean --all
-
         aponyx clean --all --dry-run
     """
     workflows_dir = PROCESSED_DIR / "workflows"

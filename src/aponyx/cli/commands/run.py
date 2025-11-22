@@ -36,9 +36,9 @@ logger = logging.getLogger(__name__)
 )
 @click.option(
     "--data",
-    type=click.Choice(["synthetic", "file", "bloomberg"], case_sensitive=False),
+    type=str,
     default="synthetic",
-    help="Data source (default: synthetic)",
+    help="Data source (default: synthetic). Available: synthetic, file, bloomberg, or any custom source in data/raw/",
 )
 @click.option(
     "--steps",
@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--force",
     is_flag=True,
-    help="Force re-run even if cached outputs exist",
+    help="Force re-run cached steps; with --data bloomberg, also refreshes current day data from Bloomberg",
 )
 @click.option(
     "--config",
@@ -73,19 +73,25 @@ def run(
     Configuration can be provided via command-line options or a YAML config file.
     Command-line options override values from config file.
 
+    \b
     Examples:
-
+        # Basic usage
         aponyx run --signal spread_momentum --strategy balanced
-
+        
+        # Bloomberg data source
         aponyx run --signal cdx_vix_gap --strategy aggressive --data bloomberg
-
-        aponyx run --signal spread_momentum --strategy balanced --product cdx_ig_5y
-
-        aponyx run --signal spread_momentum --strategy balanced --steps data,signal,backtest --force
-
+        
+        # Custom product
+        aponyx run --signal spread_momentum --strategy balanced --product cdx_hy_5y
+        
+        # Partial pipeline
+        aponyx run --signal spread_momentum --strategy balanced --steps data,signal,backtest
+        
+        # Force re-run (refreshes Bloomberg data if --data bloomberg)
+        aponyx run --signal spread_momentum --strategy balanced --force
+        
+        # YAML configuration
         aponyx run --config workflow.yaml
-
-        aponyx run --config workflow.yaml --force
     """
     # Load config from YAML if provided
     config_dict = {}

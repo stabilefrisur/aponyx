@@ -20,7 +20,8 @@ StepName = Literal[
     "visualization",
 ]
 
-DataSource = Literal["synthetic", "file", "bloomberg"]
+# DataSource now accepts any string to support dynamic source discovery
+DataSource = str
 
 
 @dataclass(frozen=True)
@@ -36,8 +37,8 @@ class WorkflowConfig:
         Strategy name from strategy catalog.
     product : str
         Product identifier for backtesting (e.g., "cdx_ig_5y", "cdx_hy_5y").
-    data_source : DataSource
-        Data source type (synthetic, file, bloomberg).
+    data_source : str
+        Data source type (e.g., "synthetic", "file", "bloomberg", or custom sources).
     steps : list[StepName] | None
         Specific steps to execute (None = all steps in order).
     force_rerun : bool

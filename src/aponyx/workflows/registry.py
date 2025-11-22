@@ -51,6 +51,17 @@ class StepRegistry:
             "visualization",
         ]
 
+    def get_canonical_order(self) -> list[str]:
+        """
+        Get canonical workflow step order.
+
+        Returns
+        -------
+        list[str]
+            Ordered list of step names.
+        """
+        return self._step_order.copy()
+
     def get_all_steps(self, config: WorkflowConfig) -> list["WorkflowStep"]:
         """
         Create all workflow steps in dependency order.

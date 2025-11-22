@@ -167,8 +167,11 @@ def validate_cdx_schema(df: pd.DataFrame, schema: CDXSchema = CDXSchema()) -> pd
     # Convert to DatetimeIndex and sort
     df = _ensure_datetime_index(df, schema.date_col)
 
-    # Check for duplicates
-    _check_duplicate_dates(df)
+    # Remove duplicates if present (without logging warning)
+    if df.index.duplicated().any():
+        n_dups = df.index.duplicated().sum()
+        logger.debug("Removing %d duplicate dates for CDX", n_dups)
+        df = df[~df.index.duplicated(keep="last")]
 
     logger.debug("CDX validation passed: date_range=%s to %s", df.index.min(), df.index.max())
     return df
@@ -275,11 +278,11 @@ def validate_etf_schema(df: pd.DataFrame, schema: ETFSchema = ETFSchema()) -> pd
     # Convert to DatetimeIndex and sort
     df = _ensure_datetime_index(df, schema.date_col)
 
-    # Check for duplicates per security
-    if schema.security_col in df.columns:
-        for security in df[schema.security_col].unique():
-            security_df = df[df[schema.security_col] == security]
-            _check_duplicate_dates(security_df, context=f"security {security}")
+    # Remove duplicates if present (without logging warning)
+    if df.index.duplicated().any():
+        n_dups = df.index.duplicated().sum()
+        logger.debug("Removing %d duplicate dates for ETF", n_dups)
+        df = df[~df.index.duplicated(keep="last")]
 
     logger.debug("ETF validation passed: date_range=%s to %s", df.index.min(), df.index.max())
     return df

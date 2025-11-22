@@ -23,14 +23,11 @@ from aponyx.config import (
     RAW_DIR,
     SIGNAL_CATALOG_PATH,
     STRATEGY_CATALOG_PATH,
-    EVALUATION_DIR,
-    PERFORMANCE_REPORTS_DIR,
 )
 from aponyx.data import DataRegistry
 from aponyx.data.requirements import get_required_data_keys
 from aponyx.data.fetch_registry import get_fetch_spec
 from aponyx.data.loaders import load_instrument_from_raw
-from aponyx.data.bloomberg_config import list_securities
 from aponyx.models import (
     compute_registered_signals,
     SignalConfig,
@@ -88,13 +85,52 @@ class DataStep(BaseWorkflowStep):
                 logger.debug("Loaded %s from registry: %d rows", data_key, len(df))
                 continue
 
-            # Registry empty - try loading from raw files
+            # Registry empty - handle bloomberg vs file/synthetic sources differently
             if self.config.data_source == "bloomberg":
-                raise ValueError(
-                    f"No datasets found for instrument '{data_key}'. "
-                    f"Bloomberg data source requires running data download workflow first. "
-                    f"See notebooks/01_data_download.ipynb"
+                # Bloomberg source: fetch fresh data or update current day
+                logger.info(
+                    "No cached data for %s - fetching from Bloomberg",
+                    data_key,
                 )
+                
+                from aponyx.data import fetch_cdx, fetch_vix, fetch_etf, BloombergSource
+                from aponyx.data.bloomberg_config import list_securities
+                
+                source = BloombergSource()
+                
+                # Determine which fetch function to use based on instrument type
+                if data_key == "vix":
+                    df = fetch_vix(
+                        source,
+                        update_current_day=self.config.force_rerun,
+                    )
+                elif data_key in ["hyg", "lqd"]:
+                    df = fetch_etf(
+                        source,
+                        security=data_key,
+                        update_current_day=self.config.force_rerun,
+                    )
+                else:
+                    # Assume CDX instrument
+                    securities = list_securities(instrument_type=data_key)
+                    if not securities:
+                        raise ValueError(
+                            f"No Bloomberg securities configured for instrument: {data_key}"
+                        )
+                    security = securities[0]  # Use first configured security
+                    df = fetch_cdx(
+                        source,
+                        security=security,
+                        update_current_day=self.config.force_rerun,
+                    )
+                
+                market_data[data_key] = df
+                logger.info(
+                    "Fetched %s from Bloomberg: %d rows",
+                    data_key,
+                    len(df),
+                )
+                continue
 
             # For file/synthetic sources, try to load from raw directory
             raw_data_dir = RAW_DIR / self.config.data_source
@@ -174,8 +210,9 @@ class SignalStep(BaseWorkflowStep):
         )
 
         # Save signal
-        output_path = self.get_output_path() / f"{self.config.signal_name}.parquet"
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_dir = context.get("output_dir", self.config.output_dir) / "signals"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / f"{self.config.signal_name}.parquet"
         signal_df = signal.to_frame(name="value")
         save_parquet(signal_df, output_path)
 
@@ -184,11 +221,14 @@ class SignalStep(BaseWorkflowStep):
         return output
 
     def output_exists(self) -> bool:
+        # Note: This checks old location for backward compatibility during transition
+        # TODO: Remove after one release cycle
         signal_path = self.get_output_path() / f"{self.config.signal_name}.parquet"
         return signal_path.exists()
 
     def get_output_path(self) -> Path:
-        return PROCESSED_DIR / "workflows" / "signals" / self.config.signal_name
+        # Use workflow output_dir from config (timestamped folder)
+        return self.config.output_dir / "signals"
 
     def load_cached_output(self) -> dict[str, Any]:
         """Load cached signal from disk."""
@@ -233,7 +273,9 @@ class SuitabilityStep(BaseWorkflowStep):
 
         # Generate and save report
         report = generate_suitability_report(result, self.config.signal_name, product)
-        save_suitability_report(report, self.config.signal_name, product, EVALUATION_DIR)
+        output_dir = context.get("output_dir", self.config.output_dir) / "suitability"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        save_suitability_report(report, self.config.signal_name, product, output_dir)
 
         output = {"suitability_result": result, "product": product}
         self._log_complete(output)
@@ -241,11 +283,13 @@ class SuitabilityStep(BaseWorkflowStep):
 
     def output_exists(self) -> bool:
         # Check for suitability report markdown file
-        report_files = list(EVALUATION_DIR.glob(f"{self.config.signal_name}_*.md"))
+        output_dir = self.get_output_path()
+        report_files = list(output_dir.glob(f"{self.config.signal_name}_*.md"))
         return len(report_files) > 0
 
     def get_output_path(self) -> Path:
-        return EVALUATION_DIR
+        # Use workflow output_dir from config (timestamped folder)
+        return self.config.output_dir / "suitability"
 
     def load_cached_output(self) -> dict[str, Any]:
         """Load cached suitability evaluation (report only, re-run for full data)."""
@@ -337,7 +381,7 @@ class BacktestStep(BaseWorkflowStep):
         )
 
         # Save results
-        output_dir = self.get_output_path()
+        output_dir = context.get("output_dir", self.config.output_dir) / "backtest"
         output_dir.mkdir(parents=True, exist_ok=True)
 
         save_parquet(result.pnl, output_dir / "pnl.parquet")
@@ -353,12 +397,8 @@ class BacktestStep(BaseWorkflowStep):
         return pnl_path.exists() and positions_path.exists()
 
     def get_output_path(self) -> Path:
-        return (
-            PROCESSED_DIR
-            / "workflows"
-            / "backtests"
-            / f"{self.config.signal_name}_{self.config.strategy_name}"
-        )
+        # Use workflow output_dir from config (timestamped folder)
+        return self.config.output_dir / "backtest"
 
     def load_cached_output(self) -> dict[str, Any]:
         """Load cached backtest results from disk."""
@@ -446,11 +486,13 @@ class PerformanceStep(BaseWorkflowStep):
             strategy_id=self.config.strategy_name,
             generate_tearsheet=False,
         )
+        output_dir = context.get("output_dir", self.config.output_dir) / "performance"
+        output_dir.mkdir(parents=True, exist_ok=True)
         save_performance_report(
             report,
             self.config.signal_name,
             self.config.strategy_name,
-            PERFORMANCE_REPORTS_DIR,
+            output_dir,
         )
 
         output = {"performance": performance}
@@ -459,15 +501,17 @@ class PerformanceStep(BaseWorkflowStep):
 
     def output_exists(self) -> bool:
         # Check for performance report markdown file
+        output_dir = self.get_output_path()
         report_files = list(
-            PERFORMANCE_REPORTS_DIR.glob(
+            output_dir.glob(
                 f"{self.config.signal_name}_{self.config.strategy_name}_*.md"
             )
         )
         return len(report_files) > 0
 
     def get_output_path(self) -> Path:
-        return PERFORMANCE_REPORTS_DIR
+        # Use workflow output_dir from config (timestamped folder)
+        return self.config.output_dir / "performance"
 
     def load_cached_output(self) -> dict[str, Any]:
         """Load cached performance evaluation (report only, no in-memory data)."""
@@ -508,7 +552,7 @@ class VisualizationStep(BaseWorkflowStep):
         logger.debug("Generated 3 visualization charts")
 
         # Save charts (HTML)
-        output_dir = self.get_output_path()
+        output_dir = context.get("output_dir", self.config.output_dir) / "visualization"
         output_dir.mkdir(parents=True, exist_ok=True)
 
         equity_fig.write_html(output_dir / "equity_curve.html")
@@ -528,12 +572,8 @@ class VisualizationStep(BaseWorkflowStep):
         return equity_path.exists()
 
     def get_output_path(self) -> Path:
-        return (
-            PROCESSED_DIR
-            / "workflows"
-            / "visualizations"
-            / f"{self.config.signal_name}_{self.config.strategy_name}"
-        )
+        # Use workflow output_dir from config (timestamped folder)
+        return self.config.output_dir / "visualization"
 
     def load_cached_output(self) -> dict[str, Any]:
         """Load cached visualizations (charts only, no in-memory figures)."""

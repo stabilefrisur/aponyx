@@ -64,7 +64,7 @@ def generate_cdx_sample(
     )
 
     rng = np.random.default_rng(seed)
-    dates = pd.date_range(start_date, periods=periods, freq="D")
+    dates = pd.bdate_range(start=start_date, periods=periods)
 
     # Mean-reverting spread dynamics
     spread = [base_spread]
@@ -127,7 +127,7 @@ def generate_vix_sample(
     logger.info("Generating VIX sample: periods=%d", periods)
 
     rng = np.random.default_rng(seed)
-    dates = pd.date_range(start_date, periods=periods, freq="D")
+    dates = pd.bdate_range(start=start_date, periods=periods)
 
     # Mean-reverting VIX with spike potential
     vix_close = [base_vix]
@@ -196,7 +196,7 @@ def generate_etf_sample(
     logger.info("Generating ETF sample: ticker=%s, periods=%d", ticker, periods)
 
     rng = np.random.default_rng(seed)
-    dates = pd.date_range(start_date, periods=periods, freq="D")
+    dates = pd.bdate_range(start=start_date, periods=periods)
 
     # Geometric Brownian motion for prices
     returns = rng.normal(0.0001, volatility / base_price, periods)

@@ -88,6 +88,12 @@ class WorkflowEngine:
             len(self._steps),
         )
 
+        # Create workflow output directory upfront
+        output_dir = self._create_output_directory()
+        
+        # Add output_dir to context for steps to use
+        self._context["output_dir"] = output_dir
+
         completed = 0
         skipped = 0
         errors = []
@@ -133,9 +139,6 @@ class WorkflowEngine:
                 break  # Stop execution on first error
 
         duration = (datetime.now() - self._start_time).total_seconds()
-
-        # Create workflow output directory
-        output_dir = self._create_output_directory()
 
         result = {
             "steps_completed": completed,

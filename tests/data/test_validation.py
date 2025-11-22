@@ -57,7 +57,7 @@ def test_validate_cdx_schema_invalid_spread() -> None:
 
 
 def test_validate_cdx_schema_duplicate_dates(caplog: pytest.LogCaptureFixture) -> None:
-    """Test CDX schema validation with duplicate dates."""
+    """Test CDX schema validation with duplicate dates - should remove them silently."""
     df = pd.DataFrame(
         {
             "date": ["2024-01-01"] * 5 + ["2024-01-02"] * 5,
@@ -68,8 +68,11 @@ def test_validate_cdx_schema_duplicate_dates(caplog: pytest.LogCaptureFixture) -
 
     validated = validate_cdx_schema(df)
 
-    assert "duplicate dates" in caplog.text.lower()
-    assert len(validated) == 10  # Still returns data with duplicates
+    # Duplicates should be removed silently (no warning log)
+    assert len(validated) == 2  # Only unique dates remain
+    assert not validated.index.duplicated().any()
+    # Debug-level message expected but not warning
+    assert "duplicate dates" not in caplog.text.lower() or "debug" in caplog.text.lower()
 
 
 def test_validate_vix_schema_valid() -> None:

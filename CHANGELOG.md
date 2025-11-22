@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Synthetic Data Generation** duplicate dates issue
+  - Changed date generation from calendar days (`freq="D"`) to business days (`pd.bdate_range()`) in `generate_cdx_sample`, `generate_vix_sample`, and `generate_etf_sample`
+  - Eliminated ~520 duplicate weekend dates that were causing validation warnings
+  - Fixed mismatch between period calculation (business days) and data generation (calendar days)
+- **Data Validation** logging behavior
+  - Reduced duplicate date removal logging from WARNING to DEBUG level in `validate_cdx_schema` and `validate_etf_schema`
+  - Updated `concat_multi_security` to handle expected multi-security duplicates silently
+  - Removed confusing "Found 5224 duplicate dates for CDX" and "Found 1306 duplicate dates for ETF" warnings
+  - Duplicates from multi-security concatenation now logged at DEBUG level with context
+- **Test Suite** validation test expectations
+  - Updated `test_validate_cdx_schema_duplicate_dates` to verify silent duplicate removal
+  - All 223 data layer tests passing
+
 ## [0.1.11] - 2025-11-21
 
 ### Added

@@ -50,12 +50,10 @@ def report(
     Aggregates suitability evaluation, performance metrics, and visualization
     references into a single document. Supports console output, markdown, and HTML.
 
+    \b
     Examples:
-
         aponyx report --signal spread_momentum --strategy balanced
-
         aponyx report --signal spread_momentum --strategy balanced --format markdown
-
         aponyx report --signal spread_momentum --strategy balanced --format html --output report.html
     """
     try:
