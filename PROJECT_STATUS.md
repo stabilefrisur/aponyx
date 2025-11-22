@@ -1,6 +1,6 @@
 # Project Status — aponyx
 
-**Last Updated:** November 21, 2025  
+**Last Updated:** November 22, 2025  
 **Version:** 0.1.11  
 **Maintainer:** stabilefrisur
 
@@ -26,6 +26,28 @@
 - `bloomberg`: `xbbg>=0.7.0` (Bloomberg Terminal integration)
 - `viz`: `plotly>=5.24.0`, `streamlit>=1.39.0`, `nbformat>=5.10.0`, `ipykernel>=6.29.0`, `tabulate>=0.9.0`, `jupyter>=1.0.0`, `matplotlib>=3.3.0`, `seaborn>=0.11.0` (visualization)
 - `dev`: `pytest>=8.0.0`, `pytest-cov>=5.0.0`, `ruff>=0.6.0`, `black>=24.0.0`, `mypy>=1.11.0`, `pandas-stubs>=2.0.0` (development tools)
+
+---
+
+## Purpose of This Document
+
+This document tracks implementation status and business context for the aponyx project:
+- What's implemented vs. stubbed
+- Investment strategy rationale (CDX overlay pilot)
+- Architecture decisions (why files-only, why independent signals)
+- Current system capabilities and limitations
+
+For coding patterns and conventions, see `.github/copilot-instructions.md`.
+
+## Related Documentation
+
+| Question | See |
+|----------|-----|
+| How to add a new signal? | `.github/copilot-instructions.md` Feature Scaffold Guide |
+| What's implemented vs. stubbed? | This document Implementation Status |
+| What are the coding standards? | `.github/copilot-instructions.md` Code Patterns |
+| Why independent signal evaluation? | This document Notable Design Decisions |
+| What's the investment strategy? | `src/aponyx/docs/cdx_overlay_strategy.md` |
 
 ---
 
@@ -183,14 +205,6 @@ src/aponyx/
 | **visualization/** | Charts, dashboards | None (accepts generic DataFrames) | `data`, `models`, `backtest`, `evaluation` |
 | **persistence/** | I/O operations | `config` | All others |
 | **config/** | Constants, paths | None | All |
-
-**Design Principles:**
-1. **Modularity:** Layers are decoupled; data layer knows nothing about strategy logic
-2. **Reproducibility:** Deterministic outputs with seed control and metadata logging
-3. **Type Safety:** Strict type hints using modern Python syntax (`str | None`, `dict[str, Any]`)
-4. **Simplicity:** Functions over classes; `@dataclass` for data containers
-5. **Transparency:** Clear separation of strategy logic from infrastructure
-6. **No Legacy Support:** Breaking changes without deprecation warnings; always use latest patterns
 
 ---
 
@@ -827,313 +841,29 @@ src/aponyx/
 
 ---
 
-## Design Patterns and Conventions
+## Coding Conventions
 
-### 1. Signal Sign Convention
-
-**All model signals follow consistent sign convention:**
-- **Positive signal values** → Long credit risk → Buy CDX (sell protection)
-- **Negative signal values** → Short credit risk → Sell CDX (buy protection)
-
-**Rationale:** Ensures clear interpretation when evaluating signals individually or comparing performance across different signal ideas.
-
-**Implementation:** See `src/aponyx/models/signals.py` for examples.
-
-### 2. Signal Registry Pattern
-
-Signals are managed via **JSON catalog** + **compute function registry**:
-
-**Files:**
-- `src/aponyx/models/signal_catalog.json` - Signal metadata
-- `src/aponyx/models/registry.py` - Registry implementation
-- `src/aponyx/models/catalog.py` - Catalog management
-
-**Benefits:**
-- Add new signals by editing JSON + implementing compute function
-- No code changes to batch computation logic
-- Easy enable/disable for experiments
-- Clear metadata and data requirements
-
-**Usage:**
-```python
-registry = SignalRegistry("src/aponyx/models/signal_catalog.json")
-signals = compute_registered_signals(registry, market_data, config)
-```
-
-### 3. Strategy Registry Pattern
-
-Backtest strategies are managed via **JSON catalog** + **strategy metadata registry**:
-
-**Files:**
-- `src/aponyx/backtest/strategy_catalog.json` - Strategy metadata (4 strategies)
-- `src/aponyx/backtest/registry.py` - Registry implementation
-- `src/aponyx/config/__init__.py` - STRATEGY_CATALOG_PATH constant
-
-**Benefits:**
-- Define multiple threshold configurations without code changes
-- Enable/disable strategies for comparative evaluation
-- Clean separation of strategy parameters from backtest engine
-- Consistent pattern with signal registry
-- Convert metadata to BacktestConfig via `to_config()` method
-
-**Current Strategies:**
-- `conservative` - Entry: 2.0, Exit: 1.0 (low turnover, high conviction)
-- `balanced` - Entry: 1.5, Exit: 0.75 (moderate turnover)
-- `aggressive` - Entry: 1.0, Exit: 0.5 (high turnover)
-- `experimental` - Entry: 0.75, Exit: 0.25 (disabled by default)
-
-**Usage:**
-```python
-from aponyx.backtest import StrategyRegistry
-from aponyx.config import STRATEGY_CATALOG_PATH
-
-registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
-metadata = registry.get_metadata("balanced")
-config = metadata.to_config(position_size=15.0)  # Override defaults
-```
-
-**Implementation Details:**
-- `StrategyMetadata` dataclass with frozen=True for immutability
-- Fail-fast validation: entry_threshold > exit_threshold checked at load time
-- Enable/disable strategies via catalog without code changes
-- Comprehensive unit tests in `tests/governance/test_strategy_registry.py`
-
-### 4. Provider Pattern for Data Sources
-
-**Abstract `DataSource` protocol** supports multiple providers:
-
-**Files:**
-- `src/aponyx/data/sources.py` - Protocol definition
-- `src/aponyx/data/providers/file.py` - File implementation
-- `src/aponyx/data/providers/bloomberg.py` - Bloomberg Terminal implementation
-
-**Current Implementations:**
-- ✅ `FileSource` - Local Parquet/CSV files
-- ✅ `BloombergSource` - Bloomberg Terminal via xbbg (requires active session)
-
-**Example:**
-```python
-# File-based
-source = FileSource("data/raw/cdx_data.parquet")
-cdx_df = fetch_cdx(source, security="cdx_ig_5y")
-
-# Bloomberg Terminal
-source = BloombergSource()
-cdx_df = fetch_cdx(source, security="cdx_ig_5y")
-```
-
-### 5. Functions Over Classes
-
-**Default to pure functions** for transformations, calculations, and data processing.
-
-**Only use classes for:**
-1. State management (`DataRegistry`, connection pools)
-2. Multiple related methods on shared state
-3. Lifecycle management (context managers)
-4. Plugin/interface patterns (base classes)
-
-**Use `@dataclass` for data containers:**
-- `SignalConfig` - Signal parameters
-- `BacktestConfig` - Backtest configuration
-- `BacktestResult` - Backtest outputs
-- `PerformanceMetrics` - Performance statistics
-
-**Files demonstrating this pattern:**
-- `src/aponyx/models/signals.py` - Pure functions for signal computation
-- `src/aponyx/backtest/config.py` - Dataclass configurations
-- `src/aponyx/backtest/engine.py` - Functional backtest logic
-
-### 6. Logging Standards
-
-**Module-level loggers:**
-```python
-import logging
-logger = logging.getLogger(__name__)
-```
-
-**%-formatting (not f-strings):**
-```python
-logger.info("Loaded %d rows from %s", len(df), path)
-```
-
-**Levels:**
-- **INFO:** User-facing operations (file loaded, backtest started)
-- **DEBUG:** Implementation details (filter applied, cache hit)
-- **WARNING:** Recoverable errors (missing optional column)
-
-**Never in library code:**
-```python
-logging.basicConfig(...)  # User's responsibility, not library's
-```
-
-**Examples:** See any module in `src/aponyx/` for consistent logging patterns.
-
-### 7. Type Hints (Modern Python Syntax)
-
-**Use built-in generics and union syntax:**
-```python
-def process_data(
-    data: dict[str, Any],
-    filters: list[str] | None = None,
-    threshold: int | float = 0.0,
-) -> pd.DataFrame | None:
-    ...
-```
-
-**Avoid old syntax:**
-```python
-# ❌ Don't use: Optional, Union, List, Dict
-from typing import Optional, Union, List, Dict
-```
-
-**Files:** All modules in `src/aponyx/` use modern type syntax.
+For implementation patterns, see `.github/copilot-instructions.md`, which documents:
+- Signal sign convention (positive = long credit)
+- Registry patterns (Signal, Strategy, Data, Suitability, Performance)
+- Provider pattern for data sources
+- Functions over classes
+- Logging standards
+- Modern type hints (PEP 604 unions, built-in generics)
+- Frozen dataclass configs
+- Return figures without auto-display
 
 ---
 
-## Data Flow and Workflow
+## Data Flow
 
-**Typical Research Workflow:**
-
-```
-1. Data Loading
-   FileSource("data/raw/cdx.parquet")
-   OR BloombergSource()
-   → fetch_cdx(source, security="cdx_ig_5y")
-   → validate_cdx_schema(df)
-   → Cache to data/cache/{provider}/{instrument}_{key}.parquet
-   → Register in data/registry.json
-   → Returns: pd.DataFrame with DatetimeIndex
-
-2. Signal Generation
-   SignalRegistry("src/aponyx/models/signal_catalog.json")
-   → Load enabled signals from catalog
-   → Validate data requirements
-   → compute_registered_signals(registry, market_data, config)
-     → compute_cdx_etf_basis(cdx_df, etf_df, config)
-     → compute_cdx_vix_gap(cdx_df, vix_df, config)
-     → compute_spread_momentum(cdx_df, config)
-   → Returns: dict[str, pd.Series] of z-score normalized signals
-
-3. Signal-Product Suitability (optional pre-backtest gate)
-   SuitabilityConfig(lags=[1, 3, 5], min_obs=252)
-   → evaluate_signal_suitability(signal, target, config)
-     → Compute 4-component scores (data/predictive/economic/stability)
-     → Assign decision (PASS/HOLD/FAIL)
-     → Generate markdown report
-   → SuitabilityRegistry.register_evaluation(result, signal_id, product_id)
-   → Returns: SuitabilityResult with decision and scores
-   → If FAIL: Archive signal, skip backtest
-
-4. Backtesting (per signal that passes evaluation)
-   BacktestConfig(
-     entry_threshold=1.5,
-     exit_threshold=0.75,
-     position_size=10.0,
-     transaction_cost_bps=1.0,
-     max_holding_days=None,
-     dv01_per_million=4750.0
-   )
-   → run_backtest(signal, spread, config)
-     → Generate positions (long/short/flat)
-     → Calculate spread P&L via DV01
-     → Apply transaction costs
-     → Track metadata
-   → Returns: BacktestResult(positions, pnl, metadata)
-
-5. Basic Performance Metrics
-   compute_performance_metrics(result.pnl, result.positions)
-   → Calculate 13 metrics:
-     - Sharpe, Sortino, Calmar ratios
-     - Max drawdown, total return
-     - Hit rate, win/loss ratios
-     - Trade statistics
-   → Returns: PerformanceMetrics dataclass
-
-6. Visualization
-   plot_equity_curve(result.pnl["cumulative_pnl"])
-   plot_signal(signal, threshold_lines=[-1.5, 1.5])
-   plot_drawdown(result.pnl["net_pnl"])
-   → Returns: plotly.graph_objects.Figure
-   → Caller renders: .show() or st.plotly_chart()
-
-7. Results Persistence
-   save_json(result.metadata, "logs/run_metadata.json")
-   save_parquet(result.pnl, "data/processed/backtest_pnl.parquet")
-   DataRegistry.register_dataset(...)
-```
-
-**Data Dependencies:**
-
-```
-market_data: dict[str, pd.DataFrame]
-├─ "cdx": DataFrame with DatetimeIndex
-│   ├─ spread (float, bps)
-│   └─ security (str, optional)
-├─ "vix": DataFrame with DatetimeIndex
-│   └─ level (float, index value)
-└─ "etf": DataFrame with DatetimeIndex
-    ├─ spread (float, spread-equivalent)
-    └─ security (str, optional)
-
-↓ (passed to signal registry)
-
-signals: dict[str, pd.Series]
-├─ "cdx_etf_basis": z-score normalized signal
-├─ "cdx_vix_gap": z-score normalized signal
-└─ "spread_momentum": z-score normalized signal
-
-↓ (evaluated individually)
-
-BacktestResult for each signal
-├─ positions: DataFrame (date index)
-│   ├─ signal (float, signal value)
-│   ├─ position (int, +1/0/-1)
-│   ├─ days_held (int)
-│   └─ spread (float, spread level)
-├─ pnl: DataFrame (date index)
-│   ├─ spread_pnl (float, P&L from spread changes)
-│   ├─ cost (float, transaction costs)
-│   ├─ net_pnl (float, total P&L)
-│   └─ cumulative_pnl (float, running total)
-└─ metadata: dict
-    ├─ timestamp (str, ISO format)
-    ├─ config (dict, BacktestConfig values)
-    └─ summary (dict, trade count, total P&L, etc.)
-
-↓ (analyzed)
-
-PerformanceMetrics (dataclass)
-├─ sharpe_ratio, sortino_ratio, calmar_ratio (float)
-├─ max_drawdown, total_return, annualized_return (float)
-├─ annualized_volatility, hit_rate (float)
-├─ avg_win, avg_loss, win_loss_ratio (float)
-└─ n_trades, avg_holding_days (int/float)
-```
-
-**Key Files:**
-- Data loading: `src/aponyx/data/fetch.py`, `src/aponyx/data/providers/`
-- Signal generation: `src/aponyx/models/catalog.py`, `src/aponyx/models/signals.py`
-- Backtesting: `src/aponyx/backtest/engine.py`
-- Metrics: `src/aponyx/backtest/metrics.py`
-- Visualization: `src/aponyx/visualization/plots.py`
-- Persistence: `src/aponyx/persistence/parquet_io.py`, `src/aponyx/persistence/json_io.py`
+Data flows through 6 workflow steps: load → signal → suitability → backtest → performance → visualization. Each step produces outputs consumed by subsequent steps. See `.github/copilot-instructions.md` Example Prompts for concrete workflow examples.
 
 ---
 
 ## Notable Design Decisions
 
-### 1. No Backward Compatibility
-
-**Decision:** Use modern Python syntax without legacy support.
-
-**Rationale:**
-- Early-stage project allows adopting best practices immediately
-- No legacy cruft or deprecated patterns
-- Cleaner, more readable code
-
-**Impact:** Use `str | None` not `Optional[str]`, `dict[str, Any]` not `Dict[str, Any]`, etc.
-
-### 2. Files Only (No Databases)
+### Files Only (No Databases)
 
 **Decision:** Parquet/JSON only; no SQL, MongoDB, or other databases.
 
@@ -1145,7 +875,7 @@ PerformanceMetrics (dataclass)
 
 **Impact:** All persistence via `src/aponyx/persistence/parquet_io.py` and `json_io.py`.
 
-### 3. Independent Signal Evaluation
+### Independent Signal Evaluation
 
 **Decision:** Each signal backtested individually before combination.
 
@@ -1157,44 +887,7 @@ PerformanceMetrics (dataclass)
 
 **Impact:** `compute_registered_signals` returns dict of signals; each evaluated separately.
 
-### 4. Return Figures, Don't Display
-
-**Decision:** Visualization functions return `plotly.graph_objects.Figure` without auto-display.
-
-**Rationale:**
-- Works in Jupyter, Streamlit, HTML export, testing
-- Caller controls rendering context (`.show()`, `st.plotly_chart()`, `.write_html()`)
-- Enables post-processing (annotations, subplot composition)
-- Testable without rendering (check figure structure, not visuals)
-
-**Impact:** User must call `.show()` or `st.plotly_chart()` explicitly. See `src/aponyx/visualization/plots.py`.
-
-**Implementation Details:**
-- All plot functions return `go.Figure` objects
-- No side effects (no auto-display, no file writing)
-- Consistent interface across all plotting functions
-- Enables unit testing of plot generation logic
-
-### 5. TTL-Based Caching (Not LRU)
-
-**Decision:** Simple time-based cache expiration, no size limits or LRU eviction.
-
-**Rationale:**
-- Predictable behavior for research workflows
-- No complex invalidation logic (staleness via TTL only)
-- Manual cleanup acceptable for single-user research
-- Simple implementation with file modification times
-
-**Impact:** Cache grows until manual cleanup; no automatic eviction. See `src/aponyx/data/cache.py`.
-
-**Implementation Details:**
-- Cache key generated from fetch parameters (hash-based)
-- Staleness checked via file modification time
-- Default TTL: 1 day (`CACHE_TTL_DAYS = 1`)
-- Cache directory structure: `data/cache/{provider}/{instrument}_{key}.parquet`
-- Optional cache registration in data registry
-
-### 6. No Authentication in Library
+### No Authentication in Library
 
 **Decision:** No credential management, API keys, or auth logic in library code.
 
@@ -1204,17 +897,6 @@ PerformanceMetrics (dataclass)
 - Security handled at infrastructure level
 
 **Impact:** Providers accept connection parameters but don't implement auth.
-
-### 7. Module-Level Loggers (Never `basicConfig`)
-
-**Decision:** Use `logger = logging.getLogger(__name__)` in all modules; never call `logging.basicConfig()`.
-
-**Rationale:**
-- Library shouldn't force logging configuration on users
-- Hierarchical logger names enable fine-grained control
-- Works cleanly with pytest (no spurious output)
-
-**Impact:** Applications configure logging, library uses module loggers. See `src/aponyx/docs/logging_design.md`.
 
 ---
 
@@ -1453,48 +1135,18 @@ aponyx/
 
 ---
 
-## Current Gaps and Stubs
-
-**Visualization Layer:**
-- `plot_attribution` - Stub that raises `NotImplementedError`
-- `plot_exposures` - Stub that raises `NotImplementedError`
-- `plot_dashboard` - Stub that raises `NotImplementedError`
-- `app.py` - Streamlit dashboard contains only placeholder comments
-
-**Data Layer:**
-- `APISource` dataclass defined in `sources.py` but no provider implementation exists
-
-**Backtest Layer:**
-- `adapters.py` contains commented-out stubs for vectorbt and quantstats integration
-
-**Current Limitations:**
-- Three signals in catalog (basis, gap, momentum); framework supports adding more
-- Binary position sizing only (no scaling by signal strength)
-- Single-asset backtesting (no portfolio-level support)
-- File-based data only (no API or database providers beyond Bloomberg Terminal)
-
----
-
 ## Context for AI Assistants
 
-This document provides comprehensive context for GPT-based AI assistants working on the aponyx project. When generating code or suggestions:
+When providing both `PROJECT_STATUS.md` and `.github/copilot-instructions.md` to AI assistants:
 
-1. **Respect layer boundaries** - Data layer cannot import from models/backtest
-2. **Use modern Python syntax** - `str | None`, `dict[str, Any]`, etc.
-3. **Follow signal sign convention** - Positive = long credit risk
-4. **Add module-level loggers** - Never use `logging.basicConfig()`
-5. **Return figures, don't display** - Let caller control rendering
-6. **Use functions over classes** - Default to pure functions
-7. **Include type hints** - All function signatures fully typed
-8. **Write NumPy-style docstrings** - Parameters, Returns, Notes sections
-9. **Add tests for new features** - Deterministic tests with fixed seeds
-10. **Log metadata for backtests** - Timestamp, version, config, summary stats
+- **This document**: Implementation status, business context, architecture decisions
+- **copilot-instructions.md**: Coding patterns, scaffolding templates, integration rules
 
 **Key reference files:**
-- Architecture: This document (layer table, design patterns)
-- Code standards: `.github/copilot-instructions.md`, `src/aponyx/docs/python_guidelines.md`
+- Architecture: This document (layer table, implementation status)
+- Code patterns: `.github/copilot-instructions.md`
 - Investment context: `src/aponyx/docs/cdx_overlay_strategy.md`
-- Signal workflow: `src/aponyx/docs/signal_registry_usage.md`
+- Python standards: `src/aponyx/docs/python_guidelines.md`
 
 ---
 

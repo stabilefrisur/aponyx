@@ -56,6 +56,8 @@ Aponyx is a **Python 3.12 systematic fixed-income research framework** for devel
 
 **For simple tasks:** Skip planning and implement directly.
 
+**Communication style:** Do NOT use decorative emojis in responses, code, or documentation unless explicitly requested by the user.
+
 ---
 
 ## Technology Stack
