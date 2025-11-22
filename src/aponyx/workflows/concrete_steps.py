@@ -64,24 +64,26 @@ class DataStep(BaseWorkflowStep):
     def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         self._log_start()
 
-        # Get required data keys from ALL enabled signals in catalog
-        required_keys = get_required_data_keys(SIGNAL_CATALOG_PATH)
+        # Get all securities from Bloomberg securities config
+        # Download all configured securities regardless of signal requirements
+        from aponyx.data.bloomberg_config import list_securities
+        all_securities = list_securities()  # Get all security IDs
 
         # Initialize registry
         data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
         market_data = {}
 
-        for data_key in sorted(required_keys):
+        for security_id in sorted(all_securities):
             # Try loading from registry first (cached/processed data)
-            matching_datasets = data_registry.list_datasets(instrument=data_key)
+            matching_datasets = data_registry.list_datasets(instrument=security_id)
 
             if matching_datasets:
                 # Use most recent dataset from registry
                 dataset_name = sorted(matching_datasets)[-1]
                 info = data_registry.get_dataset_info(dataset_name)
                 df = load_parquet(info["file_path"])
-                market_data[data_key] = df
-                logger.debug("Loaded %s from registry: %d rows", data_key, len(df))
+                market_data[security_id] = df
+                logger.debug("Loaded %s from registry: %d rows", security_id, len(df))
                 continue
 
             # Registry empty - handle bloomberg vs file/synthetic sources differently
@@ -89,44 +91,43 @@ class DataStep(BaseWorkflowStep):
                 # Bloomberg source: fetch fresh data or update current day
                 logger.info(
                     "No cached data for %s - fetching from Bloomberg",
-                    data_key,
+                    security_id,
                 )
 
                 from aponyx.data import fetch_cdx, fetch_vix, fetch_etf, BloombergSource
-                from aponyx.data.bloomberg_config import list_securities
+                from aponyx.data.bloomberg_config import get_security_spec
 
                 source = BloombergSource()
 
+                # Get instrument type for this security
+                spec = get_security_spec(security_id)
+                instrument_type = spec.instrument_type
+
                 # Determine which fetch function to use based on instrument type
-                if data_key == "vix":
+                if instrument_type == "vix":
                     df = fetch_vix(
                         source,
                         update_current_day=self.config.force_rerun,
                     )
-                elif data_key in ["hyg", "lqd"]:
+                elif instrument_type == "etf":
                     df = fetch_etf(
                         source,
-                        security=data_key,
+                        security=security_id,
+                        update_current_day=self.config.force_rerun,
+                    )
+                elif instrument_type == "cdx":
+                    df = fetch_cdx(
+                        source,
+                        security=security_id,
                         update_current_day=self.config.force_rerun,
                     )
                 else:
-                    # Assume CDX instrument
-                    securities = list_securities(instrument_type=data_key)
-                    if not securities:
-                        raise ValueError(
-                            f"No Bloomberg securities configured for instrument: {data_key}"
-                        )
-                    security = securities[0]  # Use first configured security
-                    df = fetch_cdx(
-                        source,
-                        security=security,
-                        update_current_day=self.config.force_rerun,
-                    )
+                    raise ValueError(f"Unknown instrument type: {instrument_type}")
 
-                market_data[data_key] = df
+                market_data[security_id] = df
                 logger.info(
                     "Fetched %s from Bloomberg: %d rows",
-                    data_key,
+                    security_id,
                     len(df),
                 )
                 continue
@@ -136,35 +137,33 @@ class DataStep(BaseWorkflowStep):
 
             if not raw_data_dir.exists():
                 raise ValueError(
-                    f"No datasets found for instrument '{data_key}'. "
+                    f"No datasets found for security '{security_id}'. "
                     f"Raw data directory does not exist: {raw_data_dir}"
                 )
 
             logger.info(
                 "No cached data for %s - attempting to load from %s",
-                data_key,
+                security_id,
                 raw_data_dir,
             )
+
+            # Get instrument type for this security
+            from aponyx.data.bloomberg_config import get_security_spec
+            spec = get_security_spec(security_id)
+            instrument_type = spec.instrument_type
 
             # Get fetch specification from registry
-            fetch_spec = get_fetch_spec(data_key)
+            fetch_spec = get_fetch_spec(instrument_type)
 
-            # Determine securities if needed
-            securities = None
-            if fetch_spec.requires_security:
-                from aponyx.data.bloomberg_config import list_securities
-
-                securities = list_securities(instrument_type=data_key)
-
-            # Load instrument data using generic loader
+            # Load instrument data using generic loader with specific security
             df = load_instrument_from_raw(
                 raw_data_dir,
-                data_key,
+                instrument_type,
                 fetch_spec.fetch_fn,
-                securities,
+                [security_id],  # Pass specific security
             )
 
-            market_data[data_key] = df
+            market_data[security_id] = df
 
         output = {"market_data": market_data}
         self._log_complete(output)

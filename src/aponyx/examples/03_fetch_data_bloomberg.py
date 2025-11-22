@@ -44,7 +44,7 @@ def main() -> dict[str, pd.DataFrame]:
     """
     Load and validate all market data from Bloomberg Terminal.
 
-    Fetches all instruments defined in bloomberg_securities.json.
+    Fetches all securities defined in bloomberg_securities.json.
     Uses fetch interface with BloombergSource for automatic validation,
     caching, and raw storage.
 
@@ -58,40 +58,44 @@ def main() -> dict[str, pd.DataFrame]:
     Data is automatically saved to raw/bloomberg/ for permanent storage.
     Subsequent calls use cache unless data is stale (see CACHE_TTL_DAYS config).
     """
+    from aponyx.data.bloomberg_config import get_security_spec
+
     end_date = datetime.now().strftime("%Y-%m-%d")
     start_date = (datetime.now() - timedelta(days=5 * 365)).strftime("%Y-%m-%d")
 
     source = BloombergSource()
     data = {}
 
-    # Load CDX instruments
-    cdx_securities = list_securities(instrument_type="cdx")
-    for security in cdx_securities:
-        df = fetch_cdx(
-            source,
-            security=security,
-            start_date=start_date,
-            end_date=end_date,
-        )
-        data[security] = df
+    # Load all securities from catalog
+    all_securities = list_securities()
+    for security_id in all_securities:
+        spec = get_security_spec(security_id)
+        instrument_type = spec.instrument_type
 
-    # Load VIX
-    data["vix"] = fetch_vix(
-        source,
-        start_date=start_date,
-        end_date=end_date,
-    )
+        if instrument_type == "vix":
+            df = fetch_vix(
+                source,
+                start_date=start_date,
+                end_date=end_date,
+            )
+        elif instrument_type == "etf":
+            df = fetch_etf(
+                source,
+                security=security_id,
+                start_date=start_date,
+                end_date=end_date,
+            )
+        elif instrument_type == "cdx":
+            df = fetch_cdx(
+                source,
+                security=security_id,
+                start_date=start_date,
+                end_date=end_date,
+            )
+        else:
+            raise ValueError(f"Unknown instrument type: {instrument_type}")
 
-    # Load ETF instruments
-    etf_securities = list_securities(instrument_type="etf")
-    for security in etf_securities:
-        df = fetch_etf(
-            source,
-            security=security,
-            start_date=start_date,
-            end_date=end_date,
-        )
-        data[security] = df
+        data[security_id] = df
 
     return data
 
