@@ -42,11 +42,11 @@ All style settings are defined in `pyproject.toml`:
 ```toml
 [tool.ruff]
 line-length = 100
-target-version = "py313"
+target-version = "py312"
 
 [tool.black]
 line-length = 100
-target-version = ["py313"]
+target-version = ["py312"]
 
 [tool.mypy]
 python_version = "3.12"

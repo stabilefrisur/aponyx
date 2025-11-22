@@ -248,4 +248,4 @@ Potential additions as the project grows:
 **Summary**: The logging design follows Python best practices for library code, providing visibility without imposing configuration, and maintaining clean separation between library and application concerns.
 
 **Maintained by:** stabilefrisur  
-**Last Updated:** October 26, 2025
+**Last Updated:** November 22, 2025

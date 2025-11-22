@@ -678,5 +678,5 @@ source = APISource(
 
 ---
 
-**Maintained by stabilefrisur**  
-**Last Updated:** October 31, 2025
+**Maintained by:** stabilefrisur  
+**Last Updated:** November 22, 2025
