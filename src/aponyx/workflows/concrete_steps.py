@@ -17,10 +17,9 @@ from typing import Any
 import pandas as pd
 
 from aponyx.config import (
-    PROCESSED_DIR,
-    REGISTRY_PATH,
     DATA_DIR,
     RAW_DIR,
+    REGISTRY_PATH,
     SIGNAL_CATALOG_PATH,
     STRATEGY_CATALOG_PATH,
 )
@@ -153,6 +152,7 @@ class DataStep(BaseWorkflowStep):
             # Determine securities if needed
             securities = None
             if fetch_spec.requires_security:
+                from aponyx.data.bloomberg_config import list_securities
                 securities = list_securities(instrument_type=data_key)
 
             # Load instrument data using generic loader
@@ -174,7 +174,7 @@ class DataStep(BaseWorkflowStep):
         return False
 
     def get_output_path(self) -> Path:
-        return PROCESSED_DIR / "workflows" / "data" / self.config.signal_name
+        return self.config.output_dir / "data"
 
     def load_cached_output(self) -> dict[str, Any]:
         """Load cached market data (always reload from registry)."""
@@ -273,7 +273,7 @@ class SuitabilityStep(BaseWorkflowStep):
 
         # Generate and save report
         report = generate_suitability_report(result, self.config.signal_name, product)
-        output_dir = context.get("output_dir", self.config.output_dir) / "suitability"
+        output_dir = context.get("output_dir", self.config.output_dir) / "reports"
         output_dir.mkdir(parents=True, exist_ok=True)
         save_suitability_report(report, self.config.signal_name, product, output_dir)
 
@@ -289,7 +289,7 @@ class SuitabilityStep(BaseWorkflowStep):
 
     def get_output_path(self) -> Path:
         # Use workflow output_dir from config (timestamped folder)
-        return self.config.output_dir / "suitability"
+        return self.config.output_dir / "reports"
 
     def load_cached_output(self) -> dict[str, Any]:
         """Load cached suitability evaluation (report only, re-run for full data)."""
@@ -486,7 +486,7 @@ class PerformanceStep(BaseWorkflowStep):
             strategy_id=self.config.strategy_name,
             generate_tearsheet=False,
         )
-        output_dir = context.get("output_dir", self.config.output_dir) / "performance"
+        output_dir = context.get("output_dir", self.config.output_dir) / "reports"
         output_dir.mkdir(parents=True, exist_ok=True)
         save_performance_report(
             report,
@@ -511,7 +511,7 @@ class PerformanceStep(BaseWorkflowStep):
 
     def get_output_path(self) -> Path:
         # Use workflow output_dir from config (timestamped folder)
-        return self.config.output_dir / "performance"
+        return self.config.output_dir / "reports"
 
     def load_cached_output(self) -> dict[str, Any]:
         """Load cached performance evaluation (report only, no in-memory data)."""
@@ -552,7 +552,7 @@ class VisualizationStep(BaseWorkflowStep):
         logger.debug("Generated 3 visualization charts")
 
         # Save charts (HTML)
-        output_dir = context.get("output_dir", self.config.output_dir) / "visualization"
+        output_dir = context.get("output_dir", self.config.output_dir) / "visualizations"
         output_dir.mkdir(parents=True, exist_ok=True)
 
         equity_fig.write_html(output_dir / "equity_curve.html")

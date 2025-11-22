@@ -11,7 +11,7 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 
-from aponyx.config import PROCESSED_DIR, EVALUATION_DIR, PERFORMANCE_REPORTS_DIR
+from aponyx.config import DATA_WORKFLOWS_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +128,8 @@ def generate_report(
         if output_path is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"{signal_name}_{strategy_name}_{timestamp}.{_get_extension(format)}"
-            output_path = PROCESSED_DIR / "reports" / filename
+            # Save aggregated reports to .reports subdirectory in workflows
+            output_path = DATA_WORKFLOWS_DIR / ".reports" / filename
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(content, encoding="utf-8")
@@ -160,37 +161,45 @@ def _collect_report_data(signal_name: str, strategy_name: str) -> ReportData:
     """
     data = ReportData(signal_name=signal_name, strategy_name=strategy_name)
 
-    # Load suitability report
-    suitability_files = list(EVALUATION_DIR.glob(f"{signal_name}_*.md"))
-    if suitability_files:
-        # Use most recent report
-        suitability_file = sorted(suitability_files)[-1]
-        data.suitability_report = suitability_file.read_text(encoding="utf-8")
-        logger.debug("Loaded suitability report: %s", suitability_file.name)
+    # Find most recent workflow run directory
+    workflow_dirs = sorted(DATA_WORKFLOWS_DIR.glob(f"{signal_name}_{strategy_name}_*"))
+    
+    if not workflow_dirs:
+        raise FileNotFoundError(
+            f"No workflow results found for {signal_name} ({strategy_name}). "
+            f"Run workflow first: aponyx run --signal {signal_name} --strategy {strategy_name}"
+        )
+    
+    latest_dir = workflow_dirs[-1]
+    data.workflow_dir = latest_dir
+    logger.debug("Found workflow directory: %s", latest_dir.name)
 
-    # Load performance report
-    performance_files = list(PERFORMANCE_REPORTS_DIR.glob(f"{signal_name}_{strategy_name}_*.md"))
-    if performance_files:
-        # Use most recent report
-        performance_file = sorted(performance_files)[-1]
-        data.performance_report = performance_file.read_text(encoding="utf-8")
-        logger.debug("Loaded performance report: %s", performance_file.name)
+    # Load reports from reports/ subdirectory
+    reports_dir = latest_dir / "reports"
+    if reports_dir.exists():
+        # Load suitability report
+        suitability_files = list(reports_dir.glob(f"*{signal_name}*.md"))
+        if suitability_files:
+            suitability_file = sorted(suitability_files)[-1]
+            data.suitability_report = suitability_file.read_text(encoding="utf-8")
+            logger.debug("Loaded suitability report: %s", suitability_file.name)
+
+        # Load performance report
+        performance_files = list(reports_dir.glob(f"*{signal_name}_{strategy_name}*.md"))
+        if performance_files:
+            performance_file = sorted(performance_files)[-1]
+            data.performance_report = performance_file.read_text(encoding="utf-8")
+            logger.debug("Loaded performance report: %s", performance_file.name)
 
     # Check for visualizations
-    viz_dir = PROCESSED_DIR / "workflows" / "visualizations" / f"{signal_name}_{strategy_name}"
+    viz_dir = latest_dir / "visualizations"
     data.has_visualizations = viz_dir.exists() and any(viz_dir.glob("*.html"))
-
-    # Find workflow directory
-    workflow_dirs = list(PROCESSED_DIR.glob(f"workflows/{signal_name}_{strategy_name}_*"))
-    if workflow_dirs:
-        data.workflow_dir = sorted(workflow_dirs)[-1]
-        logger.debug("Found workflow directory: %s", data.workflow_dir.name)
 
     # Validate that we have some results
     if not (data.suitability_report or data.performance_report):
         raise FileNotFoundError(
-            f"No workflow results found for {signal_name} ({strategy_name}). "
-            f"Run workflow first: aponyx run --signal {signal_name} --strategy {strategy_name}"
+            f"No reports found in workflow directory {latest_dir}. "
+            f"Run workflow with all steps enabled."
         )
 
     return data
@@ -223,14 +232,10 @@ def _generate_console_report(data: ReportData) -> str:
     if data.has_visualizations:
         lines.append("VISUALIZATIONS")
         lines.append("-" * 80)
-        viz_dir = (
-            PROCESSED_DIR
-            / "workflows"
-            / "visualizations"
-            / f"{data.signal_name}_{data.strategy_name}"
-        )
-        for viz_file in sorted(viz_dir.glob("*.html")):
-            lines.append(f"  • {viz_file.name}: {viz_file}")
+        if data.workflow_dir:
+            viz_dir = data.workflow_dir / "visualizations"
+            for viz_file in sorted(viz_dir.glob("*.html")):
+                lines.append(f"  • {viz_file.name}: {viz_file}")
         lines.append("")
 
     # Workflow info
@@ -271,14 +276,10 @@ def _generate_markdown_report(data: ReportData) -> str:
     if data.has_visualizations:
         lines.append("## Visualizations")
         lines.append("")
-        viz_dir = (
-            PROCESSED_DIR
-            / "workflows"
-            / "visualizations"
-            / f"{data.signal_name}_{data.strategy_name}"
-        )
-        for viz_file in sorted(viz_dir.glob("*.html")):
-            lines.append(f"- [{viz_file.stem}]({viz_file.resolve().as_uri()})")
+        if data.workflow_dir:
+            viz_dir = data.workflow_dir / "visualizations"
+            for viz_file in sorted(viz_dir.glob("*.html")):
+                lines.append(f"- [{viz_file.stem}]({viz_file.resolve().as_uri()})")
         lines.append("")
 
     # Workflow info
@@ -343,16 +344,12 @@ def _generate_html_report(data: ReportData) -> str:
     if data.has_visualizations:
         html_parts.append("    <h2>Visualizations</h2>")
         html_parts.append("    <ul>")
-        viz_dir = (
-            PROCESSED_DIR
-            / "workflows"
-            / "visualizations"
-            / f"{data.signal_name}_{data.strategy_name}"
-        )
-        for viz_file in sorted(viz_dir.glob("*.html")):
-            html_parts.append(
-                f'        <li><a href="{viz_file.resolve().as_uri()}" target="_blank">{viz_file.stem}</a></li>'
-            )
+        if data.workflow_dir:
+            viz_dir = data.workflow_dir / "visualizations"
+            for viz_file in sorted(viz_dir.glob("*.html")):
+                html_parts.append(
+                    f'        <li><a href="{viz_file.resolve().as_uri()}" target="_blank">{viz_file.stem}</a></li>'
+                )
         html_parts.append("    </ul>")
 
     # Workflow info

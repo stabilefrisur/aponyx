@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-from aponyx.config import PROCESSED_DIR
+from aponyx.config import DATA_WORKFLOWS_DIR
 
 StepName = Literal[
     "data",
@@ -58,7 +58,7 @@ class WorkflowConfig:
     data_source: DataSource = "synthetic"
     steps: list[StepName] | None = None
     force_rerun: bool = False
-    output_dir: Path = field(default_factory=lambda: PROCESSED_DIR / "workflows")
+    output_dir: Path = field(default_factory=lambda: DATA_WORKFLOWS_DIR)
 
     def __post_init__(self) -> None:
         """Validate configuration on initialization."""

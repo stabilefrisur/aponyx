@@ -38,7 +38,7 @@ The project uses a three-tier storage structure:
 |-----------|---------|-----------|-------------|
 | `data/raw/` | Original source data (Bloomberg downloads, synthetic generation) | **Permanent** — Never auto-deleted | ❌ No |
 | `data/cache/` | Performance optimization for repeated reads | **Temporary** — TTL-based expiration | ✅ Yes |
-| `data/processed/` | Computed outputs (signals, features, metrics) | **Temporary** — Recomputable from raw | ✅ Yes |
+| `data/workflows/` | Timestamped workflow outputs (signals, backtests, reports, visualizations) | **Temporary** — Recomputable from raw | ✅ Yes |
 
 **Data Flow:**
 ```

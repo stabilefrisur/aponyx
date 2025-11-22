@@ -131,7 +131,7 @@ The `report.py` module generates:
 - Comprehensive markdown reports with metrics tables
 - Attribution breakdowns with visual formatting
 - Stability analysis and interpretation
-- Timestamped file persistence in `reports/performance/`
+- Timestamped file persistence in `data/workflows/{signal}_{strategy}_{timestamp}/reports/`
 
 ---
 
@@ -181,8 +181,10 @@ src/aponyx/evaluation/
     ├── risk_metrics.py      # Extended metric computations ✅
     ├── report.py            # Markdown summaries ✅
     ├── registry.py          # Metadata catalog ✅
-    ├── config.py            # Configuration dataclasses ✅
-    └── performance_registry.json  # Evaluation tracking ✅
+    └── config.py            # Configuration dataclasses ✅
+
+data/.registries/
+└── performance.json         # Evaluation tracking (runtime) ✅
 ```
 
 **Tests:**

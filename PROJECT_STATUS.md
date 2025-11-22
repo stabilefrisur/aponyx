@@ -246,18 +246,18 @@ src/aponyx/
 **Configuration:**
 - Cache enabled by default (`CACHE_ENABLED = True`)
 - 1-day TTL for market data (`CACHE_TTL_DAYS = 1`)
-- Data directory structure: `data/raw/`, `data/processed/`, `data/cache/`
-- Data registry path: `data/registry.json` (runtime-generated, from `config.REGISTRY_PATH`)
+- Data directory structure: `data/raw/`, `data/workflows/`, `data/cache/`, `data/.registries/`
+- Data registry path: `data/.registries/registry.json` (runtime-generated, from `config.REGISTRY_PATH`)
 - Signal catalog path: `src/aponyx/models/signal_catalog.json` (static, from `config.SIGNAL_CATALOG_PATH`)
 - Strategy catalog path: `src/aponyx/backtest/strategy_catalog.json` (static, from `config.STRATEGY_CATALOG_PATH`)
 - Bloomberg config paths: `src/aponyx/data/bloomberg_securities.json`, `bloomberg_instruments.json` (static)
-- Suitability registry path: `src/aponyx/evaluation/suitability/suitability_registry.json` (runtime-generated, from `config.SUITABILITY_REGISTRY_PATH`)
-- Performance registry path: `src/aponyx/evaluation/performance/performance_registry.json` (runtime-generated, from `config.PERFORMANCE_REGISTRY_PATH`)
-- **DataRegistry** - Data layer (`src/aponyx/data/registry.py`) - Runtime JSON at `data/registry.json`
+- Suitability registry path: `data/.registries/suitability.json` (runtime-generated, from `config.SUITABILITY_REGISTRY_PATH`)
+- Performance registry path: `data/.registries/performance.json` (runtime-generated, from `config.PERFORMANCE_REGISTRY_PATH`)
+- **DataRegistry** - Data layer (`src/aponyx/data/registry.py`) - Runtime JSON at `data/.registries/registry.json`
 - **SignalRegistry** - Models layer (`src/aponyx/models/registry.py`) - Static catalog at `src/aponyx/models/signal_catalog.json`
 - **StrategyRegistry** - Backtest layer (`src/aponyx/backtest/registry.py`) - Static catalog at `src/aponyx/backtest/strategy_catalog.json`
-- **SuitabilityRegistry** - Evaluation/suitability layer (`src/aponyx/evaluation/suitability/registry.py`) - Runtime JSON (not tracked in git)
-- **PerformanceRegistry** - Evaluation/performance layer (`src/aponyx/evaluation/performance/registry.py`) - Runtime JSON (not tracked in git)
+- **SuitabilityRegistry** - Evaluation/suitability layer (`src/aponyx/evaluation/suitability/registry.py`) - Runtime JSON at `data/.registries/suitability.json` (not tracked in git)
+- **PerformanceRegistry** - Evaluation/performance layer (`src/aponyx/evaluation/performance/registry.py`) - Runtime JSON at `data/.registries/performance.json` (not tracked in git)
 
 **Requirements:**
 - Bloomberg integration is optional (install with `pip install aponyx[bloomberg]`)
@@ -411,7 +411,7 @@ src/aponyx/
 - Rolling window stability replaces fixed subperiod analysis
 - Registry pattern consistent with SignalRegistry and StrategyRegistry
 - Comprehensive test coverage (154 tests in evaluation layer)
-- Reports saved to `reports/suitability/` and `reports/performance/`
+- Reports saved to workflow-specific directories: `data/workflows/{signal}_{strategy}_{timestamp}/reports/`
 
 ### ✅ CLI Layer (`src/aponyx/cli/`)
 

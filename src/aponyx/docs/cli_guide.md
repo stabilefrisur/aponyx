@@ -84,7 +84,7 @@ Inputs: cdx → Product: cdx_ig_5y
 Data: synthetic
 
 Completed 6 steps in 15.2s
-Results: data/processed/workflows/spread_momentum_balanced_20251121_143230/
+Results: data/workflows/spread_momentum_balanced_20251121_143230/
 ```
 
 ---
@@ -384,7 +384,7 @@ uv run aponyx run --config workflow_2.yaml
 
 **Solution:**
 - Run workflow first: `uv run aponyx run --signal <name> --strategy <name>`
-- Check output directory: `data/processed/workflows/`
+- Check output directory: `data/workflows/`
 - Verify workflow completed successfully
 
 ### Workflow Step Failure
@@ -423,7 +423,7 @@ uv run aponyx run --config workflow_2.yaml
 
 **Solution:**
 - Check directory permissions for:
-  - `data/processed/`
+  - `data/workflows/`
   - `reports/`
   - `logs/`
 - Run with appropriate permissions or change output directories in config

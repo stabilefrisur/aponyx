@@ -302,7 +302,7 @@ def score_stability(
 
 **File Naming:** `{signal_id}_{product_id}_{timestamp}.md`
 
-**Storage:** `reports/suitability/`
+**Storage:** `data/workflows/{signal}_{strategy}_{timestamp}/reports/`
 
 ---
 
@@ -316,8 +316,10 @@ aponyx/evaluation/suitability/
 ├── scoring.py          # Score computation functions (pure)
 ├── report.py           # generate_suitability_report() function
 ├── registry.py         # SuitabilityRegistry class
-├── suitability_registry.json  # Evaluation metadata catalog
 └── __init__.py         # Public API exports
+
+data/.registries/
+└── suitability.json    # Evaluation metadata catalog (runtime)
 ```
 
 **Design Patterns:**
@@ -465,7 +467,7 @@ registry.save_catalog()  # Manual save also available
         "beta_cv": 0.25,
         "n_windows": 475
     },
-    "report_path": "reports/suitability/cdx_etf_basis_cdx_ig_5y_20251113.md",
+    "report_path": "data/workflows/cdx_etf_basis_balanced_20251113_120000/reports/cdx_etf_basis_cdx_ig_5y_20251113.md",
     "config": {
         "lags": [1, 3, 5],
         "rolling_window": 252,

@@ -25,7 +25,7 @@ Expected output: PerformanceResult with stability score ~0.7, profit factor ~1.5
 Markdown report saved to reports/performance/spread_momentum_balanced_{timestamp}.md.
 """
 
-from aponyx.config import PROCESSED_DIR, PERFORMANCE_REPORTS_DIR
+from aponyx.config import DATA_WORKFLOWS_DIR
 from aponyx.backtest import BacktestResult
 from aponyx.evaluation.performance import (
     analyze_backtest_performance,
@@ -100,7 +100,7 @@ def load_backtest_result(
     by previous step (06_run_backtest.py). Reconstructs BacktestResult
     with minimal metadata for analysis.
     """
-    backtests_dir = PROCESSED_DIR / "backtests"
+    backtests_dir = DATA_WORKFLOWS_DIR / "backtests"
 
     positions_path = backtests_dir / f"{signal_name}_{strategy_name}_positions.parquet"
     pnl_path = backtests_dir / f"{signal_name}_{strategy_name}_pnl.parquet"
@@ -207,7 +207,7 @@ def save_performance_report(
         strategy_id=strategy_name,
         generate_tearsheet=False,
     )
-    save_report(report, signal_name, strategy_name, PERFORMANCE_REPORTS_DIR)
+    save_report(report, signal_name, strategy_name, DATA_WORKFLOWS_DIR / "reports")
 
 
 if __name__ == "__main__":

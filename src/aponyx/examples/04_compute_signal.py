@@ -30,7 +30,7 @@ Expected: 3 signals (cdx_etf_basis, cdx_vix_gap, spread_momentum).
 
 import pandas as pd
 
-from aponyx.config import REGISTRY_PATH, DATA_DIR, SIGNAL_CATALOG_PATH, PROCESSED_DIR
+from aponyx.config import REGISTRY_PATH, DATA_DIR, SIGNAL_CATALOG_PATH, DATA_WORKFLOWS_DIR
 from aponyx.data.registry import DataRegistry
 from aponyx.data.requirements import get_required_data_keys
 from aponyx.models import SignalConfig, SignalRegistry, compute_registered_signals
@@ -154,7 +154,7 @@ def save_all_signals(signals: dict[str, pd.Series]) -> None:
     -----
     Saves each signal as data/processed/signals/{signal_name}.parquet.
     """
-    signals_dir = PROCESSED_DIR / "signals"
+    signals_dir = DATA_WORKFLOWS_DIR / "signals"
     signals_dir.mkdir(parents=True, exist_ok=True)
 
     for signal_name, signal_series in signals.items():

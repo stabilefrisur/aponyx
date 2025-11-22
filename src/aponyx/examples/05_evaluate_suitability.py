@@ -29,8 +29,7 @@ import pandas as pd
 from aponyx.config import (
     REGISTRY_PATH,
     DATA_DIR,
-    PROCESSED_DIR,
-    EVALUATION_DIR,
+    DATA_WORKFLOWS_DIR,
     SUITABILITY_REGISTRY_PATH,
 )
 from aponyx.data.registry import DataRegistry
@@ -133,7 +132,7 @@ def load_signal(signal_name: str) -> pd.Series:
     pd.Series
         Signal series with DatetimeIndex.
     """
-    signal_path = PROCESSED_DIR / "signals" / f"{signal_name}.parquet"
+    signal_path = DATA_WORKFLOWS_DIR / "signals" / f"{signal_name}.parquet"
     signal_df = load_parquet(signal_path)
     return signal_df["value"]
 
@@ -226,7 +225,7 @@ def save_and_register_evaluation(
         Product identifier.
     """
     report = generate_suitability_report(result, signal_name, product)
-    save_report(report, signal_name, product, EVALUATION_DIR)
+    save_report(report, signal_name, product, DATA_WORKFLOWS_DIR / "reports")
 
     registry = SuitabilityRegistry(SUITABILITY_REGISTRY_PATH)
     registry.register_evaluation(result, signal_name, product)

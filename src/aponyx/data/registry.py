@@ -97,7 +97,7 @@ class DataRegistry:
     ):
         """Initialize registry with paths to catalog and data storage."""
         self.registry_path = Path(registry_path)
-        self.data_directory = Path(data_directory)
+        self.data_directory = Path(data_directory).resolve()
         self.data_directory.mkdir(parents=True, exist_ok=True)
 
         # Load existing registry or create new
@@ -112,6 +112,57 @@ class DataRegistry:
             self._catalog = {}
             self._save()
             logger.info("Created new registry: path=%s", self.registry_path)
+
+    def _resolve_path(self, path: str | Path) -> Path:
+        """
+        Resolve path relative to data directory.
+
+        Converts relative paths stored in registry to absolute paths
+        for file operations.
+
+        Parameters
+        ----------
+        path : str or Path
+            Path from registry (may be relative or absolute).
+
+        Returns
+        -------
+        Path
+            Absolute path for file access.
+        """
+        p = Path(path)
+        if p.is_absolute():
+            return p
+        return self.data_directory / p
+
+    def _normalize_path(self, path: str | Path) -> str:
+        """
+        Normalize path to relative format for storage in registry.
+
+        Converts absolute paths to relative paths from data_directory.
+        Relative paths are stored as-is.
+
+        Parameters
+        ----------
+        path : str or Path
+            Path to normalize (absolute or relative).
+
+        Returns
+        -------
+        str
+            Relative path string for registry storage.
+        """
+        p = Path(path).resolve()
+        try:
+            # Try to make path relative to data_directory
+            relative = p.relative_to(self.data_directory)
+            return str(relative).replace("\\", "/")  # Use forward slashes
+        except ValueError:
+            # Path is outside data_directory, store as-is
+            logger.warning(
+                "Path outside data directory, storing absolute: %s", p
+            )
+            return str(p)
 
     def register_dataset(
         self,
@@ -144,11 +195,15 @@ class DataRegistry:
         ... )
         """
         file_path = Path(file_path)
+        # Normalize to relative path for storage
+        normalized_path = self._normalize_path(file_path)
+        # Resolve to absolute path for file operations
+        resolved_path = self._resolve_path(normalized_path)
 
         # Get dataset statistics if file exists
-        if file_path.exists():
+        if resolved_path.exists():
             try:
-                df = load_parquet(file_path)
+                df = load_parquet(resolved_path)
                 start_date = df.index.min() if isinstance(df.index, pd.DatetimeIndex) else None
                 end_date = df.index.max() if isinstance(df.index, pd.DatetimeIndex) else None
                 row_count = len(df)
@@ -160,13 +215,13 @@ class DataRegistry:
                 )
                 start_date = end_date = row_count = None
         else:
-            logger.debug("Registering non-existent file: %s", file_path)
+            logger.debug("Registering non-existent file: %s", resolved_path)
             start_date = end_date = row_count = None
 
         # Build registry entry using dataclass
         entry = DatasetEntry(
             instrument=instrument,
-            file_path=str(file_path),
+            file_path=normalized_path,
             registered_at=datetime.now().isoformat(),
             start_date=start_date.isoformat() if start_date else None,
             end_date=end_date.isoformat() if end_date else None,
@@ -197,6 +252,7 @@ class DataRegistry:
         -------
         dict[str, Any]
             Dataset metadata including file path, date range, etc.
+            The file_path is returned as an absolute path.
 
         Raises
         ------
@@ -210,7 +266,11 @@ class DataRegistry:
         """
         if name not in self._catalog:
             raise KeyError(f"Dataset '{name}' not found in registry")
-        return self._catalog[name].copy()
+        
+        info = self._catalog[name].copy()
+        # Resolve relative path to absolute for consumers
+        info["file_path"] = str(self._resolve_path(info["file_path"]))
+        return info
 
     def get_dataset_entry(self, name: str) -> DatasetEntry:
         """
@@ -292,7 +352,7 @@ class DataRegistry:
             raise KeyError(f"Dataset '{name}' not found in registry")
 
         entry = self._catalog[name]
-        file_path = Path(entry["file_path"])
+        file_path = self._resolve_path(entry["file_path"])
 
         if not file_path.exists():
             raise FileNotFoundError(f"Dataset file not found: {file_path}")
@@ -335,7 +395,7 @@ class DataRegistry:
             raise KeyError(f"Dataset '{name}' not found in registry")
 
         if delete_file:
-            file_path = Path(self._catalog[name]["file_path"])
+            file_path = self._resolve_path(self._catalog[name]["file_path"])
             if file_path.exists():
                 file_path.unlink()
                 logger.info("Deleted file for dataset: name=%s, path=%s", name, file_path)

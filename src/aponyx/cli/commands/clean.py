@@ -9,7 +9,7 @@ from pathlib import Path
 
 import click
 
-from aponyx.config import PROCESSED_DIR
+from aponyx.config import DATA_WORKFLOWS_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ def clean(
         aponyx clean --all
         aponyx clean --all --dry-run
     """
-    workflows_dir = PROCESSED_DIR / "workflows"
+    workflows_dir = DATA_WORKFLOWS_DIR
 
     if not workflows_dir.exists():
         click.echo("No cached results found")

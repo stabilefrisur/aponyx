@@ -30,7 +30,7 @@ import pandas as pd
 from aponyx.config import (
     REGISTRY_PATH,
     DATA_DIR,
-    PROCESSED_DIR,
+    DATA_WORKFLOWS_DIR,
     STRATEGY_CATALOG_PATH,
 )
 from aponyx.data.registry import DataRegistry
@@ -127,7 +127,7 @@ def load_signal(signal_name: str) -> pd.Series:
     pd.Series
         Signal series with DatetimeIndex.
     """
-    signal_path = PROCESSED_DIR / "signals" / f"{signal_name}.parquet"
+    signal_path = DATA_WORKFLOWS_DIR / "signals" / f"{signal_name}.parquet"
     signal_df = load_parquet(signal_path)
     return signal_df["value"]
 
@@ -237,7 +237,7 @@ def save_backtest_result(
     File naming: {signal_name}_{strategy_name}_positions.parquet
                  {signal_name}_{strategy_name}_pnl.parquet
     """
-    backtests_dir = PROCESSED_DIR / "backtests"
+    backtests_dir = DATA_WORKFLOWS_DIR / "backtests"
     backtests_dir.mkdir(parents=True, exist_ok=True)
 
     # Save positions

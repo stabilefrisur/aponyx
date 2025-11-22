@@ -20,7 +20,6 @@ PROJECT_ROOT: Final[Path] = Path(__file__).parent.parent.parent.parent
 
 # Data directories (project-level, not package-level)
 DATA_DIR: Final[Path] = PROJECT_ROOT / "data"
-REGISTRY_PATH: Final[Path] = DATA_DIR / "registry.json"
 LOGS_DIR: Final[Path] = PROJECT_ROOT / "logs"
 
 # Cache configuration
@@ -28,9 +27,13 @@ CACHE_ENABLED: Final[bool] = True
 CACHE_TTL_DAYS: Final[int] = 1  # Daily refresh for market data
 CACHE_DIR: Final[Path] = DATA_DIR / "cache"
 
-# Raw and processed data directories
+# Raw data and workflow directories
 RAW_DIR: Final[Path] = DATA_DIR / "raw"
-PROCESSED_DIR: Final[Path] = DATA_DIR / "processed"
+DATA_WORKFLOWS_DIR: Final[Path] = DATA_DIR / "workflows"
+DATA_REGISTRIES_DIR: Final[Path] = DATA_DIR / ".registries"
+
+# Registry paths (project-level, mutable)
+REGISTRY_PATH: Final[Path] = DATA_REGISTRIES_DIR / "registry.json"
 
 # Catalog paths (package-relative, included in distribution)
 SIGNAL_CATALOG_PATH: Final[Path] = PACKAGE_ROOT / "models/signal_catalog.json"
@@ -40,15 +43,9 @@ STRATEGY_CATALOG_PATH: Final[Path] = PACKAGE_ROOT / "backtest/strategy_catalog.j
 BLOOMBERG_SECURITIES_PATH: Final[Path] = PACKAGE_ROOT / "data/bloomberg_securities.json"
 BLOOMBERG_INSTRUMENTS_PATH: Final[Path] = PACKAGE_ROOT / "data/bloomberg_instruments.json"
 
-# Evaluation layer paths
-EVALUATION_DIR: Final[Path] = PROJECT_ROOT / "reports" / "suitability"
-SUITABILITY_REGISTRY_PATH: Final[Path] = (
-    PACKAGE_ROOT / "evaluation" / "suitability" / "suitability_registry.json"
-)
-PERFORMANCE_REPORTS_DIR: Final[Path] = PROJECT_ROOT / "reports" / "performance"
-PERFORMANCE_REGISTRY_PATH: Final[Path] = (
-    PACKAGE_ROOT / "evaluation" / "performance" / "performance_registry.json"
-)
+# Evaluation layer registry paths (project-level, mutable)
+SUITABILITY_REGISTRY_PATH: Final[Path] = DATA_REGISTRIES_DIR / "suitability.json"
+PERFORMANCE_REGISTRY_PATH: Final[Path] = DATA_REGISTRIES_DIR / "performance.json"
 
 
 def ensure_directories() -> None:
@@ -62,9 +59,8 @@ def ensure_directories() -> None:
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     RAW_DIR.mkdir(parents=True, exist_ok=True)
-    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-    EVALUATION_DIR.mkdir(parents=True, exist_ok=True)
-    PERFORMANCE_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    DATA_WORKFLOWS_DIR.mkdir(parents=True, exist_ok=True)
+    DATA_REGISTRIES_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # Initialize directories on module import

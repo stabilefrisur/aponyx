@@ -12,24 +12,12 @@ venv/
 env/
 
 # Data files (runtime-generated, not version controlled)
-data/raw/
-data/processed/
-data/cache/
-data/registry.json
+# Ignore all subdirectories in data/ but keep the folder itself
+data/*/
 
 # Logs and runtime metadata (not version controlled)
 *.log
 logs/
-
-# Reports (evaluation outputs - not version controlled)
-reports/suitability/
-reports/performance/
-
-# Suitability registry (data-dependent, not version controlled)
-src/aponyx/evaluation/suitability/suitability_registry.json
-
-# Performance registry (data-dependent, not version controlled)
-src/aponyx/evaluation/performance/performance_registry.json
 
 # Static JSON configuration files (INCLUDE in version control):
 # These are version controlled via negation patterns below

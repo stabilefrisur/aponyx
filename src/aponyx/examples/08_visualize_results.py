@@ -26,7 +26,7 @@ Figures can be rendered in notebooks, Streamlit apps, or exported to HTML.
 import pandas as pd
 import plotly.graph_objects as go
 
-from aponyx.config import PROCESSED_DIR
+from aponyx.config import DATA_WORKFLOWS_DIR
 from aponyx.persistence import load_parquet
 from aponyx.visualization import plot_equity_curve, plot_drawdown, plot_signal
 
@@ -98,7 +98,7 @@ def load_backtest_data(
     P&L DataFrame contains net_pnl column for equity curve.
     Positions DataFrame contains signal column for signal plot.
     """
-    backtests_dir = PROCESSED_DIR / "backtests"
+    backtests_dir = DATA_WORKFLOWS_DIR / "backtests"
 
     pnl_path = backtests_dir / f"{signal_name}_{strategy_name}_pnl.parquet"
     positions_path = backtests_dir / f"{signal_name}_{strategy_name}_positions.parquet"

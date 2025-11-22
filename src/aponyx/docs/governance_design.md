@@ -254,7 +254,7 @@ eval_id = registry.register_evaluation(
     performance_result=perf_result,
     signal_id="cdx_etf_basis",
     strategy_id="balanced",
-    report_path=Path("reports/performance/cdx_etf_basis_balanced_20251109.md"),
+    report_path=Path("data/workflows/cdx_etf_basis_balanced_20251109_120000/reports/cdx_etf_basis_balanced_20251109.md"),
 )
 
 # 4. RETRIEVE: Get specific evaluation metadata

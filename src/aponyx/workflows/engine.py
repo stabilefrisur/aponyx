@@ -148,6 +148,9 @@ class WorkflowEngine:
             "errors": errors,
         }
 
+        # Save workflow metadata
+        self._save_metadata(output_dir, completed, skipped, errors, duration)
+
         if errors:
             logger.error(
                 "Workflow failed: completed=%d, skipped=%d, failed=%d (%.1fs)",
@@ -225,3 +228,46 @@ class WorkflowEngine:
         output_dir = self.config.output_dir / dirname
         output_dir.mkdir(parents=True, exist_ok=True)
         return output_dir
+    def _save_metadata(
+        self,
+        output_dir: Path,
+        completed: int,
+        skipped: int,
+        errors: list[dict[str, Any]],
+        duration: float,
+    ) -> None:
+        """
+        Save workflow metadata to metadata.json.
+
+        Parameters
+        ----------
+        output_dir : Path
+            Workflow output directory.
+        completed : int
+            Number of completed steps.
+        skipped : int
+            Number of skipped steps.
+        errors : list of dict
+            Error details if any.
+        duration : float
+            Execution duration in seconds.
+        """
+        from ..persistence import save_json
+
+        metadata = {
+            "signal": self.config.signal_name,
+            "strategy": self.config.strategy_name,
+            "product": self.config.product,
+            "data_source": self.config.data_source,
+            "timestamp": self._start_time.isoformat() if self._start_time else None,
+            "duration_seconds": duration,
+            "steps_completed": completed,
+            "steps_skipped": skipped,
+            "steps_total": len(self._steps),
+            "status": "failed" if errors else "completed",
+            "errors": errors if errors else None,
+        }
+
+        metadata_path = output_dir / "metadata.json"
+        save_json(metadata, metadata_path)
+        logger.debug("Saved workflow metadata: %s", metadata_path)
