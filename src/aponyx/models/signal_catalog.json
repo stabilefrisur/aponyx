@@ -8,6 +8,10 @@
       "etf": "spread"
     },
     "arg_mapping": ["cdx", "etf"],
+    "default_securities": {
+      "cdx": "cdx_ig_5y",
+      "etf": "lqd"
+    },
     "enabled": true,
     "sign_multiplier": 1
   },
@@ -20,6 +24,10 @@
       "vix": "level"
     },
     "arg_mapping": ["cdx", "vix"],
+    "default_securities": {
+      "cdx": "cdx_ig_5y",
+      "vix": "vix"
+    },
     "enabled": true,
     "sign_multiplier": 1
   },
@@ -31,6 +39,9 @@
       "cdx": "spread"
     },
     "arg_mapping": ["cdx"],
+    "default_securities": {
+      "cdx": "cdx_ig_5y"
+    },
     "enabled": true,
     "sign_multiplier": 1
   }

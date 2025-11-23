@@ -38,6 +38,10 @@ class SignalMetadata:
         Design Note: Uses positional arguments for simplicity in pilot phase.
         Alternative keyword-based approach considered but rejected to avoid
         complexity. Must contain exactly the same keys as data_requirements.
+    default_securities : dict[str, str]
+        Default security IDs to use for each instrument type.
+        Example: {"cdx": "cdx_ig_5y", "etf": "lqd"}
+        Used when security_mapping is not provided in workflow config.
     enabled : bool
         Whether signal should be included in computation.
     sign_multiplier : int
@@ -61,6 +65,7 @@ class SignalMetadata:
     compute_function_name: str
     data_requirements: dict[str, str]
     arg_mapping: list[str]
+    default_securities: dict[str, str]
     enabled: bool = True
     sign_multiplier: int = 1
 

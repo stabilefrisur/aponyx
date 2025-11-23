@@ -39,6 +39,10 @@ class WorkflowConfig:
         Product identifier for backtesting (e.g., "cdx_ig_5y", "cdx_hy_5y").
     data_source : str
         Data source type (e.g., "synthetic", "file", "bloomberg", or custom sources).
+    security_mapping : dict[str, str] | None
+        Maps generic instrument types to specific securities.
+        Example: {"cdx": "cdx_ig_5y", "etf": "hyg", "vix": "vix"}
+        If None, uses product for cdx and defaults for others.
     steps : list[StepName] | None
         Specific steps to execute (None = all steps in order).
     force_rerun : bool
@@ -56,6 +60,7 @@ class WorkflowConfig:
     strategy_name: str
     product: str
     data_source: DataSource = "synthetic"
+    security_mapping: dict[str, str] | None = None
     steps: list[StepName] | None = None
     force_rerun: bool = False
     output_dir: Path = field(default_factory=lambda: DATA_WORKFLOWS_DIR)

@@ -41,6 +41,11 @@ logger = logging.getLogger(__name__)
     help="Data source (default: synthetic). Available: synthetic, file, bloomberg, or any custom source in data/raw/",
 )
 @click.option(
+    "--securities",
+    type=str,
+    help="Security mapping as 'type1:security1,type2:security2' (e.g., 'cdx:cdx_hy_5y,etf:hyg')",
+)
+@click.option(
     "--steps",
     type=str,
     help="Comma-separated step list (default: all steps)",
@@ -60,6 +65,7 @@ def run(
     strategy: str | None,
     product: str,
     data: str,
+    securities: str | None,
     steps: str | None,
     force: bool,
     config: Path | None,
@@ -83,6 +89,9 @@ def run(
 
         # Custom product
         aponyx run --signal spread_momentum --strategy balanced --product cdx_hy_5y
+
+        # Custom security mapping (run signal with different securities)
+        aponyx run --signal cdx_etf_basis --securities cdx:cdx_hy_5y,etf:hyg --strategy balanced
 
         # Partial pipeline
         aponyx run --signal spread_momentum --strategy balanced --steps data,signal,backtest
@@ -111,6 +120,20 @@ def run(
     data_source = data or config_dict.get("data", "synthetic")
     force_rerun = force or config_dict.get("force", False)
 
+    # Parse security mapping
+    security_mapping = None
+    if securities:
+        try:
+            security_mapping = {}
+            for pair in securities.split(","):
+                inst_type, security_id = pair.split(":")
+                security_mapping[inst_type.strip()] = security_id.strip()
+        except ValueError:
+            click.echo("Error: Invalid --securities format. Use 'type1:security1,type2:security2'", err=True)
+            raise click.Abort()
+    elif "securities" in config_dict:
+        security_mapping = config_dict["securities"]
+
     # Parse steps
     step_list = None
     if steps:
@@ -130,6 +153,7 @@ def run(
             strategy_name=strategy_name,
             product=product_id,
             data_source=data_source,  # type: ignore
+            security_mapping=security_mapping,
             steps=step_list,  # type: ignore
             force_rerun=force_rerun,
         )

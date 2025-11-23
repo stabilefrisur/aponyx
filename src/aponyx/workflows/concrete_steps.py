@@ -24,7 +24,6 @@ from aponyx.config import (
     STRATEGY_CATALOG_PATH,
 )
 from aponyx.data import DataRegistry
-from aponyx.data.requirements import get_required_data_keys
 from aponyx.data.fetch_registry import get_fetch_spec
 from aponyx.data.loaders import load_instrument_from_raw
 from aponyx.models import (
@@ -156,11 +155,13 @@ class DataStep(BaseWorkflowStep):
             fetch_spec = get_fetch_spec(instrument_type)
 
             # Load instrument data using generic loader with specific security
+            # VIX doesn't require security parameter (single instrument)
+            securities = [security_id] if fetch_spec.requires_security else None
             df = load_instrument_from_raw(
                 raw_data_dir,
                 instrument_type,
                 fetch_spec.fetch_fn,
-                [security_id],  # Pass specific security
+                securities,
             )
 
             market_data[security_id] = df
@@ -192,13 +193,50 @@ class SignalStep(BaseWorkflowStep):
     def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         self._log_start()
 
-        # Get market data from previous step
+        # Get all market data from previous step
         market_data = context["data"]["market_data"]
 
-        # Compute all enabled signals using registry
+        # Get signal metadata for default securities
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+        signal_metadata = signal_registry.get_metadata(self.config.signal_name)
+
+        # Create security mapping for this signal
+        # Priority: workflow config -> signal defaults
+        if self.config.security_mapping:
+            security_mapping = self.config.security_mapping
+            logger.info(
+                "Using custom security mapping for signal '%s': %s",
+                self.config.signal_name,
+                security_mapping,
+            )
+        else:
+            security_mapping = signal_metadata.default_securities
+            logger.info(
+                "Using default security mapping for signal '%s': %s",
+                self.config.signal_name,
+                security_mapping,
+            )
+
+        # Map instrument types to specific securities for signal computation
+        signal_market_data = {}
+        for inst_type, security_id in security_mapping.items():
+            if security_id not in market_data:
+                raise ValueError(
+                    f"Security '{security_id}' required for signal '{self.config.signal_name}' "
+                    f"not found in market data. Available: {sorted(market_data.keys())}"
+                )
+            signal_market_data[inst_type] = market_data[security_id]
+
+        logger.info(
+            "Mapped %d instrument types for signal '%s': %s",
+            len(signal_market_data),
+            self.config.signal_name,
+            ", ".join(f"{k}→{security_mapping[k]}" for k in signal_market_data.keys()),
+        )
+
+        # Compute all enabled signals using registry
         config = SignalConfig(lookback=20, min_periods=10)
-        all_signals = compute_registered_signals(signal_registry, market_data, config)
+        all_signals = compute_registered_signals(signal_registry, signal_market_data, config)
 
         # Extract target signal for this workflow
         signal = all_signals[self.config.signal_name]
