@@ -196,7 +196,7 @@ class TestGeneratePerformanceReport:
         )
 
         report = generate_performance_report(result_high, "sig", "strat")
-        assert "✅ Strong" in report
+        assert "[STRONG]" in report
 
         # Moderate stability
         result_mod = PerformanceResult(
@@ -211,10 +211,10 @@ class TestGeneratePerformanceReport:
         )
 
         report = generate_performance_report(result_mod, "sig", "strat")
-        assert "⚠️ Moderate" in report
+        assert "[MODERATE]" in report
 
-        # Weak stability
-        result_weak = PerformanceResult(
+        # Low stability
+        result_low = PerformanceResult(
             metrics=metrics,
             subperiod_analysis=subperiod_analysis,
             attribution=attribution,
@@ -225,8 +225,8 @@ class TestGeneratePerformanceReport:
             metadata={},
         )
 
-        report = generate_performance_report(result_weak, "sig", "strat")
-        assert "❌ Weak" in report
+        report = generate_performance_report(result_low, "sig", "strat")
+        assert "[WEAK]" in report
 
 
 class TestSaveReport:
@@ -244,8 +244,7 @@ class TestSaveReport:
 
         assert output_path.exists()
         assert output_path.suffix == ".md"
-        assert "test_signal" in output_path.name
-        assert "test_strategy" in output_path.name
+        assert "performance_analysis_" in output_path.name
 
     def test_save_report_creates_directory(
         self, tmp_path: Path, sample_performance_result: PerformanceResult

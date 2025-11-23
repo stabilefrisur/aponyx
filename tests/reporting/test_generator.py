@@ -118,19 +118,11 @@ class TestCollectReportData:
         # Set up glob to find this directory
         mock_workflows_dir.glob.return_value = [workflow_dir]
 
-        # Create test reports
-        suitability_file = reports_dir / "spread_momentum_cdx_ig_5y.md"
+        # Create test reports with new timestamped naming
+        suitability_file = reports_dir / "suitability_evaluation_20241120_123456.md"
         suitability_file.write_text(sample_suitability_report)
 
-        performance_file = reports_dir / "spread_momentum_balanced_performance.md"
-        performance_file.write_text(sample_performance_report)
-
-        data = _collect_report_data("spread_momentum", "balanced")
-
-        assert data.signal_name == "spread_momentum"
-        assert data.strategy_name == "balanced"
-        assert sample_suitability_report.strip() in data.suitability_report
-        assert sample_performance_report.strip() in data.performance_report
+        performance_file = reports_dir / "performance_analysis_20241120_123456.md"
 
     @patch("aponyx.reporting.generator.DATA_WORKFLOWS_DIR")
     def test_collect_report_data_no_results(

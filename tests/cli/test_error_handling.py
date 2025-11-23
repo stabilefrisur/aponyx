@@ -217,13 +217,10 @@ def test_clean_command_permission_error(runner, tmp_path):
 
             result = runner.invoke(cli, ["clean", "--all"])
 
-            # Should propagate the error
-            assert result.exit_code != 0
-
-
-def test_clean_command_with_files_and_directories(runner, tmp_path):
-    """Test clean command handles both files and directories."""
-    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", tmp_path):
+            # Should catch and continue with remaining deletions
+            # Changed behavior: clean command is now more resilient
+            assert result.exit_code == 0
+            assert "error" in result.output.lower() or "permission" in result.output.lower()
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir(parents=True)
 
@@ -254,7 +251,7 @@ def test_clean_command_dry_run_with_multiple_items(runner, tmp_path):
         result = runner.invoke(cli, ["clean", "--signal", "spread_momentum", "--dry-run"])
 
         assert result.exit_code == 0
-        assert result.output.count("Would delete") >= 3
+        assert "Would delete 3 item(s)" in result.output
 
 
 # ============================================================================

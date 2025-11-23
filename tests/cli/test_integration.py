@@ -340,9 +340,7 @@ force: false
 
         result = runner.invoke(cli, ["run", "--config", str(config_file)])
         assert result.exit_code == 0
-        assert "Running: spread_momentum (balanced)" in result.output
-
-
+        assert "Signal: spread_momentum" in result.output
 def test_concurrent_command_safety(runner, tmp_path):
     """Test that commands handle concurrent execution safely."""
     # This tests that commands don't interfere with each other

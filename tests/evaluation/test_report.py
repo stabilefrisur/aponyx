@@ -60,14 +60,14 @@ class TestGenerateSuitabilityReport:
         """Test PASS decision shows correct indicator."""
         report = generate_suitability_report(sample_pass_result, "test_signal", "CDX_IG")
 
-        assert "✅ PASS" in report
+        assert "[PASS]" in report
 
     def test_fail_decision_indicator(self, sample_fail_result):
         """Test FAIL decision shows correct indicator."""
         report = generate_suitability_report(sample_fail_result, "random_signal", "CDX_IG")
 
         # Should be HOLD or FAIL
-        assert any(marker in report for marker in ["⚠️ HOLD", "❌ FAIL"])
+        assert any(marker in report for marker in ["[HOLD]", "[FAIL]"])
 
     def test_metrics_table_included(self, sample_pass_result):
         """Test that metrics are included."""
@@ -127,7 +127,7 @@ class TestSaveReport:
 
         assert returned_path.exists()
         assert returned_path.parent == tmp_path
-        assert "test_signal_CDX_IG" in returned_path.name
+        assert "suitability_evaluation_" in returned_path.name
 
     def test_creates_parent_directories(self, tmp_path, sample_pass_result):
         """Test that parent directories are created."""
@@ -159,5 +159,5 @@ class TestSaveReport:
         # Both files should exist with different names
         assert path1.exists()
         assert path2.exists()
-        assert "signal1_PROD1" in path1.name
-        assert "signal2_PROD2" in path2.name
+        assert "suitability_evaluation_" in path1.name
+        assert "suitability_evaluation_" in path2.name

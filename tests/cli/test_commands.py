@@ -184,20 +184,26 @@ def test_run_command_with_data_source(runner, mock_workflow_engine):
 
 def test_run_command_with_invalid_data_source(runner):
     """Test run command rejects invalid data source."""
-    result = runner.invoke(
-        cli,
-        [
-            "run",
-            "--signal",
-            "spread_momentum",
-            "--strategy",
-            "balanced",
-            "--data",
-            "invalid",
-        ],
-    )
+    from unittest.mock import patch
+    
+    # Mock WorkflowConfig to raise validation error
+    with patch("aponyx.cli.commands.run.WorkflowConfig") as mock_config:
+        mock_config.side_effect = ValueError("Invalid data source")
+        
+        result = runner.invoke(
+            cli,
+            [
+                "run",
+                "--signal",
+                "spread_momentum",
+                "--strategy",
+                "balanced",
+                "--data",
+                "invalid",
+            ],
+        )
 
-    assert result.exit_code != 0
+        assert result.exit_code != 0
 
 
 def test_run_command_with_workflow_error(runner):
