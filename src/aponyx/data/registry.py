@@ -330,6 +330,89 @@ class DataRegistry:
             datasets.append(name)
         return sorted(datasets)
 
+    def find_dataset_by_security(self, security_id: str) -> str | None:
+        """
+        Find the most recent dataset for a specific security ID.
+
+        Searches for datasets where metadata.params.security matches the
+        provided security_id. Returns the most recently registered dataset
+        if multiple matches exist.
+
+        Parameters
+        ----------
+        security_id : str
+            Security identifier (e.g., 'cdx_ig_5y', 'lqd', 'vix').
+
+        Returns
+        -------
+        str or None
+            Dataset name if found, None otherwise.
+
+        Examples
+        --------
+        >>> registry.find_dataset_by_security('cdx_ig_5y')
+        'cache_cdx_c3bedc49b771b0f2'
+        >>> registry.find_dataset_by_security('vix')
+        'cache_vix_d09015690dfa93d9'
+        """
+        matching_datasets = []
+        
+        for name, info in self._catalog.items():
+            metadata = info.get("metadata", {})
+            params = metadata.get("params", {})
+            
+            # Match by security ID in params
+            if params.get("security") == security_id:
+                matching_datasets.append(name)
+            # For instruments without security param (VIX), match by security_id == instrument
+            elif security_id == "vix" and info.get("instrument") == "vix":
+                matching_datasets.append(name)
+        
+        if not matching_datasets:
+            return None
+        
+        # Return most recent (sort by registration timestamp)
+        return sorted(matching_datasets)[-1]
+
+    def load_dataset_by_security(self, security_id: str) -> pd.DataFrame:
+        """
+        Find and load the most recent dataset for a specific security.
+
+        Convenience method that combines find_dataset_by_security() with
+        data loading from the registry.
+
+        Parameters
+        ----------
+        security_id : str
+            Security identifier (e.g., 'cdx_ig_5y', 'lqd', 'vix').
+
+        Returns
+        -------
+        pd.DataFrame
+            Loaded dataset with DatetimeIndex.
+
+        Raises
+        ------
+        ValueError
+            If no dataset found for the security ID.
+
+        Examples
+        --------
+        >>> registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
+        >>> cdx_df = registry.load_dataset_by_security('cdx_ig_5y')
+        >>> vix_df = registry.load_dataset_by_security('vix')
+        """
+        dataset_name = self.find_dataset_by_security(security_id)
+        
+        if dataset_name is None:
+            raise ValueError(
+                f"No dataset found for security '{security_id}'. "
+                f"Available datasets: {', '.join(sorted(self._catalog.keys()))}"
+            )
+        
+        info = self.get_dataset_info(dataset_name)
+        return load_parquet(info["file_path"])
+
     def update_dataset_stats(self, name: str) -> None:
         """
         Refresh date range and row count statistics for a dataset.

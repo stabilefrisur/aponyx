@@ -26,10 +26,7 @@ from aponyx.config import (
 from aponyx.data import DataRegistry
 from aponyx.data.fetch_registry import get_fetch_spec
 from aponyx.data.loaders import load_instrument_from_raw
-from aponyx.models import (
-    compute_registered_signals,
-    SignalConfig,
-)
+from aponyx.models import SignalConfig
 from aponyx.models.registry import SignalRegistry
 from aponyx.evaluation.suitability import (
     evaluate_signal_suitability,
@@ -193,76 +190,103 @@ class SignalStep(BaseWorkflowStep):
     def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         self._log_start()
 
-        # Get all market data from previous step
-        market_data = context["data"]["market_data"]
+        # Get all market data from previous step (keyed by security ID)
+        raw_market_data = context["data"]["market_data"]
 
-        # Get signal metadata for default securities
+        # Load signal registry
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+        
+        # Get the specific signal metadata for this workflow
         signal_metadata = signal_registry.get_metadata(self.config.signal_name)
-
-        # Create security mapping for this signal
-        # Priority: workflow config -> signal defaults
+        
+        # Determine which securities to use for this signal's computation
+        # Priority: 1) security_mapping from config, 2) default_securities from catalog
         if self.config.security_mapping:
-            security_mapping = self.config.security_mapping
+            securities_to_use = self.config.security_mapping
             logger.info(
                 "Using custom security mapping for signal '%s': %s",
                 self.config.signal_name,
-                security_mapping,
+                securities_to_use,
             )
         else:
-            security_mapping = signal_metadata.default_securities
+            securities_to_use = signal_metadata.default_securities
             logger.info(
-                "Using default security mapping for signal '%s': %s",
+                "Using default securities for signal '%s': %s",
                 self.config.signal_name,
-                security_mapping,
+                securities_to_use,
+            )
+        
+        # Build instrument-type-keyed market data dict for signal computation
+        # Map instrument types (cdx, etf, vix) to actual security data
+        market_data = {}
+        for inst_type, security_id in securities_to_use.items():
+            if security_id not in raw_market_data:
+                raise ValueError(
+                    f"Signal '{self.config.signal_name}' requires security '{security_id}' "
+                    f"(instrument type '{inst_type}'), but it was not loaded. "
+                    f"Available: {sorted(raw_market_data.keys())}"
+                )
+            market_data[inst_type] = raw_market_data[security_id]
+            logger.debug(
+                "Mapped %s -> %s (%d rows)",
+                inst_type,
+                security_id,
+                len(raw_market_data[security_id]),
+            )
+        
+        # Validate that we have all required instrument types for this signal
+        required_types = set(signal_metadata.data_requirements.keys())
+        provided_types = set(market_data.keys())
+        if required_types != provided_types:
+            raise ValueError(
+                f"Signal '{self.config.signal_name}' requires instrument types {sorted(required_types)}, "
+                f"but security mapping provides {sorted(provided_types)}. "
+                f"Missing: {sorted(required_types - provided_types)}, "
+                f"Extra: {sorted(provided_types - required_types)}"
             )
 
-        # Map instrument types to specific securities for signal computation
-        signal_market_data = {}
-        for inst_type, security_id in security_mapping.items():
-            if security_id not in market_data:
-                raise ValueError(
-                    f"Security '{security_id}' required for signal '{self.config.signal_name}' "
-                    f"not found in market data. Available: {sorted(market_data.keys())}"
-                )
-            signal_market_data[inst_type] = market_data[security_id]
-
-        logger.info(
-            "Mapped %d instrument types for signal '%s': %s",
-            len(signal_market_data),
-            self.config.signal_name,
-            ", ".join(f"{k}→{security_mapping[k]}" for k in signal_market_data.keys()),
-        )
-
-        # Compute all enabled signals using registry
+        # Compute the specific signal for this workflow
         config = SignalConfig(lookback=20, min_periods=10)
-        all_signals = compute_registered_signals(signal_registry, signal_market_data, config)
-
-        # Extract target signal for this workflow
-        signal = all_signals[self.config.signal_name]
-        logger.debug(
-            "Computed signal %s: %d values, %.2f%% non-null",
+        
+        # Create a single-signal registry for this workflow's signal
+        from aponyx.models.orchestrator import _compute_signal
+        signal = _compute_signal(signal_metadata, market_data, config)
+        
+        logger.info(
+            "Computed signal '%s': %d values, %.2f%% non-null",
             self.config.signal_name,
             len(signal),
             100 * signal.notna().sum() / len(signal),
         )
 
-        # Save signal
+        # Save signal to output directory
         output_dir = context.get("output_dir", self.config.output_dir) / "signals"
         output_dir.mkdir(parents=True, exist_ok=True)
+        
         output_path = output_dir / f"{self.config.signal_name}.parquet"
         signal_df = signal.to_frame(name="value")
         save_parquet(signal_df, output_path)
+        logger.debug(
+            "Saved signal to %s",
+            output_path,
+        )
 
-        output = {"signal": signal}
+        # Return the signal and the securities used for downstream steps
+        output = {
+            "signal": signal,
+            "securities_used": securities_to_use,
+        }
         self._log_complete(output)
         return output
 
     def output_exists(self) -> bool:
-        # Note: This checks old location for backward compatibility during transition
-        # TODO: Remove after one release cycle
-        signal_path = self.get_output_path() / f"{self.config.signal_name}.parquet"
-        return signal_path.exists()
+        """Check if signals directory exists and has signal files."""
+        signal_dir = self.get_output_path()
+        if not signal_dir.exists():
+            return False
+        # Check if there are any signal files
+        signal_files = list(signal_dir.glob("*.parquet"))
+        return len(signal_files) > 0
 
     def get_output_path(self) -> Path:
         # Use workflow output_dir from config (timestamped folder)
@@ -270,10 +294,32 @@ class SignalStep(BaseWorkflowStep):
 
     def load_cached_output(self) -> dict[str, Any]:
         """Load cached signal from disk."""
-        signal_path = self.get_output_path() / f"{self.config.signal_name}.parquet"
-        signal_df = load_parquet(signal_path)
+        signal_dir = self.get_output_path()
+        signal_file = signal_dir / f"{self.config.signal_name}.parquet"
+        
+        if not signal_file.exists():
+            raise FileNotFoundError(
+                f"Cached signal file not found: {signal_file}"
+            )
+        
+        signal_df = load_parquet(signal_file)
         signal = signal_df["value"]
-        return {"signal": signal}
+        
+        logger.info(
+            "Loaded cached signal '%s': %d values",
+            self.config.signal_name,
+            len(signal),
+        )
+        
+        # Securities used info is not cached, will use defaults
+        signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+        signal_metadata = signal_registry.get_metadata(self.config.signal_name)
+        securities_used = self.config.security_mapping or signal_metadata.default_securities
+        
+        return {
+            "signal": signal,
+            "securities_used": securities_used,
+        }
 
 
 class SuitabilityStep(BaseWorkflowStep):
@@ -286,6 +332,7 @@ class SuitabilityStep(BaseWorkflowStep):
     def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         self._log_start()
 
+        # Get signal from previous step
         signal = context["signal"]["signal"]
 
         # Get product from workflow config
@@ -359,18 +406,7 @@ class SuitabilityStep(BaseWorkflowStep):
         ValueError
             If no dataset found for product.
         """
-        all_datasets = data_registry.list_datasets()
-
-        for dataset_name in all_datasets:
-            info = data_registry.get_dataset_info(dataset_name)
-            metadata = info.get("metadata", {})
-            params = metadata.get("params", {})
-
-            if params.get("security") == product:
-                logger.debug("Found product data: %s", dataset_name)
-                return load_parquet(info["file_path"])
-
-        raise ValueError(f"No dataset found for product: {product}")
+        return data_registry.load_dataset_by_security(product)
 
 
 class BacktestStep(BaseWorkflowStep):
@@ -383,7 +419,9 @@ class BacktestStep(BaseWorkflowStep):
     def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         self._log_start()
 
+        # Get signal from previous step
         signal = context["signal"]["signal"]
+        
         # Get product from config, or from suitability step if available
         product = context.get("suitability", {}).get("product") or self.config.product
 
@@ -478,17 +516,7 @@ class BacktestStep(BaseWorkflowStep):
         ValueError
             If no dataset found for product.
         """
-        all_datasets = data_registry.list_datasets()
-
-        for dataset_name in all_datasets:
-            info = data_registry.get_dataset_info(dataset_name)
-            metadata = info.get("metadata", {})
-            params = metadata.get("params", {})
-
-            if params.get("security") == product:
-                return load_parquet(info["file_path"])
-
-        raise ValueError(f"No dataset found for product: {product}")
+        return data_registry.load_dataset_by_security(product)
 
 
 class PerformanceStep(BaseWorkflowStep):

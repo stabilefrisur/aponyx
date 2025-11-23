@@ -1,6 +1,6 @@
 # Project Status — aponyx
 
-**Last Updated:** November 22, 2025  
+**Last Updated:** November 23, 2025  
 **Version:** 0.1.12
 
 ## Quick Reference
@@ -330,6 +330,8 @@ src/aponyx/
 - **Comprehensive Logging:** INFO for operations, DEBUG for implementation details
 - **Type Safety:** Full type hints with modern Python syntax
 - **Extensibility:** Add new signals by editing JSON + implementing compute function
+- **Default Securities:** Each signal defines default securities in catalog (e.g., cdx_ig_5y, lqd)
+- **Security Mapping:** Override defaults via WorkflowConfig.security_mapping
 
 **Signal Catalog Structure:**
 ```json
@@ -339,6 +341,7 @@ src/aponyx/
   "compute_function_name": "compute_function_name",
   "data_requirements": {"cdx": "spread", "etf": "spread"},
   "arg_mapping": ["cdx", "etf"],
+  "default_securities": {"cdx": "cdx_ig_5y", "etf": "lqd"},
   "enabled": true
 }
 ```
@@ -474,6 +477,7 @@ src/aponyx/
   - Error handling with partial result preservation
 - **Configuration:**
   - `WorkflowConfig` - Frozen dataclass for immutable workflow parameters
+  - `security_mapping` - Optional dict mapping instrument types to specific securities
   - Step selection (all or subset)
   - Data source configuration
   - Output directory management
@@ -504,10 +508,10 @@ src/aponyx/
 - `registry.py` - Step factory and ordering
 
 **Workflow Steps:**
-1. Data - Load CDX/VIX/ETF data from configured source
-2. Signal - Compute signal using signal registry
+1. Data - Load all securities from bloomberg_securities.json (or data source)
+2. Signal - Compute signal using default_securities or custom security_mapping
 3. Suitability - Evaluate signal-product fit (PASS/HOLD/FAIL)
-4. Backtest - Execute strategy with transaction costs
+4. Backtest - Execute strategy with transaction costs on specified product
 5. Performance - Extended metrics and attribution analysis
 6. Visualization - Generate equity curves and diagnostic charts
 

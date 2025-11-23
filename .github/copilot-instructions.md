@@ -1,6 +1,6 @@
 # Copilot Instructions for Aponyx
 
-> **Auto-generated from codebase analysis** | Last Updated: November 22, 2025
+> **Auto-generated from codebase analysis** | Last Updated: November 23, 2025
 
 This file provides comprehensive guidance for AI coding assistants working on the aponyx systematic fixed-income research framework. All patterns documented here are based on actual codebase analysis, not invented practices.
 
@@ -259,6 +259,8 @@ def run(signal: str | None, strategy: str | None, force: bool) -> None:
 - Context dict shared across steps
 - Cache checking via `output_exists()` before execution
 - Timestamped output directories
+- DataStep downloads all securities from bloomberg_securities.json
+- SignalStep maps instrument types to specific securities using default_securities or security_mapping
 
 **Example**:
 ```python
@@ -291,6 +293,11 @@ class WorkflowEngine:
 source = FileSource("data/raw/cdx.parquet")
 cdx_df = fetch_cdx(source, security="cdx_ig_5y", use_cache=True)
 # Returns: pd.DataFrame with DatetimeIndex, validated schema
+
+# DataRegistry helpers for security-based lookup
+registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
+cdx_df = registry.load_dataset_by_security("cdx_ig_5y")  # Convenience method
+name = registry.find_dataset_by_security("cdx_ig_5y")     # Returns dataset name only
 ```
 
 **Constraints**:
@@ -314,6 +321,13 @@ cdx_df = fetch_cdx(source, security="cdx_ig_5y", use_cache=True)
 registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 signals = compute_registered_signals(registry, market_data, config)
 # Returns: dict[str, pd.Series] with z-score normalized signals
+
+# Signals use default_securities from catalog
+metadata = registry.get_signal("cdx_etf_basis")
+print(metadata.default_securities)  # {"cdx": "cdx_ig_5y", "etf": "lqd"}
+
+# Override defaults via WorkflowConfig.security_mapping
+config = WorkflowConfig(security_mapping={"cdx": "cdx_hy_5y", "etf": "hyg"})
 ```
 
 **Constraints**:
@@ -321,6 +335,7 @@ signals = compute_registered_signals(registry, market_data, config)
 - Must return z-score normalized pd.Series
 - Positive signal = long credit risk (buy CDX)
 - Catalog declares data requirements explicitly
+- Each signal defines default_securities for instrument types
 
 #### Backtest Execution (`backtest/`)
 
@@ -492,6 +507,10 @@ def compute_my_signal(
     "vix": "level"
   },
   "arg_mapping": ["cdx", "vix"],
+  "default_securities": {
+    "cdx": "cdx_ig_5y",
+    "vix": "vix"
+  },
   "enabled": true
 }
 ```

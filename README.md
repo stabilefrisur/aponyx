@@ -142,6 +142,9 @@ aponyx run --signal spread_momentum --strategy balanced
 # Use Bloomberg data (requires active Terminal session)
 aponyx run --signal spread_momentum --strategy balanced --data bloomberg
 
+# Custom security mapping (override signal defaults)
+aponyx run --signal cdx_etf_basis --strategy balanced --securities cdx:cdx_hy_5y,etf:hyg
+
 # Run specific steps only
 aponyx run --signal spread_momentum --strategy balanced --steps signal,backtest,performance
 
@@ -196,6 +199,9 @@ signal: spread_momentum
 strategy: balanced
 product: cdx_ig_5y
 data: synthetic
+security_mapping:
+  cdx: cdx_ig_5y
+  etf: lqd
 steps:
   - signal
   - backtest
@@ -401,4 +407,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 **Maintained by stabilefrisur**  
-**Last Updated**: November 21, 2025
+**Last Updated**: November 23, 2025

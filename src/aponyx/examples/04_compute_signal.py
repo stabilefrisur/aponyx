@@ -32,7 +32,6 @@ import pandas as pd
 
 from aponyx.config import REGISTRY_PATH, DATA_DIR, SIGNAL_CATALOG_PATH, DATA_WORKFLOWS_DIR
 from aponyx.data.registry import DataRegistry
-from aponyx.data.requirements import get_required_data_keys
 from aponyx.models import SignalConfig, SignalRegistry, compute_registered_signals
 from aponyx.persistence import load_parquet, save_parquet
 
@@ -75,8 +74,8 @@ def load_all_required_data() -> dict[str, pd.DataFrame]:
     """
     Load all market data required by enabled signals.
 
-    Correct pattern: Load union of all data requirements ONCE,
-    then compute all signals with complete market_data dict.
+    Uses default_securities from each enabled signal to determine
+    which specific securities to load for each instrument type.
 
     Returns
     -------
@@ -86,29 +85,27 @@ def load_all_required_data() -> dict[str, pd.DataFrame]:
 
     Notes
     -----
-    Uses get_required_data_keys() to determine what data to load
-    based on ALL enabled signals in the catalog.
+    For each enabled signal, uses default_securities to map
+    instrument types to specific security IDs.
     """
     data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
-
-    required_keys = get_required_data_keys(SIGNAL_CATALOG_PATH)
-
+    signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+    
+    # Build a mapping from instrument type to security ID
+    # by collecting default_securities from all enabled signals
+    instrument_to_security = {}
+    for signal_name, metadata in signal_registry.get_enabled().items():
+        for inst_type, security_id in metadata.default_securities.items():
+            # If multiple signals specify the same instrument type,
+            # the last one wins (consistent with previous behavior)
+            instrument_to_security[inst_type] = security_id
+    
+    # Load data for each instrument type using the mapped security
     market_data = {}
-
-    for data_key in sorted(required_keys):
-        matching_datasets = data_registry.list_datasets(instrument=data_key)
-
-        if not matching_datasets:
-            raise ValueError(
-                f"No datasets found for instrument '{data_key}'. "
-                f"Run data fetching workflow first."
-            )
-
-        dataset_name = sorted(matching_datasets)[-1]
-        info = data_registry.get_dataset_info(dataset_name)
-        df = load_parquet(info["file_path"])
-
-        market_data[data_key] = df
+    for inst_type, security_id in sorted(instrument_to_security.items()):
+        # Use registry helper to find and load dataset by security ID
+        df = data_registry.load_dataset_by_security(security_id)
+        market_data[inst_type] = df
 
     return market_data
 
