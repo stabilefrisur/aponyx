@@ -424,7 +424,7 @@ class TestGetDatasetEntry:
     def test_get_dataset_entry_vs_get_dataset_info(
         self, registry, sample_timeseries, temp_data_dir
     ):
-        """Test that both methods return equivalent data."""
+        """Test that both methods return equivalent data except for file_path resolution."""
         file_path = temp_data_dir / "test.parquet"
         save_parquet(sample_timeseries, file_path)
 
@@ -437,5 +437,16 @@ class TestGetDatasetEntry:
         entry = registry.get_dataset_entry("test")
         info = registry.get_dataset_info("test")
 
-        # Convert entry to dict and compare
-        assert entry.to_dict() == info
+        # get_dataset_info resolves paths to absolute, get_dataset_entry returns relative
+        # Compare everything except file_path
+        entry_dict = entry.to_dict()
+        assert entry_dict["instrument"] == info["instrument"]
+        assert entry_dict["registered_at"] == info["registered_at"]
+        assert entry_dict["start_date"] == info["start_date"]
+        assert entry_dict["end_date"] == info["end_date"]
+        assert entry_dict["row_count"] == info["row_count"]
+        assert entry_dict["metadata"] == info["metadata"]
+        
+        # file_path should be relative in entry, absolute in info
+        assert not Path(entry_dict["file_path"]).is_absolute()
+        assert Path(info["file_path"]).is_absolute()

@@ -283,11 +283,22 @@ def test_workflow_engine_context_passing():
         engine.execute()
 
         # Verify context accumulates
-        assert received_contexts[0] == ("data", {})
-        assert received_contexts[1] == ("signal", {"data": {"data_output": "data_data"}})
+        # First step gets empty context except for output_dir which is added by engine
+        assert received_contexts[0][0] == "data"
+        assert "output_dir" in received_contexts[0][1]
+        assert len(received_contexts[0][1]) == 1  # Only output_dir
+        
+        # Second step gets previous step's output plus output_dir
+        assert received_contexts[1][0] == "signal"
+        assert "data" in received_contexts[1][1]
+        assert received_contexts[1][1]["data"] == {"data_output": "data_data"}
+        assert "output_dir" in received_contexts[1][1]
+        
+        # Third step gets all previous outputs plus output_dir
         assert received_contexts[2][0] == "backtest"
         assert "data" in received_contexts[2][1]
         assert "signal" in received_contexts[2][1]
+        assert "output_dir" in received_contexts[2][1]
 
 
 def test_workflow_engine_subset_execution():

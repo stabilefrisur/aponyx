@@ -39,7 +39,8 @@ def test_config_paths_exist() -> None:
     assert LOGS_DIR.exists()
     assert CACHE_DIR.exists()
     assert (DATA_DIR / "raw").exists()
-    assert (DATA_DIR / "processed").exists()
+    assert (DATA_DIR / "workflows").exists()
+    assert (DATA_DIR / ".registries").exists()
 
 
 def test_catalog_files_exist() -> None:

@@ -97,42 +97,33 @@ class TestReportData:
 class TestCollectReportData:
     """Test report data collection."""
 
-    @patch("aponyx.reporting.generator.EVALUATION_DIR")
-    @patch("aponyx.reporting.generator.PERFORMANCE_REPORTS_DIR")
-    @patch("aponyx.reporting.generator.PROCESSED_DIR")
+    @patch("aponyx.reporting.generator.DATA_WORKFLOWS_DIR")
     def test_collect_report_data_success(
         self,
-        mock_processed_dir,
-        mock_perf_dir,
-        mock_eval_dir,
+        mock_workflows_dir,
         tmp_path,
         sample_suitability_report,
         sample_performance_report,
     ):
         """Test collecting report data from workflow outputs."""
-        # Create mock directories
-        eval_dir = tmp_path / "evaluation"
-        perf_dir = tmp_path / "performance"
+        # Create mock workflow directory
         workflows_dir = tmp_path / "workflows"
-
-        eval_dir.mkdir()
-        perf_dir.mkdir()
         workflows_dir.mkdir()
-
-        mock_eval_dir.glob = lambda pattern: eval_dir.glob(pattern)
-        mock_perf_dir.glob = lambda pattern: perf_dir.glob(pattern)
-        mock_processed_dir.__truediv__ = lambda self, other: workflows_dir / other
-
-        # Create test reports
-        suitability_file = eval_dir / "spread_momentum_20241120_123456.md"
-        suitability_file.write_text(sample_suitability_report)
-
-        performance_file = perf_dir / "spread_momentum_balanced_20241120_123456.md"
-        performance_file.write_text(sample_performance_report)
-
-        # Create workflow directory
+        
         workflow_dir = workflows_dir / "spread_momentum_balanced_20241120_123456"
         workflow_dir.mkdir()
+        reports_dir = workflow_dir / "reports"
+        reports_dir.mkdir()
+        
+        # Set up glob to find this directory
+        mock_workflows_dir.glob.return_value = [workflow_dir]
+
+        # Create test reports
+        suitability_file = reports_dir / "spread_momentum_cdx_ig_5y.md"
+        suitability_file.write_text(sample_suitability_report)
+
+        performance_file = reports_dir / "spread_momentum_balanced_performance.md"
+        performance_file.write_text(sample_performance_report)
 
         data = _collect_report_data("spread_momentum", "balanced")
 
@@ -141,22 +132,18 @@ class TestCollectReportData:
         assert sample_suitability_report.strip() in data.suitability_report
         assert sample_performance_report.strip() in data.performance_report
 
-    @patch("aponyx.reporting.generator.EVALUATION_DIR")
-    @patch("aponyx.reporting.generator.PERFORMANCE_REPORTS_DIR")
+    @patch("aponyx.reporting.generator.DATA_WORKFLOWS_DIR")
     def test_collect_report_data_no_results(
         self,
-        mock_perf_dir,
-        mock_eval_dir,
+        mock_workflows_dir,
         tmp_path,
     ):
         """Test error when no workflow results exist."""
-        eval_dir = tmp_path / "evaluation"
-        perf_dir = tmp_path / "performance"
-        eval_dir.mkdir()
-        perf_dir.mkdir()
-
-        mock_eval_dir.glob = lambda pattern: eval_dir.glob(pattern)
-        mock_perf_dir.glob = lambda pattern: perf_dir.glob(pattern)
+        workflows_dir = tmp_path / "workflows"
+        workflows_dir.mkdir()
+        
+        # Empty glob result
+        mock_workflows_dir.glob.return_value = []
 
         with pytest.raises(FileNotFoundError, match="No workflow results found"):
             _collect_report_data("nonexistent_signal", "nonexistent_strategy")
@@ -183,10 +170,10 @@ class TestGenerateConsoleReport:
 
     def test_generate_console_report_with_visualizations(self, tmp_path):
         """Test console report includes visualization references."""
-        from aponyx.config import PROCESSED_DIR
+        from aponyx.config import DATA_WORKFLOWS_DIR
 
         # Create mock visualization directory
-        viz_dir = PROCESSED_DIR / "workflows" / "visualizations" / "test_signal_test_strategy"
+        viz_dir = DATA_WORKFLOWS_DIR / "test_signal_test_strategy_20241120_123456" / "visualizations"
         viz_dir.mkdir(parents=True, exist_ok=True)
 
         # Create mock visualization file

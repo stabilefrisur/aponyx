@@ -456,7 +456,7 @@ def test_clean_command_requires_signal_or_all(runner):
 def test_clean_command_dry_run(runner, tmp_path):
     """Test clean command in dry-run mode."""
     # Create mock processed directory
-    with patch("aponyx.cli.commands.clean.PROCESSED_DIR", tmp_path):
+    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", tmp_path):
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir(parents=True)
         test_file = workflows_dir / "spread_momentum_balanced_20251120_123456"
@@ -471,7 +471,7 @@ def test_clean_command_dry_run(runner, tmp_path):
 
 def test_clean_command_all(runner, tmp_path):
     """Test clean command removes all cached results."""
-    with patch("aponyx.cli.commands.clean.PROCESSED_DIR", tmp_path):
+    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", tmp_path):
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir(parents=True)
         test_file = workflows_dir / "test_file.txt"
@@ -485,7 +485,7 @@ def test_clean_command_all(runner, tmp_path):
 
 def test_clean_command_specific_signal(runner, tmp_path):
     """Test clean command removes specific signal results."""
-    with patch("aponyx.cli.commands.clean.PROCESSED_DIR", tmp_path):
+    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", tmp_path):
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir(parents=True)
 
@@ -504,7 +504,7 @@ def test_clean_command_specific_signal(runner, tmp_path):
 
 def test_clean_command_no_cached_results(runner, tmp_path):
     """Test clean command with no cached results."""
-    with patch("aponyx.cli.commands.clean.PROCESSED_DIR", tmp_path):
+    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", tmp_path):
         result = runner.invoke(cli, ["clean", "--all"])
 
         assert result.exit_code == 0
@@ -513,7 +513,7 @@ def test_clean_command_no_cached_results(runner, tmp_path):
 
 def test_clean_command_signal_not_found(runner, tmp_path):
     """Test clean command with signal that has no cached results."""
-    with patch("aponyx.cli.commands.clean.PROCESSED_DIR", tmp_path):
+    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", tmp_path):
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir(parents=True)
 

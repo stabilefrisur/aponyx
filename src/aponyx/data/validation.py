@@ -27,12 +27,15 @@ def _ensure_datetime_index(df: pd.DataFrame, date_col: str) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
-        DataFrame with DatetimeIndex, sorted by date.
+        DataFrame with DatetimeIndex named 'date', sorted by date.
     """
     if not isinstance(df.index, pd.DatetimeIndex):
         df = df.copy()
         df[date_col] = pd.to_datetime(df[date_col])
         df = df.set_index(date_col)
+    
+    # Ensure index is named 'date'
+    df.index.name = "date"
 
     return df.sort_index()
 

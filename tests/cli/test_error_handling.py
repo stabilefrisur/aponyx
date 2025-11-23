@@ -208,7 +208,7 @@ def test_list_datasets_missing_metadata(runner):
 
 def test_clean_command_permission_error(runner, tmp_path):
     """Test clean command handles permission errors."""
-    with patch("aponyx.cli.commands.clean.PROCESSED_DIR", tmp_path):
+    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", tmp_path):
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir(parents=True)
 
@@ -223,7 +223,7 @@ def test_clean_command_permission_error(runner, tmp_path):
 
 def test_clean_command_with_files_and_directories(runner, tmp_path):
     """Test clean command handles both files and directories."""
-    with patch("aponyx.cli.commands.clean.PROCESSED_DIR", tmp_path):
+    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", tmp_path):
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir(parents=True)
 
@@ -242,7 +242,7 @@ def test_clean_command_with_files_and_directories(runner, tmp_path):
 
 def test_clean_command_dry_run_with_multiple_items(runner, tmp_path):
     """Test clean command dry-run shows all items."""
-    with patch("aponyx.cli.commands.clean.PROCESSED_DIR", tmp_path):
+    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", tmp_path):
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir(parents=True)
 

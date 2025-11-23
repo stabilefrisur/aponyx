@@ -110,7 +110,7 @@ def test_full_workflow_integration(runner, mock_all_registries, tmp_path):
         assert "Mock report content" in result.output
 
     # Step 5: Clean results
-    with patch("aponyx.cli.commands.clean.PROCESSED_DIR", tmp_path):
+    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", tmp_path):
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir(parents=True)
         test_file = workflows_dir / "spread_momentum_balanced_20251120_123456"
@@ -220,7 +220,7 @@ def test_report_all_formats(runner):
 
 def test_clean_with_different_scopes(runner, tmp_path):
     """Test clean command with different scopes."""
-    with patch("aponyx.cli.commands.clean.PROCESSED_DIR", tmp_path):
+    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", tmp_path):
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir(parents=True)
 
@@ -346,7 +346,7 @@ force: false
 def test_concurrent_command_safety(runner, tmp_path):
     """Test that commands handle concurrent execution safely."""
     # This tests that commands don't interfere with each other
-    with patch("aponyx.cli.commands.clean.PROCESSED_DIR", tmp_path):
+    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", tmp_path):
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir(parents=True)
 

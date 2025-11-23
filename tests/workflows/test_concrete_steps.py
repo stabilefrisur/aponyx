@@ -122,54 +122,54 @@ class TestDataStep:
         step = DataStep(workflow_config)
         assert step.name == "data"
 
-    @patch("aponyx.workflows.concrete_steps.get_required_data_keys")
+    @patch("aponyx.data.bloomberg_config.list_securities")
     @patch("aponyx.workflows.concrete_steps.DataRegistry")
     @patch("aponyx.workflows.concrete_steps.load_parquet")
     def test_data_step_loads_required_data(
         self,
         mock_load_parquet,
         mock_data_registry_class,
-        mock_get_keys,
+        mock_list_securities,
         workflow_config,
         sample_market_data,
     ):
         """Test DataStep loads all required market data."""
-        # Mock required keys
-        mock_get_keys.return_value = {"cdx", "etf"}
+        # Mock securities list
+        mock_list_securities.return_value = ["cdx_ig_5y", "lqd"]
 
         # Mock registry
         mock_registry = MagicMock()
-        mock_registry.list_datasets.side_effect = lambda instrument: [f"{instrument}_data"]
-        mock_registry.get_dataset_info.side_effect = lambda name: {
-            "file_path": Path(f"/data/{name}.parquet")
+        mock_registry.list_datasets.return_value = ["test_dataset"]
+        mock_registry.get_dataset_info.return_value = {
+            "file_path": Path("/data/test_dataset.parquet")
         }
         mock_data_registry_class.return_value = mock_registry
 
-        # Mock file loading
-        mock_load_parquet.side_effect = lambda path: sample_market_data[path.stem.split("_")[0]]
+        # Mock file loading - return CDX data for any path
+        mock_load_parquet.return_value = sample_market_data["cdx"]
 
         step = DataStep(workflow_config)
         result = step.execute({})
 
         assert "market_data" in result
-        assert "cdx" in result["market_data"]
-        assert "etf" in result["market_data"]
+        assert "cdx_ig_5y" in result["market_data"]
+        assert "lqd" in result["market_data"]
 
     def test_data_step_output_exists_false(self, workflow_config):
         """Test DataStep never caches (always loads fresh)."""
         step = DataStep(workflow_config)
         assert not step.output_exists()
 
-    @patch("aponyx.workflows.concrete_steps.get_required_data_keys")
+    @patch("aponyx.data.bloomberg_config.list_securities")
     @patch("aponyx.workflows.concrete_steps.DataRegistry")
     def test_data_step_raises_on_missing_dataset(
         self,
         mock_data_registry_class,
-        mock_get_keys,
+        mock_list_securities,
         workflow_config,
     ):
         """Test DataStep raises error when dataset not found."""
-        mock_get_keys.return_value = {"cdx"}  # Use valid instrument
+        mock_list_securities.return_value = ["cdx_ig_5y"]
 
         mock_registry = MagicMock()
         mock_registry.list_datasets.return_value = []
@@ -187,8 +187,12 @@ class TestDataStep:
 
         step = DataStep(bloomberg_config)
 
-        with pytest.raises(ValueError, match="No datasets found"):
-            step.execute({})
+        # Bloomberg source will try to fetch fresh data when registry is empty
+        # so we need to mock the fetch to raise error
+        with patch("aponyx.data.fetch.fetch_cdx") as mock_fetch:
+            mock_fetch.side_effect = ValueError("Test error")
+            with pytest.raises(ValueError, match="Test error"):
+                step.execute({})
 
 
 class TestSignalStep:
@@ -199,7 +203,7 @@ class TestSignalStep:
         step = SignalStep(workflow_config)
         assert step.name == "signal"
 
-    @patch("aponyx.workflows.concrete_steps.compute_registered_signals")
+    @patch("aponyx.models.orchestrator._compute_signal")
     @patch("aponyx.workflows.concrete_steps.save_parquet")
     def test_signal_step_computes_signal(
         self,
@@ -210,10 +214,8 @@ class TestSignalStep:
         sample_signal,
     ):
         """Test SignalStep computes and saves signal."""
-        # Mock signal computation
-        mock_compute.return_value = {
-            "spread_momentum": sample_signal,
-        }
+        # Mock signal computation (_compute_signal returns a single Series)
+        mock_compute.return_value = sample_signal
 
         step = SignalStep(workflow_config)
         context = {"data": {"market_data": sample_market_data}}
@@ -223,7 +225,7 @@ class TestSignalStep:
         assert isinstance(result["signal"], pd.Series)
         mock_save.assert_called_once()
 
-    @patch("aponyx.workflows.concrete_steps.compute_registered_signals")
+    @patch("aponyx.models.orchestrator._compute_signal")
     @patch("aponyx.workflows.concrete_steps.save_parquet")
     def test_signal_step_output_path(
         self,
@@ -234,7 +236,7 @@ class TestSignalStep:
         sample_signal,
     ):
         """Test SignalStep creates output in correct location."""
-        mock_compute.return_value = {"spread_momentum": sample_signal}
+        mock_compute.return_value = sample_signal
 
         step = SignalStep(workflow_config)
         context = {"data": {"market_data": sample_market_data}}
@@ -247,9 +249,9 @@ class TestSignalStep:
     def test_signal_step_output_exists(self, workflow_config, tmp_path):
         """Test SignalStep checks for existing output."""
         # Create mock output directory structure
-        from aponyx.config import PROCESSED_DIR
+        from aponyx.config import DATA_WORKFLOWS_DIR
 
-        signal_dir = PROCESSED_DIR / "workflows" / "signals" / workflow_config.signal_name
+        signal_dir = DATA_WORKFLOWS_DIR / "signals" / workflow_config.signal_name
         signal_dir.mkdir(parents=True, exist_ok=True)
 
         step = SignalStep(workflow_config)
@@ -308,16 +310,11 @@ class TestSuitabilityStep:
 
         # Mock data registry to provide spread data
         mock_data_registry = Mock()
-        mock_data_registry.list_datasets.return_value = ["cdx_data"]
-        mock_info = {
-            "file_path": "/data/cdx.parquet",
-            "metadata": {"params": {"security": "cdx_ig_5y"}},
-        }
-        mock_data_registry.get_dataset_info.return_value = mock_info
+        mock_data_registry.load_dataset_by_security.return_value = sample_market_data["cdx"]
         mock_data_registry_class.return_value = mock_data_registry
 
-        # Mock spread data
-        mock_load_parquet.return_value = sample_market_data["cdx"]
+        # Mock spread data (not needed since we mock load_dataset_by_security)
+        # mock_load_parquet.return_value = sample_market_data["cdx"]
 
         # Mock evaluation
         mock_result = SuitabilityResult(
@@ -382,16 +379,10 @@ class TestBacktestStep:
 
         # Mock data registry
         mock_registry = Mock()
-        mock_registry.list_datasets.return_value = ["cdx_data"]
-        mock_info = {
-            "file_path": "/data/cdx.parquet",
-            "metadata": {"params": {"security": "cdx_ig_5y"}},
-        }
-        mock_registry.get_dataset_info.return_value = mock_info
+        mock_registry.load_dataset_by_security.return_value = sample_market_data["cdx"]
         mock_data_registry_class.return_value = mock_registry
 
-        # Mock spread data
-        mock_load_parquet.return_value = sample_market_data["cdx"]
+        # Mock backtest result
         mock_run_backtest.return_value = sample_backtest_result
 
         step = BacktestStep(workflow_config)
@@ -425,16 +416,10 @@ class TestBacktestStep:
 
         # Mock data registry
         mock_registry = Mock()
-        mock_registry.list_datasets.return_value = ["cdx_data"]
-        mock_info = {
-            "file_path": "/data/cdx.parquet",
-            "metadata": {"params": {"security": "cdx_ig_5y"}},
-        }
-        mock_registry.get_dataset_info.return_value = mock_info
+        mock_registry.load_dataset_by_security.return_value = sample_market_data["cdx"]
         mock_data_registry_class.return_value = mock_registry
 
-        # Mock spread data
-        mock_load_parquet.return_value = sample_market_data["cdx"]
+        # Mock backtest result
         mock_run_backtest.return_value = sample_backtest_result
 
         step = BacktestStep(workflow_config)
@@ -569,10 +554,10 @@ class TestVisualizationStep:
 class TestStepIntegration:
     """Integration tests for step interactions."""
 
-    @patch("aponyx.workflows.concrete_steps.get_required_data_keys")
+    @patch("aponyx.data.bloomberg_config.list_securities")
     @patch("aponyx.workflows.concrete_steps.DataRegistry")
     @patch("aponyx.workflows.concrete_steps.load_parquet")
-    @patch("aponyx.workflows.concrete_steps.compute_registered_signals")
+    @patch("aponyx.models.orchestrator._compute_signal")
     @patch("aponyx.workflows.concrete_steps.save_parquet")
     def test_data_to_signal_flow(
         self,
@@ -580,14 +565,14 @@ class TestStepIntegration:
         mock_compute,
         mock_load_parquet,
         mock_data_registry_class,
-        mock_get_keys,
+        mock_list_securities,
         workflow_config,
         sample_market_data,
         sample_signal,
     ):
         """Test data flows correctly from DataStep to SignalStep."""
         # Setup DataStep
-        mock_get_keys.return_value = {"cdx"}
+        mock_list_securities.return_value = ["cdx_ig_5y"]
         mock_registry = MagicMock()
         mock_registry.list_datasets.return_value = ["cdx_data"]
         mock_registry.get_dataset_info.return_value = {"file_path": Path("/data/cdx.parquet")}
@@ -595,7 +580,7 @@ class TestStepIntegration:
         mock_load_parquet.return_value = sample_market_data["cdx"]
 
         # Setup SignalStep
-        mock_compute.return_value = {"spread_momentum": sample_signal}
+        mock_compute.return_value = sample_signal
 
         # Execute DataStep
         data_step = DataStep(workflow_config)
@@ -626,4 +611,4 @@ class TestStepIntegration:
         # Each step should have its own subdirectory
         assert "data" in str(data_step.get_output_path())
         assert "signals" in str(signal_step.get_output_path())
-        assert "backtests" in str(backtest_step.get_output_path())
+        assert "backtest" in str(backtest_step.get_output_path())
