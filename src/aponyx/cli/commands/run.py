@@ -31,13 +31,13 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--product",
     type=str,
-    default="cdx_ig_5y",
+    default=None,
     help="Product identifier for backtesting (default: cdx_ig_5y)",
 )
 @click.option(
     "--data",
     type=str,
-    default="synthetic",
+    default=None,
     help="Data source (default: synthetic). Available: synthetic, file, bloomberg, or any custom source in data/raw/",
 )
 @click.option(
@@ -63,8 +63,8 @@ logger = logging.getLogger(__name__)
 def run(
     signal: str | None,
     strategy: str | None,
-    product: str,
-    data: str,
+    product: str | None,
+    data: str | None,
     securities: str | None,
     steps: str | None,
     force: bool,

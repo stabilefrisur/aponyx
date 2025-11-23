@@ -1,0 +1,7 @@
+signal: cdx_vix_gap
+strategy: aggressive
+product: cdx_ig_5y
+securities: 
+  cdx: cdx_hy_5y
+  vix: vix
+data: bloomberg
