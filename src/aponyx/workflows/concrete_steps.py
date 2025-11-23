@@ -63,6 +63,7 @@ class DataStep(BaseWorkflowStep):
         # Get all securities from Bloomberg securities config
         # Download all configured securities regardless of signal requirements
         from aponyx.data.bloomberg_config import list_securities
+
         all_securities = list_securities()  # Get all security IDs
 
         # Initialize registry
@@ -145,6 +146,7 @@ class DataStep(BaseWorkflowStep):
 
             # Get instrument type for this security
             from aponyx.data.bloomberg_config import get_security_spec
+
             spec = get_security_spec(security_id)
             instrument_type = spec.instrument_type
 
@@ -195,10 +197,10 @@ class SignalStep(BaseWorkflowStep):
 
         # Load signal registry
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
-        
+
         # Get the specific signal metadata for this workflow
         signal_metadata = signal_registry.get_metadata(self.config.signal_name)
-        
+
         # Determine which securities to use for this signal's computation
         # Priority: 1) security_mapping from config, 2) default_securities from catalog
         if self.config.security_mapping:
@@ -215,7 +217,7 @@ class SignalStep(BaseWorkflowStep):
                 self.config.signal_name,
                 securities_to_use,
             )
-        
+
         # Build instrument-type-keyed market data dict for signal computation
         # Map instrument types (cdx, etf, vix) to actual security data
         market_data = {}
@@ -233,7 +235,7 @@ class SignalStep(BaseWorkflowStep):
                 security_id,
                 len(raw_market_data[security_id]),
             )
-        
+
         # Validate that we have all required instrument types for this signal
         required_types = set(signal_metadata.data_requirements.keys())
         provided_types = set(market_data.keys())
@@ -247,11 +249,12 @@ class SignalStep(BaseWorkflowStep):
 
         # Compute the specific signal for this workflow
         config = SignalConfig(lookback=20, min_periods=10)
-        
+
         # Create a single-signal registry for this workflow's signal
         from aponyx.models.orchestrator import _compute_signal
+
         signal = _compute_signal(signal_metadata, market_data, config)
-        
+
         logger.info(
             "Computed signal '%s': %d values, %.2f%% non-null",
             self.config.signal_name,
@@ -262,7 +265,7 @@ class SignalStep(BaseWorkflowStep):
         # Save signal to output directory
         output_dir = context.get("output_dir", self.config.output_dir) / "signals"
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         output_path = output_dir / f"{self.config.signal_name}.parquet"
         signal_df = signal.to_frame(name="value")
         save_parquet(signal_df, output_path)
@@ -296,26 +299,24 @@ class SignalStep(BaseWorkflowStep):
         """Load cached signal from disk."""
         signal_dir = self.get_output_path()
         signal_file = signal_dir / f"{self.config.signal_name}.parquet"
-        
+
         if not signal_file.exists():
-            raise FileNotFoundError(
-                f"Cached signal file not found: {signal_file}"
-            )
-        
+            raise FileNotFoundError(f"Cached signal file not found: {signal_file}")
+
         signal_df = load_parquet(signal_file)
         signal = signal_df["value"]
-        
+
         logger.info(
             "Loaded cached signal '%s': %d values",
             self.config.signal_name,
             len(signal),
         )
-        
+
         # Securities used info is not cached, will use defaults
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
         signal_metadata = signal_registry.get_metadata(self.config.signal_name)
         securities_used = self.config.security_mapping or signal_metadata.default_securities
-        
+
         return {
             "signal": signal,
             "securities_used": securities_used,
@@ -421,7 +422,7 @@ class BacktestStep(BaseWorkflowStep):
 
         # Get signal from previous step
         signal = context["signal"]["signal"]
-        
+
         # Get product from config, or from suitability step if available
         product = context.get("suitability", {}).get("product") or self.config.product
 

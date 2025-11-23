@@ -90,7 +90,7 @@ def load_all_required_data() -> dict[str, pd.DataFrame]:
     """
     data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
     signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
-    
+
     # Load data using data layer helper
     # To override defaults, pass security_mapping parameter:
     # security_mapping={"cdx": "cdx_hy_5y", "etf": "hyg"}

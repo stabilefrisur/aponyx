@@ -356,21 +356,21 @@ class DataRegistry:
         'cache_vix_d09015690dfa93d9'
         """
         matching_datasets = []
-        
+
         for name, info in self._catalog.items():
             metadata = info.get("metadata", {})
             params = metadata.get("params", {})
-            
+
             # Match by security ID in params
             if params.get("security") == security_id:
                 matching_datasets.append(name)
             # For instruments without security param (VIX), match by security_id == instrument
             elif security_id == "vix" and info.get("instrument") == "vix":
                 matching_datasets.append(name)
-        
+
         if not matching_datasets:
             return None
-        
+
         # Return most recent (sort by registration timestamp)
         return sorted(matching_datasets)[-1]
 
@@ -403,13 +403,13 @@ class DataRegistry:
         >>> vix_df = registry.load_dataset_by_security('vix')
         """
         dataset_name = self.find_dataset_by_security(security_id)
-        
+
         if dataset_name is None:
             raise ValueError(
                 f"No dataset found for security '{security_id}'. "
                 f"Available datasets: {', '.join(sorted(self._catalog.keys()))}"
             )
-        
+
         info = self.get_dataset_info(dataset_name)
         return load_parquet(info["file_path"])
 

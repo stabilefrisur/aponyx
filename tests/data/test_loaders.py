@@ -27,7 +27,7 @@ def sample_data_dir(tmp_path: Path) -> Path:
 
     # Create sample parquet files with proper schemas
     dates = pd.date_range("2024-01-01", periods=3)
-    
+
     # VIX file with 'level' column
     vix_df = pd.DataFrame({"level": [15.0, 16.0, 17.0]}, index=dates)
     vix_path = data_dir / "vix_abc123.parquet"
@@ -108,7 +108,7 @@ def test_load_instrument_from_raw_single_security(
 ) -> None:
     """Test loading single-security instrument from raw files."""
     from aponyx.data import fetch_vix
-    
+
     result = load_instrument_from_raw(
         sample_data_dir,
         "vix",
@@ -126,7 +126,7 @@ def test_load_instrument_from_raw_multi_security(
 ) -> None:
     """Test loading multi-security instrument from raw files."""
     from aponyx.data import fetch_cdx
-    
+
     result = load_instrument_from_raw(
         sample_data_dir,
         "cdx",
@@ -142,7 +142,7 @@ def test_load_instrument_from_raw_multi_security(
 def test_load_instrument_from_raw_file_not_found(tmp_path: Path) -> None:
     """Test loading raises error when no files found."""
     from aponyx.data import fetch_vix
-    
+
     empty_dir = tmp_path / "empty"
     empty_dir.mkdir()
 
@@ -160,23 +160,20 @@ def test_load_signal_required_data_default_securities() -> None:
     # Mock signal registry with enabled signals
     mock_signal_metadata = MagicMock()
     mock_signal_metadata.default_securities = {"cdx": "cdx_ig_5y", "etf": "lqd"}
-    
+
     mock_signal_registry = MagicMock()
-    mock_signal_registry.get_enabled.return_value = {
-        "test_signal": mock_signal_metadata
-    }
-    
+    mock_signal_registry.get_enabled.return_value = {"test_signal": mock_signal_metadata}
+
     # Mock data registry
     mock_df = pd.DataFrame(
-        {"spread": [100, 101, 102]},
-        index=pd.date_range("2024-01-01", periods=3)
+        {"spread": [100, 101, 102]}, index=pd.date_range("2024-01-01", periods=3)
     )
     mock_data_registry = MagicMock()
     mock_data_registry.load_dataset_by_security.return_value = mock_df
-    
+
     # Execute
     result = load_signal_required_data(mock_signal_registry, mock_data_registry)
-    
+
     # Verify
     assert "cdx" in result
     assert "etf" in result
@@ -189,28 +186,23 @@ def test_load_signal_required_data_with_overrides() -> None:
     # Mock signal registry with enabled signals
     mock_signal_metadata = MagicMock()
     mock_signal_metadata.default_securities = {"cdx": "cdx_ig_5y", "etf": "lqd"}
-    
+
     mock_signal_registry = MagicMock()
-    mock_signal_registry.get_enabled.return_value = {
-        "test_signal": mock_signal_metadata
-    }
-    
+    mock_signal_registry.get_enabled.return_value = {"test_signal": mock_signal_metadata}
+
     # Mock data registry
     mock_df = pd.DataFrame(
-        {"spread": [100, 101, 102]},
-        index=pd.date_range("2024-01-01", periods=3)
+        {"spread": [100, 101, 102]}, index=pd.date_range("2024-01-01", periods=3)
     )
     mock_data_registry = MagicMock()
     mock_data_registry.load_dataset_by_security.return_value = mock_df
-    
+
     # Execute with overrides
     security_mapping = {"cdx": "cdx_hy_5y", "etf": "hyg"}
     result = load_signal_required_data(
-        mock_signal_registry,
-        mock_data_registry,
-        security_mapping=security_mapping
+        mock_signal_registry, mock_data_registry, security_mapping=security_mapping
     )
-    
+
     # Verify overrides were used
     assert "cdx" in result
     assert "etf" in result
@@ -225,30 +217,26 @@ def test_load_signal_required_data_multiple_signals() -> None:
     # Mock signal registry with multiple enabled signals
     signal1_metadata = MagicMock()
     signal1_metadata.default_securities = {"cdx": "cdx_ig_5y", "etf": "lqd"}
-    
+
     signal2_metadata = MagicMock()
     signal2_metadata.default_securities = {"cdx": "cdx_ig_5y", "vix": "vix"}
-    
+
     mock_signal_registry = MagicMock()
     mock_signal_registry.get_enabled.return_value = {
         "signal1": signal1_metadata,
         "signal2": signal2_metadata,
     }
-    
+
     # Mock data registry
-    mock_df = pd.DataFrame(
-        {"value": [100, 101, 102]},
-        index=pd.date_range("2024-01-01", periods=3)
-    )
+    mock_df = pd.DataFrame({"value": [100, 101, 102]}, index=pd.date_range("2024-01-01", periods=3))
     mock_data_registry = MagicMock()
     mock_data_registry.load_dataset_by_security.return_value = mock_df
-    
+
     # Execute
     result = load_signal_required_data(mock_signal_registry, mock_data_registry)
-    
+
     # Verify all unique instruments loaded
     assert "cdx" in result
     assert "etf" in result
     assert "vix" in result
     assert len(result) == 3
-

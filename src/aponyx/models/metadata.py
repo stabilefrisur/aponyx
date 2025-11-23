@@ -65,7 +65,7 @@ class SignalMetadata:
     compute_function_name: str
     data_requirements: dict[str, str]
     arg_mapping: list[str]
-    default_securities: dict[str, str]
+    default_securities: dict[str, str] | None = None
     enabled: bool = True
     sign_multiplier: int = 1
 

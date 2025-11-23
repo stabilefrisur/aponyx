@@ -129,7 +129,10 @@ def run(
                 inst_type, security_id = pair.split(":")
                 security_mapping[inst_type.strip()] = security_id.strip()
         except ValueError:
-            click.echo("Error: Invalid --securities format. Use 'type1:security1,type2:security2'", err=True)
+            click.echo(
+                "Error: Invalid --securities format. Use 'type1:security1,type2:security2'",
+                err=True,
+            )
             raise click.Abort()
     elif "securities" in config_dict:
         security_mapping = config_dict["securities"]

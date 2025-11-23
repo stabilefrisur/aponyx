@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.13] - 2025-11-23
+
+### Added
+- **Flexible Security Mapping** for signal computation
+  - `default_securities` field in signal catalog defining instrument-to-security defaults
+  - `security_mapping` parameter in WorkflowConfig for custom security selection
+  - `--securities` CLI option for runtime security overrides (e.g., `cdx:cdx_hy_5y,etf:hyg`)
+  - `workflow_custom_securities.yaml` example demonstrating security mapping
+  - DataRegistry helper methods: `find_dataset_by_security()` and `load_dataset_by_security()`
+  - `load_signal_required_data()` helper in data/loaders.py for reusable data loading logic
+- **Bloomberg Data Fetching** enhancements
+  - DataStep now downloads all securities from bloomberg_securities.json
+  - Smart current-day refresh for intraday Bloomberg data updates
+
+### Changed
+- **Signal Data Loading** architecture
+  - Security selection moved from DataStep to SignalStep
+  - SignalStep maps instrument types to specific securities using defaults or overrides
+  - DataStep becomes signal-agnostic, downloading all available securities
+  - Signal catalog now explicitly declares default_securities for each signal
+  - VIX loading skips security parameter (single instrument)
+- **Documentation Updates**
+  - Updated copilot-instructions.md with security mapping patterns
+  - Updated README.md with `--securities` CLI option examples
+  - Updated PROJECT_STATUS.md with DataRegistry helpers
+  - All documentation dates updated to November 23, 2025
+
+### Fixed
+- Signal computation now properly supports running same signal with different securities
+- Products for backtesting default to cdx_ig_5y consistently
+
 ## [0.1.12] - 2025-11-22
 
 ### Added
@@ -581,6 +612,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.13]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.13
 [0.1.12]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.12
 [0.1.11]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.11
 [0.1.10]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.10
