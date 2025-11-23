@@ -31,9 +31,9 @@ Expected: 3 signals (cdx_etf_basis, cdx_vix_gap, spread_momentum).
 import pandas as pd
 
 from aponyx.config import REGISTRY_PATH, DATA_DIR, SIGNAL_CATALOG_PATH, DATA_WORKFLOWS_DIR
-from aponyx.data.registry import DataRegistry
+from aponyx.data import DataRegistry, load_signal_required_data
 from aponyx.models import SignalConfig, SignalRegistry, compute_registered_signals
-from aponyx.persistence import load_parquet, save_parquet
+from aponyx.persistence import save_parquet
 
 
 def main() -> dict[str, pd.Series]:
@@ -85,29 +85,16 @@ def load_all_required_data() -> dict[str, pd.DataFrame]:
 
     Notes
     -----
-    For each enabled signal, uses default_securities to map
-    instrument types to specific security IDs.
+    Delegates to data layer helper for loading signal-required data.
+    Can optionally pass security_mapping to override default securities.
     """
     data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
     signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
     
-    # Build a mapping from instrument type to security ID
-    # by collecting default_securities from all enabled signals
-    instrument_to_security = {}
-    for signal_name, metadata in signal_registry.get_enabled().items():
-        for inst_type, security_id in metadata.default_securities.items():
-            # If multiple signals specify the same instrument type,
-            # the last one wins (consistent with previous behavior)
-            instrument_to_security[inst_type] = security_id
-    
-    # Load data for each instrument type using the mapped security
-    market_data = {}
-    for inst_type, security_id in sorted(instrument_to_security.items()):
-        # Use registry helper to find and load dataset by security ID
-        df = data_registry.load_dataset_by_security(security_id)
-        market_data[inst_type] = df
-
-    return market_data
+    # Load data using data layer helper
+    # To override defaults, pass security_mapping parameter:
+    # security_mapping={"cdx": "cdx_hy_5y", "etf": "hyg"}
+    return load_signal_required_data(signal_registry, data_registry)
 
 
 def compute_all_signals(

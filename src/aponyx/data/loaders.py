@@ -7,8 +7,13 @@ Provides helpers for generic instrument loading without hardcoded instrument log
 import logging
 from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from .registry import DataRegistry
+    from ..models.registry import SignalRegistry
 
 
 logger = logging.getLogger(__name__)
@@ -199,3 +204,83 @@ def load_instrument_from_raw(
     df = concat_multi_security(dfs, instrument.upper())
     logger.info("Loaded %s from raw files: %d rows", instrument.upper(), len(df))
     return df
+
+
+def load_signal_required_data(
+    signal_registry: "SignalRegistry",
+    data_registry: "DataRegistry",
+    security_mapping: dict[str, str] | None = None,
+) -> dict[str, pd.DataFrame]:
+    """
+    Load all market data required by enabled signals.
+
+    Collects data requirements from all enabled signals and loads
+    corresponding datasets from the data registry. Uses default_securities
+    from signal catalog unless overridden by security_mapping.
+
+    Parameters
+    ----------
+    signal_registry : SignalRegistry
+        Signal registry with enabled signal definitions.
+    data_registry : DataRegistry
+        Data registry for loading datasets by security ID.
+    security_mapping : dict[str, str] or None
+        Optional mapping to override default securities.
+        Keys are instrument types (e.g., "cdx", "etf").
+        Values are security IDs (e.g., "cdx_hy_5y", "hyg").
+
+    Returns
+    -------
+    dict[str, pd.DataFrame]
+        Market data mapping with all required instruments.
+        Keys are generic identifiers (e.g., "cdx", "etf", "vix").
+
+    Examples
+    --------
+    >>> from aponyx.models import SignalRegistry
+    >>> from aponyx.data import DataRegistry
+    >>> signal_reg = SignalRegistry("signal_catalog.json")
+    >>> data_reg = DataRegistry("registry.json", "data/")
+    >>> # Use default securities from catalog
+    >>> data = load_signal_required_data(signal_reg, data_reg)
+    >>> # Override with custom securities
+    >>> data = load_signal_required_data(
+    ...     signal_reg,
+    ...     data_reg,
+    ...     security_mapping={"cdx": "cdx_hy_5y", "etf": "hyg"}
+    ... )
+
+    Notes
+    -----
+    For each enabled signal, uses default_securities to map
+    instrument types to specific security IDs. If security_mapping
+    is provided, it overrides the defaults for specified instruments.
+    """
+    # Build mapping from instrument type to security ID
+    # by collecting default_securities from all enabled signals
+    instrument_to_security = {}
+    for signal_name, metadata in signal_registry.get_enabled().items():
+        for inst_type, security_id in metadata.default_securities.items():
+            # If multiple signals specify the same instrument type,
+            # the last one wins (consistent behavior across codebase)
+            instrument_to_security[inst_type] = security_id
+
+    # Apply overrides if provided
+    if security_mapping:
+        for inst_type, security_id in security_mapping.items():
+            logger.info(
+                "Overriding default security for %s: %s -> %s",
+                inst_type,
+                instrument_to_security.get(inst_type, "N/A"),
+                security_id,
+            )
+            instrument_to_security[inst_type] = security_id
+
+    # Load data for each instrument type using the mapped security
+    market_data = {}
+    for inst_type, security_id in sorted(instrument_to_security.items()):
+        # Use registry helper to find and load dataset by security ID
+        df = data_registry.load_dataset_by_security(security_id)
+        market_data[inst_type] = df
+
+    return market_data
