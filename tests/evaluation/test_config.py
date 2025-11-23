@@ -107,21 +107,27 @@ class TestSuitabilityConfigValidation:
 
     def test_min_obs_too_small_raises(self) -> None:
         """Test that min_obs < 100 raises ValueError."""
-        with pytest.raises(ValueError, match="min_obs must be at least 100 for reliable inference"):
+        with pytest.raises(
+            ValueError, match="min_obs must be at least 100 for reliable inference"
+        ):
             SuitabilityConfig(min_obs=50)
 
-        with pytest.raises(ValueError, match="min_obs must be at least 100 for reliable inference"):
+        with pytest.raises(
+            ValueError, match="min_obs must be at least 100 for reliable inference"
+        ):
             SuitabilityConfig(min_obs=0)
 
     def test_rolling_window_too_small_raises(self) -> None:
         """Test that rolling_window < 50 raises ValueError."""
         with pytest.raises(
-            ValueError, match="rolling_window must be at least 50 for meaningful statistics"
+            ValueError,
+            match="rolling_window must be at least 50 for meaningful statistics",
         ):
             SuitabilityConfig(rolling_window=30)
 
         with pytest.raises(
-            ValueError, match="rolling_window must be at least 50 for meaningful statistics"
+            ValueError,
+            match="rolling_window must be at least 50 for meaningful statistics",
         ):
             SuitabilityConfig(rolling_window=0)
 

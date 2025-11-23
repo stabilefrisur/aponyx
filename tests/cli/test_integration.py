@@ -22,7 +22,6 @@ def mock_all_registries():
         patch("aponyx.cli.commands.list.StrategyRegistry") as mock_strategy_reg,
         patch("aponyx.cli.commands.list.DataRegistry") as mock_data_reg,
     ):
-
         # Configure signal registry
         mock_signal = MagicMock()
         mock_signal.list_all.return_value = {
@@ -116,7 +115,9 @@ def test_full_workflow_integration(runner, mock_all_registries, tmp_path):
         test_file = workflows_dir / "spread_momentum_balanced_20251120_123456"
         test_file.mkdir()
 
-        result = runner.invoke(cli, ["clean", "--signal", "spread_momentum", "--dry-run"])
+        result = runner.invoke(
+            cli, ["clean", "--signal", "spread_momentum", "--dry-run"]
+        )
         assert result.exit_code == 0
         assert "Would delete" in result.output
         assert test_file.exists()  # Not deleted in dry-run
@@ -249,7 +250,9 @@ def test_error_recovery_workflow(runner):
             "steps_skipped": 0,
             "output_dir": "/mock/output",
             "duration_seconds": 5.0,
-            "errors": [{"step": "signal", "error": "Data quality issue", "type": "ValueError"}],
+            "errors": [
+                {"step": "signal", "error": "Data quality issue", "type": "ValueError"}
+            ],
         }
         mock_engine_class.return_value = mock_engine
 
@@ -341,6 +344,8 @@ force: false
         result = runner.invoke(cli, ["run", "--config", str(config_file)])
         assert result.exit_code == 0
         assert "Signal: spread_momentum" in result.output
+
+
 def test_concurrent_command_safety(runner, tmp_path):
     """Test that commands handle concurrent execution safely."""
     # This tests that commands don't interfere with each other
@@ -355,7 +360,9 @@ def test_concurrent_command_safety(runner, tmp_path):
 
         # Run clean in dry-run mode
         result1 = runner.invoke(cli, ["clean", "--all", "--dry-run"])
-        result2 = runner.invoke(cli, ["clean", "--signal", "test_signal_0", "--dry-run"])
+        result2 = runner.invoke(
+            cli, ["clean", "--signal", "test_signal_0", "--dry-run"]
+        )
 
         assert result1.exit_code == 0
         assert result2.exit_code == 0

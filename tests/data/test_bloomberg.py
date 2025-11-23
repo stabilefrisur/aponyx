@@ -142,7 +142,9 @@ logger = logging.getLogger(__name__)
 def mock_xbbg_response():
     """Create mock xbbg response DataFrame."""
     # xbbg returns object dtype index (date strings), not DatetimeIndex
-    dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"])
+    dates = pd.Index(
+        ["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"]
+    )
     # xbbg always returns multi-index columns: (ticker, field)
     df = pd.DataFrame(
         {("CDX IG CDSI GEN 5Y Corp", "PX_LAST"): [100.0, 101.0, 102.0, 103.0, 104.0]},
@@ -155,7 +157,9 @@ def mock_xbbg_response():
 def mock_xbbg_etf_response():
     """Create mock xbbg response DataFrame for ETF data."""
     # xbbg returns object dtype index (date strings), not DatetimeIndex
-    dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"])
+    dates = pd.Index(
+        ["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"]
+    )
     # xbbg always returns multi-index columns: (ticker, field)
     df = pd.DataFrame(
         {("HYG US Equity", "YAS_ISPREAD"): [85.0, 86.0, 87.0, 88.0, 89.0]},
@@ -168,7 +172,9 @@ def mock_xbbg_etf_response():
 def mock_xbbg_multiindex_response():
     """Create mock xbbg response with multi-index columns."""
     # xbbg returns object dtype index (date strings), not DatetimeIndex
-    dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"])
+    dates = pd.Index(
+        ["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"]
+    )
     df = pd.DataFrame(
         {("CDX IG CDSI GEN 5Y Corp", "PX_LAST"): [100.0, 101.0, 102.0, 103.0, 104.0]},
         index=dates,
@@ -209,7 +215,9 @@ class TestFetchFromBloomberg:
     def test_fetch_vix_success(self):
         """Test successful VIX data fetch."""
         # Create VIX-specific mock response
-        dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"])
+        dates = pd.Index(
+            ["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"]
+        )
         mock_response = pd.DataFrame(
             {("VIX Index", "PX_LAST"): [20.0, 21.0, 22.0, 23.0, 24.0]},
             index=dates,
@@ -251,7 +259,9 @@ class TestFetchFromBloomberg:
     def test_default_date_range(self):
         """Test default 5-year date range when dates not provided."""
         # Create VIX-specific mock response
-        dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"])
+        dates = pd.Index(
+            ["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"]
+        )
         mock_response = pd.DataFrame(
             {("VIX Index", "PX_LAST"): [20.0, 21.0, 22.0, 23.0, 24.0]},
             index=dates,
@@ -274,7 +284,9 @@ class TestFetchFromBloomberg:
     def test_date_format_conversion(self):
         """Test date conversion from YYYY-MM-DD to YYYYMMDD."""
         # Create VIX-specific mock response
-        dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"])
+        dates = pd.Index(
+            ["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"]
+        )
         mock_response = pd.DataFrame(
             {("VIX Index", "PX_LAST"): [20.0, 21.0, 22.0, 23.0, 24.0]},
             index=dates,
@@ -303,7 +315,9 @@ class TestFetchFromBloomberg:
 
     def test_bloomberg_request_failure(self):
         """Test error handling when Bloomberg request fails."""
-        with patch("xbbg.blp.bdh", return_value=pd.DataFrame()):  # Return empty, not exception
+        with patch(
+            "xbbg.blp.bdh", return_value=pd.DataFrame()
+        ):  # Return empty, not exception
             with pytest.raises(RuntimeError, match="Bloomberg returned empty data"):
                 fetch_from_bloomberg(
                     ticker="VIX Index",
@@ -334,7 +348,9 @@ class TestFetchFromBloomberg:
     def test_additional_params_passed_through(self):
         """Test that additional **params are passed to xbbg."""
         # Create VIX-specific mock response
-        dates = pd.Index(["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"])
+        dates = pd.Index(
+            ["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"]
+        )
         mock_response = pd.DataFrame(
             {("VIX Index", "PX_LAST"): [20.0, 21.0, 22.0, 23.0, 24.0]},
             index=dates,
@@ -409,7 +425,9 @@ class TestAddMetadataColumns:
     def test_add_cdx_metadata_with_security(self):
         """Test CDX metadata with security parameter."""
         df = pd.DataFrame({"spread": [100.0, 101.0]})
-        result = _add_security_metadata(df, "CDX IG CDSI GEN 5Y Corp", security="cdx_ig_5y")
+        result = _add_security_metadata(
+            df, "CDX IG CDSI GEN 5Y Corp", security="cdx_ig_5y"
+        )
 
         assert "security" in result.columns
         assert result["security"].iloc[0] == "cdx_ig_5y"

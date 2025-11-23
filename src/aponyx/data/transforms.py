@@ -95,7 +95,9 @@ def apply_transform(
         return _z_score(series, window, min_periods)
     elif transform == "normalized_change":
         if window is None:
-            raise ValueError("window parameter required for normalized_change transform")
+            raise ValueError(
+                "window parameter required for normalized_change transform"
+            )
         return _normalized_change(series, window, min_periods, periods)
     else:
         raise ValueError(f"Unknown transform type: {transform}")
@@ -188,7 +190,9 @@ def _log_return(series: pd.Series, periods: int = 1) -> pd.Series:
     return np.log(series / series.shift(periods))
 
 
-def _z_score(series: pd.Series, window: int, min_periods: int | None = None) -> pd.Series:
+def _z_score(
+    series: pd.Series, window: int, min_periods: int | None = None
+) -> pd.Series:
     """
     Compute rolling z-score: (x - rolling_mean) / rolling_std.
 

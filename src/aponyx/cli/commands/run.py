@@ -168,13 +168,13 @@ def run(
     try:
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
         signal_metadata = signal_registry.get_metadata(signal_name)
-        
+
         # Get the securities that will be used (custom mapping or defaults)
         if security_mapping:
             securities_to_use = security_mapping
         else:
             securities_to_use = signal_metadata.default_securities
-        
+
         # Format: instrument1:security1, instrument2:security2, ...
         securities_display = ", ".join(
             f"{inst_type}:{sec}" for inst_type, sec in sorted(securities_to_use.items())
@@ -190,7 +190,7 @@ def run(
     if step_list:
         click.echo(f"Steps: {', '.join(step_list)}")
     else:
-        click.echo(f"Steps: all")
+        click.echo("Steps: all")
     click.echo(f"Force re-run: {force_rerun}")
     click.echo()
 
@@ -200,7 +200,9 @@ def run(
 
     # Display results
     if results["errors"]:
-        click.echo(f"Workflow failed: {results['steps_completed']} steps completed", err=True)
+        click.echo(
+            f"Workflow failed: {results['steps_completed']} steps completed", err=True
+        )
         for error in results["errors"]:
             click.echo(f"  {error['step']}: {error['error']}", err=True)
         raise click.Abort()

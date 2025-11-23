@@ -104,7 +104,9 @@ class TestRegisterDataset:
         assert info["metadata"]["source"] == "CBOE"
         assert info["metadata"]["frequency"] == "daily"
 
-    def test_register_extracts_date_range(self, registry, sample_timeseries, temp_data_dir):
+    def test_register_extracts_date_range(
+        self, registry, sample_timeseries, temp_data_dir
+    ):
         """Test that registration extracts date range from data."""
         file_path = temp_data_dir / "test.parquet"
         save_parquet(sample_timeseries, file_path)
@@ -135,7 +137,9 @@ class TestRegisterDataset:
         assert info["end_date"] is None
         assert info["row_count"] is None
 
-    def test_register_overwrites_existing(self, registry, sample_timeseries, temp_data_dir):
+    def test_register_overwrites_existing(
+        self, registry, sample_timeseries, temp_data_dir
+    ):
         """Test that re-registering updates existing entry."""
         file_path = temp_data_dir / "test.parquet"
         save_parquet(sample_timeseries, file_path)
@@ -186,13 +190,17 @@ class TestListDatasets:
         for name in ["cdx_ig", "cdx_hy", "vix"]:
             file_path = temp_data_dir / f"{name}.parquet"
             save_parquet(sample_timeseries, file_path)
-            registry.register_dataset(name=name, file_path=file_path, instrument=name.upper())
+            registry.register_dataset(
+                name=name, file_path=file_path, instrument=name.upper()
+            )
 
         datasets = registry.list_datasets()
         assert len(datasets) == 3
         assert sorted(datasets) == datasets  # Verify sorted
 
-    def test_list_filtered_by_instrument(self, registry, sample_timeseries, temp_data_dir):
+    def test_list_filtered_by_instrument(
+        self, registry, sample_timeseries, temp_data_dir
+    ):
         """Test filtering datasets by instrument."""
         registry.register_dataset(
             name="cdx_ig_5y",
@@ -266,7 +274,9 @@ class TestRemoveDataset:
             registry.get_dataset_info("test")
         assert file_path.exists()  # File not deleted by default
 
-    def test_remove_dataset_with_file_deletion(self, registry, sample_timeseries, temp_data_dir):
+    def test_remove_dataset_with_file_deletion(
+        self, registry, sample_timeseries, temp_data_dir
+    ):
         """Test removing dataset and deleting file."""
         file_path = temp_data_dir / "test.parquet"
         save_parquet(sample_timeseries, file_path)
@@ -378,7 +388,9 @@ class TestGetDatasetEntry:
         assert entry.instrument == "CDX.NA.IG"
         assert entry.row_count == 30
 
-    def test_get_dataset_entry_with_metadata(self, registry, sample_timeseries, temp_data_dir):
+    def test_get_dataset_entry_with_metadata(
+        self, registry, sample_timeseries, temp_data_dir
+    ):
         """Test retrieving dataset with metadata."""
         file_path = temp_data_dir / "vix.parquet"
         save_parquet(sample_timeseries, file_path)
@@ -402,7 +414,9 @@ class TestGetDatasetEntry:
         with pytest.raises(KeyError, match="Dataset 'nonexistent' not found"):
             registry.get_dataset_entry("nonexistent")
 
-    def test_get_dataset_entry_type_safety(self, registry, sample_timeseries, temp_data_dir):
+    def test_get_dataset_entry_type_safety(
+        self, registry, sample_timeseries, temp_data_dir
+    ):
         """Test that DatasetEntry provides type-safe attribute access."""
         file_path = temp_data_dir / "test.parquet"
         save_parquet(sample_timeseries, file_path)
@@ -446,7 +460,7 @@ class TestGetDatasetEntry:
         assert entry_dict["end_date"] == info["end_date"]
         assert entry_dict["row_count"] == info["row_count"]
         assert entry_dict["metadata"] == info["metadata"]
-        
+
         # file_path should be relative in entry, absolute in info
         assert not Path(entry_dict["file_path"]).is_absolute()
         assert Path(info["file_path"]).is_absolute()

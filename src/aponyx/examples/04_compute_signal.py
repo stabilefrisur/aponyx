@@ -30,7 +30,12 @@ Expected: 3 signals (cdx_etf_basis, cdx_vix_gap, spread_momentum).
 
 import pandas as pd
 
-from aponyx.config import REGISTRY_PATH, DATA_DIR, SIGNAL_CATALOG_PATH, DATA_WORKFLOWS_DIR
+from aponyx.config import (
+    REGISTRY_PATH,
+    DATA_DIR,
+    SIGNAL_CATALOG_PATH,
+    DATA_WORKFLOWS_DIR,
+)
 from aponyx.data import DataRegistry, load_signal_required_data
 from aponyx.models import SignalConfig, SignalRegistry, compute_registered_signals
 from aponyx.persistence import save_parquet

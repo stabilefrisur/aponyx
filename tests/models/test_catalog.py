@@ -9,7 +9,10 @@ import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from aponyx.models.orchestrator import compute_registered_signals, _validate_data_requirements
+from aponyx.models.orchestrator import (
+    compute_registered_signals,
+    _validate_data_requirements,
+)
 from aponyx.data.requirements import get_required_data_keys
 from aponyx.models.config import SignalConfig
 from aponyx.models.metadata import SignalMetadata
@@ -300,7 +303,9 @@ def test_get_required_data_keys(test_catalog_path: Path) -> None:
     assert len(required_keys) == 3
 
 
-def test_get_required_data_keys_with_disabled(mock_market_data: dict[str, pd.DataFrame]) -> None:
+def test_get_required_data_keys_with_disabled(
+    mock_market_data: dict[str, pd.DataFrame],
+) -> None:
     """Test that get_required_data_keys only includes enabled signals."""
     catalog_data = [
         {

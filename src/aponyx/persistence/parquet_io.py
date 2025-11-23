@@ -123,7 +123,7 @@ def load_parquet(
     if start_date is not None or end_date is not None:
         if not isinstance(df.index, pd.DatetimeIndex):
             raise ValueError(
-                "Date filtering requires DatetimeIndex. " f"Got {type(df.index).__name__}"
+                f"Date filtering requires DatetimeIndex. Got {type(df.index).__name__}"
             )
 
         if start_date is not None:
@@ -169,5 +169,7 @@ def list_parquet_files(directory: str | Path, pattern: str = "*.parquet") -> lis
         return []
 
     files = sorted(directory.glob(pattern))
-    logger.info("Found %d Parquet files in %s (pattern=%s)", len(files), directory, pattern)
+    logger.info(
+        "Found %d Parquet files in %s (pattern=%s)", len(files), directory, pattern
+    )
     return files

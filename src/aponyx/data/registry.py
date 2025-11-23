@@ -202,8 +202,12 @@ class DataRegistry:
         if resolved_path.exists():
             try:
                 df = load_parquet(resolved_path)
-                start_date = df.index.min() if isinstance(df.index, pd.DatetimeIndex) else None
-                end_date = df.index.max() if isinstance(df.index, pd.DatetimeIndex) else None
+                start_date = (
+                    df.index.min() if isinstance(df.index, pd.DatetimeIndex) else None
+                )
+                end_date = (
+                    df.index.max() if isinstance(df.index, pd.DatetimeIndex) else None
+                )
                 row_count = len(df)
             except Exception as e:
                 logger.warning(
@@ -479,7 +483,9 @@ class DataRegistry:
             file_path = self._resolve_path(self._catalog[name]["file_path"])
             if file_path.exists():
                 file_path.unlink()
-                logger.info("Deleted file for dataset: name=%s, path=%s", name, file_path)
+                logger.info(
+                    "Deleted file for dataset: name=%s, path=%s", name, file_path
+                )
 
         del self._catalog[name]
         self._save()
@@ -491,4 +497,4 @@ class DataRegistry:
 
     def __repr__(self) -> str:
         """String representation showing registry statistics."""
-        return f"DataRegistry(path={self.registry_path}, " f"datasets={len(self._catalog)})"
+        return f"DataRegistry(path={self.registry_path}, datasets={len(self._catalog)})"

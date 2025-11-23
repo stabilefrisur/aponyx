@@ -130,9 +130,9 @@ def attribute_by_signal_strength(
     if len(positioned) == 0:
         logger.warning("No positioned days found for signal attribution")
         return (
-            {f"q{i+1}_pnl": 0.0 for i in range(n_quantiles)}
-            | {f"q{i+1}_pct": 0.0 for i in range(n_quantiles)}
-            | {"quantile_labels": [f"Q{i+1}" for i in range(n_quantiles)]}
+            {f"q{i + 1}_pnl": 0.0 for i in range(n_quantiles)}
+            | {f"q{i + 1}_pct": 0.0 for i in range(n_quantiles)}
+            | {"quantile_labels": [f"Q{i + 1}" for i in range(n_quantiles)]}
         )
 
     # Use absolute signal strength
@@ -162,11 +162,13 @@ def attribute_by_signal_strength(
         result[f"q{q}_pnl"] = pnl_value
         result[f"q{q}_pct"] = pct_value
 
-    result["quantile_labels"] = [f"Q{i+1}" for i in range(n_quantiles)]
+    result["quantile_labels"] = [f"Q{i + 1}" for i in range(n_quantiles)]
 
     logger.debug(
         "Signal strength attribution: %s",
-        ", ".join([f"Q{i+1}={result[f'q{i+1}_pct']:.1%}" for i in range(n_quantiles)]),
+        ", ".join(
+            [f"Q{i + 1}={result[f'q{i + 1}_pct']:.1%}" for i in range(n_quantiles)]
+        ),
     )
 
     return result

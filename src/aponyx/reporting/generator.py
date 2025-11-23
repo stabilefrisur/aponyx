@@ -127,7 +127,9 @@ def generate_report(
     if format != ReportFormat.CONSOLE:
         if output_path is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{signal_name}_{strategy_name}_{timestamp}.{_get_extension(format)}"
+            filename = (
+                f"{signal_name}_{strategy_name}_{timestamp}.{_get_extension(format)}"
+            )
             # Save aggregated reports to .reports subdirectory in workflows
             output_path = DATA_WORKFLOWS_DIR / ".reports" / filename
 
@@ -301,7 +303,9 @@ def _generate_html_report(data: ReportData) -> str:
     html_parts.append('<html lang="en">')
     html_parts.append("<head>")
     html_parts.append('    <meta charset="UTF-8">')
-    html_parts.append('    <meta name="viewport" content="width=device-width, initial-scale=1.0">')
+    html_parts.append(
+        '    <meta name="viewport" content="width=device-width, initial-scale=1.0">'
+    )
     html_parts.append(
         f"    <title>Research Report: {data.signal_name} ({data.strategy_name})</title>"
     )
@@ -309,25 +313,35 @@ def _generate_html_report(data: ReportData) -> str:
     html_parts.append(
         "        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 1200px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }"
     )
-    html_parts.append("        h1 { border-bottom: 3px solid #333; padding-bottom: 10px; }")
+    html_parts.append(
+        "        h1 { border-bottom: 3px solid #333; padding-bottom: 10px; }"
+    )
     html_parts.append(
         "        h2 { border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 40px; }"
     )
-    html_parts.append("        .metadata { color: #666; font-size: 0.9em; margin-bottom: 30px; }")
+    html_parts.append(
+        "        .metadata { color: #666; font-size: 0.9em; margin-bottom: 30px; }"
+    )
     html_parts.append(
         "        pre { background: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; }"
     )
-    html_parts.append("        table { border-collapse: collapse; width: 100%; margin: 20px 0; }")
-    html_parts.append("        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }")
+    html_parts.append(
+        "        table { border-collapse: collapse; width: 100%; margin: 20px 0; }"
+    )
+    html_parts.append(
+        "        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }"
+    )
     html_parts.append("        th { background-color: #f2f2f2; }")
     html_parts.append("    </style>")
     html_parts.append("</head>")
     html_parts.append("<body>")
 
     # Title
-    html_parts.append(f"    <h1>Research Report: {data.signal_name} ({data.strategy_name})</h1>")
     html_parts.append(
-        f"    <div class=\"metadata\">Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>"
+        f"    <h1>Research Report: {data.signal_name} ({data.strategy_name})</h1>"
+    )
+    html_parts.append(
+        f'    <div class="metadata">Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</div>'
     )
 
     # Suitability section
@@ -393,7 +407,13 @@ def _extract_console_summary(markdown_text: str) -> str:
             if line.strip() and not line.startswith("**Generated"):
                 if any(
                     keyword in line.lower()
-                    for keyword in ["decision:", "score:", "sharpe", "return", "drawdown"]
+                    for keyword in [
+                        "decision:",
+                        "score:",
+                        "sharpe",
+                        "return",
+                        "drawdown",
+                    ]
                 ):
                     lines.append(f"  {line.strip()}")
 
@@ -436,12 +456,16 @@ def _markdown_to_html(markdown_text: str) -> str:
                 if len(lines) > 0 and lines[-1] == "    <table>":
                     lines.append("        <tr>")
                     for cell in cells:
-                        lines.append(f"            <th>{_process_inline_markdown(cell)}</th>")
+                        lines.append(
+                            f"            <th>{_process_inline_markdown(cell)}</th>"
+                        )
                     lines.append("        </tr>")
                 else:
                     lines.append("        <tr>")
                     for cell in cells:
-                        lines.append(f"            <td>{_process_inline_markdown(cell)}</td>")
+                        lines.append(
+                            f"            <td>{_process_inline_markdown(cell)}</td>"
+                        )
                     lines.append("        </tr>")
         else:
             if in_table:

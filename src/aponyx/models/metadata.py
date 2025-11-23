@@ -90,4 +90,6 @@ class SignalMetadata:
 
         # Validate sign_multiplier is ±1
         if self.sign_multiplier not in (-1, 1):
-            raise ValueError(f"sign_multiplier must be -1 or 1, got {self.sign_multiplier}")
+            raise ValueError(
+                f"sign_multiplier must be -1 or 1, got {self.sign_multiplier}"
+            )

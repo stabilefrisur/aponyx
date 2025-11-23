@@ -33,7 +33,7 @@ def _ensure_datetime_index(df: pd.DataFrame, date_col: str) -> pd.DataFrame:
         df = df.copy()
         df[date_col] = pd.to_datetime(df[date_col])
         df = df.set_index(date_col)
-    
+
     # Ensure index is named 'date'
     df.index.name = "date"
 
@@ -96,7 +96,9 @@ def handle_duplicate_index(
     >>> clean_df = handle_duplicate_index(df, strategy="raise")  # Raises ValueError
     """
     if strategy not in ("first", "last", "raise"):
-        raise ValueError(f"Invalid strategy '{strategy}'. Must be 'first', 'last', or 'raise'")
+        raise ValueError(
+            f"Invalid strategy '{strategy}'. Must be 'first', 'last', or 'raise'"
+        )
 
     if not df.index.duplicated().any():
         return df
@@ -108,7 +110,8 @@ def handle_duplicate_index(
     if strategy == "raise":
         n_dups = df.index.duplicated().sum()
         raise ValueError(
-            f"Found {n_dups} duplicate index entries" + (f" for {context}" if context else "")
+            f"Found {n_dups} duplicate index entries"
+            + (f" for {context}" if context else "")
         )
 
     # Remove duplicates
@@ -117,7 +120,9 @@ def handle_duplicate_index(
     return df_clean
 
 
-def validate_cdx_schema(df: pd.DataFrame, schema: CDXSchema = CDXSchema()) -> pd.DataFrame:
+def validate_cdx_schema(
+    df: pd.DataFrame, schema: CDXSchema = CDXSchema()
+) -> pd.DataFrame:
     """
     Validate CDX index data against expected schema.
 
@@ -158,7 +163,9 @@ def validate_cdx_schema(df: pd.DataFrame, schema: CDXSchema = CDXSchema()) -> pd
 
     # Validate spread bounds
     if not df[schema.spread_col].between(schema.min_spread, schema.max_spread).all():
-        invalid = df[~df[schema.spread_col].between(schema.min_spread, schema.max_spread)]
+        invalid = df[
+            ~df[schema.spread_col].between(schema.min_spread, schema.max_spread)
+        ]
         logger.warning(
             "Found %d invalid spread values outside [%.1f, %.1f]",
             len(invalid),
@@ -176,11 +183,15 @@ def validate_cdx_schema(df: pd.DataFrame, schema: CDXSchema = CDXSchema()) -> pd
         logger.debug("Removing %d duplicate dates for CDX", n_dups)
         df = df[~df.index.duplicated(keep="last")]
 
-    logger.debug("CDX validation passed: date_range=%s to %s", df.index.min(), df.index.max())
+    logger.debug(
+        "CDX validation passed: date_range=%s to %s", df.index.min(), df.index.max()
+    )
     return df
 
 
-def validate_vix_schema(df: pd.DataFrame, schema: VIXSchema = VIXSchema()) -> pd.DataFrame:
+def validate_vix_schema(
+    df: pd.DataFrame, schema: VIXSchema = VIXSchema()
+) -> pd.DataFrame:
     """
     Validate VIX volatility data against expected schema.
 
@@ -230,11 +241,15 @@ def validate_vix_schema(df: pd.DataFrame, schema: VIXSchema = VIXSchema()) -> pd
     # Check for duplicates (remove duplicates for VIX)
     df = handle_duplicate_index(df, strategy="first", context="VIX")
 
-    logger.debug("VIX validation passed: date_range=%s to %s", df.index.min(), df.index.max())
+    logger.debug(
+        "VIX validation passed: date_range=%s to %s", df.index.min(), df.index.max()
+    )
     return df
 
 
-def validate_etf_schema(df: pd.DataFrame, schema: ETFSchema = ETFSchema()) -> pd.DataFrame:
+def validate_etf_schema(
+    df: pd.DataFrame, schema: ETFSchema = ETFSchema()
+) -> pd.DataFrame:
     """
     Validate credit ETF data against expected schema.
 
@@ -287,5 +302,7 @@ def validate_etf_schema(df: pd.DataFrame, schema: ETFSchema = ETFSchema()) -> pd
         logger.debug("Removing %d duplicate dates for ETF", n_dups)
         df = df[~df.index.duplicated(keep="last")]
 
-    logger.debug("ETF validation passed: date_range=%s to %s", df.index.min(), df.index.max())
+    logger.debug(
+        "ETF validation passed: date_range=%s to %s", df.index.min(), df.index.max()
+    )
     return df

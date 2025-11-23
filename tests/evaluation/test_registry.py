@@ -97,7 +97,9 @@ class TestRegisterEvaluation:
         entry = registry.get_evaluation(eval_id)
         assert entry.report_path == "/path/to/report.md"
 
-    def test_register_persists_to_disk(self, registry, sample_result, temp_registry_path):
+    def test_register_persists_to_disk(
+        self, registry, sample_result, temp_registry_path
+    ):
         """Test that registration persists to disk."""
         eval_id = registry.register_evaluation(
             sample_result,

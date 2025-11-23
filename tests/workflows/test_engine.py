@@ -16,7 +16,9 @@ from aponyx.workflows.steps import BaseWorkflowStep
 class MockStep(BaseWorkflowStep):
     """Mock workflow step for testing."""
 
-    def __init__(self, config: WorkflowConfig, step_name: str, should_fail: bool = False):
+    def __init__(
+        self, config: WorkflowConfig, step_name: str, should_fail: bool = False
+    ):
         super().__init__(config)
         self._step_name = step_name
         self._should_fail = should_fail
@@ -287,13 +289,13 @@ def test_workflow_engine_context_passing():
         assert received_contexts[0][0] == "data"
         assert "output_dir" in received_contexts[0][1]
         assert len(received_contexts[0][1]) == 1  # Only output_dir
-        
+
         # Second step gets previous step's output plus output_dir
         assert received_contexts[1][0] == "signal"
         assert "data" in received_contexts[1][1]
         assert received_contexts[1][1]["data"] == {"data_output": "data_data"}
         assert "output_dir" in received_contexts[1][1]
-        
+
         # Third step gets all previous outputs plus output_dir
         assert received_contexts[2][0] == "backtest"
         assert "data" in received_contexts[2][1]

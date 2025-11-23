@@ -3,7 +3,6 @@
 import logging
 import sys
 from datetime import datetime
-from pathlib import Path
 
 import click
 
@@ -23,14 +22,14 @@ def cli(ctx: click.Context, verbose: bool) -> None:
     """Systematic Macro Credit Research CLI."""
     # Configure logging based on verbosity
     log_level = logging.DEBUG if verbose else logging.WARNING
-    
+
     # Create logs directory if it doesn't exist
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
-    
+
     # Timestamped log file
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_file = LOGS_DIR / f"aponyx_{timestamp}.log"
-    
+
     # Configure logging with both console and file handlers
     logging.basicConfig(
         level=log_level,
@@ -41,7 +40,7 @@ def cli(ctx: click.Context, verbose: bool) -> None:
         ],
         force=True,
     )
-    
+
     logger = logging.getLogger(__name__)
     logger.debug("Logging to file: %s", log_file)
 

@@ -59,7 +59,9 @@ class BacktestConfig:
                 f"exit_threshold ({self.exit_threshold})"
             )
         if self.position_size <= 0:
-            raise ValueError(f"position_size must be positive, got {self.position_size}")
+            raise ValueError(
+                f"position_size must be positive, got {self.position_size}"
+            )
         if self.transaction_cost_bps < 0:
             raise ValueError(
                 f"transaction_cost_bps must be non-negative, got {self.transaction_cost_bps}"

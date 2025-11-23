@@ -228,4 +228,6 @@ class TestComputeStabilityMetrics:
         metrics = tests.compute_stability_metrics(rolling_betas, aggregate_beta)
 
         # Only significant betas [1.5, 1.6, 1.4] should count for sign consistency
-        assert metrics["sign_consistency_ratio"] == 1.0  # All significant ones are positive
+        assert (
+            metrics["sign_consistency_ratio"] == 1.0
+        )  # All significant ones are positive

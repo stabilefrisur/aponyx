@@ -164,7 +164,9 @@ class StrategyRegistry:
             try:
                 metadata = StrategyMetadata(**entry)
                 if metadata.name in self._strategies:
-                    raise ValueError(f"Duplicate strategy name in catalog: {metadata.name}")
+                    raise ValueError(
+                        f"Duplicate strategy name in catalog: {metadata.name}"
+                    )
                 self._strategies[metadata.name] = metadata
             except TypeError as e:
                 raise ValueError(

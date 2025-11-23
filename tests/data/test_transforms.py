@@ -183,7 +183,9 @@ class TestZScore:
 
     def test_z_score_requires_window(self):
         """Test z-score raises without window parameter."""
-        series = pd.Series([100, 105, 103], index=pd.date_range("2024-01-01", periods=3))
+        series = pd.Series(
+            [100, 105, 103], index=pd.date_range("2024-01-01", periods=3)
+        )
 
         with pytest.raises(ValueError, match="window parameter required"):
             apply_transform(series, "z_score")
@@ -233,7 +235,9 @@ class TestNormalizedChange:
             [100, 105, 103, 108, 110, 107],
             index=pd.date_range("2024-01-01", periods=6),
         )
-        result = apply_transform(series, "normalized_change", window=3, min_periods=3, periods=1)
+        result = apply_transform(
+            series, "normalized_change", window=3, min_periods=3, periods=1
+        )
 
         # First value is NaN (no prior for diff)
         assert pd.isna(result.iloc[0])
@@ -246,7 +250,9 @@ class TestNormalizedChange:
 
     def test_normalized_change_requires_window(self):
         """Test normalized change raises without window parameter."""
-        series = pd.Series([100, 105, 103], index=pd.date_range("2024-01-01", periods=3))
+        series = pd.Series(
+            [100, 105, 103], index=pd.date_range("2024-01-01", periods=3)
+        )
 
         with pytest.raises(ValueError, match="window parameter required"):
             apply_transform(series, "normalized_change")
@@ -257,7 +263,9 @@ class TestNormalizedChange:
             [100, 105, 103, 108, 110],
             index=pd.date_range("2024-01-01", periods=5),
         )
-        result = apply_transform(series, "normalized_change", window=3, min_periods=3, periods=2)
+        result = apply_transform(
+            series, "normalized_change", window=3, min_periods=3, periods=2
+        )
 
         # First two values are NaN (periods=2 for diff)
         assert pd.isna(result.iloc[0])

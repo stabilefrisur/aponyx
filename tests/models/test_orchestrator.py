@@ -292,8 +292,12 @@ class TestComputeSignal:
             sign_multiplier=-1,
         )
 
-        normal_result = _compute_signal(metadata_normal, sample_market_data, signal_config)
-        inverted_result = _compute_signal(metadata_inverted, sample_market_data, signal_config)
+        normal_result = _compute_signal(
+            metadata_normal, sample_market_data, signal_config
+        )
+        inverted_result = _compute_signal(
+            metadata_inverted, sample_market_data, signal_config
+        )
 
         # Results should be negatives of each other
         pd.testing.assert_series_equal(normal_result, -inverted_result)

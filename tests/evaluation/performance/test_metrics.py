@@ -43,7 +43,9 @@ def sample_pnl_df() -> pd.DataFrame:
     net_pnl = np.random.normal(10, 50, 252)
     cumulative_pnl = np.cumsum(net_pnl)
 
-    return pd.DataFrame({"net_pnl": net_pnl, "cumulative_pnl": cumulative_pnl}, index=dates)
+    return pd.DataFrame(
+        {"net_pnl": net_pnl, "cumulative_pnl": cumulative_pnl}, index=dates
+    )
 
 
 class TestRollingSharpe:
@@ -278,7 +280,10 @@ class TestComputeAllMetrics:
         """Test compute_all_metrics with quantstats implementation."""
         # Create minimal positions dataframe
         positions_df = pd.DataFrame(
-            {"position": [0] * len(sample_pnl_df), "days_held": [0] * len(sample_pnl_df)},
+            {
+                "position": [0] * len(sample_pnl_df),
+                "days_held": [0] * len(sample_pnl_df),
+            },
             index=sample_pnl_df.index,
         )
 
@@ -310,7 +315,10 @@ class TestComputeAllMetrics:
 
         # Create minimal positions dataframe
         positions_df = pd.DataFrame(
-            {"position": [0] * len(sample_pnl_df), "days_held": [0] * len(sample_pnl_df)},
+            {
+                "position": [0] * len(sample_pnl_df),
+                "days_held": [0] * len(sample_pnl_df),
+            },
             index=sample_pnl_df.index,
         )
 
@@ -336,13 +344,18 @@ class TestComputeAllMetrics:
         not _quantstats_available(),
         reason="quantstats not installed",
     )
-    def test_compute_all_metrics_with_benchmark(self, sample_pnl_df: pd.DataFrame) -> None:
+    def test_compute_all_metrics_with_benchmark(
+        self, sample_pnl_df: pd.DataFrame
+    ) -> None:
         """Test compute_all_metrics with benchmark."""
         from aponyx.evaluation.performance.config import PerformanceMetrics
 
         # Create minimal positions dataframe
         positions_df = pd.DataFrame(
-            {"position": [0] * len(sample_pnl_df), "days_held": [0] * len(sample_pnl_df)},
+            {
+                "position": [0] * len(sample_pnl_df),
+                "days_held": [0] * len(sample_pnl_df),
+            },
             index=sample_pnl_df.index,
         )
 

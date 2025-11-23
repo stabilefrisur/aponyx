@@ -99,7 +99,7 @@ def clean(
         if not workflow_subdirs:
             click.echo("No cached results found")
             return
-        
+
         targets = []
         for subdir in workflow_subdirs:
             targets.extend(_collect_targets(subdir))

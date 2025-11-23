@@ -12,7 +12,10 @@ from aponyx.evaluation.suitability.evaluator import (
     evaluate_signal_suitability,
     SuitabilityResult,
 )
-from aponyx.evaluation.suitability.report import generate_suitability_report, save_report
+from aponyx.evaluation.suitability.report import (
+    generate_suitability_report,
+    save_report,
+)
 
 
 @pytest.fixture
@@ -43,7 +46,9 @@ class TestGenerateSuitabilityReport:
 
     def test_report_contains_all_sections(self, sample_pass_result):
         """Test that report contains all expected sections."""
-        report = generate_suitability_report(sample_pass_result, "test_signal", "CDX_IG")
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
 
         # Check main sections
         assert "# Signal-Product Suitability Evaluation Report" in report
@@ -58,20 +63,26 @@ class TestGenerateSuitabilityReport:
 
     def test_pass_decision_indicator(self, sample_pass_result):
         """Test PASS decision shows correct indicator."""
-        report = generate_suitability_report(sample_pass_result, "test_signal", "CDX_IG")
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
 
         assert "[PASS]" in report
 
     def test_fail_decision_indicator(self, sample_fail_result):
         """Test FAIL decision shows correct indicator."""
-        report = generate_suitability_report(sample_fail_result, "random_signal", "CDX_IG")
+        report = generate_suitability_report(
+            sample_fail_result, "random_signal", "CDX_IG"
+        )
 
         # Should be HOLD or FAIL
         assert any(marker in report for marker in ["[HOLD]", "[FAIL]"])
 
     def test_metrics_table_included(self, sample_pass_result):
         """Test that metrics are included."""
-        report = generate_suitability_report(sample_pass_result, "test_signal", "CDX_IG")
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
 
         # Check for key metrics
         assert "Valid Observations" in report
@@ -80,7 +91,9 @@ class TestGenerateSuitabilityReport:
 
     def test_component_scores_table(self, sample_pass_result):
         """Test that component scores table is included."""
-        report = generate_suitability_report(sample_pass_result, "test_signal", "CDX_IG")
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
 
         # Check for component scores in Composite Scoring section
         assert "Composite Scoring" in report
@@ -91,7 +104,9 @@ class TestGenerateSuitabilityReport:
 
     def test_correlation_table(self, sample_pass_result):
         """Test that correlation values are shown."""
-        report = generate_suitability_report(sample_pass_result, "test_signal", "CDX_IG")
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
 
         # Check for correlation section
         assert "Correlation" in report
@@ -100,14 +115,18 @@ class TestGenerateSuitabilityReport:
 
     def test_report_includes_timestamp(self, sample_pass_result):
         """Test that report includes evaluation timestamp."""
-        report = generate_suitability_report(sample_pass_result, "test_signal", "CDX_IG")
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
 
         assert "Evaluation Date" in report
         assert sample_pass_result.timestamp[:10] in report  # Date portion
 
     def test_report_includes_config_details(self, sample_pass_result):
         """Test that configuration parameters are documented."""
-        report = generate_suitability_report(sample_pass_result, "test_signal", "CDX_IG")
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
 
         # Should include decision criteria info
         assert "Decision Criteria" in report
@@ -121,7 +140,9 @@ class TestSaveReport:
 
     def test_saves_to_specified_path(self, tmp_path, sample_pass_result):
         """Test that report saves to specified directory."""
-        report = generate_suitability_report(sample_pass_result, "test_signal", "CDX_IG")
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
 
         returned_path = save_report(report, "test_signal", "CDX_IG", tmp_path)
 
@@ -131,7 +152,9 @@ class TestSaveReport:
 
     def test_creates_parent_directories(self, tmp_path, sample_pass_result):
         """Test that parent directories are created."""
-        report = generate_suitability_report(sample_pass_result, "test_signal", "CDX_IG")
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
 
         output_dir = tmp_path / "subdir" / "nested"
         returned_path = save_report(report, "test_signal", "CDX_IG", output_dir)
@@ -141,7 +164,9 @@ class TestSaveReport:
 
     def test_saved_content_matches(self, tmp_path, sample_pass_result):
         """Test that saved content matches generated report."""
-        report = generate_suitability_report(sample_pass_result, "test_signal", "CDX_IG")
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
 
         returned_path = save_report(report, "test_signal", "CDX_IG", tmp_path)
 

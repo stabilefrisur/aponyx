@@ -61,7 +61,12 @@ def sample_performance_result() -> PerformanceResult:
             "consistency_rate": 0.75,
         },
         attribution={
-            "direction": {"long_pnl": 3000, "short_pnl": 1000, "long_pct": 0.75, "short_pct": 0.25},
+            "direction": {
+                "long_pnl": 3000,
+                "short_pnl": 1000,
+                "long_pct": 0.75,
+                "short_pct": 0.25,
+            },
             "signal_strength": {
                 "q1_pnl": 500,
                 "q2_pnl": 1500,
@@ -90,7 +95,9 @@ def sample_performance_result() -> PerformanceResult:
 class TestGeneratePerformanceReport:
     """Test performance report generation."""
 
-    def test_generate_report_basic(self, sample_performance_result: PerformanceResult) -> None:
+    def test_generate_report_basic(
+        self, sample_performance_result: PerformanceResult
+    ) -> None:
         """Test basic report generation."""
         report = generate_performance_report(
             sample_performance_result, "test_signal", "test_strategy"

@@ -185,11 +185,11 @@ def test_run_command_with_data_source(runner, mock_workflow_engine):
 def test_run_command_with_invalid_data_source(runner):
     """Test run command rejects invalid data source."""
     from unittest.mock import patch
-    
+
     # Mock WorkflowConfig to raise validation error
     with patch("aponyx.cli.commands.run.WorkflowConfig") as mock_config:
         mock_config.side_effect = ValueError("Invalid data source")
-        
+
         result = runner.invoke(
             cli,
             [
@@ -215,7 +215,9 @@ def test_run_command_with_workflow_error(runner):
             "steps_skipped": 0,
             "output_dir": "/mock/output",
             "duration_seconds": 5.0,
-            "errors": [{"step": "signal", "error": "Mock error", "type": "RuntimeError"}],
+            "errors": [
+                {"step": "signal", "error": "Mock error", "type": "RuntimeError"}
+            ],
         }
         mock_engine_class.return_value = mock_engine
 
@@ -290,7 +292,9 @@ def test_run_command_with_yaml_config(runner, mock_workflow_engine, tmp_path):
     assert "Strategy: balanced" in result.output
 
 
-def test_run_command_yaml_overrides_with_cli_options(runner, mock_workflow_engine, tmp_path):
+def test_run_command_yaml_overrides_with_cli_options(
+    runner, mock_workflow_engine, tmp_path
+):
     """Test CLI options override YAML config values."""
     config_file = tmp_path / "workflow.yaml"
     config_data = {

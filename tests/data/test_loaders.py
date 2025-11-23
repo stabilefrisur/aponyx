@@ -33,12 +33,16 @@ def sample_data_dir(tmp_path: Path) -> Path:
     vix_path = data_dir / "vix_abc123.parquet"
     vix_df.to_parquet(vix_path)
 
-    # CDX security files with 'spread' column
-    cdx_ig_df = pd.DataFrame({"spread": [100.0, 101.0, 102.0]}, index=dates)
+    # CDX security files with 'spread' and 'security' columns
+    cdx_ig_df = pd.DataFrame(
+        {"spread": [100.0, 101.0, 102.0], "security": ["cdx_ig_5y"] * 3}, index=dates
+    )
     cdx_ig_path = data_dir / "cdx_ig_5y_def456.parquet"
     cdx_ig_df.to_parquet(cdx_ig_path)
 
-    cdx_hy_df = pd.DataFrame({"spread": [200.0, 201.0, 202.0]}, index=dates)
+    cdx_hy_df = pd.DataFrame(
+        {"spread": [200.0, 201.0, 202.0], "security": ["cdx_hy_5y"] * 3}, index=dates
+    )
     cdx_hy_path = data_dir / "cdx_hy_5y_ghi789.parquet"
     cdx_hy_df.to_parquet(cdx_hy_path)
 
@@ -162,7 +166,9 @@ def test_load_signal_required_data_default_securities() -> None:
     mock_signal_metadata.default_securities = {"cdx": "cdx_ig_5y", "etf": "lqd"}
 
     mock_signal_registry = MagicMock()
-    mock_signal_registry.get_enabled.return_value = {"test_signal": mock_signal_metadata}
+    mock_signal_registry.get_enabled.return_value = {
+        "test_signal": mock_signal_metadata
+    }
 
     # Mock data registry
     mock_df = pd.DataFrame(
@@ -188,7 +194,9 @@ def test_load_signal_required_data_with_overrides() -> None:
     mock_signal_metadata.default_securities = {"cdx": "cdx_ig_5y", "etf": "lqd"}
 
     mock_signal_registry = MagicMock()
-    mock_signal_registry.get_enabled.return_value = {"test_signal": mock_signal_metadata}
+    mock_signal_registry.get_enabled.return_value = {
+        "test_signal": mock_signal_metadata
+    }
 
     # Mock data registry
     mock_df = pd.DataFrame(
@@ -228,7 +236,9 @@ def test_load_signal_required_data_multiple_signals() -> None:
     }
 
     # Mock data registry
-    mock_df = pd.DataFrame({"value": [100, 101, 102]}, index=pd.date_range("2024-01-01", periods=3))
+    mock_df = pd.DataFrame(
+        {"value": [100, 101, 102]}, index=pd.date_range("2024-01-01", periods=3)
+    )
     mock_data_registry = MagicMock()
     mock_data_registry.load_dataset_by_security.return_value = mock_df
 

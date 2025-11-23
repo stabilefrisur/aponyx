@@ -221,23 +221,33 @@ def _generate_summary(
     else:
         assessment = "Inconsistent performance requiring review"
 
-    summary_lines.append(f"Overall: {assessment} (stability score: {stability_score:.2f})")
+    summary_lines.append(
+        f"Overall: {assessment} (stability score: {stability_score:.2f})"
+    )
 
     # Profitability
     if profit_factor > 1.5:
-        summary_lines.append(f"Profitability: Strong (profit factor {profit_factor:.2f})")
+        summary_lines.append(
+            f"Profitability: Strong (profit factor {profit_factor:.2f})"
+        )
     elif profit_factor > 1.0:
-        summary_lines.append(f"Profitability: Positive (profit factor {profit_factor:.2f})")
+        summary_lines.append(
+            f"Profitability: Positive (profit factor {profit_factor:.2f})"
+        )
     else:
         summary_lines.append(f"Profitability: Weak (profit factor {profit_factor:.2f})")
 
     # Risk characteristics
     if tail_ratio > 1.2:
-        summary_lines.append(f"Risk profile: Favorable asymmetry (tail ratio {tail_ratio:.2f})")
+        summary_lines.append(
+            f"Risk profile: Favorable asymmetry (tail ratio {tail_ratio:.2f})"
+        )
     elif tail_ratio > 0.8:
         summary_lines.append(f"Risk profile: Balanced (tail ratio {tail_ratio:.2f})")
     else:
-        summary_lines.append(f"Risk profile: Negative skew (tail ratio {tail_ratio:.2f})")
+        summary_lines.append(
+            f"Risk profile: Negative skew (tail ratio {tail_ratio:.2f})"
+        )
 
     # Temporal stability
     summary_lines.append(
@@ -247,7 +257,9 @@ def _generate_summary(
     # Directional bias
     if abs(long_pct) > 0.7:
         direction = "long" if long_pct > 0 else "short"
-        summary_lines.append(f"Strong {direction} directional bias ({abs(long_pct):.1%})")
+        summary_lines.append(
+            f"Strong {direction} directional bias ({abs(long_pct):.1%})"
+        )
     else:
         summary_lines.append(f"Balanced directional exposure (long: {long_pct:.1%})")
 
@@ -306,7 +318,9 @@ def analyze_backtest_performance(
     positions_df = backtest_result.positions
 
     if len(pnl_df) < config.min_obs:
-        raise ValueError(f"Insufficient observations: {len(pnl_df)} < {config.min_obs} (min_obs)")
+        raise ValueError(
+            f"Insufficient observations: {len(pnl_df)} < {config.min_obs} (min_obs)"
+        )
 
     if not isinstance(pnl_df.index, pd.DatetimeIndex):
         raise ValueError("pnl_df must have DatetimeIndex")
@@ -336,7 +350,9 @@ def analyze_backtest_performance(
     stability_score = _compute_stability_score(subperiod_analysis)
 
     # Generate interpretive summary
-    summary = _generate_summary(metrics, subperiod_analysis, attribution, stability_score)
+    summary = _generate_summary(
+        metrics, subperiod_analysis, attribution, stability_score
+    )
 
     # Build result
     timestamp = datetime.now().isoformat()

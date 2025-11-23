@@ -1,7 +1,7 @@
 # Project Status — aponyx
 
 **Last Updated:** November 23, 2025  
-**Version:** 0.1.12
+**Version:** 0.1.14
 
 ## Quick Reference
 
@@ -14,7 +14,7 @@
 | **Maturity Level** | Early-stage research framework |
 | **Breaking Changes** | May occur without deprecation warnings |
 | **License** | MIT |
-| **Test Coverage** | 680 tests across all layers |
+| **Test Coverage** | 681 tests across all layers |
 
 **Core Dependencies:**
 - `pandas>=2.0.0`, `numpy>=1.24.0`, `pyarrow>=12.0.0`, `scipy>=1.7.0`, `statsmodels>=0.14.0`, `quantstats>=0.0.77`, `click>=8.1.0`, `pyyaml>=6.0`

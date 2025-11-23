@@ -220,7 +220,10 @@ def test_clean_command_permission_error(runner, tmp_path):
             # Should catch and continue with remaining deletions
             # Changed behavior: clean command is now more resilient
             assert result.exit_code == 0
-            assert "error" in result.output.lower() or "permission" in result.output.lower()
+            assert (
+                "error" in result.output.lower()
+                or "permission" in result.output.lower()
+            )
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir(parents=True)
 
@@ -248,7 +251,9 @@ def test_clean_command_dry_run_with_multiple_items(runner, tmp_path):
             item = workflows_dir / f"spread_momentum_balanced_2025112{i}_123456"
             item.mkdir()
 
-        result = runner.invoke(cli, ["clean", "--signal", "spread_momentum", "--dry-run"])
+        result = runner.invoke(
+            cli, ["clean", "--signal", "spread_momentum", "--dry-run"]
+        )
 
         assert result.exit_code == 0
         assert "Would delete 3 item(s)" in result.output

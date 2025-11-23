@@ -163,11 +163,15 @@ def test_run_backtest_calculates_pnl(
 
     # Net P&L should be spread P&L minus costs
     expected_net = result.pnl["spread_pnl"] - result.pnl["cost"]
-    pd.testing.assert_series_equal(result.pnl["net_pnl"], expected_net, check_names=False)
+    pd.testing.assert_series_equal(
+        result.pnl["net_pnl"], expected_net, check_names=False
+    )
 
     # Cumulative P&L should be cumulative sum of net P&L
     expected_cum = result.pnl["net_pnl"].cumsum()
-    pd.testing.assert_series_equal(result.pnl["cumulative_pnl"], expected_cum, check_names=False)
+    pd.testing.assert_series_equal(
+        result.pnl["cumulative_pnl"], expected_cum, check_names=False
+    )
 
 
 def test_compute_all_metrics_structure() -> None:

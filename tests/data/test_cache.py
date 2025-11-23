@@ -51,7 +51,9 @@ class TestCacheKeyGeneration:
 
     def test_generate_cache_key_differs_by_source(self):
         """Test different sources produce different keys."""
-        key1 = _generate_cache_key(BloombergSource(), "CDX.IG.5Y", "2024-01-01", "2024-12-31")
+        key1 = _generate_cache_key(
+            BloombergSource(), "CDX.IG.5Y", "2024-01-01", "2024-12-31"
+        )
         key2 = _generate_cache_key(
             APISource("http://api.example.com"), "CDX.IG.5Y", "2024-01-01", "2024-12-31"
         )

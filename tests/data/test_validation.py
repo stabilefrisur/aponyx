@@ -16,7 +16,18 @@ def test_validate_cdx_schema_valid() -> None:
     df = pd.DataFrame(
         {
             "date": pd.date_range("2024-01-01", periods=10),
-            "spread": [100.0, 105.0, 102.0, 110.0, 108.0, 115.0, 112.0, 120.0, 118.0, 125.0],
+            "spread": [
+                100.0,
+                105.0,
+                102.0,
+                110.0,
+                108.0,
+                115.0,
+                112.0,
+                120.0,
+                118.0,
+                125.0,
+            ],
             "index": ["cdx_ig_5y"] * 10,
         }
     )
@@ -72,7 +83,9 @@ def test_validate_cdx_schema_duplicate_dates(caplog: pytest.LogCaptureFixture) -
     assert len(validated) == 2  # Only unique dates remain
     assert not validated.index.duplicated().any()
     # Debug-level message expected but not warning
-    assert "duplicate dates" not in caplog.text.lower() or "debug" in caplog.text.lower()
+    assert (
+        "duplicate dates" not in caplog.text.lower() or "debug" in caplog.text.lower()
+    )
 
 
 def test_validate_vix_schema_valid() -> None:

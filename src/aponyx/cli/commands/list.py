@@ -25,7 +25,9 @@ logger = logging.getLogger(__name__)
 @click.command(name="list")
 @click.argument(
     "item_type",
-    type=click.Choice(["signals", "strategies", "datasets", "steps"], case_sensitive=False),
+    type=click.Choice(
+        ["signals", "strategies", "datasets", "steps"], case_sensitive=False
+    ),
 )
 def list_items(item_type: str) -> None:
     """

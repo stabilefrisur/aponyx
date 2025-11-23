@@ -296,7 +296,9 @@ def fetch_cdx(
             logger.debug("Using Bloomberg ticker override: %s", ticker)
         elif security is not None:
             ticker = get_bloomberg_ticker(security)
-            logger.debug("Resolved security '%s' to Bloomberg ticker: %s", security, ticker)
+            logger.debug(
+                "Resolved security '%s' to Bloomberg ticker: %s", security, ticker
+            )
         else:
             raise ValueError(
                 "Either 'security' or 'bloomberg_ticker' required for Bloomberg CDX fetch"
@@ -341,7 +343,9 @@ def fetch_cdx(
             end_date=end_date,
         )
 
-    logger.info("Fetched CDX data: %d rows, %s to %s", len(df), df.index.min(), df.index.max())
+    logger.info(
+        "Fetched CDX data: %d rows, %s to %s", len(df), df.index.min(), df.index.max()
+    )
     return df
 
 
@@ -487,7 +491,9 @@ def fetch_vix(
             end_date=end_date,
         )
 
-    logger.info("Fetched VIX data: %d rows, %s to %s", len(df), df.index.min(), df.index.max())
+    logger.info(
+        "Fetched VIX data: %d rows, %s to %s", len(df), df.index.min(), df.index.max()
+    )
     return df
 
 
@@ -639,7 +645,9 @@ def fetch_etf(
             logger.debug("Using Bloomberg ticker override: %s", ticker)
         elif security is not None:
             ticker = get_bloomberg_ticker(security)
-            logger.debug("Resolved security '%s' to Bloomberg ticker: %s", security, ticker)
+            logger.debug(
+                "Resolved security '%s' to Bloomberg ticker: %s", security, ticker
+            )
         else:
             raise ValueError(
                 "Either 'security' or 'bloomberg_ticker' required for Bloomberg ETF fetch"
@@ -684,5 +692,7 @@ def fetch_etf(
             end_date=end_date,
         )
 
-    logger.info("Fetched ETF data: %d rows, %s to %s", len(df), df.index.min(), df.index.max())
+    logger.info(
+        "Fetched ETF data: %d rows, %s to %s", len(df), df.index.min(), df.index.max()
+    )
     return df

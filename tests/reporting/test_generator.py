@@ -109,12 +109,12 @@ class TestCollectReportData:
         # Create mock workflow directory
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir()
-        
+
         workflow_dir = workflows_dir / "spread_momentum_balanced_20241120_123456"
         workflow_dir.mkdir()
         reports_dir = workflow_dir / "reports"
         reports_dir.mkdir()
-        
+
         # Set up glob to find this directory
         mock_workflows_dir.glob.return_value = [workflow_dir]
 
@@ -133,7 +133,7 @@ class TestCollectReportData:
         """Test error when no workflow results exist."""
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir()
-        
+
         # Empty glob result
         mock_workflows_dir.glob.return_value = []
 
@@ -165,7 +165,11 @@ class TestGenerateConsoleReport:
         from aponyx.config import DATA_WORKFLOWS_DIR
 
         # Create mock visualization directory
-        viz_dir = DATA_WORKFLOWS_DIR / "test_signal_test_strategy_20241120_123456" / "visualizations"
+        viz_dir = (
+            DATA_WORKFLOWS_DIR
+            / "test_signal_test_strategy_20241120_123456"
+            / "visualizations"
+        )
         viz_dir.mkdir(parents=True, exist_ok=True)
 
         # Create mock visualization file

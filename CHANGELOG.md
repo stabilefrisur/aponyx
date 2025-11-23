@@ -7,6 +7,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.14] - 2025-11-23
+
+### Added
+- **Enhanced CLI Logging** for better debugging and development
+  - Global `-v/--verbose` flag for DEBUG-level logging across all commands
+  - Default logging level changed from INFO to WARNING for cleaner output
+  - FileHandler for timestamped logs in `logs/` directory
+  - Visible output for `clean --all` showing all file deletions
+
+### Changed
+- **CLI Output Improvements**
+  - Updated `run` command output schema with comprehensive execution summary:
+    * Signal: {signal} ({securities})
+    * Strategy: {strategy}
+    * Product: {product}
+    * Data: {source}
+    * Steps: {steps}
+    * Force re-run: {True/False}
+  - Improved force flag documentation for clarity as cache invalidation
+- **Cache and Workflow Filenames** for consistency
+  - Cache files renamed from `{instrument}_{hash}` to `{security}_{hash}`
+  - Signal files simplified to `signal.parquet` (was `{signal_name}.parquet`)
+  - Suitability reports: `suitability_evaluation_{timestamp}.md`
+  - Performance reports: `performance_analysis_{timestamp}.md`
+  - Added `securities_used` mapping to workflow `metadata.json`
+- **Emoji Removal** for better terminal compatibility
+  - Replaced all emoji indicators with ASCII equivalents
+  - Suitability: `[PASS]`, `[HOLD]`, `[FAIL]`
+  - Performance: `[STRONG]`, `[MODERATE]`, `[WEAK]`
+  - Recommendations: `[WARNING]`, `[FAIL]`, `[PASS]`
+- **Simplified Dependency Management**
+  - Removed `[tool.ruff]`, `[tool.black]`, and `[tool.mypy]` sections from pyproject.toml
+  - Removed ruff, black, mypy, and pandas-stubs from dev dependencies
+  - Leverages uv's on-demand tool execution model (`uv run ruff check/format`)
+  - Cleaner dependency tree and faster environment setup
+
+### Fixed
+- **Report Generation** timestamp extraction
+  - Fixed SuitabilityStep timestamp extraction to use context `output_dir`
+  - Fixed PerformanceStep timestamp extraction to use context `output_dir`
+  - Updated report generator glob patterns for new filenames
+  - Removed Unicode fallback (no longer needed with ASCII format)
+- **Test Suite Updates**
+  - Updated test_commands.py for new clean output format
+  - Updated test_integration.py for new run output schema
+  - Updated test_fetch.py for security-based parameters
+  - Fixed emoji expectations to ASCII format
+  - Fixed filename assertions for timestamped reports
+  - All 681 tests passing
+
+### Documentation
+- **CLI Guide Restructure** for better usability
+  - Added command reference section at top for quick lookup
+  - Consolidated Understanding Workflows section with directory tree visualization
+  - Replaced generic Examples with Common Workflows (production, development, batch)
+  - Restructured Troubleshooting by category with actionable solutions
+  - 15% shorter with better scanability
+- **Updated Documentation** to reflect current implementation
+  - cli_guide.md with new output schema and logging behavior
+  - copilot-instructions.md with latest patterns
+  - README.md with current CLI examples
+  - PROJECT_STATUS.md with implementation status
+
+### Breaking Changes
+- Cache file naming changed (invalidates existing cache)
+- Workflow output structure simplified (old filenames incompatible)
+- Run command output format changed
+
 ## [0.1.13] - 2025-11-23
 
 ### Added
@@ -612,6 +680,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.14]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.14
 [0.1.13]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.13
 [0.1.12]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.12
 [0.1.11]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.11

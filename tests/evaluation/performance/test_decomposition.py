@@ -105,7 +105,9 @@ class TestSignalStrengthAttribution:
         dates = pd.date_range("2020-01-01", periods=10, freq="D")
 
         pnl_df = pd.DataFrame({"net_pnl": [0] * 10}, index=dates)
-        positions_df = pd.DataFrame({"signal": [1.0] * 10, "position": [0] * 10}, index=dates)
+        positions_df = pd.DataFrame(
+            {"signal": [1.0] * 10, "position": [0] * 10}, index=dates
+        )
 
         attr = attribute_by_signal_strength(pnl_df, positions_df, n_quantiles=3)
 

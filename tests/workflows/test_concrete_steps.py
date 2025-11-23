@@ -170,7 +170,7 @@ class TestDataStep:
     ):
         """Test DataStep raises error when dataset not found."""
         from unittest.mock import MagicMock
-        
+
         mock_list_securities.return_value = ["cdx_ig_5y"]
 
         mock_registry = MagicMock()
@@ -253,13 +253,14 @@ class TestSignalStep:
     def test_signal_step_output_exists(self, workflow_config, tmp_path):
         """Test SignalStep checks for existing output."""
         step = SignalStep(workflow_config)
-        
+
         # Get the actual output path (returns signals directory)
         signals_dir = step.get_output_path()
 
         # Remove directory if it exists from previous test
         if signals_dir.exists():
             import shutil
+
             shutil.rmtree(signals_dir)
 
         # Should not exist initially
@@ -313,7 +314,9 @@ class TestSuitabilityStep:
 
         # Mock data registry to provide spread data
         mock_data_registry = Mock()
-        mock_data_registry.load_dataset_by_security.return_value = sample_market_data["cdx"]
+        mock_data_registry.load_dataset_by_security.return_value = sample_market_data[
+            "cdx"
+        ]
         mock_data_registry_class.return_value = mock_data_registry
 
         # Mock spread data (not needed since we mock load_dataset_by_security)
@@ -345,6 +348,7 @@ class TestSuitabilityStep:
         step = SuitabilityStep(workflow_config)
         # Mock workflow output directory with proper timestamp format
         from pathlib import Path
+
         mock_output_dir = Path("/mock/spread_momentum_balanced_20241120_123456")
         context = {
             "signal": {"signal": sample_signal},
@@ -478,6 +482,7 @@ class TestPerformanceStep:
         step = PerformanceStep(workflow_config)
         # Mock workflow output directory with proper timestamp format
         from pathlib import Path
+
         mock_output_dir = Path("/mock/spread_momentum_balanced_20241120_123456")
         context = {
             "backtest": {"backtest_result": sample_backtest_result},
@@ -586,7 +591,9 @@ class TestStepIntegration:
         mock_list_securities.return_value = ["cdx_ig_5y"]
         mock_registry = MagicMock()
         mock_registry.list_datasets.return_value = ["cdx_data"]
-        mock_registry.get_dataset_info.return_value = {"file_path": Path("/data/cdx.parquet")}
+        mock_registry.get_dataset_info.return_value = {
+            "file_path": Path("/data/cdx.parquet")
+        }
         mock_data_registry_class.return_value = mock_registry
         mock_load_parquet.return_value = sample_market_data["cdx"]
 

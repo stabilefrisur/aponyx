@@ -216,14 +216,20 @@ def compute_all_metrics(
     if len(active_trades) > 0:
         active_trades["trade_id"] = trade_id[positions_df["position"] != 0]
         trade_pnls = (
-            pnl_df.loc[active_trades.index].groupby(active_trades["trade_id"])["net_pnl"].sum()
+            pnl_df.loc[active_trades.index]
+            .groupby(active_trades["trade_id"])["net_pnl"]
+            .sum()
         )
 
         trade_pnls_array = trade_pnls.values
         winning_trades = trade_pnls_array[trade_pnls_array > 0]
         losing_trades = trade_pnls_array[trade_pnls_array < 0]
 
-        hit_rate = len(winning_trades) / len(trade_pnls_array) if len(trade_pnls_array) > 0 else 0.0
+        hit_rate = (
+            len(winning_trades) / len(trade_pnls_array)
+            if len(trade_pnls_array) > 0
+            else 0.0
+        )
         avg_win = winning_trades.mean() if len(winning_trades) > 0 else 0.0
         avg_loss = losing_trades.mean() if len(losing_trades) > 0 else 0.0
 
@@ -247,7 +253,9 @@ def compute_all_metrics(
     running_max = cum_pnl.expanding().max()
     drawdown = cum_pnl - running_max
 
-    recovery_stats = _compute_drawdown_recovery_optimized(cum_pnl, running_max, drawdown)
+    recovery_stats = _compute_drawdown_recovery_optimized(
+        cum_pnl, running_max, drawdown
+    )
 
     # ==================== Consistency Score (Always Custom) ====================
     consistency_score = compute_consistency_score(daily_pnl, window=21)
@@ -535,7 +543,9 @@ def compute_tail_ratio(pnl_series: pd.Series, percentile: float = 95.0) -> float
     logger.debug("Computing tail ratio: percentile=%.1f", percentile)
 
     if len(pnl_series) < 20:
-        logger.warning("Insufficient data for tail ratio: %d observations", len(pnl_series))
+        logger.warning(
+            "Insufficient data for tail ratio: %d observations", len(pnl_series)
+        )
         return 0.0
 
     right_tail = np.percentile(pnl_series, percentile)
@@ -546,7 +556,9 @@ def compute_tail_ratio(pnl_series: pd.Series, percentile: float = 95.0) -> float
     else:
         tail_ratio = 0.0
 
-    logger.debug("Tail ratio: %.3f (right=%.2f, left=%.2f)", tail_ratio, right_tail, left_tail)
+    logger.debug(
+        "Tail ratio: %.3f (right=%.2f, left=%.2f)", tail_ratio, right_tail, left_tail
+    )
 
     return tail_ratio
 
@@ -587,7 +599,10 @@ def compute_profit_factor(pnl_series: pd.Series) -> float:
         profit_factor = 0.0 if gross_profit == 0 else np.inf
 
     logger.debug(
-        "Profit factor: %.3f (profit=%.2f, loss=%.2f)", profit_factor, gross_profit, gross_loss
+        "Profit factor: %.3f (profit=%.2f, loss=%.2f)",
+        profit_factor,
+        gross_profit,
+        gross_loss,
     )
 
     return profit_factor

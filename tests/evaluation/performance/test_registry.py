@@ -56,7 +56,11 @@ def sample_performance_result() -> PerformanceResult:
         summary="Test summary",
         timestamp="2024-01-01T12:00:00",
         config=PerformanceConfig(),
-        metadata={"evaluator_version": "0.1.0", "sharpe_ratio": 1.5, "max_drawdown": -1000},
+        metadata={
+            "evaluator_version": "0.1.0",
+            "sharpe_ratio": 1.5,
+            "max_drawdown": -1000,
+        },
     )
 
 
@@ -118,7 +122,9 @@ class TestPerformanceRegistry:
         registry_path = tmp_path / "performance_registry.json"
         registry = PerformanceRegistry(registry_path)
 
-        eval_id1 = registry.register_evaluation(sample_performance_result, "signal1", "strategy1")
+        eval_id1 = registry.register_evaluation(
+            sample_performance_result, "signal1", "strategy1"
+        )
         registry.register_evaluation(sample_performance_result, "signal2", "strategy1")
 
         all_evals = registry.list_evaluations()

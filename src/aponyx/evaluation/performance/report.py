@@ -180,7 +180,7 @@ def generate_performance_report(
 **Signal:** `{signal_id}`  
 **Strategy:** `{strategy_id}`  
 **Evaluation Date:** {result.timestamp}  
-**Evaluator Version:** {result.metadata.get('evaluator_version', 'unknown')}
+**Evaluator Version:** {result.metadata.get("evaluator_version", "unknown")}
 
 ---
 
@@ -244,11 +244,17 @@ def generate_performance_report(
         report += "- Weak profitability with gross losses approaching or exceeding gross wins\n"
 
     if metrics.tail_ratio > 1.2:
-        report += "- Favorable tail asymmetry with larger upside than downside extremes\n"
+        report += (
+            "- Favorable tail asymmetry with larger upside than downside extremes\n"
+        )
     elif metrics.tail_ratio > 0.8:
-        report += "- Balanced tail distribution with similar upside and downside extremes\n"
+        report += (
+            "- Balanced tail distribution with similar upside and downside extremes\n"
+        )
     else:
-        report += "- Negative tail asymmetry with larger downside than upside extremes\n"
+        report += (
+            "- Negative tail asymmetry with larger downside than upside extremes\n"
+        )
 
     if metrics.consistency_score > 0.6:
         report += "- High consistency with majority of rolling windows profitable\n"
@@ -284,9 +290,9 @@ def generate_performance_report(
 
 ## Subperiod Stability Analysis
 
-**Number of Subperiods:** {len(subperiod['subperiod_returns'])}  
-**Profitable Periods:** {subperiod['positive_periods']}/{len(subperiod['subperiod_returns'])}  
-**Consistency Rate:** {subperiod['consistency_rate']:.1%}
+**Number of Subperiods:** {len(subperiod["subperiod_returns"])}  
+**Profitable Periods:** {subperiod["positive_periods"]}/{len(subperiod["subperiod_returns"])}  
+**Consistency Rate:** {subperiod["consistency_rate"]:.1%}
 
 | Period | Return | Sharpe |
 |--------|--------|--------|
@@ -329,8 +335,8 @@ def generate_performance_report(
 
 | Direction | P&L | Contribution |
 |-----------|-----|--------------|
-| Long | {direction['long_pnl']:,.2f} | {direction['long_pct']:.1%} |
-| Short | {direction['short_pnl']:,.2f} | {direction['short_pct']:.1%} |
+| Long | {direction["long_pnl"]:,.2f} | {direction["long_pct"]:.1%} |
+| Short | {direction["short_pnl"]:,.2f} | {direction["short_pct"]:.1%} |
 
 """
 
@@ -338,9 +344,7 @@ def generate_performance_report(
         bias = "long" if direction["long_pct"] > 0 else "short"
         report += f"**Strong {bias} bias** - Returns highly concentrated in {bias} positions.\n"
     else:
-        report += (
-            "**Balanced exposure** - Returns distributed across both long and short positions.\n"
-        )
+        report += "**Balanced exposure** - Returns distributed across both long and short positions.\n"
 
     report += "\n### Signal Strength Attribution\n\n"
     report += "| Quantile | P&L | Contribution |\n"
@@ -374,9 +378,9 @@ def generate_performance_report(
 
 | Category | Amount | Contribution |
 |----------|--------|--------------|
-| Gross Wins | {win_loss['gross_wins']:,.2f} | {win_loss['win_contribution']:.1%} |
-| Gross Losses | {win_loss['gross_losses']:,.2f} | {win_loss['loss_contribution']:.1%} |
-| Net P&L | {win_loss['net_pnl']:,.2f} | — |
+| Gross Wins | {win_loss["gross_wins"]:,.2f} | {win_loss["win_contribution"]:.1%} |
+| Gross Losses | {win_loss["gross_losses"]:,.2f} | {win_loss["loss_contribution"]:.1%} |
+| Net P&L | {win_loss["net_pnl"]:,.2f} | — |
 
 ---
 
@@ -460,7 +464,9 @@ def generate_performance_report(
 
         if returns is not None:
             timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-            tearsheet_filename = f"{signal_id}_{strategy_id}_{timestamp_str}_tearsheet.html"
+            tearsheet_filename = (
+                f"{signal_id}_{strategy_id}_{timestamp_str}_tearsheet.html"
+            )
             tearsheet_path = Path(output_dir) / tearsheet_filename
             title = f"{signal_id} - {strategy_id}"
 
@@ -471,7 +477,9 @@ def generate_performance_report(
                 title=title,
             )
         else:
-            logger.debug("Skipping tearsheet generation - returns not found in result.metadata")
+            logger.debug(
+                "Skipping tearsheet generation - returns not found in result.metadata"
+            )
 
     return report
 

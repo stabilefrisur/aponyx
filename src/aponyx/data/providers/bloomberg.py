@@ -159,7 +159,9 @@ def fetch_from_bloomberg(
     if spec.requires_security_metadata:
         df = _add_security_metadata(df, ticker, security)
 
-    logger.info("Successfully fetched %d rows with columns: %s", len(df), list(df.columns))
+    logger.info(
+        "Successfully fetched %d rows with columns: %s", len(df), list(df.columns)
+    )
 
     return df
 

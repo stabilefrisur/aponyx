@@ -74,7 +74,9 @@ class TestPerformanceConfigValidation:
 
     def test_attribution_quantiles_too_small_raises(self) -> None:
         """Test that attribution_quantiles < 2 raises ValueError."""
-        with pytest.raises(ValueError, match="attribution_quantiles must be at least 2"):
+        with pytest.raises(
+            ValueError, match="attribution_quantiles must be at least 2"
+        ):
             PerformanceConfig(attribution_quantiles=1)
 
 

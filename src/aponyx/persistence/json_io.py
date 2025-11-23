@@ -126,5 +126,7 @@ def load_json(path: str | Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as f:
         data = json.load(f)
 
-    logger.debug("Loaded JSON with %d top-level keys", len(data) if isinstance(data, dict) else 0)
+    logger.debug(
+        "Loaded JSON with %d top-level keys", len(data) if isinstance(data, dict) else 0
+    )
     return data

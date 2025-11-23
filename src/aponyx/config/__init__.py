@@ -41,7 +41,9 @@ STRATEGY_CATALOG_PATH: Final[Path] = PACKAGE_ROOT / "backtest/strategy_catalog.j
 
 # Bloomberg configuration paths (package-relative, included in distribution)
 BLOOMBERG_SECURITIES_PATH: Final[Path] = PACKAGE_ROOT / "data/bloomberg_securities.json"
-BLOOMBERG_INSTRUMENTS_PATH: Final[Path] = PACKAGE_ROOT / "data/bloomberg_instruments.json"
+BLOOMBERG_INSTRUMENTS_PATH: Final[Path] = (
+    PACKAGE_ROOT / "data/bloomberg_instruments.json"
+)
 
 # Evaluation layer registry paths (project-level, mutable)
 SUITABILITY_REGISTRY_PATH: Final[Path] = DATA_REGISTRIES_DIR / "suitability.json"

@@ -45,14 +45,18 @@ def test_config_paths_exist() -> None:
 
 def test_catalog_files_exist() -> None:
     """Test that catalog JSON files exist."""
-    assert SIGNAL_CATALOG_PATH.exists(), f"Signal catalog not found: {SIGNAL_CATALOG_PATH}"
-    assert STRATEGY_CATALOG_PATH.exists(), f"Strategy catalog not found: {STRATEGY_CATALOG_PATH}"
-    assert (
-        BLOOMBERG_SECURITIES_PATH.exists()
-    ), f"Bloomberg securities not found: {BLOOMBERG_SECURITIES_PATH}"
-    assert (
-        BLOOMBERG_INSTRUMENTS_PATH.exists()
-    ), f"Bloomberg instruments not found: {BLOOMBERG_INSTRUMENTS_PATH}"
+    assert SIGNAL_CATALOG_PATH.exists(), (
+        f"Signal catalog not found: {SIGNAL_CATALOG_PATH}"
+    )
+    assert STRATEGY_CATALOG_PATH.exists(), (
+        f"Strategy catalog not found: {STRATEGY_CATALOG_PATH}"
+    )
+    assert BLOOMBERG_SECURITIES_PATH.exists(), (
+        f"Bloomberg securities not found: {BLOOMBERG_SECURITIES_PATH}"
+    )
+    assert BLOOMBERG_INSTRUMENTS_PATH.exists(), (
+        f"Bloomberg instruments not found: {BLOOMBERG_INSTRUMENTS_PATH}"
+    )
 
 
 def test_cache_config_values() -> None:

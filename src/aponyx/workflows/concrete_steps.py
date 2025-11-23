@@ -315,7 +315,9 @@ class SignalStep(BaseWorkflowStep):
         # Securities used info is not cached, will use defaults
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
         signal_metadata = signal_registry.get_metadata(self.config.signal_name)
-        securities_used = self.config.security_mapping or signal_metadata.default_securities
+        securities_used = (
+            self.config.security_mapping or signal_metadata.default_securities
+        )
 
         return {
             "signal": signal,
@@ -359,19 +361,21 @@ class SuitabilityStep(BaseWorkflowStep):
 
         # Generate and save report
         report = generate_suitability_report(result, self.config.signal_name, product)
-        
+
         # Get workflow output directory from context (timestamped folder)
         workflow_output_dir = context.get("output_dir", self.config.output_dir)
         output_dir = workflow_output_dir / "reports"
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Extract timestamp from workflow output directory name
         workflow_dir_name = workflow_output_dir.name
         # Expected format: {signal}_{strategy}_{YYYYMMDD}_{HHMMSS}
         parts = workflow_dir_name.split("_")
         timestamp = f"{parts[-2]}_{parts[-1]}"  # YYYYMMDD_HHMMSS
-        
-        save_suitability_report(report, self.config.signal_name, product, output_dir, timestamp)
+
+        save_suitability_report(
+            report, self.config.signal_name, product, output_dir, timestamp
+        )
 
         output = {"suitability_result": result, "product": product}
         self._log_complete(output)
@@ -396,7 +400,9 @@ class SuitabilityStep(BaseWorkflowStep):
         # Report exists on disk but we don't load it back into memory
         return {"suitability_result": None, "product": product}
 
-    def _load_spread_for_product(self, data_registry: DataRegistry, product: str) -> pd.DataFrame:
+    def _load_spread_for_product(
+        self, data_registry: DataRegistry, product: str
+    ) -> pd.DataFrame:
         """
         Load spread data for product from registry.
 
@@ -506,7 +512,9 @@ class BacktestStep(BaseWorkflowStep):
         result = BacktestResult(pnl=pnl, positions=positions, metadata=metadata)
         return {"backtest_result": result}
 
-    def _load_spread_for_product(self, data_registry: DataRegistry, product: str) -> pd.DataFrame:
+    def _load_spread_for_product(
+        self, data_registry: DataRegistry, product: str
+    ) -> pd.DataFrame:
         """
         Load spread data for product from registry.
 
@@ -563,18 +571,18 @@ class PerformanceStep(BaseWorkflowStep):
             strategy_id=self.config.strategy_name,
             generate_tearsheet=False,
         )
-        
+
         # Get workflow output directory from context (timestamped folder)
         workflow_output_dir = context.get("output_dir", self.config.output_dir)
         output_dir = workflow_output_dir / "reports"
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Extract timestamp from workflow output directory name
         workflow_dir_name = workflow_output_dir.name
         # Expected format: {signal}_{strategy}_{YYYYMMDD}_{HHMMSS}
         parts = workflow_dir_name.split("_")
         timestamp = f"{parts[-2]}_{parts[-1]}"  # YYYYMMDD_HHMMSS
-        
+
         save_performance_report(
             report,
             self.config.signal_name,
@@ -591,7 +599,9 @@ class PerformanceStep(BaseWorkflowStep):
         # Check for performance report markdown file
         output_dir = self.get_output_path()
         report_files = list(
-            output_dir.glob(f"{self.config.signal_name}_{self.config.strategy_name}_*.md")
+            output_dir.glob(
+                f"{self.config.signal_name}_{self.config.strategy_name}_*.md"
+            )
         )
         return len(report_files) > 0
 
@@ -638,7 +648,9 @@ class VisualizationStep(BaseWorkflowStep):
         logger.debug("Generated 3 visualization charts")
 
         # Save charts (HTML)
-        output_dir = context.get("output_dir", self.config.output_dir) / "visualizations"
+        output_dir = (
+            context.get("output_dir", self.config.output_dir) / "visualizations"
+        )
         output_dir.mkdir(parents=True, exist_ok=True)
 
         equity_fig.write_html(output_dir / "equity_curve.html")

@@ -87,10 +87,14 @@ class SignalRegistry:
             try:
                 metadata = SignalMetadata(**entry)
                 if metadata.name in self._signals:
-                    raise ValueError(f"Duplicate signal name in catalog: {metadata.name}")
+                    raise ValueError(
+                        f"Duplicate signal name in catalog: {metadata.name}"
+                    )
                 self._signals[metadata.name] = metadata
             except TypeError as e:
-                raise ValueError(f"Invalid signal metadata in catalog: {entry}. Error: {e}") from e
+                raise ValueError(
+                    f"Invalid signal metadata in catalog: {entry}. Error: {e}"
+                ) from e
 
         logger.debug("Loaded %d signals from catalog", len(self._signals))
 
@@ -180,4 +184,6 @@ class SignalRegistry:
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(catalog_data, f, indent=2)
 
-        logger.info("Saved signal catalog: path=%s, signals=%d", output_path, len(catalog_data))
+        logger.info(
+            "Saved signal catalog: path=%s, signals=%d", output_path, len(catalog_data)
+        )
