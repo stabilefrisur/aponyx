@@ -23,6 +23,8 @@ uv run aponyx list signals
 uv run aponyx list strategies
 ```
 
+**Logging:** Default log level is WARNING. Use `-v` for DEBUG logging. Logs are written to `logs/aponyx_{timestamp}.log`.
+
 ---
 
 ## Commands
@@ -47,7 +49,7 @@ uv run aponyx run [OPTIONS]
 | `--product` | TEXT | cdx_ig_5y | Product identifier for backtesting |
 | `--data` | CHOICE | synthetic | Data source: `synthetic`, `file`, `bloomberg` |
 | `--steps` | TEXT | all | Comma-separated step list |
-| `--force` | FLAG | false | Force re-run even if cached outputs exist |
+| `--force` | FLAG | false | Force re-run and update current day data (Bloomberg) |
 | `--config` | PATH | - | Load configuration from YAML file |
 
 **Examples:**
@@ -67,7 +69,7 @@ Run specific steps:
 uv run aponyx run --signal spread_momentum --strategy balanced --steps data,signal,backtest
 ```
 
-Force re-run:
+Force re-run (invalidates cache, refreshes today's data from Bloomberg):
 ```bash
 uv run aponyx run --signal spread_momentum --strategy balanced --force
 ```
@@ -79,12 +81,15 @@ uv run aponyx run --config examples/workflow_basic.yaml
 
 **Output:**
 ```
-Running: spread_momentum (balanced)
-Inputs: cdx → Product: cdx_ig_5y
+Signal: spread_momentum (cdx:cdx_ig_5y)
+Strategy: balanced
+Product: cdx_ig_5y
 Data: synthetic
+Steps: all
+Force re-run: False
 
 Completed 6 steps in 15.2s
-Results: data/workflows/spread_momentum_balanced_20251121_143230/
+Results: data/workflows/spread_momentum_balanced_20251123_143230/
 ```
 
 ---
@@ -182,7 +187,7 @@ Clean specific signal:
 uv run aponyx clean --signal spread_momentum
 ```
 
-Clean all cached results:
+Clean all cached results (shows files being deleted):
 ```bash
 uv run aponyx clean --all
 ```
@@ -247,6 +252,20 @@ uv run aponyx run --config workflow.yaml --force
 ```
 
 ---
+
+## Workflow Output Structure
+
+Results are saved to timestamped directories: `data/workflows/{signal}_{strategy}_{timestamp}/`
+
+**Directory contents:**
+- `metadata.json` — Workflow parameters and securities used
+- `signal.parquet` — Computed signal data
+- `suitability_evaluation_{timestamp}.md` — Pre-backtest analysis
+- `backtest_result.parquet` — P&L and positions
+- `performance_analysis_{timestamp}.md` — Post-backtest metrics
+- `visualizations/` — Charts (equity curve, drawdown, signal plot)
+
+**Cache files:** `data/cache/{provider}/{security}_{hash}.parquet` (TTL-based, auto-regenerated)
 
 ## Workflow Steps
 
@@ -405,6 +424,11 @@ uv run aponyx run --config workflow_2.yaml
 - Test connection: `python -c "import xbbg.blp as blp; print(blp.bdh('SPX Index', 'PX_LAST'))"`
 - Check Bloomberg securities config: `src/aponyx/data/bloomberg_securities.json`
 
+**Force refresh behavior:**
+- `--force` triggers `update_current_day=True` in Bloomberg fetch
+- Uses BDP (current) if only today's data missing, BDH (historical) otherwise
+- Smart caching: preserves historical data, updates only current date
+
 ### Config File Parsing Errors
 
 **Problem:** `Failed to load config file: ...`
@@ -440,4 +464,4 @@ uv run aponyx run --config workflow_2.yaml
 ---
 
 **Maintained by:** stabilefrisur  
-**Last Updated:** November 22, 2025
+**Last Updated:** November 23, 2025

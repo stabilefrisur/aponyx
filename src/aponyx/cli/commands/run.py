@@ -164,23 +164,34 @@ def run(
         click.echo(f"Configuration error: {e}", err=True)
         raise click.Abort()
 
-    # Get signal metadata to show input instruments
+    # Get signal metadata to show input instruments and securities
     try:
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
         signal_metadata = signal_registry.get_metadata(signal_name)
-        input_instruments = list(signal_metadata.data_requirements.keys())
-        instruments_str = ", ".join(input_instruments)
+        
+        # Get the securities that will be used (custom mapping or defaults)
+        if security_mapping:
+            securities_to_use = security_mapping
+        else:
+            securities_to_use = signal_metadata.default_securities
+        
+        # Format: instrument1:security1, instrument2:security2, ...
+        securities_display = ", ".join(
+            f"{inst_type}:{sec}" for inst_type, sec in sorted(securities_to_use.items())
+        )
     except Exception:
-        instruments_str = "unknown"
+        securities_display = "unknown"
 
-    # Display workflow config
-    click.echo(f"Running: {signal_name} ({strategy_name})")
-    click.echo(f"Inputs: {instruments_str} → Product: {product_id}")
+    # Display workflow config in new format
+    click.echo(f"Signal: {signal_name} ({securities_display})")
+    click.echo(f"Strategy: {strategy_name}")
+    click.echo(f"Product: {product_id}")
     click.echo(f"Data: {data_source}")
     if step_list:
         click.echo(f"Steps: {', '.join(step_list)}")
-    if force_rerun:
-        click.echo("Mode: Force re-run")
+    else:
+        click.echo(f"Steps: all")
+    click.echo(f"Force re-run: {force_rerun}")
     click.echo()
 
     # Execute workflow

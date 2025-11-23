@@ -53,11 +53,11 @@ def generate_suitability_report(
     """
     # Decision indicator
     if result.decision == "PASS":
-        indicator = "✅ PASS"
+        indicator = "[PASS]"
     elif result.decision == "HOLD":
-        indicator = "⚠️ HOLD"
+        indicator = "[HOLD]"
     else:
-        indicator = "❌ FAIL"
+        indicator = "[FAIL]"
 
     # Interpretation text for composite score
     if result.composite_score >= 0.7:
@@ -346,6 +346,7 @@ def save_report(
     signal_id: str,
     product_id: str,
     output_dir: Path,
+    timestamp: str | None = None,
 ) -> Path:
     """
     Save report to Markdown file.
@@ -360,6 +361,8 @@ def save_report(
         Product identifier matching security_id format (e.g., 'cdx_ig_5y').
     output_dir : Path
         Directory to save report.
+    timestamp : str or None, optional
+        Timestamp string (YYYYMMDD_HHMMSS). If None, generates new timestamp.
 
     Returns
     -------
@@ -368,7 +371,7 @@ def save_report(
 
     Notes
     -----
-    Filename format: {signal_id}_{product_id}_{YYYYMMDD_HHMMSS}.md
+    Filename format: suitability_evaluation_{YYYYMMDD_HHMMSS}.md
     Creates output directory if it doesn't exist.
 
     Examples
@@ -381,9 +384,10 @@ def save_report(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate filename with timestamp
-    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{signal_id}_{product_id}_{timestamp_str}.md"
+    # Generate or use provided timestamp
+    if timestamp is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"suitability_evaluation_{timestamp}.md"
     output_path = output_dir / filename
 
     # Write report

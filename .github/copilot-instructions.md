@@ -178,16 +178,15 @@ data/
 ├── raw/                   # Source data (permanent)
 │   ├── synthetic/        # Generated test data
 │   └── bloomberg/        # Terminal downloads
-├── cache/                # TTL cache (regenerable)
+├── cache/                # TTL cache (regenerable, security-based: {security}_{hash}.parquet)
 │   ├── file/
 │   └── bloomberg/
 ├── workflows/            # Timestamped workflow runs
 │   └── {signal}_{strategy}_{timestamp}/
-│       ├── metadata.json
-│       ├── reports/
-│       ├── data/
-│       ├── signals/
-│       ├── backtests/
+│       ├── metadata.json (includes securities_used mapping)
+│       ├── signal.parquet
+│       ├── suitability_evaluation_{timestamp}.md
+│       ├── performance_analysis_{timestamp}.md
 │       └── visualizations/
 └── .registries/          # Runtime metadata (not in git)
     ├── registry.json     # DataRegistry
@@ -247,7 +246,9 @@ def run(signal: str | None, strategy: str | None, force: bool) -> None:
     config = WorkflowConfig(signal_name=signal, strategy_name=strategy, force_rerun=force)
     engine = WorkflowEngine(config)
     results = engine.execute()
-    click.echo(f"Completed {results['steps_completed']} steps")
+    # New output format: Signal/Strategy/Product/Data/Steps/Force
+    click.echo(f"Signal: {signal} (cdx:cdx_ig_5y)")
+    click.echo(f"Strategy: {strategy}")
 ```
 
 #### Workflow Engine (`workflows/`)
@@ -1309,6 +1310,6 @@ from aponyx.models import compute_signal
 
 *This instruction file is auto-generated from codebase analysis. All patterns are based on actual implementation, not invented best practices.*
 
-**Last Updated**: November 22, 2025  
-**Version**: 0.1.11  
+**Last Updated**: November 23, 2025  
+**Version**: 0.1.12  
 **Maintainer**: stabilefrisur

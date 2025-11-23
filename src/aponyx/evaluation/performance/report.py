@@ -163,11 +163,11 @@ def generate_performance_report(
     """
     # Stability indicator
     if result.stability_score >= 0.7:
-        stability_indicator = "✅ Strong"
-    elif result.stability_score >= 0.5:
-        stability_indicator = "⚠️ Moderate"
+        stability_indicator = "[STRONG]"
+    elif result.stability_score >= 0.4:
+        stability_indicator = "[MODERATE]"
     else:
-        stability_indicator = "❌ Weak"
+        stability_indicator = "[WEAK]"
 
     # Extract key metrics (use dataclass field access)
     metrics = result.metrics
@@ -389,32 +389,32 @@ def generate_performance_report(
 
     if result.stability_score < 0.5:
         recommendations.append(
-            "⚠️ **Low stability score** - Review strategy robustness and consider regime filters"
+            "[WARNING] **Low stability score** - Review strategy robustness and consider regime filters"
         )
 
     if metrics.profit_factor < 1.0:
         recommendations.append(
-            "❌ **Negative profit factor** - Strategy is unprofitable; do not deploy"
+            "[FAIL] **Negative profit factor** - Strategy is unprofitable; do not deploy"
         )
 
     if subperiod["consistency_rate"] < 0.5:
         recommendations.append(
-            "⚠️ **Low consistency** - Performance concentrated in few periods; assess regime dependency"
+            "[WARNING] **Low consistency** - Performance concentrated in few periods; assess regime dependency"
         )
 
     if max_dd_recovery == float("inf"):
         recommendations.append(
-            "⚠️ **Unrecovered drawdown** - Current strategy underwater; reassess viability"
+            "[WARNING] **Unrecovered drawdown** - Current strategy underwater; reassess viability"
         )
 
     if metrics.tail_ratio < 0.8:
         recommendations.append(
-            "⚠️ **Negative skew** - Downside risk exceeds upside potential; review risk controls"
+            "[WARNING] **Negative skew** - Downside risk exceeds upside potential; review risk controls"
         )
 
     if not recommendations:
         recommendations.append(
-            "✅ **Performance acceptable** - Consider proceeding with further validation and stress testing"
+            "[PASS] **Performance acceptable** - Consider proceeding with further validation and stress testing"
         )
         recommendations.append(
             "Next steps: comparative analysis against alternative signals/strategies"
@@ -481,6 +481,7 @@ def save_report(
     signal_id: str,
     strategy_id: str,
     output_dir: Path,
+    timestamp: str | None = None,
 ) -> Path:
     """
     Save report to Markdown file.
@@ -495,6 +496,8 @@ def save_report(
         Strategy identifier (for filename).
     output_dir : Path
         Directory to save report.
+    timestamp : str or None, optional
+        Timestamp string (YYYYMMDD_HHMMSS). If None, generates new timestamp.
 
     Returns
     -------
@@ -503,7 +506,7 @@ def save_report(
 
     Notes
     -----
-    Filename format: {signal_id}_{strategy_id}_{YYYYMMDD_HHMMSS}.md
+    Filename format: performance_analysis_{YYYYMMDD_HHMMSS}.md
     Creates output directory if it doesn't exist.
 
     Examples
@@ -516,9 +519,10 @@ def save_report(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate filename with timestamp
-    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{signal_id}_{strategy_id}_{timestamp_str}.md"
+    # Generate or use provided timestamp
+    if timestamp is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"performance_analysis_{timestamp}.md"
     output_path = output_dir / filename
 
     # Write report

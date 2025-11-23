@@ -47,7 +47,7 @@ class TestSaveToRaw:
         raw_path = save_to_raw(
             sample_df,
             provider="bloomberg",
-            instrument="cdx_ig_5y",
+            security="cdx_ig_5y",
             raw_dir=raw_dir,
         )
 
@@ -60,7 +60,7 @@ class TestSaveToRaw:
         raw_path = save_to_raw(
             sample_df,
             provider="bloomberg",
-            instrument="cdx_ig_5y",
+            security="cdx_ig_5y",
             raw_dir=raw_dir,
         )
 
@@ -72,7 +72,7 @@ class TestSaveToRaw:
         raw_path = save_to_raw(
             sample_df,
             provider="bloomberg",
-            instrument="cdx_ig_5y",
+            security="cdx_ig_5y",
             raw_dir=raw_dir,
         )
 
@@ -84,7 +84,7 @@ class TestSaveToRaw:
         metadata = json.loads(metadata_path.read_text())
 
         assert metadata["provider"] == "bloomberg"
-        assert metadata["instrument"] == "cdx_ig_5y"
+        assert metadata["security"] == "cdx_ig_5y"
         assert "stored_at" in metadata
         assert "date_range" in metadata
         assert metadata["row_count"] == 10
@@ -94,7 +94,7 @@ class TestSaveToRaw:
         raw_path = save_to_raw(
             sample_df,
             provider="bloomberg",
-            instrument="CDX.NA.IG.5Y",
+            security="CDX.NA.IG.5Y",
             raw_dir=raw_dir,
         )
 
@@ -110,7 +110,7 @@ class TestSaveToRaw:
         save_to_raw(
             sample_df,
             provider="bloomberg",
-            instrument="cdx_ig_5y",
+            security="cdx_ig_5y",
             raw_dir=raw_dir,
             registry=registry,
         )
@@ -124,7 +124,7 @@ class TestSaveToRaw:
         raw_path = save_to_raw(
             sample_df,
             provider="bloomberg",
-            instrument="cdx_ig_5y",
+            security="cdx_ig_5y",
             raw_dir=raw_dir,
             source_type="terminal",
             fetch_method="historical",
@@ -145,7 +145,7 @@ class TestSaveToRaw:
         path1 = save_to_raw(
             sample_df,
             provider="bloomberg",
-            instrument="cdx_ig_5y",
+            security="cdx_ig_5y",
             raw_dir=raw_dir,
         )
 
@@ -159,7 +159,7 @@ class TestSaveToRaw:
         path2 = save_to_raw(
             different_df,
             provider="bloomberg",
-            instrument="cdx_ig_5y",
+            security="cdx_ig_5y",
             raw_dir=raw_dir,
         )
 
@@ -171,7 +171,7 @@ class TestSaveToRaw:
         raw_path = save_to_raw(
             sample_df,
             provider="synthetic",
-            instrument="test_data",
+            security="test_data",
             raw_dir=raw_dir,
         )
 
@@ -326,7 +326,7 @@ class TestEdgeCases:
             save_to_raw(
                 empty_df,
                 provider="test",
-                instrument="empty",
+                security="empty",
                 raw_dir=raw_dir,
             )
 
@@ -335,7 +335,7 @@ class TestEdgeCases:
         raw_path = save_to_raw(
             sample_df,
             provider="test",
-            instrument="CDX/NA.IG.5Y",
+            security="CDX/NA.IG.5Y",
             raw_dir=raw_dir,
         )
 

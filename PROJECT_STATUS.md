@@ -445,9 +445,11 @@ src/aponyx/
 
 **Key Features:**
 - Single-command execution of 6-step research pipeline
+- Output schema: Signal/Strategy/Product/Data/Steps/Force format
 - Smart defaults with explicit override options
 - Help text with `-h` or `--help` flags
 - Integration with workflow engine for orchestration
+- Force flag triggers Bloomberg current day refresh (`update_current_day=True`)
 
 **Key Files:**
 - `main.py` - CLI entry point and command registration
@@ -516,8 +518,10 @@ src/aponyx/
 6. Visualization - Generate equity curves and diagnostic charts
 
 **Caching Strategy:**
-- Outputs saved to `data/processed/workflows/<signal>_<strategy>_<timestamp>/`
-- Metadata JSON tracks execution parameters and timestamps
+- Outputs saved to `data/workflows/{signal}_{strategy}_{timestamp}/`
+- Simplified filenames: `signal.parquet`, `suitability_evaluation_{timestamp}.md`, `performance_analysis_{timestamp}.md`
+- Metadata JSON includes `securities_used` mapping
+- Cache files use security-based naming: `{security}_{hash}.parquet`
 - Cache hit skips step execution unless `force_rerun=True`
 - Partial results preserved on error for debugging
 

@@ -255,11 +255,15 @@ class WorkflowEngine:
         """
         from ..persistence import save_json
 
+        # Extract securities_used from signal step if available
+        securities_used = self._context.get("signal", {}).get("securities_used", {})
+
         metadata = {
             "signal": self.config.signal_name,
             "strategy": self.config.strategy_name,
             "product": self.config.product,
             "data_source": self.config.data_source,
+            "securities_used": securities_used,
             "timestamp": self._start_time.isoformat() if self._start_time else None,
             "duration_seconds": duration,
             "steps_completed": completed,

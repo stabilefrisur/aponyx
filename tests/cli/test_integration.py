@@ -88,8 +88,8 @@ def test_full_workflow_integration(runner, mock_all_registries, tmp_path):
             ],
         )
         assert result.exit_code == 0
-        assert "Running: spread_momentum (balanced)" in result.output
-        assert "Inputs:" in result.output
+        assert "Signal: spread_momentum" in result.output
+        assert "Strategy: balanced" in result.output
         assert "Product:" in result.output
 
     # Step 4: Generate report
@@ -306,7 +306,7 @@ def test_error_recovery_workflow(runner):
             ],
         )
         assert result.exit_code == 0
-        assert "Mode: Force re-run" in result.output
+        assert "Force re-run: True" in result.output
 
 
 def test_yaml_config_workflow(runner, tmp_path):

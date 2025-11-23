@@ -266,7 +266,7 @@ class SignalStep(BaseWorkflowStep):
         output_dir = context.get("output_dir", self.config.output_dir) / "signals"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        output_path = output_dir / f"{self.config.signal_name}.parquet"
+        output_path = output_dir / "signal.parquet"
         signal_df = signal.to_frame(name="value")
         save_parquet(signal_df, output_path)
         logger.debug(
@@ -359,9 +359,19 @@ class SuitabilityStep(BaseWorkflowStep):
 
         # Generate and save report
         report = generate_suitability_report(result, self.config.signal_name, product)
-        output_dir = context.get("output_dir", self.config.output_dir) / "reports"
+        
+        # Get workflow output directory from context (timestamped folder)
+        workflow_output_dir = context.get("output_dir", self.config.output_dir)
+        output_dir = workflow_output_dir / "reports"
         output_dir.mkdir(parents=True, exist_ok=True)
-        save_suitability_report(report, self.config.signal_name, product, output_dir)
+        
+        # Extract timestamp from workflow output directory name
+        workflow_dir_name = workflow_output_dir.name
+        # Expected format: {signal}_{strategy}_{YYYYMMDD}_{HHMMSS}
+        parts = workflow_dir_name.split("_")
+        timestamp = f"{parts[-2]}_{parts[-1]}"  # YYYYMMDD_HHMMSS
+        
+        save_suitability_report(report, self.config.signal_name, product, output_dir, timestamp)
 
         output = {"suitability_result": result, "product": product}
         self._log_complete(output)
@@ -553,13 +563,24 @@ class PerformanceStep(BaseWorkflowStep):
             strategy_id=self.config.strategy_name,
             generate_tearsheet=False,
         )
-        output_dir = context.get("output_dir", self.config.output_dir) / "reports"
+        
+        # Get workflow output directory from context (timestamped folder)
+        workflow_output_dir = context.get("output_dir", self.config.output_dir)
+        output_dir = workflow_output_dir / "reports"
         output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Extract timestamp from workflow output directory name
+        workflow_dir_name = workflow_output_dir.name
+        # Expected format: {signal}_{strategy}_{YYYYMMDD}_{HHMMSS}
+        parts = workflow_dir_name.split("_")
+        timestamp = f"{parts[-2]}_{parts[-1]}"  # YYYYMMDD_HHMMSS
+        
         save_performance_report(
             report,
             self.config.signal_name,
             self.config.strategy_name,
             output_dir,
+            timestamp,
         )
 
         output = {"performance": performance}

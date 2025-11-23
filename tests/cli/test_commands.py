@@ -156,8 +156,8 @@ def test_run_command_with_mock_workflow(runner, mock_workflow_engine):
     )
 
     assert result.exit_code == 0
-    assert "Running: spread_momentum (balanced)" in result.output
-    assert "Inputs:" in result.output
+    assert "Signal: spread_momentum" in result.output
+    assert "Strategy: balanced" in result.output
     assert "Product:" in result.output
     assert "Completed 6 steps" in result.output
 
@@ -179,7 +179,7 @@ def test_run_command_with_data_source(runner, mock_workflow_engine):
 
     assert result.exit_code == 0
     assert "Data: file" in result.output
-    assert "Inputs:" in result.output
+    assert "Signal:" in result.output
 
 
 def test_run_command_with_invalid_data_source(runner):
@@ -263,7 +263,7 @@ def test_run_command_with_force_flag(runner, mock_workflow_engine):
     )
 
     assert result.exit_code == 0
-    assert "Mode: Force re-run" in result.output
+    assert "Force re-run: True" in result.output
 
 
 def test_run_command_with_yaml_config(runner, mock_workflow_engine, tmp_path):
@@ -280,7 +280,8 @@ def test_run_command_with_yaml_config(runner, mock_workflow_engine, tmp_path):
     result = runner.invoke(cli, ["run", "--config", str(config_file)])
 
     assert result.exit_code == 0
-    assert "Running: spread_momentum (balanced)" in result.output
+    assert "Signal: spread_momentum" in result.output
+    assert "Strategy: balanced" in result.output
 
 
 def test_run_command_yaml_overrides_with_cli_options(runner, mock_workflow_engine, tmp_path):
@@ -304,7 +305,7 @@ def test_run_command_yaml_overrides_with_cli_options(runner, mock_workflow_engin
     )
 
     assert result.exit_code == 0
-    assert "Running: spread_momentum" in result.output
+    assert "Signal: spread_momentum" in result.output
 
 
 def test_run_command_invalid_yaml_config(runner, tmp_path):

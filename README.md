@@ -215,12 +215,25 @@ Run with config:
 aponyx run --config workflow.yaml
 ```
 
+**Output format:**
+```
+Signal: spread_momentum (cdx:cdx_ig_5y)
+Strategy: balanced
+Product: cdx_ig_5y
+Data: synthetic
+Steps: all
+Force re-run: False
+
+Completed 6 steps in 15.2s
+Results: data/workflows/spread_momentum_balanced_20251123_143230/
+```
+
 **Benefits:**
 - **Reproducible workflows** via YAML configuration
 - **Smart caching** skips completed steps automatically
 - **Dependency tracking** ensures correct execution order
 - **Error handling** with partial result preservation
-- **Progress logging** with step completion times
+- **Progress logging** with step completion times (WARNING level default, use `-v` for DEBUG)
 
 **See [CLI Guide](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/cli_guide.md) for complete documentation and advanced usage.**
 
@@ -247,9 +260,9 @@ data/
   raw/              # Original source data (permanent)
     bloomberg/      # Bloomberg Terminal downloads
     synthetic/      # Synthetic test data
-  cache/            # Temporary performance cache (regenerable)
-  processed/        # Computed signals and features (regenerable)
-  registry.json     # Dataset tracking catalog
+  cache/            # Temporary performance cache (security-based naming: {security}_{hash}.parquet)
+  workflows/        # Timestamped workflow results ({signal}_{strategy}_{timestamp}/)
+  .registries/      # Runtime metadata (not in git)
 ```
 
 ### Research Workflow

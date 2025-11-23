@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 def save_to_raw(
     df: pd.DataFrame,
     provider: str,
-    instrument: str,
+    security: str,
     raw_dir: Path,
     registry: DataRegistry | None = None,
     **metadata_params,
@@ -46,8 +46,8 @@ def save_to_raw(
         Data to save.
     provider : str
         Data provider name (e.g., "bloomberg", "synthetic").
-    instrument : str
-        Instrument identifier (e.g., "cdx_ig_5y", "vix", "hyg").
+    security : str
+        Security identifier (e.g., "cdx_ig_5y", "vix", "hyg").
     raw_dir : Path
         Base raw directory path.
     registry : DataRegistry or None
@@ -63,19 +63,19 @@ def save_to_raw(
     Notes
     -----
     Creates provider subdirectory if it doesn't exist.
-    Files are named: {instrument}_{hash}.parquet
-    Metadata is saved as: {instrument}_{hash}.json
+    Files are named: {security}_{hash}.parquet
+    Metadata is saved as: {security}_{hash}.json
     Hash ensures uniqueness across different date ranges and parameters.
     """
     provider_dir = raw_dir / provider
     provider_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate hash from content and metadata for uniqueness
-    safe_instrument = instrument.replace(".", "_").replace("/", "_")
+    safe_security = security.replace(".", "_").replace("/", "_")
     hash_input = "|".join(
         [
             provider,
-            instrument,
+            security,
             str(df.index.min()),
             str(df.index.max()),
             str(len(df)),
@@ -84,7 +84,7 @@ def save_to_raw(
     )
     file_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:12]
 
-    filename = f"{safe_instrument}_{file_hash}.parquet"
+    filename = f"{safe_security}_{file_hash}.parquet"
     raw_path = provider_dir / filename
 
     # Save data
@@ -94,7 +94,7 @@ def save_to_raw(
     # Save metadata sidecar JSON
     metadata = {
         "provider": provider,
-        "instrument": instrument,
+        "security": security,
         "stored_at": datetime.now().isoformat(),
         "date_range": {
             "start": str(df.index.min()),
@@ -105,16 +105,16 @@ def save_to_raw(
         "hash": file_hash,
         **metadata_params,
     }
-    metadata_path = provider_dir / f"{safe_instrument}_{file_hash}.json"
+    metadata_path = provider_dir / f"{safe_security}_{file_hash}.json"
     save_json(metadata, metadata_path)
     logger.debug("Saved metadata: %s", metadata_path)
 
     # Register in data registry
     if registry is not None:
         registry.register_dataset(
-            name=f"raw_{provider}_{instrument}_{file_hash}",
+            name=f"raw_{provider}_{security}_{file_hash}",
             file_path=raw_path,
-            instrument=instrument,
+            instrument=security,
             metadata=metadata,
         )
 
@@ -200,16 +200,19 @@ def fetch_cdx(
     instrument = "cdx"
     cache_dir = DATA_DIR / "cache"
 
+    # Determine security identifier for caching
+    # Use provided security or default to instrument type
+    security_for_cache = security if security is not None else instrument
+
     # Check cache first
     if use_cache:
         cached = get_cached_data(
             source,
-            instrument,
+            security_for_cache,
             cache_dir,
             start_date=start_date,
             end_date=end_date,
             ttl_days=CACHE_TTL_DAYS,
-            security=security,
         )
         if cached is not None:
             # Handle update_current_day mode
@@ -331,12 +334,11 @@ def fetch_cdx(
         save_to_cache(
             df,
             source,
-            instrument,
+            security_for_cache,
             cache_dir,
             registry=registry,
             start_date=start_date,
             end_date=end_date,
-            security=security,
         )
 
     logger.info("Fetched CDX data: %d rows, %s to %s", len(df), df.index.min(), df.index.max())
@@ -384,13 +386,14 @@ def fetch_vix(
         raise ValueError("Data source must be specified for VIX fetch")
 
     instrument = "vix"
+    security_for_cache = "vix"  # VIX has single security identifier
     cache_dir = DATA_DIR / "cache"
 
     # Check cache first
     if use_cache:
         cached = get_cached_data(
             source,
-            instrument,
+            security_for_cache,
             cache_dir,
             start_date=start_date,
             end_date=end_date,
@@ -428,7 +431,7 @@ def fetch_vix(
                 save_to_cache(
                     df,
                     source,
-                    instrument,
+                    security_for_cache,
                     cache_dir,
                     registry=registry,
                     start_date=start_date,
@@ -477,7 +480,7 @@ def fetch_vix(
         save_to_cache(
             df,
             source,
-            instrument,
+            security_for_cache,
             cache_dir,
             registry=registry,
             start_date=start_date,
@@ -542,16 +545,19 @@ def fetch_etf(
     instrument = "etf"
     cache_dir = DATA_DIR / "cache"
 
+    # Determine security identifier for caching
+    # Use provided security or default to instrument type
+    security_for_cache = security if security is not None else instrument
+
     # Check cache first
     if use_cache:
         cached = get_cached_data(
             source,
-            instrument,
+            security_for_cache,
             cache_dir,
             start_date=start_date,
             end_date=end_date,
             ttl_days=CACHE_TTL_DAYS,
-            security=security,
         )
         if cached is not None:
             # Handle update_current_day mode
@@ -598,12 +604,11 @@ def fetch_etf(
                 save_to_cache(
                     df,
                     source,
-                    instrument,
+                    security_for_cache,
                     cache_dir,
                     registry=registry,
                     start_date=start_date,
                     end_date=end_date,
-                    security=security,
                 )
 
                 # Apply filter if needed
@@ -672,12 +677,11 @@ def fetch_etf(
         save_to_cache(
             df,
             source,
-            instrument,
+            security_for_cache,
             cache_dir,
             registry=registry,
             start_date=start_date,
             end_date=end_date,
-            security=security,
         )
 
     logger.info("Fetched ETF data: %d rows, %s to %s", len(df), df.index.min(), df.index.max())

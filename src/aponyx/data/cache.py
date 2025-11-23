@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def _generate_cache_key(
     source: DataSource,
-    instrument: str,
+    security: str,
     start_date: str | None,
     end_date: str | None,
     **params: Any,
@@ -33,8 +33,8 @@ def _generate_cache_key(
     ----------
     source : DataSource
         Data source configuration.
-    instrument : str
-        Instrument identifier.
+    security : str
+        Security identifier (e.g., 'cdx_ig_5y', 'vix', 'hyg').
     start_date : str or None
         Start date.
     end_date : str or None
@@ -50,7 +50,7 @@ def _generate_cache_key(
     # Create stable string representation
     key_parts = [
         resolve_provider(source),
-        instrument,
+        security,
         start_date or "none",
         end_date or "none",
         str(sorted(params.items())),
@@ -65,7 +65,7 @@ def _generate_cache_key(
 def get_cache_path(
     cache_dir: Path,
     provider: str,
-    instrument: str,
+    security: str,
     cache_key: str,
 ) -> Path:
     """
@@ -77,8 +77,8 @@ def get_cache_path(
         Base cache directory.
     provider : str
         Provider type (file, bloomberg, api).
-    instrument : str
-        Instrument identifier.
+    security : str
+        Security identifier (e.g., 'cdx_ig_5y', 'vix', 'hyg').
     cache_key : str
         Unique cache key.
 
@@ -90,9 +90,9 @@ def get_cache_path(
     provider_dir = cache_dir / provider
     provider_dir.mkdir(parents=True, exist_ok=True)
 
-    # Sanitize instrument name for filename
-    safe_instrument = instrument.replace(".", "_").replace("/", "_")
-    filename = f"{safe_instrument}_{cache_key}.parquet"
+    # Sanitize security name for filename
+    safe_security = security.replace(".", "_").replace("/", "_")
+    filename = f"{safe_security}_{cache_key}.parquet"
 
     return provider_dir / filename
 
@@ -136,7 +136,7 @@ def is_cache_stale(
 
 def get_cached_data(
     source: DataSource,
-    instrument: str,
+    security: str,
     cache_dir: Path,
     start_date: str | None = None,
     end_date: str | None = None,
@@ -150,8 +150,8 @@ def get_cached_data(
     ----------
     source : DataSource
         Data source configuration.
-    instrument : str
-        Instrument identifier.
+    security : str
+        Security identifier (e.g., 'cdx_ig_5y', 'vix', 'hyg').
     cache_dir : Path
         Cache directory.
     start_date : str or None
@@ -169,8 +169,8 @@ def get_cached_data(
         Cached data if available and fresh, None otherwise.
     """
     provider = resolve_provider(source)
-    cache_key = _generate_cache_key(source, instrument, start_date, end_date, **params)
-    cache_path = get_cache_path(cache_dir, provider, instrument, cache_key)
+    cache_key = _generate_cache_key(source, security, start_date, end_date, **params)
+    cache_path = get_cache_path(cache_dir, provider, security, cache_key)
 
     if is_cache_stale(cache_path, ttl_days):
         logger.debug("Cache miss or stale: %s", cache_path.name)
@@ -183,7 +183,7 @@ def get_cached_data(
 def save_to_cache(
     df: pd.DataFrame,
     source: DataSource,
-    instrument: str,
+    security: str,
     cache_dir: Path,
     registry: DataRegistry | None = None,
     start_date: str | None = None,
@@ -199,8 +199,8 @@ def save_to_cache(
         Data to cache.
     source : DataSource
         Data source configuration.
-    instrument : str
-        Instrument identifier.
+    security : str
+        Security identifier (e.g., 'cdx_ig_5y', 'vix', 'hyg').
     cache_dir : Path
         Cache directory.
     registry : DataRegistry or None
@@ -218,8 +218,8 @@ def save_to_cache(
         Path to cached file.
     """
     provider = resolve_provider(source)
-    cache_key = _generate_cache_key(source, instrument, start_date, end_date, **params)
-    cache_path = get_cache_path(cache_dir, provider, instrument, cache_key)
+    cache_key = _generate_cache_key(source, security, start_date, end_date, **params)
+    cache_path = get_cache_path(cache_dir, provider, security, cache_key)
 
     # Save to Parquet
     save_parquet(df, cache_path)
@@ -228,14 +228,14 @@ def save_to_cache(
     # Register in catalog if provided
     if registry is not None:
         registry.register_dataset(
-            name=f"cache_{instrument}_{cache_key}",
+            name=f"cache_{security}_{cache_key}",
             file_path=cache_path,
-            instrument=instrument,
+            instrument=security,
             metadata={
                 "provider": provider,
                 "cached_at": datetime.now().isoformat(),
                 "cache_key": cache_key,
-                "params": params,
+                "params": {"security": security, **params},
             },
         )
 

@@ -94,7 +94,15 @@ def clean(
             targets.extend(_collect_targets(target))
 
     elif clean_all:
-        targets = _collect_targets(workflows_dir)
+        # Get all workflow subdirectories (not the workflows_dir itself)
+        workflow_subdirs = [d for d in workflows_dir.iterdir() if d.is_dir()]
+        if not workflow_subdirs:
+            click.echo("No cached results found")
+            return
+        
+        targets = []
+        for subdir in workflow_subdirs:
+            targets.extend(_collect_targets(subdir))
     else:
         click.echo("Must specify --signal or --all", err=True)
         raise click.Abort()
@@ -115,6 +123,8 @@ def clean(
         if dry_run:
             click.echo(f"  {rel_path}")
         else:
+            # Always show what we're deleting
+            click.echo(f"Deleting: {rel_path}")
             logger.debug("Deleting %s", target)
             try:
                 if target.is_dir():
@@ -123,9 +133,9 @@ def clean(
                 else:
                     target.unlink()
                 deleted_count += 1
-                click.echo(f"Deleted: {rel_path}")
             except Exception as e:
                 logger.warning("Failed to delete %s: %s", target, e)
+                click.echo(f"  Failed: {e}", err=True)
 
     # Summary
     if dry_run:

@@ -177,15 +177,15 @@ def _collect_report_data(signal_name: str, strategy_name: str) -> ReportData:
     # Load reports from reports/ subdirectory
     reports_dir = latest_dir / "reports"
     if reports_dir.exists():
-        # Load suitability report
-        suitability_files = list(reports_dir.glob(f"*{signal_name}*.md"))
+        # Load suitability report (filename pattern: suitability_evaluation_{timestamp}.md)
+        suitability_files = list(reports_dir.glob("suitability_evaluation_*.md"))
         if suitability_files:
             suitability_file = sorted(suitability_files)[-1]
             data.suitability_report = suitability_file.read_text(encoding="utf-8")
             logger.debug("Loaded suitability report: %s", suitability_file.name)
 
-        # Load performance report
-        performance_files = list(reports_dir.glob(f"*{signal_name}_{strategy_name}*.md"))
+        # Load performance report (filename pattern: performance_analysis_{timestamp}.md)
+        performance_files = list(reports_dir.glob("performance_analysis_*.md"))
         if performance_files:
             performance_file = sorted(performance_files)[-1]
             data.performance_report = performance_file.read_text(encoding="utf-8")
