@@ -10,16 +10,70 @@ from aponyx.cli.commands import run, report, list_items, clean
 from aponyx.config import LOGS_DIR
 
 
-@click.group(name="aponyx", context_settings={"help_option_names": ["-h", "--help"]})
+class BannerGroup(click.Group):
+    """Custom Click Group that displays banner before help."""
+    
+    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> str:
+        """Format help with banner at the top."""
+        # Get the no_banner flag from params
+        no_banner = ctx.params.get("no_banner", False)
+        
+        # Print banner before help
+        if not no_banner:
+            print_banner()
+        
+        # Return standard help
+        return super().format_help(ctx, formatter)
+
+
+# ASCII Art Banner
+BANNER = r"""
+    ___                                
+   / _ | ___  ___  ___  __ ____ __
+  / __ |/ _ \/ _ \/ _ \/ // /\ \ /
+ /_/ |_/ .__/\___/_//_/\_, / /_\_\
+      /_/             /___/        
+    
+  Systematic Macro Credit Research
+"""
+
+
+def print_banner(version: str = "0.1.14") -> None:
+    """Display stylized CLI banner."""
+    click.echo(click.style(BANNER, fg="cyan", bold=True))
+    click.echo(
+        click.style(f"  Version {version}", fg="bright_black")
+        + click.style(" | ", fg="bright_black")
+        + click.style("Python 3.12+", fg="bright_black")
+    )
+    click.echo()
+
+
+@click.group(
+    name="aponyx",
+    cls=BannerGroup,
+    context_settings={"help_option_names": ["-h", "--help"]},
+    invoke_without_command=True,
+)
 @click.option(
     "-v",
     "--verbose",
     is_flag=True,
     help="Enable verbose logging to see detailed execution information",
 )
+@click.option(
+    "--no-banner",
+    is_flag=True,
+    help="Suppress the startup banner",
+)
 @click.pass_context
-def cli(ctx: click.Context, verbose: bool) -> None:
+def cli(ctx: click.Context, verbose: bool, no_banner: bool) -> None:
     """Systematic Macro Credit Research CLI."""
+    # If no subcommand, just show help (banner already shown by format_help)
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
+        ctx.exit()
+    
     # Configure logging based on verbosity
     log_level = logging.DEBUG if verbose else logging.WARNING
 
