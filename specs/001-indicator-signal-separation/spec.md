@@ -23,6 +23,8 @@ As a researcher, I want to define market indicators (spread ratios, curve slopes
 
 3. **Given** multiple signals reference the same indicator "vix_cdx_deviation", **When** the indicator is computed, **Then** it is calculated once and cached for reuse across all dependent signals
 
+4. **Given** I have an indicator "cdx_vix_deviation_gap" that computes (CDX deviation - VIX deviation) in raw units, **When** I inspect the indicator output, **Then** I see the gap values in interpretable units (not z-scores) and can create multiple signals with different normalization windows from this one indicator
+
 ---
 
 ### User Story 2 - Compose Signals from Indicators (Priority: P2)
@@ -76,6 +78,12 @@ As a research manager, I want to see which signals depend on which indicators so
 - What if an indicator definition changes (new version) while old backtest results reference the old version?
   - System treats indicator changes as breaking changes that invalidate dependent workflow results. Researchers must re-run backtests when indicators change to ensure consistency.
 
+- What if I want to test the same economic indicator with different lookback windows (e.g., 20-day vs 60-day deviation)?
+  - Create separate indicator definitions: `cdx_vix_deviation_gap_20d` and `cdx_vix_deviation_gap_60d`. Each is a distinct catalog entry. This makes the catalog explicit about which configurations are actually being used.
+
+- What if an indicator's economic logic requires normalization (e.g., computing a correlation coefficient which is inherently normalized)?
+  - If the output is economically meaningful in its normalized form (correlation = -1 to +1 has clear interpretation), it can remain in the indicator. The key test: can a researcher interpret the raw value without knowing signal parameters? Correlation passes this test; z-scores do not.
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
@@ -84,7 +92,7 @@ As a research manager, I want to see which signals depend on which indicators so
   
 - **FR-002**: System MUST allow indicators to be defined with explicit data requirements (e.g., "requires CDX spread and ETF spread")
   
-- **FR-003**: System MUST compute indicators as raw time series without applying signal-specific transformations (z-score, normalization, thresholds)
+- **FR-003**: System MUST compute indicators as economically interpretable time series (natural units like bps, ratios, deviations) without applying standardization transformations (z-score normalization, percentile ranking, threshold filters)
   
 - **FR-004**: System MUST allow signals to reference one or more indicators as inputs
   
@@ -110,12 +118,15 @@ As a research manager, I want to see which signals depend on which indicators so
 
 - **FR-015**: Each unique combination of indicator parameters MUST be defined as a separate indicator in the catalog (e.g., "momentum_5d" and "momentum_10d" are distinct indicators)
 
+- **FR-016**: Indicator outputs MUST be in economically interpretable units (basis points, ratios, percentage changes, etc.) documented in the indicator metadata
+
 ### Key Entities
 
 - **Indicator**: A reusable market metric computation (e.g., spread ratio, curve slope, momentum)
-  - Attributes: name, description, data requirements (instrument types + fields), computation parameters, output specification
+  - Attributes: name, description, data requirements (instrument types + fields), computation parameters, output units (bps, ratio, percentage, etc.), economic interpretation
   - Relationships: Referenced by one or more Signals
   - Lifecycle: Defined once, computed on-demand, cached for reuse
+  - Constraint: Output must be in economically interpretable units, not pre-normalized
   
 - **Signal**: A trading signal derived from one or more Indicators via transformations
   - Attributes: name, description, indicator dependencies, transformation logic, sign convention
@@ -162,6 +173,8 @@ As a research manager, I want to see which signals depend on which indicators so
 
 - **SC-009**: System detects indicator definition changes and invalidates all dependent caches and workflow results within 5 seconds
 
+- **SC-010**: 100% of indicator outputs can be interpreted in their natural units (e.g., "CDX-VIX gap is +15 bps") without requiring knowledge of signal normalization parameters
+
 ## Assumptions
 
 ### Technical Assumptions
@@ -176,6 +189,8 @@ As a research manager, I want to see which signals depend on which indicators so
 
 5. **No multi-asset indicators initially**: First version supports indicators that compute over single or multiple time series but output a single time series (no matrix outputs or multi-asset tensors)
 
+6. **Transformation composition**: Indicators may apply economically meaningful transformations (differences, ratios, deviations from mean) but NOT statistical standardizations (z-scores, percentile ranks). The latter are exclusively signal-level transformations.
+
 ### Business Assumptions
 
 1. **Researcher workflow**: Researchers currently define signals by writing Python functions; the new system should still allow this but also support declarative indicator composition
@@ -187,6 +202,78 @@ As a research manager, I want to see which signals depend on which indicators so
 4. **Breaking changes are acceptable**: Researchers expect that changing indicator definitions will invalidate dependent backtests, similar to how code changes invalidate test results. Re-running backtests is acceptable workflow.
 
 5. **Transformation reusability**: Common signal transformations (z-score, volatility adjustment, etc.) are applied frequently across multiple signals and benefit from being cataloged as reusable operations
+
+## Architectural Principles
+
+### Indicator-Signal Boundary Definition
+
+**Core Principle**: Indicators compute **economically meaningful raw metrics** from market data. Signals apply **normalization and regime adjustments** to indicators to produce tradeable signals.
+
+**Boundary Rules**:
+
+1. **Indicators produce interpretable values** - Output should have economic meaning (e.g., "CDX-VIX deviation gap in basis points", "5-day spread change in bps", "CDX/ETF ratio")
+
+2. **Signals produce standardized trading signals** - Output is normalized for position sizing (e.g., z-scores, percentile ranks, binary thresholds)
+
+3. **Transformation location**:
+   - **In Indicator**: Transformations that define the economic metric (ratios, differences, deviations, curve slopes)
+   - **In Signal**: Transformations that standardize for trading (z-score, volatility normalization, regime filters)
+
+**Example Decomposition**:
+
+| Current "Signal" | Indicator Component | Signal Component |
+|------------------|--------------------|-----------------|
+| **cdx_etf_basis** | `cdx_etf_spread_diff` = CDX spread - ETF spread (raw bps) | Apply z-score normalization over 20-day window |
+| **cdx_vix_gap** | `cdx_vix_deviation_gap` = (CDX deviation from mean) - (VIX deviation from mean) (raw gap) | Apply z-score normalization to the gap |
+| **spread_momentum** | `cdx_spread_change_5d` = 5-day CDX spread change (raw bps) | Divide by rolling volatility, then negate for sign convention |
+
+**Rationale**: This separation ensures:
+- Indicators can be inspected in their natural units (basis points, ratios)
+- Different signals can apply different normalizations to the same indicator
+- Economic interpretation remains clear at the indicator level
+- Trading standardization is explicit at the signal level
+
+**Counter-Example** (What NOT to do):
+- ❌ Indicator outputs z-scores directly → Loses economic interpretability
+- ❌ Signal computes the ratio → Economic logic buried in signal definition
+
+### Worked Example: cdx_vix_gap Decomposition
+
+**Current Implementation** (everything in "signal"):
+```
+compute_cdx_vix_gap():
+  1. Compute CDX deviation from 20-day mean
+  2. Compute VIX deviation from 20-day mean  
+  3. Take difference: cdx_deviation - vix_deviation
+  4. Apply z-score normalization to the gap
+  5. Return normalized signal
+```
+
+**Proposed Separation**:
+
+**Indicator: `cdx_vix_deviation_gap_20d`**
+- **Computes**: (CDX deviation from 20-day mean) - (VIX deviation from 20-day mean)
+- **Output**: Raw gap in basis points (e.g., +15 bps, -8 bps)
+- **Economic meaning**: "Credit stress is 15 bps higher than equity stress relative to their 20-day means"
+- **Reusable**: Multiple signals can apply different normalizations to this gap
+
+**Signal: `cdx_vix_gap`**  
+- **Input**: `cdx_vix_deviation_gap_20d` indicator
+- **Transformation**: Apply z-score normalization over 20-day window (from transformation catalog)
+- **Output**: Standardized signal (e.g., +2.1 σ, -1.3 σ)
+- **Trading meaning**: "Gap is 2.1 standard deviations above average → strong long credit signal"
+
+**Alternative Signal: `cdx_vix_gap_percentile`**
+- **Input**: Same `cdx_vix_deviation_gap_20d` indicator
+- **Transformation**: Apply percentile rank over 60-day window (from transformation catalog)
+- **Output**: Percentile rank (e.g., 85th percentile)
+- **Trading meaning**: "Gap is at 85th percentile → strong but not extreme"
+
+**Key Benefits**:
+1. ✅ Indicator computed once, reused by both signals
+2. ✅ Indicator value interpretable: "gap is +15 bps"
+3. ✅ Easy to test different normalization approaches without changing indicator
+4. ✅ Clear separation: indicator = economic metric, signal = trading standardization
 
 ## Design Decisions
 
