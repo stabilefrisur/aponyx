@@ -87,6 +87,9 @@ As a research manager, I want to see which signals depend on which indicators so
 - What if two researchers modify the indicator catalog at the same time?
   - Catalogs are version-controlled via git. Concurrent modifications result in merge conflicts that researchers resolve using standard git merge tools. System validates merged catalog on next load.
 
+- What if an indicator requires multiple data inputs but some dates have missing data for one input (partial availability)?
+  - System fails immediately if ANY required data is missing for ANY date. This ensures deterministic behavior and prevents subtle data alignment bugs. Data validation occurs before indicator computation begins, with clear error messages indicating which input has missing dates.
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
@@ -108,9 +111,11 @@ As a research manager, I want to see which signals depend on which indicators so
 - **FR-008**: System MUST validate indicator data requirements can be satisfied before attempting computation
   
 - **FR-009**: System MUST propagate indicator computation errors to dependent signals with clear diagnostic information
+
+- **FR-010**: System MUST fail immediately if any required indicator input data is missing for any date in the computation period, with clear error messages indicating which input has missing dates
   
 - **FR-010**: Indicators MUST be testable independently without requiring signal or backtest context
-  
+- **FR-012**: Each indicator MUST have corresponding unit tests that verify output correctness using known-good reference values (following existing test patterns in tests/models/test_signals.py). No runtime output validation is performed beyond data type checks.  
 - **FR-011**: System MUST track which signals depend on which indicators for impact analysis
   
 - **FR-012**: Indicator computations MUST be deterministic (same inputs produce same outputs) for reproducibility
@@ -200,6 +205,10 @@ As a research manager, I want to see which signals depend on which indicators so
 
 7. **Version control integration**: Catalogs are committed to git repository. Concurrent modifications follow standard git workflow (pull, edit, commit, push, resolve conflicts if needed).
 
+8. **Catalog scale**: System is designed to efficiently handle 10-30 indicators in the first 6 months, with architecture supporting growth to 50+ indicators over time. Initial implementation optimizes for moderate research portfolio size.
+
+9. **Observability approach**: Indicator computation relies on standard Python logging (INFO for operations, DEBUG for details) without additional metrics infrastructure. Performance measurement uses existing workflow timing mechanisms (T080 measures caching improvement via workflow execution time comparison).
+
 ### Business Assumptions
 
 1. **Researcher workflow**: Researchers currently define signals by writing Python functions; the new system should still allow this but also support declarative indicator composition
@@ -212,12 +221,19 @@ As a research manager, I want to see which signals depend on which indicators so
 
 5. **Transformation reusability**: Common signal transformations (z-score, volatility adjustment, etc.) are applied frequently across multiple signals and benefit from being cataloged as reusable operations
 
+6. **Exploratory testing workflow**: Researchers test new indicator configurations by temporarily adding them to the catalog, testing via Python scripts or unit tests, then removing unsuccessful experiments via git. This simple workflow avoids maintaining separate experimental infrastructure while leveraging version control for cleanup.
+
 ## Clarifications
 
 ### Session 2025-11-30
 
 - Q: When a researcher wants to define a new indicator, what is the primary workflow? → A: JSON catalog editing - Researchers edit indicator_catalog.json directly, system validates on load
 - Q: When multiple researchers are working on the same codebase, how should the system handle concurrent catalog modifications? → A: Git-based conflict resolution - Catalogs are version-controlled files, conflicts resolved via standard git merge
+- Q: What is the expected number of indicators to be defined in the first 6 months after implementation? → A: 10-30 indicators (moderate research portfolio)
+- Q: How should the system handle partial data availability when computing an indicator that requires multiple inputs? → A: Fail immediately if ANY required data is missing for ANY date
+- Q: What observability metrics should be captured for indicator computation beyond basic logging? → A: No metrics beyond logs (keep it simple)
+- Q: How should researchers test new indicator configurations during development before adding them to the official catalog? → A: Add to catalog, test, then remove if not useful
+- Q: What mechanism should exist to detect when an indicator produces incorrect or unexpected output? → A: Unit tests required (per existing patterns), no runtime validation
 
 ### Indicator-Signal Boundary Definition
 
