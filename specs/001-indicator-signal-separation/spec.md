@@ -19,7 +19,7 @@ As a researcher, I want to define market indicators (spread ratios, curve slopes
 
 1. **Given** I have CDX and ETF spread data loaded, **When** I request computation of the "cdx_etf_ratio" indicator, **Then** the system returns a time series of ratio values without applying any signal transformations (z-score, thresholds, etc.)
 
-2. **Given** I have defined an indicator "spread_momentum" that computes 5-day spread changes, **When** I inspect the indicator catalog, **Then** I can see its data requirements, computation parameters, and output specification without any signal-specific metadata
+2. **Given** I have defined an indicator "spread_momentum" that computes 5-day spread changes by editing indicator_catalog.json, **When** I inspect the indicator catalog, **Then** I can see its data requirements, computation parameters, and output specification without any signal-specific metadata
 
 3. **Given** multiple signals reference the same indicator "vix_cdx_deviation", **When** the indicator is computed, **Then** it is calculated once and cached for reuse across all dependent signals
 
@@ -84,6 +84,9 @@ As a research manager, I want to see which signals depend on which indicators so
 - What if an indicator's economic logic requires normalization (e.g., computing a correlation coefficient which is inherently normalized)?
   - If the output is economically meaningful in its normalized form (correlation = -1 to +1 has clear interpretation), it can remain in the indicator. The key test: can a researcher interpret the raw value without knowing signal parameters? Correlation passes this test; z-scores do not.
 
+- What if two researchers modify the indicator catalog at the same time?
+  - Catalogs are version-controlled via git. Concurrent modifications result in merge conflicts that researchers resolve using standard git merge tools. System validates merged catalog on next load.
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
@@ -119,6 +122,10 @@ As a research manager, I want to see which signals depend on which indicators so
 - **FR-015**: Each unique combination of indicator parameters MUST be defined as a separate indicator in the catalog (e.g., "momentum_5d" and "momentum_10d" are distinct indicators)
 
 - **FR-016**: Indicator outputs MUST be in economically interpretable units (basis points, ratios, percentage changes, etc.) documented in the indicator metadata
+
+- **FR-017**: System MUST support JSON-based indicator catalog editing with validation on load (similar to existing signal_catalog.json pattern)
+
+- **FR-018**: Indicator and signal catalogs MUST be version-controlled files with concurrent modifications resolved via git merge workflow
 
 ### Key Entities
 
@@ -191,6 +198,8 @@ As a research manager, I want to see which signals depend on which indicators so
 
 6. **Transformation composition**: Indicators may apply economically meaningful transformations (differences, ratios, deviations from mean) but NOT statistical standardizations (z-scores, percentile ranks). The latter are exclusively signal-level transformations.
 
+7. **Version control integration**: Catalogs are committed to git repository. Concurrent modifications follow standard git workflow (pull, edit, commit, push, resolve conflicts if needed).
+
 ### Business Assumptions
 
 1. **Researcher workflow**: Researchers currently define signals by writing Python functions; the new system should still allow this but also support declarative indicator composition
@@ -203,7 +212,12 @@ As a research manager, I want to see which signals depend on which indicators so
 
 5. **Transformation reusability**: Common signal transformations (z-score, volatility adjustment, etc.) are applied frequently across multiple signals and benefit from being cataloged as reusable operations
 
-## Architectural Principles
+## Clarifications
+
+### Session 2025-11-30
+
+- Q: When a researcher wants to define a new indicator, what is the primary workflow? → A: JSON catalog editing - Researchers edit indicator_catalog.json directly, system validates on load
+- Q: When multiple researchers are working on the same codebase, how should the system handle concurrent catalog modifications? → A: Git-based conflict resolution - Catalogs are version-controlled files, conflicts resolved via standard git merge
 
 ### Indicator-Signal Boundary Definition
 
