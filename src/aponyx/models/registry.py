@@ -183,9 +183,7 @@ class IndicatorRegistry:
         dict[str, IndicatorMetadata]
             Mapping from indicator name to metadata for enabled indicators only.
         """
-        return {
-            name: meta for name, meta in self._indicators.items() if meta.enabled
-        }
+        return {name: meta for name, meta in self._indicators.items() if meta.enabled}
 
     def list_all(self) -> dict[str, IndicatorMetadata]:
         """

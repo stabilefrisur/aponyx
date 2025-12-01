@@ -3,7 +3,6 @@ Configuration dataclasses for indicator and signal generation.
 """
 
 from dataclasses import dataclass
-from typing import Any
 
 
 @dataclass(frozen=True)

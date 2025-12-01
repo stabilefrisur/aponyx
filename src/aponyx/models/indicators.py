@@ -248,6 +248,7 @@ def compute_indicator(
 
     # Get compute function from this module's namespace
     import sys
+
     current_module = sys.modules[__name__]
     compute_fn_name = indicator_metadata.compute_function_name
     if not hasattr(current_module, compute_fn_name):
@@ -271,7 +272,7 @@ def compute_indicator(
 
     # Compute indicator
     logger.debug("Calling compute function: %s", compute_fn_name)
-    result = compute_fn(*args)
+    result: pd.Series = compute_fn(*args)
 
     # Cache result if enabled
     if use_cache:

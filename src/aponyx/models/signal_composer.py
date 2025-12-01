@@ -170,7 +170,9 @@ def compose_signal(
     # Step 1: Load and transform each indicator
     transformed_indicators: dict[str, pd.Series] = {}
 
-    for indicator_name, transformation_name in zip(indicator_deps, transformation_names):
+    for indicator_name, transformation_name in zip(
+        indicator_deps, transformation_names
+    ):
         # Load indicator metadata
         indicator_metadata = indicator_registry.get_metadata(indicator_name)
 
@@ -178,11 +180,13 @@ def compose_signal(
         indicator_series = compute_indicator(
             indicator_name=indicator_name,
             market_data=market_data,
-            indicator_metadata=vars(indicator_metadata),
+            indicator_metadata=indicator_metadata,
         )
 
         # Load transformation metadata
-        transformation_metadata = transformation_registry.get_metadata(transformation_name)
+        transformation_metadata = transformation_registry.get_metadata(
+            transformation_name
+        )
 
         # Apply transformation
         transformed = apply_signal_transformation(
@@ -221,12 +225,14 @@ def compose_signal(
             raise ValueError(
                 f"Signal {signal_name}: composition_logic must return pd.Series, got {type(result)}"
             )
-        
+
         signal = result
 
     # Step 3: Apply sign multiplier
     final_signal: pd.Series = signal * sign_multiplier
 
-    logger.info("Signal composition complete: %d valid values", final_signal.notna().sum())
+    logger.info(
+        "Signal composition complete: %d valid values", final_signal.notna().sum()
+    )
 
     return final_signal

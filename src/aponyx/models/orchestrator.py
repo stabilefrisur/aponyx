@@ -171,6 +171,9 @@ def _compute_signal(
     """
     Compute a single signal using metadata specification.
 
+    Supports both legacy pattern (compute_function_name) and new pattern
+    (indicator_dependencies + transformations).
+
     Applies sign multiplier from catalog metadata.
 
     Parameters
@@ -192,19 +195,15 @@ def _compute_signal(
     ValueError
         If required data is missing or lacks required columns.
     AttributeError
-        If compute function does not exist in signals module.
+        If compute function does not exist in signals module (legacy pattern only).
     """
-    # Validate all required data is available
-    _validate_data_requirements(metadata, market_data)
-
-    # Resolve compute function from signals module
-    compute_fn = getattr(signals, metadata.compute_function_name)
-
-    # Build positional arguments from arg_mapping
-    args = [market_data[key] for key in metadata.arg_mapping]
-
-    # Call compute function with market data and config
-    raw_signal = compute_fn(*args, config)
+    # Determine which pattern to use
+    if metadata.indicator_dependencies:
+        # New pattern: compose signal from indicators + transformations
+        raw_signal = _compute_signal_new_pattern(metadata, market_data)
+    else:
+        # Legacy pattern: call compute function directly
+        raw_signal = _compute_signal_legacy_pattern(metadata, market_data, config)
 
     # Apply sign multiplier from catalog
     signal = raw_signal * metadata.sign_multiplier
@@ -216,6 +215,81 @@ def _compute_signal(
         )
 
     return signal
+
+
+def _compute_signal_legacy_pattern(
+    metadata: SignalMetadata,
+    market_data: dict[str, pd.DataFrame],
+    config: SignalConfig,
+) -> pd.Series:
+    """
+    Compute signal using legacy pattern (compute_function_name).
+
+    Parameters
+    ----------
+    metadata : SignalMetadata
+        Signal metadata with compute_function_name.
+    market_data : dict[str, pd.DataFrame]
+        Available market data.
+    config : SignalConfig
+        Signal computation parameters.
+
+    Returns
+    -------
+    pd.Series
+        Computed signal (before sign multiplier).
+    """
+    # Validate all required data is available
+    _validate_data_requirements(metadata, market_data)
+
+    # Resolve compute function from signals module
+    compute_fn_name = metadata.compute_function_name or ""
+    compute_fn = getattr(signals, compute_fn_name)
+
+    # Build positional arguments from arg_mapping
+    arg_mapping = metadata.arg_mapping or []
+    args = [market_data[key] for key in arg_mapping]
+
+    # Call compute function with market data and config
+    result: pd.Series = compute_fn(*args, config)
+    return result
+
+
+def _compute_signal_new_pattern(
+    metadata: SignalMetadata,
+    market_data: dict[str, pd.DataFrame],
+) -> pd.Series:
+    """
+    Compute signal using new pattern (indicator_dependencies + transformations).
+
+    Parameters
+    ----------
+    metadata : SignalMetadata
+        Signal metadata with indicator_dependencies and transformations.
+    market_data : dict[str, pd.DataFrame]
+        Available market data.
+
+    Returns
+    -------
+    pd.Series
+        Computed signal (before sign multiplier).
+    """
+    from dataclasses import asdict
+    from ..config import INDICATOR_CATALOG_PATH, TRANSFORMATION_CATALOG_PATH
+    from .registry import IndicatorRegistry, TransformationRegistry
+    from .signal_composer import compose_signal
+
+    # Lazy-load registries
+    indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+    transformation_registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
+
+    # Compose signal using new pattern
+    return compose_signal(
+        indicator_registry,
+        transformation_registry,
+        asdict(metadata),
+        market_data,
+    )
 
 
 def _validate_data_requirements(
@@ -237,7 +311,8 @@ def _validate_data_requirements(
     ValueError
         If required data key is missing or DataFrame lacks required column.
     """
-    for data_key, required_column in metadata.data_requirements.items():
+    data_requirements = metadata.data_requirements or {}
+    for data_key, required_column in data_requirements.items():
         # Check data key exists
         if data_key not in market_data:
             raise ValueError(

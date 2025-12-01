@@ -151,3 +151,53 @@ def test_signals_deterministic(
     pd.testing.assert_series_equal(basis1, basis2)
     pd.testing.assert_series_equal(gap1, gap2)
     pd.testing.assert_series_equal(momentum1, momentum2)
+
+
+def test_legacy_signal_compatibility(
+    sample_cdx_data: pd.DataFrame,
+    sample_vix_data: pd.DataFrame,
+    sample_etf_data: pd.DataFrame,
+) -> None:
+    """
+    Test that refactored facade functions maintain backward compatibility.
+    
+    This test verifies that the legacy signal functions (compute_cdx_etf_basis,
+    compute_cdx_vix_gap, compute_spread_momentum) produce outputs that are
+    compatible with the new indicator-signal separation pattern.
+    
+    The facade functions should:
+    1. Accept the same parameters as the legacy implementation
+    2. Return pd.Series with the same index
+    3. Produce valid, non-NaN values after warmup period
+    4. Be deterministic (same inputs = same outputs)
+    """
+    config = SignalConfig(lookback=20, min_periods=10)
+
+    # Test CDX-ETF basis facade
+    basis = compute_cdx_etf_basis(sample_cdx_data, sample_etf_data, config)
+    assert isinstance(basis, pd.Series), "cdx_etf_basis must return pd.Series"
+    assert len(basis) == len(sample_cdx_data), "Output length must match input"
+    assert basis.iloc[30:].notna().sum() > 50, "Should have valid values after warmup"
+
+    # Test CDX-VIX gap facade
+    gap = compute_cdx_vix_gap(sample_cdx_data, sample_vix_data, config)
+    assert isinstance(gap, pd.Series), "cdx_vix_gap must return pd.Series"
+    assert len(gap) == len(sample_cdx_data), "Output length must match input"
+    assert gap.iloc[30:].notna().sum() > 50, "Should have valid values after warmup"
+
+    # Test spread momentum facade
+    momentum = compute_spread_momentum(sample_cdx_data, config)
+    assert isinstance(momentum, pd.Series), "spread_momentum must return pd.Series"
+    assert len(momentum) == len(sample_cdx_data), "Output length must match input"
+    assert momentum.iloc[30:].notna().sum() > 50, "Should have valid values after warmup"
+
+    # Verify determinism (calling again produces same result)
+    basis2 = compute_cdx_etf_basis(sample_cdx_data, sample_etf_data, config)
+    pd.testing.assert_series_equal(basis, basis2, check_names=False)
+
+    gap2 = compute_cdx_vix_gap(sample_cdx_data, sample_vix_data, config)
+    pd.testing.assert_series_equal(gap, gap2, check_names=False)
+
+    momentum2 = compute_spread_momentum(sample_cdx_data, config)
+    pd.testing.assert_series_equal(momentum, momentum2, check_names=False)
+

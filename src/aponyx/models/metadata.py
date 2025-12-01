@@ -154,7 +154,7 @@ class SignalMetadata:
         Unique signal identifier (e.g., "cdx_etf_basis").
     description : str
         Human-readable description of signal purpose and logic.
-    
+
     # New composition pattern fields
     indicator_dependencies : list[str] | None
         List of indicator names required for this signal.
@@ -165,7 +165,7 @@ class SignalMetadata:
     composition_logic : str | None
         Optional Python expression for combining multiple indicators.
         Example: "cdx_spread / etf_spread"
-    
+
     # Legacy pattern fields (deprecated)
     compute_function_name : str | None
         Name of the compute function in signals module (DEPRECATED).
@@ -179,7 +179,7 @@ class SignalMetadata:
     default_securities : dict[str, str] | None
         Default security IDs to use for each instrument type (DEPRECATED).
         Moved to indicators in new pattern.
-    
+
     # Common fields
     enabled : bool
         Whether signal should be included in computation.
@@ -198,18 +198,18 @@ class SignalMetadata:
 
     name: str
     description: str
-    
+
     # New composition pattern (preferred)
     indicator_dependencies: list[str] | None = None
     transformations: list[str] | None = None
     composition_logic: str | None = None
-    
+
     # Legacy pattern (deprecated, for backward compatibility)
     compute_function_name: str | None = None
     data_requirements: dict[str, str] | None = None
     arg_mapping: list[str] | None = None
     default_securities: dict[str, str] | None = None
-    
+
     enabled: bool = True
     sign_multiplier: int = 1
 
@@ -221,7 +221,7 @@ class SignalMetadata:
         # Either legacy or new pattern required
         has_legacy = self.compute_function_name is not None
         has_new = self.indicator_dependencies is not None
-        
+
         if not has_legacy and not has_new:
             raise ValueError(
                 f"Signal {self.name} must specify either compute_function_name (legacy) "
@@ -232,7 +232,7 @@ class SignalMetadata:
         if has_legacy:
             if not self.arg_mapping:
                 raise ValueError(f"Legacy signal {self.name} requires arg_mapping")
-            
+
             # Validate arg_mapping matches data_requirements
             if self.data_requirements:
                 arg_set = set(self.arg_mapping)
@@ -246,7 +246,9 @@ class SignalMetadata:
         # Validate new pattern if used
         if has_new:
             if not self.indicator_dependencies:
-                raise ValueError(f"New pattern signal {self.name} requires indicator_dependencies")
+                raise ValueError(
+                    f"New pattern signal {self.name} requires indicator_dependencies"
+                )
 
         # Validate sign_multiplier is ±1
         if self.sign_multiplier not in (-1, 1):
