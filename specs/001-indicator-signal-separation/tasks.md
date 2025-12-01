@@ -95,25 +95,25 @@
 
 ### Implementation for User Story 2
 
-- [ ] T037 [P] [US2] Create signal_composer.py module at src/aponyx/models/signal_composer.py
-- [ ] T038 [P] [US2] Implement apply_signal_transformation function in src/aponyx/models/signal_composer.py
-- [ ] T039 [US2] Implement compose_signal orchestration function in src/aponyx/models/signal_composer.py
-- [ ] T040 [US2] Populate transformation_catalog.json with common transformations (z_score_20d, z_score_60d, volatility_adjust_20d, diff_5d)
-- [ ] T041 [US2] Update signal_catalog.json to add indicator_dependencies for cdx_etf_basis signal
-- [ ] T042 [US2] Update signal_catalog.json to add transformations for cdx_etf_basis signal
-- [ ] T043 [US2] Update signal_catalog.json to add indicator_dependencies for cdx_vix_gap signal
-- [ ] T044 [US2] Update signal_catalog.json to add transformations for cdx_vix_gap signal
-- [ ] T045 [US2] Update signal_catalog.json to add indicator_dependencies for spread_momentum signal
-- [ ] T046 [US2] Update signal_catalog.json to add transformations for spread_momentum signal
-- [ ] T047 [P] [US2] Create test_signal_composer.py at tests/models/test_signal_composer.py
-- [ ] T048 [P] [US2] Add test_apply_signal_transformation to tests/models/test_signal_composer.py
-- [ ] T049 [P] [US2] Add test_compose_signal_single_indicator to tests/models/test_signal_composer.py
-- [ ] T050 [US2] Add test_compose_signal_with_composition_logic to tests/models/test_signal_composer.py
-- [ ] T051 [P] [US2] Create test_transformation_registry.py at tests/models/test_transformation_registry.py
-- [ ] T052 [P] [US2] Add test_load_transformation_catalog to tests/models/test_transformation_registry.py
-- [ ] T053 [P] [US2] Add test_validate_transform_types to tests/models/test_transformation_registry.py
+- [X] T037 [P] [US2] Create signal_composer.py module at src/aponyx/models/signal_composer.py
+- [X] T038 [P] [US2] Implement apply_signal_transformation function in src/aponyx/models/signal_composer.py
+- [X] T039 [US2] Implement compose_signal orchestration function in src/aponyx/models/signal_composer.py
+- [X] T040 [US2] Populate transformation_catalog.json with common transformations (z_score_20d, z_score_60d, volatility_adjust_20d, diff_5d)
+- [X] T041 [US2] Update signal_catalog.json to add indicator_dependencies for cdx_etf_basis signal
+- [X] T042 [US2] Update signal_catalog.json to add transformations for cdx_etf_basis signal
+- [X] T043 [US2] Update signal_catalog.json to add indicator_dependencies for cdx_vix_gap signal
+- [X] T044 [US2] Update signal_catalog.json to add transformations for cdx_vix_gap signal
+- [X] T045 [US2] Update signal_catalog.json to add indicator_dependencies for spread_momentum signal
+- [X] T046 [US2] Update signal_catalog.json to add transformations for spread_momentum signal
+- [X] T047 [P] [US2] Create test_signal_composer.py at tests/models/test_signal_composer.py
+- [X] T048 [P] [US2] Add test_apply_signal_transformation to tests/models/test_signal_composer.py
+- [X] T049 [P] [US2] Add test_compose_signal_single_indicator to tests/models/test_signal_composer.py
+- [X] T050 [US2] Add test_compose_signal_with_composition_logic to tests/models/test_signal_composer.py
+- [X] T051 [P] [US2] Create test_transformation_registry.py at tests/models/test_transformation_registry.py
+- [X] T052 [P] [US2] Add test_load_transformation_catalog to tests/models/test_transformation_registry.py
+- [X] T053 [P] [US2] Add test_validate_transform_types to tests/models/test_transformation_registry.py
 
-**Checkpoint**: User Story 2 complete - signals can be composed from indicators with transformations
+**Checkpoint**: ✅ User Story 2 complete - signals can be composed from indicators with transformations
 
 ---
 

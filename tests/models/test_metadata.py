@@ -75,19 +75,20 @@ class TestSignalMetadataValidation:
             )
 
     def test_signal_metadata_empty_function_name_error(self):
-        """Test error when compute function name is empty."""
-        with pytest.raises(ValueError, match="function name cannot be empty"):
-            SignalMetadata(
-                name="test_signal",
-                description="Test",
-                compute_function_name="",
-                data_requirements={"cdx": "spread"},
-                arg_mapping=["cdx"],
-            )
+        """Test that signal can be created without function name if using new pattern."""
+        # New pattern - should work without compute_function_name
+        metadata = SignalMetadata(
+            name="test_signal",
+            description="Test",
+            indicator_dependencies=["test_indicator"],
+            transformations=["z_score_20d"],
+        )
+        assert metadata.compute_function_name is None
+        assert metadata.indicator_dependencies == ["test_indicator"]
 
     def test_signal_metadata_empty_arg_mapping_error(self):
-        """Test error when arg_mapping is empty."""
-        with pytest.raises(ValueError, match="arg_mapping cannot be empty"):
+        """Test error when legacy pattern has empty arg_mapping."""
+        with pytest.raises(ValueError, match="requires arg_mapping"):
             SignalMetadata(
                 name="test_signal",
                 description="Test",
@@ -98,7 +99,7 @@ class TestSignalMetadataValidation:
 
     def test_signal_metadata_arg_mapping_mismatch_error(self):
         """Test error when arg_mapping doesn't match data_requirements."""
-        with pytest.raises(ValueError, match="must contain exactly the same keys"):
+        with pytest.raises(ValueError, match="must match"):
             SignalMetadata(
                 name="test_signal",
                 description="Test",
@@ -109,7 +110,7 @@ class TestSignalMetadataValidation:
 
     def test_signal_metadata_extra_arg_mapping_error(self):
         """Test error when arg_mapping has extra keys."""
-        with pytest.raises(ValueError, match="must contain exactly the same keys"):
+        with pytest.raises(ValueError, match="must match"):
             SignalMetadata(
                 name="test_signal",
                 description="Test",

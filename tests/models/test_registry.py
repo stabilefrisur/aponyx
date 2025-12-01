@@ -74,21 +74,21 @@ def test_signal_metadata_validates_name() -> None:
 
 
 def test_signal_metadata_validates_function_name() -> None:
-    """Test that SignalMetadata validates compute function name."""
-    with pytest.raises(ValueError, match="Compute function name cannot be empty"):
-        SignalMetadata(
-            name="test",
-            description="Test",
-            compute_function_name="",
-            data_requirements={"cdx": "spread"},
-            arg_mapping=["cdx"],
-        )
+    """Test that SignalMetadata can work without function name if using new pattern."""
+    # New pattern - should work without compute_function_name
+    metadata = SignalMetadata(
+        name="test",
+        description="Test",
+        indicator_dependencies=["test_indicator"],
+        transformations=["z_score_20d"],
+    )
+    assert metadata.compute_function_name is None
 
 
 def test_signal_metadata_validates_arg_mapping() -> None:
-    """Test that SignalMetadata validates arg_mapping."""
-    # Empty arg_mapping
-    with pytest.raises(ValueError, match="arg_mapping cannot be empty"):
+    """Test that SignalMetadata validates arg_mapping for legacy pattern."""
+    # Empty arg_mapping for legacy pattern
+    with pytest.raises(ValueError, match="requires arg_mapping"):
         SignalMetadata(
             name="test",
             description="Test",
@@ -98,7 +98,7 @@ def test_signal_metadata_validates_arg_mapping() -> None:
         )
 
     # arg_mapping contains key not in data_requirements
-    with pytest.raises(ValueError, match="must contain exactly the same keys"):
+    with pytest.raises(ValueError, match="must match"):
         SignalMetadata(
             name="test",
             description="Test",

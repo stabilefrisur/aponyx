@@ -12,6 +12,9 @@
       "cdx": "cdx_ig_5y",
       "etf": "lqd"
     },
+    "indicator_dependencies": ["cdx_etf_spread_diff"],
+    "transformations": ["z_score_20d"],
+    "composition_logic": null,
     "enabled": true,
     "sign_multiplier": 1
   },
@@ -28,6 +31,9 @@
       "cdx": "cdx_ig_5y",
       "vix": "vix"
     },
+    "indicator_dependencies": ["cdx_vix_deviation_gap_20d"],
+    "transformations": ["z_score_60d"],
+    "composition_logic": null,
     "enabled": true,
     "sign_multiplier": 1
   },
@@ -42,6 +48,9 @@
     "default_securities": {
       "cdx": "cdx_ig_5y"
     },
+    "indicator_dependencies": ["spread_momentum_5d"],
+    "transformations": ["volatility_adjust_20d"],
+    "composition_logic": null,
     "enabled": true,
     "sign_multiplier": 1
   }
