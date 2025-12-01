@@ -1,7 +1,7 @@
 # Project Status — aponyx
 
-**Last Updated:** November 23, 2025  
-**Version:** 0.1.14
+**Last Updated:** December 1, 2025  
+**Version:** 0.1.14 (Post-Legacy-Cleanup)
 
 ## Quick Reference
 
