@@ -26,7 +26,7 @@ description: "Task list for removing legacy compatibility from indicator-signal 
 
 - [ ] T001 Validate current project structure matches plan.md expectations
 - [ ] T002 Create git branch `002-remove-legacy-compat` from main
-- [ ] T003 Backup current signal_catalog.json to specs/002-remove-legacy-compat/backups/signal_catalog_before.json
+- [ ] T003 Backup current signal_catalog.json to specs/002-remove-legacy-compat/signal_catalog_before.json
 
 ---
 
@@ -36,11 +36,12 @@ description: "Task list for removing legacy compatibility from indicator-signal 
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Update SignalMetadata dataclass in src/aponyx/models/metadata.py to remove legacy fields (compute_function_name, data_requirements, arg_mapping, default_securities)
+- [ ] T004 Update SignalMetadata dataclass in src/aponyx/models/metadata.py to remove legacy fields (compute_function_name, data_requirements, arg_mapping, default_securities) - KEEP composition_logic field (optional for multi-indicator signals)
 - [ ] T005 Update SignalMetadata.__post_init__ validation in src/aponyx/models/metadata.py to enforce indicator_dependencies and transformations required
 - [ ] T006 Update signal_catalog.json entries to remove legacy fields from all 3 signals (cdx_etf_basis, cdx_vix_gap, spread_momentum)
 - [ ] T007 Update SignalRegistry._validate_catalog() in src/aponyx/models/registry.py to remove compute_function_name validation
 - [ ] T008 Add indicator_dependencies and transformations existence validation in src/aponyx/models/registry.py
+- [ ] T008a Implement JSON Schema validation in SignalRegistry._load_catalog() using contracts/signal_catalog_schema.json to enforce schema at load time
 
 **Checkpoint**: Schema updated - legacy fields removed, new pattern enforced
 
@@ -78,7 +79,7 @@ description: "Task list for removing legacy compatibility from indicator-signal 
 - [ ] T017 [US2] Verify cdx_etf_basis signal computes successfully with new pattern in integration test
 - [ ] T018 [US2] Verify cdx_vix_gap signal computes successfully with new pattern in integration test
 - [ ] T019 [US2] Verify spread_momentum signal computes successfully with new pattern in integration test
-- [ ] T020 [US2] Delete all pre-migration workflow directories from data/workflows/ (created before December 1, 2025)
+- [ ] T020 [US2] Delete all pre-migration workflow directories from data/workflows/ where metadata.json contains 'compute_function_name' field OR directory timestamp before December 1, 2025
 - [ ] T021 [US2] Run `aponyx run --signal cdx_etf_basis --strategy balanced` to generate new workflow cache
 - [ ] T022 [US2] Run `aponyx run --signal cdx_vix_gap --strategy aggressive` to generate new workflow cache
 - [ ] T023 [US2] Run `aponyx run --signal spread_momentum --strategy balanced` to generate new workflow cache
@@ -266,9 +267,9 @@ After all tasks complete, verify:
 
 ## Task Count Summary
 
-- **Total Tasks**: 45
+- **Total Tasks**: 46
 - **Phase 1 (Setup)**: 3 tasks
-- **Phase 2 (Foundational)**: 5 tasks
+- **Phase 2 (Foundational)**: 6 tasks
 - **Phase 3 (User Story 1)**: 8 tasks
 - **Phase 4 (User Story 2)**: 8 tasks
 - **Phase 5 (User Story 3)**: 6 tasks
@@ -277,7 +278,7 @@ After all tasks complete, verify:
 
 **Parallel Opportunities**: 15 tasks marked [P] can run in parallel within their phases
 
-**Suggested MVP Scope**: Phases 1-3 only (16 tasks) - delivers core legacy code removal
+**Suggested MVP Scope**: Phases 1-3 only (17 tasks) - delivers core legacy code removal
 
 ---
 
