@@ -22,6 +22,7 @@ cd src; pytest; ruff check .
 Python 3.12 (strict requirement, modern syntax only): Follow standard conventions
 
 ## Recent Changes
+- 002-remove-legacy-compat: Added Python 3.12 (strict requirement, modern syntax only)
 
 - 001-indicator-signal-separation: Added Python 3.12 (strict requirement, modern syntax only) + Pandas 2.0+, NumPy 1.24+, Click 8.1+, PyArrow 12.0+, Statsmodels 0.14+
 

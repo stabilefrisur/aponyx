@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/yourusername/aponyx/schemas/signal-catalog.json",
+  "title": "Signal Catalog Schema",
+  "description": "JSON Schema for aponyx signal catalog after legacy compatibility removal. Enforces indicator + transformation composition pattern.",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "$ref": "#/definitions/SignalEntry"
+  },
+  "definitions": {
+    "SignalEntry": {
+      "type": "object",
+      "required": [
+        "name",
+        "description",
+        "indicator_dependencies",
+        "transformations"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "minLength": 3,
+          "maxLength": 50,
+          "description": "Unique signal identifier (lowercase with underscores). Example: 'cdx_etf_basis'"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500,
+          "description": "Human-readable explanation of signal purpose and economic intuition"
+        },
+        "indicator_dependencies": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "uniqueItems": true,
+          "description": "List of indicator names required for this signal. All indicators must exist in indicator_catalog.json and be enabled."
+        },
+        "transformations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "uniqueItems": true,
+          "description": "List of transformation names to apply sequentially. All transformations must exist in transformation_catalog.json and be enabled."
+        },
+        "composition_logic": {
+          "type": ["string", "null"],
+          "minLength": 3,
+          "maxLength": 200,
+          "description": "Optional Python expression for combining multiple indicators. Variable names must match indicator_dependencies entries. Example: 'cdx_spread / etf_spread'"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether signal should be included in batch computation"
+        },
+        "sign_multiplier": {
+          "type": "integer",
+          "enum": [-1, 1],
+          "default": 1,
+          "description": "Multiplier to apply for sign convention alignment. Use -1 to invert signal direction, 1 for no change."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    {
+      "name": "cdx_etf_basis",
+      "description": "Flow-driven mispricing signal from CDX-ETF basis divergence",
+      "indicator_dependencies": ["cdx_etf_spread_diff"],
+      "transformations": ["z_score_20d"],
+      "enabled": true,
+      "sign_multiplier": 1
+    },
+    {
+      "name": "cdx_vix_gap",
+      "description": "Cross-asset risk sentiment divergence between credit and equity volatility",
+      "indicator_dependencies": ["cdx_vix_deviation_gap_20d"],
+      "transformations": ["z_score_60d"],
+      "enabled": true,
+      "sign_multiplier": 1
+    },
+    {
+      "name": "spread_momentum",
+      "description": "Short-term volatility-adjusted momentum in CDX spreads",
+      "indicator_dependencies": ["spread_momentum_5d"],
+      "transformations": ["volatility_adjust_20d"],
+      "enabled": true,
+      "sign_multiplier": 1
+    },
+    {
+      "name": "relative_value_signal",
+      "description": "Relative value between CDX IG and HY indices",
+      "indicator_dependencies": ["cdx_ig_spread", "cdx_hy_spread"],
+      "transformations": ["z_score_20d"],
+      "composition_logic": "cdx_ig_spread / cdx_hy_spread",
+      "enabled": true,
+      "sign_multiplier": 1
+    }
+  ]
+}
