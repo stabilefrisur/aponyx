@@ -9,7 +9,8 @@ from pathlib import Path
 
 import click
 
-from aponyx.config import DATA_WORKFLOWS_DIR
+from aponyx.config import DATA_WORKFLOWS_DIR, INDICATOR_CACHE_DIR
+from aponyx.persistence.parquet_io import invalidate_indicator_cache
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,11 @@ def _collect_targets(base_path: Path) -> list[Path]:
     help="Clean all cached results",
 )
 @click.option(
+    "--indicators",
+    is_flag=True,
+    help="Clean indicator cache",
+)
+@click.option(
     "--dry-run",
     is_flag=True,
     help="Show what would be deleted without deleting",
@@ -65,17 +71,26 @@ def _collect_targets(base_path: Path) -> list[Path]:
 def clean(
     signal: str | None,
     clean_all: bool,
+    indicators: bool,
     dry_run: bool,
 ) -> None:
     """
-    Clear cached workflow results.
+    Clear cached workflow results and indicator cache.
 
     \b
     Examples:
         aponyx clean --signal spread_momentum
         aponyx clean --all
+        aponyx clean --indicators
+        aponyx clean --all --indicators
         aponyx clean --all --dry-run
     """
+    # Handle indicator cache cleaning
+    if indicators:
+        _clean_indicator_cache(dry_run)
+        if not signal and not clean_all:
+            # If only --indicators flag, we're done
+            return
     workflows_dir = DATA_WORKFLOWS_DIR
 
     if not workflows_dir.exists():
@@ -142,3 +157,46 @@ def clean(
         click.echo(f"\nDry run complete: {len(targets)} item(s) would be deleted")
     else:
         click.echo(f"\nCleaned {deleted_count}/{len(targets)} item(s)")
+
+
+def _clean_indicator_cache(dry_run: bool) -> None:
+    """
+    Clean all cached indicator values.
+
+    Parameters
+    ----------
+    dry_run : bool
+        If True, only show what would be deleted.
+    """
+    if not INDICATOR_CACHE_DIR.exists():
+        click.echo("No indicator cache found")
+        return
+
+    # Collect all cache files
+    cache_files = list(INDICATOR_CACHE_DIR.glob("*.parquet"))
+
+    if not cache_files:
+        click.echo("No cached indicators found")
+        return
+
+    if dry_run:
+        click.echo(f"\nWould delete {len(cache_files)} cached indicator(s):")
+        for cache_file in sorted(cache_files):
+            click.echo(f"  {cache_file.name}")
+        click.echo(f"\nDry run complete: {len(cache_files)} indicator(s) would be deleted")
+    else:
+        click.echo(f"Cleaning {len(cache_files)} cached indicator(s)...")
+        deleted_count = 0
+
+        for cache_file in cache_files:
+            try:
+                # Extract indicator name from cache key (format: {name}_{params_hash}_{data_hash}.parquet)
+                indicator_name = cache_file.stem.split("_")[0]
+                click.echo(f"Deleting cached indicator: {indicator_name}")
+                cache_file.unlink()
+                deleted_count += 1
+            except Exception as e:
+                logger.warning("Failed to delete %s: %s", cache_file, e)
+                click.echo(f"  Failed: {e}", err=True)
+
+        click.echo(f"\nCleaned {deleted_count}/{len(cache_files)} indicator cache file(s)")

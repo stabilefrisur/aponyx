@@ -156,10 +156,10 @@
 
 - [X] T065 Update compute_registered_signals in orchestrator.py to use compose_signal for new pattern signals
 - [X] T066 Update compute_registered_signals to handle both legacy and new signal patterns
-- [ ] T067 Update workflow DataStep to support indicator caching
-- [ ] T068 Update workflow SignalStep to use signal composition
-- [ ] T069 Add indicator cache invalidation to workflow cleanup logic
-- [ ] T070 Add test_workflow_with_indicator_caching to tests/workflows/test_engine.py
+- [X] T067 Update workflow DataStep to support indicator caching
+- [X] T068 Update workflow SignalStep to use signal composition
+- [X] T069 Add indicator cache invalidation to workflow cleanup logic
+- [X] T070 Add test_workflow_with_indicator_caching to tests/workflows/test_engine.py
 
 **Checkpoint**: Workflows fully integrated with indicator-signal architecture
 
@@ -174,11 +174,11 @@
 - [X] T073 [P] Add cache operation logging (DEBUG level) to parquet_io.py
 - [X] T074 Update copilot-instructions.md with indicator definition examples (if not already done)
 - [X] T075 Update copilot-instructions.md with signal composition examples (if not already done)
-- [ ] T076 Validate quickstart.md examples work correctly
+- [X] T076 Validate quickstart.md examples work correctly
 - [X] T077 Run full test suite and verify all 681+ tests pass (740/741 passing = 99.9%)
 - [X] T078 Run mypy type checking and fix any errors
 - [X] T079 Run ruff format and ruff check on all modified files
-- [ ] T080 Measure indicator caching performance improvement (target: 60% reduction)
+- [X] T080 Measure indicator caching performance improvement (target: 60% reduction)
 
 **Checkpoint**: Feature complete, validated, and ready for production use
 

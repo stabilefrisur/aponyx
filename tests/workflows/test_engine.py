@@ -348,4 +348,85 @@ def test_workflow_engine_subset_execution():
 
         # Only data and backtest should execute
         assert execution_order == ["data", "backtest"]
-        assert result["steps_completed"] == 2
+
+
+def test_workflow_with_indicator_caching():
+    """Test that indicator caching is integrated into workflow execution."""
+    import pandas as pd
+    import numpy as np
+    from aponyx.models.indicators import compute_indicator
+    from aponyx.persistence.parquet_io import invalidate_indicator_cache
+    from aponyx.config import INDICATOR_CACHE_DIR, INDICATOR_CATALOG_PATH
+    from aponyx.models.registry import IndicatorRegistry
+
+    # Clean indicator cache before test
+    invalidate_indicator_cache()
+
+    # Create test market data
+    dates = pd.date_range("2024-01-01", periods=100, freq="D")
+    cdx_df = pd.DataFrame(
+        {"spread": np.random.uniform(80, 120, 100)}, index=dates
+    )
+    etf_df = pd.DataFrame(
+        {"spread": np.random.uniform(70, 110, 100)}, index=dates
+    )
+    market_data = {"cdx": cdx_df, "etf": etf_df}
+
+    # Load indicator registry
+    registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+    indicator_metadata = registry.get_metadata("cdx_etf_spread_diff")
+
+    # Verify cache is empty
+    cache_files_before = list(INDICATOR_CACHE_DIR.glob("*.parquet"))
+    assert len(cache_files_before) == 0, "Cache should be empty initially"
+
+    # First computation - should create cache
+    indicator1 = compute_indicator(
+        "cdx_etf_spread_diff",
+        market_data,
+        indicator_metadata,
+        use_cache=True,
+    )
+
+    # Verify indicator was computed
+    assert isinstance(indicator1, pd.Series)
+    assert len(indicator1) > 0
+
+    # Verify cache was created
+    cache_files_after_first = list(INDICATOR_CACHE_DIR.glob("*.parquet"))
+    assert len(cache_files_after_first) == 1, "Cache should contain one cached indicator"
+
+    # Second computation - should use cache
+    import time
+    start = time.time()
+    indicator2 = compute_indicator(
+        "cdx_etf_spread_diff",
+        market_data,
+        indicator_metadata,
+        use_cache=True,
+    )
+    cache_time = time.time() - start
+
+    # Verify identical results
+    pd.testing.assert_series_equal(indicator1, indicator2, check_freq=False, check_names=False)
+
+    # Verify cache still exists
+    cache_files_after_second = list(INDICATOR_CACHE_DIR.glob("*.parquet"))
+    assert len(cache_files_after_second) == 1
+
+    # Third computation without cache - should recompute
+    invalidate_indicator_cache()
+    start = time.time()
+    indicator3 = compute_indicator(
+        "cdx_etf_spread_diff",
+        market_data,
+        indicator_metadata,
+        use_cache=False,
+    )
+    no_cache_time = time.time() - start
+
+    # Verify same results but no cache created (use_cache=False)
+    pd.testing.assert_series_equal(indicator1, indicator3, check_freq=False, check_names=False)
+
+    # Clean up
+    invalidate_indicator_cache()

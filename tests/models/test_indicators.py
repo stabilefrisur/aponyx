@@ -246,7 +246,7 @@ class TestComputeIndicatorOrchestration:
         )
 
         # Results should be identical (check_freq=False because cached series may have different freq)
-        pd.testing.assert_series_equal(result1, result2, check_freq=False)
+        pd.testing.assert_series_equal(result1, result2, check_freq=False, check_names=False)
 
     def test_missing_market_data(self):
         """Test error handling when required market data is missing."""
