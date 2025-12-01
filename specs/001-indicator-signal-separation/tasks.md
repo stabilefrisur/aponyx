@@ -125,14 +125,14 @@
 
 ### Implementation for User Story 3
 
-- [ ] T054 [US3] Implement get_dependent_signals method in IndicatorRegistry at src/aponyx/models/registry.py
-- [ ] T055 [US3] Implement get_all_dependencies method in IndicatorRegistry at src/aponyx/models/registry.py
-- [ ] T056 [US3] Implement _build_dependency_index helper in IndicatorRegistry at src/aponyx/models/registry.py
-- [ ] T057 [P] [US3] Add test_get_dependent_signals to tests/models/test_indicator_registry.py
-- [ ] T058 [P] [US3] Add test_get_all_dependencies to tests/models/test_indicator_registry.py
-- [ ] T059 [P] [US3] Add test_dependency_index_updates to tests/models/test_indicator_registry.py
+- [X] T054 [US3] Implement get_dependent_signals method in IndicatorRegistry at src/aponyx/models/registry.py
+- [X] T055 [US3] Implement get_all_dependencies method in IndicatorRegistry at src/aponyx/models/registry.py
+- [X] T056 [US3] Implement _build_dependency_index helper in IndicatorRegistry at src/aponyx/models/registry.py
+- [X] T057 [P] [US3] Add test_get_dependent_signals to tests/models/test_indicator_registry.py
+- [X] T058 [P] [US3] Add test_get_all_dependencies to tests/models/test_indicator_registry.py
+- [X] T059 [P] [US3] Add test_dependency_index_updates to tests/models/test_indicator_registry.py
 
-**Checkpoint**: User Story 3 complete - dependency tracking fully functional
+**Checkpoint**: ✅ User Story 3 complete - dependency tracking fully functional
 
 ---
 

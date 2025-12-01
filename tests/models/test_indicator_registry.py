@@ -225,3 +225,137 @@ class TestIndicatorMetadataProperties:
                 assert isinstance(key, str)
                 # Common parameter types
                 assert isinstance(value, (int, float, str, bool))
+
+
+class TestDependencyTracking:
+    """Tests for indicator-signal dependency tracking (User Story 3)."""
+
+    def test_get_dependent_signals(self):
+        """Test querying which signals depend on a specific indicator."""
+        from aponyx.config import SIGNAL_CATALOG_PATH
+        from aponyx.models.registry import SignalRegistry
+
+        indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+
+        # Build dependency index
+        indicator_registry._build_dependency_index(signal_registry)
+
+        # Check cdx_etf_spread_diff indicator
+        # Should be used by cdx_etf_basis signal
+        dependent_signals = indicator_registry.get_dependent_signals(
+            "cdx_etf_spread_diff"
+        )
+
+        assert isinstance(dependent_signals, list)
+        # At least one signal should depend on this indicator
+        assert len(dependent_signals) > 0
+        assert "cdx_etf_basis" in dependent_signals
+
+    def test_get_all_dependencies(self):
+        """Test retrieving complete dependency graph."""
+        from aponyx.config import SIGNAL_CATALOG_PATH
+        from aponyx.models.registry import SignalRegistry
+
+        indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+
+        # Build dependency index
+        indicator_registry._build_dependency_index(signal_registry)
+
+        # Get all dependencies
+        all_deps = indicator_registry.get_all_dependencies()
+
+        assert isinstance(all_deps, dict)
+
+        # Should have dependencies for our pilot indicators
+        assert len(all_deps) > 0
+
+        # Each entry should be indicator_name -> list of signal names
+        for indicator_name, signal_names in all_deps.items():
+            assert isinstance(indicator_name, str)
+            assert isinstance(signal_names, list)
+            for signal_name in signal_names:
+                assert isinstance(signal_name, str)
+
+    def test_dependency_index_updates(self):
+        """Test that dependency index correctly reflects catalog contents."""
+        from aponyx.config import SIGNAL_CATALOG_PATH
+        from aponyx.models.registry import SignalRegistry
+
+        indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+
+        # Build dependency index
+        indicator_registry._build_dependency_index(signal_registry)
+
+        # Verify each signal's dependencies are tracked
+        for signal_name, signal_meta in signal_registry.list_all().items():
+            if signal_meta.indicator_dependencies:
+                for indicator_name in signal_meta.indicator_dependencies:
+                    # This indicator should list the signal as dependent
+                    dependent_signals = indicator_registry.get_dependent_signals(
+                        indicator_name
+                    )
+                    assert (
+                        signal_name in dependent_signals
+                    ), f"Signal {signal_name} should be in dependencies for {indicator_name}"
+
+    def test_nonexistent_indicator_returns_empty_list(self):
+        """Test that querying dependencies for nonexistent indicator returns empty list."""
+        from aponyx.config import SIGNAL_CATALOG_PATH
+        from aponyx.models.registry import SignalRegistry
+
+        indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+
+        # Build dependency index
+        indicator_registry._build_dependency_index(signal_registry)
+
+        # Query nonexistent indicator
+        dependent_signals = indicator_registry.get_dependent_signals(
+            "nonexistent_indicator"
+        )
+
+        assert dependent_signals == []
+
+    def test_indicator_with_no_dependencies(self):
+        """Test indicators that are not used by any signals."""
+        from aponyx.config import SIGNAL_CATALOG_PATH
+        from aponyx.models.registry import SignalRegistry
+        import json
+        from pathlib import Path
+
+        # Create temporary indicator catalog with unused indicator
+        temp_indicator_catalog = [
+            {
+                "name": "unused_indicator",
+                "description": "An indicator not used by any signal",
+                "compute_function_name": "compute_spread_momentum",
+                "data_requirements": {"cdx": "spread"},
+                "default_securities": {"cdx": "cdx_ig_5y"},
+                "output_units": "basis_points",
+                "parameters": {"lookback": 5},
+                "enabled": True,
+            }
+        ]
+
+        temp_path = Path("temp_indicator_catalog.json")
+        try:
+            temp_path.write_text(json.dumps(temp_indicator_catalog, indent=2))
+
+            indicator_registry = IndicatorRegistry(temp_path)
+            signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+
+            # Build dependency index
+            indicator_registry._build_dependency_index(signal_registry)
+
+            # Unused indicator should have no dependencies
+            dependent_signals = indicator_registry.get_dependent_signals(
+                "unused_indicator"
+            )
+            assert dependent_signals == []
+
+        finally:
+            if temp_path.exists():
+                temp_path.unlink()
