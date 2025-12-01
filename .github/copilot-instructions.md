@@ -1,8 +1,45 @@
 # Copilot Instructions for Aponyx
 
-> **Auto-generated from codebase analysis** | Last Updated: November 23, 2025
+> **Auto-generated from codebase analysis** | Last Updated: December 1, 2025
 
 This file provides comprehensive guidance for AI coding assistants working on the aponyx systematic fixed-income research framework. All patterns documented here are based on actual codebase analysis, not invented practices.
+
+---
+
+## Quick Start for AI Agents
+
+**Essential Commands:**
+```bash
+# Environment setup
+uv sync                    # Install all dependencies
+uv sync --extra viz        # Include visualization tools
+uv sync --extra dev        # Include development tools
+
+# Testing & Quality
+uv run pytest              # Run all tests (681 tests)
+uv run pytest tests/models/ # Run specific module
+uv run mypy src/           # Type checking
+uv run ruff check src/     # Linting
+
+# CLI workflows
+uv run aponyx run --signal spread_momentum --strategy balanced
+uv run aponyx report --signal spread_momentum --strategy balanced
+uv run aponyx list signals
+```
+
+**Critical Paths:**
+- **Project root**: Automatically discovered via `config.PROJECT_ROOT = Path(__file__).parent.parent.parent`
+- **Data directory**: `data/` (raw, cache, workflows, .registries)
+- **Catalogs**: `src/aponyx/models/signal_catalog.json`, `src/aponyx/backtest/strategy_catalog.json`
+- **Tests**: `tests/{layer}/` (mirrors src/ structure)
+
+**Essential Patterns:**
+1. **Modern Python**: `str | None` not `Optional[str]`, `dict[str, Any]` not `Dict[str, Any]`
+2. **Frozen configs**: `@dataclass(frozen=True)` with `__post_init__` validation
+3. **Signal sign**: Positive = long credit risk (buy CDX)
+4. **Logging**: `logger = logging.getLogger(__name__)` at module level, never `basicConfig()`
+5. **Visualization**: Return `go.Figure`, never auto-display
+6. **Catalogs**: Indicators → Transformations → Signals (3-layer composition)
 
 ---
 
@@ -1366,6 +1403,6 @@ from aponyx.models import compute_signal
 
 *This instruction file is auto-generated from codebase analysis. All patterns are based on actual implementation, not invented best practices.*
 
-**Last Updated**: November 23, 2025  
-**Version**: 0.1.12  
+**Last Updated**: December 1, 2025  
+**Version**: 0.1.14  
 **Maintainer**: stabilefrisur
