@@ -127,10 +127,15 @@ src/aponyx/
 │   ├── cache.py           # TTL-based caching
 │   ├── registry.py        # Dataset tracking
 │   └── providers/         # File, Bloomberg providers
-├── models/                # Signal generation
-│   ├── signals.py         # Compute functions
-│   ├── registry.py        # SignalRegistry
+├── models/                # Indicator, transformation, and signal composition
+│   ├── indicators.py      # Indicator compute functions
+│   ├── transformations.py # Transformation functions
+│   ├── signal_composer.py # Signal composition logic
+│   ├── registry.py        # IndicatorRegistry, TransformationRegistry, SignalRegistry
+│   ├── metadata.py        # Metadata dataclasses
 │   ├── orchestrator.py    # Batch computation
+│   ├── indicator_catalog.json # Indicator metadata
+│   ├── transformation_catalog.json # Transformation metadata
 │   └── signal_catalog.json # Signal metadata
 ├── backtest/              # P&L simulation
 │   ├── engine.py          # run_backtest()
@@ -180,7 +185,8 @@ data/
 │   └── bloomberg/        # Terminal downloads
 ├── cache/                # TTL cache (regenerable, security-based: {security}_{hash}.parquet)
 │   ├── file/
-│   └── bloomberg/
+│   ├── bloomberg/
+│   └── indicators/       # Indicator computation cache
 ├── workflows/            # Timestamped workflow runs
 │   └── {signal}_{strategy}_{timestamp}/
 │       ├── metadata.json (includes securities_used mapping)
@@ -198,6 +204,8 @@ data/
 
 | File | Location | Type | Purpose |
 |------|----------|------|---------|
+| `indicator_catalog.json` | `src/aponyx/models/` | Static | Indicator definitions (3 indicators) |
+| `transformation_catalog.json` | `src/aponyx/models/` | Static | Transformation definitions (4 transformations) |
 | `signal_catalog.json` | `src/aponyx/models/` | Static | Signal definitions (3 signals) |
 | `strategy_catalog.json` | `src/aponyx/backtest/` | Static | Strategy configs (4 strategies) |
 | `bloomberg_securities.json` | `src/aponyx/data/` | Static | Security-to-ticker mapping |
@@ -307,36 +315,60 @@ name = registry.find_dataset_by_security("cdx_ig_5y")     # Returns dataset name
 - Forward-fill for missing dates
 - No imports from models/backtest/evaluation
 
-#### Signal Generation (`models/`)
+#### Indicator, Transformation, and Signal Composition (`models/`)
 
-**Purpose**: Compute signals from market data
+**Purpose**: Compute reusable market indicators, apply transformations, and compose trading signals
 
 **Patterns**:
-- Registry-based computation from JSON catalog
-- Z-score normalization over rolling windows
-- Consistent sign convention (positive = long credit)
-- Frozen SignalConfig dataclass
+- **Indicators**: Economically interpretable metrics (bps, ratios, percentages) without normalization
+- **Transformations**: Reusable signal processing operations (z-score, volatility adjustment)
+- **Signals**: Composed from indicators + transformations via catalog references
+- Registry-based computation from three separate JSON catalogs
+- Indicator caching for reuse across multiple signals
+- Frozen config dataclasses
 
 **Example**:
 ```python
-registry = SignalRegistry(SIGNAL_CATALOG_PATH)
-signals = compute_registered_signals(registry, market_data, config)
-# Returns: dict[str, pd.Series] with z-score normalized signals
+# Load registries
+indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+transformation_registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
+signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
-# Signals use default_securities from catalog
-metadata = registry.get_signal("cdx_etf_basis")
-print(metadata.default_securities)  # {"cdx": "cdx_ig_5y", "etf": "lqd"}
+# Compute indicator (cached for reuse)
+indicator = compute_indicator(
+    indicator_metadata=indicator_registry.get_metadata("cdx_etf_spread_diff"),
+    market_data={"cdx": cdx_df, "etf": etf_df},
+    use_cache=True
+)
+
+# Compose signal from indicator + transformation
+signal = compose_signal(
+    signal_metadata=signal_registry.get_metadata("cdx_etf_basis"),
+    market_data={"cdx": cdx_df, "etf": etf_df},
+    indicator_registry=indicator_registry,
+    transformation_registry=transformation_registry
+)
+
+# Batch computation of all enabled signals
+signals = compute_registered_signals(signal_registry, market_data, indicator_registry, transformation_registry)
+# Returns: dict[str, pd.Series] with trading signals
+
+# Indicators define default_securities in catalog
+indicator_metadata = indicator_registry.get_metadata("cdx_etf_spread_diff")
+print(indicator_metadata.default_securities)  # {"cdx": "cdx_ig_5y", "etf": "lqd"}
 
 # Override defaults via WorkflowConfig.security_mapping
 config = WorkflowConfig(security_mapping={"cdx": "cdx_hy_5y", "etf": "hyg"})
 ```
 
 **Constraints**:
-- Signals are pure functions (NOT classes)
-- Must return z-score normalized pd.Series
-- Positive signal = long credit risk (buy CDX)
-- Catalog declares data requirements explicitly
-- Each signal defines default_securities for instrument types
+- Indicators output economically interpretable values (bps, ratios, percentages) - NOT pre-normalized
+- Transformations are pure functions cataloged in transformation_catalog.json
+- Signals reference indicators via indicator_dependencies field (no embedded computation)
+- Signals reference transformations via transformations field (applied sequentially)
+- Positive signal = long credit risk (buy CDX) after all transformations applied
+- Catalog schema enforced: signals MUST have indicator_dependencies and transformations
+- Each indicator/transformation defines default_securities for instrument types
 
 #### Backtest Execution (`backtest/`)
 
@@ -451,24 +483,23 @@ report = generate_report(signal_name="spread_momentum", strategy_name="balanced"
 ### Adding a New Signal
 
 **Files to create/modify**:
-1. Add compute function to `src/aponyx/models/signals.py`
-2. Add metadata entry to `src/aponyx/models/signal_catalog.json`
-3. Add tests to `tests/models/test_signals.py`
+1. Add indicator function to `src/aponyx/models/indicators.py` (if needed)
+2. Add indicator entry to `src/aponyx/models/indicator_catalog.json` (if needed)
+3. Add transformation entry to `src/aponyx/models/transformation_catalog.json` (if needed)
+4. Add signal entry to `src/aponyx/models/signal_catalog.json`
+5. Add tests to `tests/models/test_indicators.py` and `tests/models/test_signal_composer.py`
 
-**Compute function template**:
+**Indicator function template** (if creating new indicator):
 ```python
-def compute_my_signal(
-    cdx_df: pd.DataFrame,  # Required data
-    vix_df: pd.DataFrame,  # Optional additional data
-    config: SignalConfig,
+def compute_my_indicator(
+    cdx_df: pd.DataFrame,
+    vix_df: pd.DataFrame,
 ) -> pd.Series:
     """
-    Compute my_signal based on CDX and VIX divergence.
+    Compute my indicator in economically interpretable units.
     
-    Signal Convention
-    -----------------
-    Positive values → Long credit risk (buy CDX)
-    Negative values → Short credit risk (sell CDX)
+    Indicator outputs raw values in basis points (bps) without normalization.
+    Transformations (z-score, etc.) are applied at signal composition layer.
     
     Parameters
     ----------
@@ -476,43 +507,62 @@ def compute_my_signal(
         CDX spread data with 'spread' column
     vix_df : pd.DataFrame
         VIX level data with 'level' column
-    config : SignalConfig
-        Signal parameters (lookback, min_periods)
     
     Returns
     -------
     pd.Series
-        Z-score normalized signal values
+        Indicator values in basis points (interpretable without signal context)
     """
-    # Compute raw signal
-    cdx_z = (cdx_df["spread"] - cdx_df["spread"].rolling(config.lookback).mean()) / cdx_df["spread"].rolling(config.lookback).std()
-    vix_z = (vix_df["level"] - vix_df["level"].rolling(config.lookback).mean()) / vix_df["level"].rolling(config.lookback).std()
+    # Compute raw indicator in economically meaningful units
+    cdx_deviation = cdx_df["spread"] - cdx_df["spread"].rolling(20).mean()
+    vix_deviation = vix_df["level"] - vix_df["level"].rolling(20).mean()
     
-    raw_signal = cdx_z - vix_z  # Example: credit stress vs equity stress gap
-    
-    # Z-score normalize
-    signal_mean = raw_signal.rolling(config.lookback, min_periods=config.min_periods).mean()
-    signal_std = raw_signal.rolling(config.lookback, min_periods=config.min_periods).std()
-    
-    return (raw_signal - signal_mean) / signal_std
+    # Return gap in basis points (NOT z-score normalized)
+    return cdx_deviation - vix_deviation
 ```
 
-**Catalog entry template**:
+**Indicator catalog entry template**:
 ```json
 {
-  "name": "my_signal",
-  "description": "CDX-VIX divergence signal",
-  "compute_function_name": "compute_my_signal",
+  "name": "my_indicator",
+  "description": "CDX-VIX deviation gap in basis points",
+  "compute_function_name": "compute_my_indicator",
   "data_requirements": {
     "cdx": "spread",
     "vix": "level"
   },
-  "arg_mapping": ["cdx", "vix"],
   "default_securities": {
     "cdx": "cdx_ig_5y",
     "vix": "vix"
   },
+  "output_units": "basis_points",
+  "parameters": {},
   "enabled": true
+}
+```
+
+**Signal catalog entry template** (composing from indicator + transformation):
+```json
+{
+  "name": "my_signal",
+  "description": "CDX-VIX divergence signal with z-score normalization",
+  "indicator_dependencies": ["my_indicator"],
+  "transformations": ["z_score_20d"],
+  "enabled": true,
+  "sign_multiplier": 1
+}
+```
+
+**For multi-indicator signals**, add composition_logic:
+```json
+{
+  "name": "combined_signal",
+  "description": "Combination of multiple indicators",
+  "indicator_dependencies": ["indicator_a", "indicator_b"],
+  "transformations": ["z_score_20d"],
+  "composition_logic": "(indicator_a + indicator_b) / 2",
+  "enabled": true,
+  "sign_multiplier": 1
 }
 ```
 

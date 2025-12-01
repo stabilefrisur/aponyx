@@ -77,10 +77,14 @@ aponyx run --signal cdx_etf_basis --strategy balanced
 
 ```python
 from aponyx.data import fetch_cdx, fetch_etf, FileSource
-from aponyx.models import compute_cdx_etf_basis, SignalConfig
+from aponyx.models import (
+    IndicatorRegistry, TransformationRegistry, SignalRegistry,
+    compute_indicator, compose_signal
+)
 from aponyx.backtest import run_backtest, BacktestConfig
 from aponyx.evaluation.performance import compute_all_metrics
 from aponyx.evaluation.suitability import evaluate_signal_suitability, SuitabilityConfig
+from aponyx.config import INDICATOR_CATALOG_PATH, TRANSFORMATION_CATALOG_PATH, SIGNAL_CATALOG_PATH
 
 # Load validated market data
 # Note: After generating synthetic data, find actual filenames in data/raw/synthetic/
@@ -88,9 +92,19 @@ from aponyx.evaluation.suitability import evaluate_signal_suitability, Suitabili
 cdx_df = fetch_cdx(FileSource("data/raw/synthetic/cdx_ig_5y_<hash>.parquet"), security="cdx_ig_5y")
 etf_df = fetch_etf(FileSource("data/raw/synthetic/hyg_<hash>.parquet"), security="hyg")
 
-# Generate signal with configuration
-signal_config = SignalConfig(lookback=20, min_periods=10)
-signal = compute_cdx_etf_basis(cdx_df, etf_df, signal_config)
+# Generate signal using indicator + transformation pattern
+market_data = {"cdx": cdx_df, "etf": etf_df}
+indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+transformation_registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
+signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+
+# Compute signal via catalog composition
+signal = compose_signal(
+    signal_metadata=signal_registry.get_metadata("cdx_etf_basis"),
+    market_data=market_data,
+    indicator_registry=indicator_registry,
+    transformation_registry=transformation_registry
+)
 
 # Evaluate signal-product suitability (optional pre-backtest assessment)
 suitability_config = SuitabilityConfig(rolling_window=252)  # ~1 year daily data
@@ -247,7 +261,7 @@ Aponyx follows a **layered architecture** with clean separation of concerns:
 | **Workflows** | Pipeline orchestration with dependency tracking | `WorkflowEngine`, `WorkflowConfig`, `StepRegistry`, concrete steps |
 | **Reporting** | Multi-format report generation | `generate_report`, console/markdown/HTML formatters |
 | **Data** | Load, validate, transform market data | `fetch_cdx`, `fetch_vix`, `fetch_etf`, `apply_transform`, `FileSource`, `BloombergSource` |
-| **Models** | Generate signals for independent evaluation | `compute_cdx_etf_basis`, `compute_cdx_vix_gap`, `SignalRegistry` |
+| **Models** | Indicators, transformations, and signal composition | `IndicatorRegistry`, `TransformationRegistry`, `compute_indicator`, `compose_signal` |
 | **Evaluation** | Pre-backtest screening (rolling window stability) and post-backtest analysis | `evaluate_signal_suitability`, `analyze_backtest_performance`, `PerformanceRegistry` |
 | **Backtest** | Simulate execution and generate P&L | `run_backtest`, `BacktestConfig`, `StrategyRegistry` |
 | **Visualization** | Interactive charts and dashboards | `plot_equity_curve`, `plot_signal`, `plot_drawdown` |
@@ -276,7 +290,7 @@ Workflow Engine (dependency tracking + caching)
     ↓
 [Step 1] Data Layer (load, validate, transform)
     ↓
-[Step 2] Models Layer (signal computation)
+[Step 2] Models Layer (indicator computation + signal composition)
     ↓
 [Step 3] Evaluation Layer (signal-product suitability)
     ↓
