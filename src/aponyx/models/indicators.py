@@ -246,14 +246,16 @@ def compute_indicator(
             logger.info("Using cached indicator: name=%s", indicator_name)
             return cached_result
 
-    # Get compute function
+    # Get compute function from this module's namespace
+    import sys
+    current_module = sys.modules[__name__]
     compute_fn_name = indicator_metadata.compute_function_name
-    if not hasattr(globals(), compute_fn_name):
+    if not hasattr(current_module, compute_fn_name):
         raise ValueError(
             f"Compute function '{compute_fn_name}' not found in indicators module"
         )
 
-    compute_fn = globals()[compute_fn_name]
+    compute_fn = getattr(current_module, compute_fn_name)
 
     # Prepare arguments based on data requirements
     args = []

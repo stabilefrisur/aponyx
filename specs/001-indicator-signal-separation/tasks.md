@@ -65,25 +65,25 @@
 
 ### Implementation for User Story 1
 
-- [ ] T020 [P] [US1] Create indicators.py module skeleton at src/aponyx/models/indicators.py
-- [ ] T021 [P] [US1] Implement compute_cdx_etf_spread_diff function in src/aponyx/models/indicators.py
-- [ ] T022 [P] [US1] Implement compute_spread_momentum function in src/aponyx/models/indicators.py
-- [ ] T023 [P] [US1] Implement compute_cdx_vix_deviation_gap function in src/aponyx/models/indicators.py
-- [ ] T024 [US1] Create compute_indicator orchestration function in src/aponyx/models/indicators.py
-- [ ] T025 [US1] Add indicator computation with caching to compute_indicator function
-- [ ] T026 [US1] Populate indicator_catalog.json with 3 pilot indicators (cdx_etf_spread_diff, spread_momentum_5d, cdx_vix_deviation_gap_20d)
-- [ ] T027 [US1] Validate IndicatorRegistry loads catalog without errors
-- [ ] T028 [P] [US1] Create test_indicators.py at tests/models/test_indicators.py
-- [ ] T029 [P] [US1] Add test_compute_cdx_etf_spread_diff to tests/models/test_indicators.py
-- [ ] T030 [P] [US1] Add test_compute_spread_momentum to tests/models/test_indicators.py
-- [ ] T031 [P] [US1] Add test_compute_cdx_vix_deviation_gap to tests/models/test_indicators.py
-- [ ] T032 [US1] Add test_compute_indicator_with_caching to tests/models/test_indicators.py
-- [ ] T033 [P] [US1] Create test_indicator_registry.py at tests/models/test_indicator_registry.py
-- [ ] T034 [P] [US1] Add test_load_indicator_catalog to tests/models/test_indicator_registry.py
-- [ ] T035 [P] [US1] Add test_validate_compute_functions_exist to tests/models/test_indicator_registry.py
-- [ ] T036 [US1] Add test_indicator_cache_invalidation to tests/models/test_indicators.py
+- [X] T020 [P] [US1] Create indicators.py module skeleton at src/aponyx/models/indicators.py
+- [X] T021 [P] [US1] Implement compute_cdx_etf_spread_diff function in src/aponyx/models/indicators.py
+- [X] T022 [P] [US1] Implement compute_spread_momentum function in src/aponyx/models/indicators.py
+- [X] T023 [P] [US1] Implement compute_cdx_vix_deviation_gap function in src/aponyx/models/indicators.py
+- [X] T024 [US1] Create compute_indicator orchestration function in src/aponyx/models/indicators.py
+- [X] T025 [US1] Add indicator computation with caching to compute_indicator function
+- [X] T026 [US1] Populate indicator_catalog.json with 3 pilot indicators (cdx_etf_spread_diff, spread_momentum_5d, cdx_vix_deviation_gap_20d)
+- [X] T027 [US1] Validate IndicatorRegistry loads catalog without errors
+- [X] T028 [P] [US1] Create test_indicators.py at tests/models/test_indicators.py
+- [X] T029 [P] [US1] Add test_compute_cdx_etf_spread_diff to tests/models/test_indicators.py
+- [X] T030 [P] [US1] Add test_compute_spread_momentum to tests/models/test_indicators.py
+- [X] T031 [P] [US1] Add test_compute_cdx_vix_deviation_gap to tests/models/test_indicators.py
+- [X] T032 [US1] Add test_compute_indicator_with_caching to tests/models/test_indicators.py
+- [X] T033 [P] [US1] Create test_indicator_registry.py at tests/models/test_indicator_registry.py
+- [X] T034 [P] [US1] Add test_load_indicator_catalog to tests/models/test_indicator_registry.py
+- [X] T035 [P] [US1] Add test_validate_compute_functions_exist to tests/models/test_indicator_registry.py
+- [X] T036 [US1] Add test_indicator_cache_invalidation to tests/models/test_indicators.py
 
-**Checkpoint**: User Story 1 complete - indicators can be defined, computed, cached, and tested independently
+**Checkpoint**: ✅ User Story 1 complete - indicators can be defined, computed, cached, and tested independently
 
 ---
 

@@ -142,15 +142,37 @@ class IndicatorRegistry:
 
         Raises
         ------
-        KeyError
+        ValueError
             If indicator name is not registered.
         """
         if name not in self._indicators:
-            raise KeyError(
+            raise ValueError(
                 f"Indicator '{name}' not found in registry. "
                 f"Available indicators: {sorted(self._indicators.keys())}"
             )
         return self._indicators[name]
+
+    def get_all_indicators(self) -> list[str]:
+        """
+        Get all indicator names.
+
+        Returns
+        -------
+        list[str]
+            List of all indicator names (enabled and disabled).
+        """
+        return list(self._indicators.keys())
+
+    def get_enabled_indicators(self) -> list[str]:
+        """
+        Get all enabled indicator names.
+
+        Returns
+        -------
+        list[str]
+            List of enabled indicator names only.
+        """
+        return [name for name, meta in self._indicators.items() if meta.enabled]
 
     def get_enabled(self) -> dict[str, IndicatorMetadata]:
         """
