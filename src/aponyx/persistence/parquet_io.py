@@ -1,12 +1,16 @@
 """
-Parquet I/O utilities for time series data persistence.
+Parquet I/O utilities for time series data and indicator cache persistence.
 
 Handles efficient storage and retrieval of market data (CDX spreads, VIX, ETF prices)
-with metadata preservation and validation.
+and computed indicators with metadata preservation and validation.
 """
 
+import hashlib
+import json
 import logging
 from pathlib import Path
+from typing import Any
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -173,3 +177,201 @@ def list_parquet_files(directory: str | Path, pattern: str = "*.parquet") -> lis
         "Found %d Parquet files in %s (pattern=%s)", len(files), directory, pattern
     )
     return files
+
+
+def generate_indicator_cache_key(
+    indicator_name: str,
+    parameters: dict[str, Any],
+    input_data: dict[str, pd.DataFrame],
+) -> str:
+    """
+    Generate deterministic cache key for indicator computation.
+
+    Cache key format: {indicator_name}_{params_hash}_{data_hash}
+
+    Parameters
+    ----------
+    indicator_name : str
+        Name of the indicator.
+    parameters : dict[str, Any]
+        Indicator computation parameters.
+    input_data : dict[str, pd.DataFrame]
+        Input market data DataFrames.
+
+    Returns
+    -------
+    str
+        Cache key string.
+
+    Examples
+    --------
+    >>> key = generate_indicator_cache_key(
+    ...     "cdx_etf_spread_diff",
+    ...     {"lookback": 5},
+    ...     {"cdx": cdx_df, "etf": etf_df}
+    ... )
+    >>> key
+    'cdx_etf_spread_diff_a1b2c3d4_e5f6g7h8'
+    """
+    # Hash parameters
+    params_str = json.dumps(parameters, sort_keys=True)
+    params_hash = hashlib.sha256(params_str.encode()).hexdigest()[:8]
+
+    # Hash input data (concatenate all DataFrame hashes)
+    data_hashes = []
+    for key in sorted(input_data.keys()):
+        df_hash = hashlib.sha256(
+            pd.util.hash_pandas_object(input_data[key]).values
+        ).hexdigest()[:8]
+        data_hashes.append(df_hash)
+    data_hash = hashlib.sha256("".join(data_hashes).encode()).hexdigest()[:8]
+
+    cache_key = f"{indicator_name}_{params_hash}_{data_hash}"
+    logger.debug("Generated cache key: %s", cache_key)
+    return cache_key
+
+
+def save_indicator_to_cache(
+    indicator_series: pd.Series,
+    cache_key: str,
+    cache_dir: Path,
+) -> Path:
+    """
+    Save computed indicator to cache.
+
+    Parameters
+    ----------
+    indicator_series : pd.Series
+        Computed indicator time series.
+    cache_key : str
+        Cache key from generate_indicator_cache_key().
+    cache_dir : Path
+        Root cache directory (e.g., data/cache/indicators/).
+
+    Returns
+    -------
+    Path
+        Path to saved cache file.
+
+    Examples
+    --------
+    >>> from aponyx.config import INDICATOR_CACHE_DIR
+    >>> cache_path = save_indicator_to_cache(
+    ...     indicator_series,
+    ...     "cdx_etf_spread_diff_a1b2c3d4_e5f6g7h8",
+    ...     INDICATOR_CACHE_DIR
+    ... )
+    """
+    cache_path = cache_dir / f"{cache_key}.parquet"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    # Convert Series to DataFrame for parquet storage
+    df = indicator_series.to_frame(name="value")
+
+    save_parquet(df, cache_path, compression="snappy", index=True)
+
+    logger.info("Cached indicator: key=%s, rows=%d", cache_key, len(indicator_series))
+    return cache_path
+
+
+def load_indicator_from_cache(
+    cache_key: str,
+    cache_dir: Path,
+) -> pd.Series | None:
+    """
+    Load indicator from cache if available.
+
+    Parameters
+    ----------
+    cache_key : str
+        Cache key from generate_indicator_cache_key().
+    cache_dir : Path
+        Root cache directory (e.g., data/cache/indicators/).
+
+    Returns
+    -------
+    pd.Series or None
+        Cached indicator series if found, None otherwise.
+
+    Examples
+    --------
+    >>> from aponyx.config import INDICATOR_CACHE_DIR
+    >>> indicator = load_indicator_from_cache(
+    ...     "cdx_etf_spread_diff_a1b2c3d4_e5f6g7h8",
+    ...     INDICATOR_CACHE_DIR
+    ... )
+    """
+    cache_path = cache_dir / f"{cache_key}.parquet"
+
+    if not cache_path.exists():
+        logger.debug("Cache miss: key=%s", cache_key)
+        return None
+
+    try:
+        df = load_parquet(cache_path)
+        indicator_series = df["value"]
+        logger.info("Cache hit: key=%s, rows=%d", cache_key, len(indicator_series))
+        return indicator_series
+    except Exception as e:
+        logger.warning("Failed to load cache: key=%s, error=%s", cache_key, e)
+        return None
+
+
+def invalidate_indicator_cache(
+    indicator_name: str | None = None,
+    cache_dir: Path | None = None,
+) -> int:
+    """
+    Invalidate indicator cache by deleting cache files.
+
+    Parameters
+    ----------
+    indicator_name : str or None
+        Specific indicator to invalidate. If None, invalidates all indicators.
+    cache_dir : Path or None
+        Cache directory. If None, uses default from config.
+
+    Returns
+    -------
+    int
+        Number of cache files deleted.
+
+    Examples
+    --------
+    >>> from aponyx.config import INDICATOR_CACHE_DIR
+    >>> # Invalidate specific indicator
+    >>> deleted = invalidate_indicator_cache("cdx_etf_spread_diff", INDICATOR_CACHE_DIR)
+    >>> # Invalidate all indicators
+    >>> deleted = invalidate_indicator_cache(None, INDICATOR_CACHE_DIR)
+    """
+    if cache_dir is None:
+        from ..config import INDICATOR_CACHE_DIR
+        cache_dir = INDICATOR_CACHE_DIR
+
+    if not cache_dir.exists():
+        logger.debug("Cache directory does not exist: %s", cache_dir)
+        return 0
+
+    # Determine pattern for deletion
+    if indicator_name:
+        pattern = f"{indicator_name}_*.parquet"
+    else:
+        pattern = "*.parquet"
+
+    # Delete matching files
+    cache_files = list(cache_dir.glob(pattern))
+    deleted_count = 0
+    for cache_file in cache_files:
+        try:
+            cache_file.unlink()
+            deleted_count += 1
+            logger.debug("Deleted cache file: %s", cache_file)
+        except Exception as e:
+            logger.warning("Failed to delete cache file %s: %s", cache_file, e)
+
+    logger.info(
+        "Invalidated indicator cache: pattern=%s, deleted=%d",
+        pattern,
+        deleted_count,
+    )
+    return deleted_count

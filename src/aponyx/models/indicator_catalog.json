@@ -1,0 +1,52 @@
+[
+  {
+    "name": "cdx_etf_spread_diff",
+    "description": "CDX spread minus ETF spread in basis points (raw basis without normalization)",
+    "compute_function_name": "compute_cdx_etf_spread_diff",
+    "data_requirements": {
+      "cdx": "spread",
+      "etf": "spread"
+    },
+    "default_securities": {
+      "cdx": "cdx_ig_5y",
+      "etf": "lqd"
+    },
+    "output_units": "basis_points",
+    "parameters": {},
+    "enabled": true
+  },
+  {
+    "name": "spread_momentum_5d",
+    "description": "5-day spread change in basis points (short-term momentum without volatility adjustment)",
+    "compute_function_name": "compute_spread_momentum",
+    "data_requirements": {
+      "cdx": "spread"
+    },
+    "default_securities": {
+      "cdx": "cdx_ig_5y"
+    },
+    "output_units": "basis_points",
+    "parameters": {
+      "lookback": 5
+    },
+    "enabled": true
+  },
+  {
+    "name": "cdx_vix_deviation_gap_20d",
+    "description": "Gap between CDX and VIX deviations from 20-day means (cross-asset risk sentiment)",
+    "compute_function_name": "compute_cdx_vix_deviation_gap",
+    "data_requirements": {
+      "cdx": "spread",
+      "vix": "level"
+    },
+    "default_securities": {
+      "cdx": "cdx_ig_5y",
+      "vix": "vix"
+    },
+    "output_units": "basis_points",
+    "parameters": {
+      "lookback": 20
+    },
+    "enabled": true
+  }
+]
