@@ -1,15 +1,18 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: Initial → 1.0.0
-Modified Principles: N/A (initial constitution)
-Added Sections: All (7 core principles + 2 additional sections)
+Version Change: 1.0.0 → 1.1.0
+Modified Principles: 
+- Breaking Changes Policy → Elevated to Core Principle VIII "No Backward Compatibility"
+- Technology Standards → Breaking Changes Policy section removed (now core principle)
+Added Sections:
+- Core Principle VIII: No Backward Compatibility (NON-NEGOTIABLE)
 Removed Sections: None
 
 Template Updates Required:
-✅ plan-template.md - Aligned with constitution principles
-✅ spec-template.md - Aligned with constitution principles  
-✅ tasks-template.md - Aligned with constitution principles
+✅ plan-template.md - Verified alignment with backward compatibility stance
+✅ spec-template.md - Verified alignment with backward compatibility stance
+✅ tasks-template.md - Verified alignment with backward compatibility stance
 
 Follow-up TODOs: None
 -->
@@ -158,6 +161,41 @@ Requirements:
 
 ---
 
+### VIII. No Backward Compatibility (NON-NEGOTIABLE)
+
+**Breaking changes are acceptable and encouraged. No deprecation warnings. No legacy support.**
+
+This project is an active-development research framework that prioritizes velocity, code clarity, and architectural cleanliness over backward compatibility.
+
+**Explicit Policy**:
+- **NO deprecation warnings** - Remove old code immediately, don't warn about it
+- **NO compatibility layers** - No fallback logic, no "legacy mode" switches
+- **NO migration utilities** - Users re-run workflows after breaking changes
+- **NO version pinning requirements** - Latest version may break existing code
+- **Breaking changes MAY occur in ANY release** - Including PATCH versions
+
+**When Making Breaking Changes**:
+1. Remove old code completely (no conditional logic)
+2. Update documentation to reflect only current patterns
+3. Invalidate affected caches and workflow results
+4. Document change briefly in CHANGELOG.md
+5. Increment version per semantic versioning
+
+**Version Semantics**:
+- **MAJOR**: Large architectural changes or multiple breaking changes
+- **MINOR**: New features (may include breaking changes to experimental features)
+- **PATCH**: Bug fixes and small improvements (may include breaking changes to internal APIs)
+
+**Rationale**: Research frameworks evolve rapidly. Maintaining backward compatibility in early development slows velocity, clutters codebase with conditional logic, confuses new developers with legacy patterns, and creates maintenance burden. Clean breaks enable faster iteration and clearer architecture. Users working with this codebase understand that re-running workflows after updates is normal and acceptable.
+
+**Validation**: 
+- Code review MUST reject deprecation warnings
+- Code review MUST reject "legacy mode" or compatibility switches
+- Code review MUST reject conditional logic that preserves old behavior
+- Breaking changes MUST be documented but NOT announced with warnings in runtime
+
+---
+
 ## Technology Standards
 
 ### Required Stack (NON-NEGOTIABLE)
@@ -180,15 +218,6 @@ All code MUST pass `uv run` checks:
 - **Type Checking**: `uv run mypy src/` (strict type checking)
 
 **Rationale**: `uv` provides unified tooling with consistent environment management. Ruff replaces Black (faster, same output) while adding comprehensive linting.
-
-### Breaking Changes Policy
-
-- **NO deprecation warnings** - project is early-stage research framework
-- **NO backward compatibility** - breaking changes MAY occur in any release
-- Version follows semantic versioning (MAJOR.MINOR.PATCH)
-- Document breaking changes briefly in CHANGELOG.md
-
-**Rationale**: Early-stage research framework prioritizes rapid iteration over backward compatibility. Production stability will be added when framework matures.
 
 ---
 
@@ -241,6 +270,8 @@ This Constitution supersedes all other development practices and guidelines. The
 - Type safety violations MUST be rejected
 - Logging configuration in library code MUST be rejected
 - Signal sign convention violations MUST be rejected
+- Deprecation warnings MUST be rejected
+- Backward compatibility code MUST be rejected
 
 ### Amendment Process
 
@@ -262,9 +293,10 @@ Periodic compliance reviews MUST check:
 - Logging configuration presence in library code
 - Registry pattern usage for all extensible components
 - Signal sign convention consistency
+- Absence of deprecation warnings or backward compatibility code
 
 ### Runtime Development Guidance
 
 For coding patterns, conventions, and feature scaffolding examples, see `.github/copilot-instructions.md`. The copilot instructions provide implementation details while this Constitution defines non-negotiable architectural principles.
 
-**Version**: 1.0.0 | **Ratified**: 2025-11-30 | **Last Amended**: 2025-11-30
+**Version**: 1.1.0 | **Ratified**: 2025-11-30 | **Last Amended**: 2025-12-01
