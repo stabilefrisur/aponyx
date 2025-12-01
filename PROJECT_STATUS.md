@@ -16,13 +16,21 @@
 | **License** | MIT |
 | **Test Coverage** | 681 tests across all layers |
 
+**Project Management:**
+- `uv` - Package installer, environment manager, and task runner
+
 **Core Dependencies:**
 - `pandas>=2.0.0`, `numpy>=1.24.0`, `pyarrow>=12.0.0`, `scipy>=1.7.0`, `statsmodels>=0.14.0`, `quantstats>=0.0.77`, `click>=8.1.0`, `pyyaml>=6.0`
 
 **Optional Dependencies:**
 - `bloomberg`: `xbbg>=0.7.0` (Bloomberg Terminal integration)
 - `viz`: `plotly>=5.24.0`, `streamlit>=1.39.0`, `nbformat>=5.10.0`, `ipykernel>=6.29.0`, `tabulate>=0.9.0`, `jupyter>=1.0.0`, `matplotlib>=3.3.0`, `seaborn>=0.11.0` (visualization)
-- `dev`: `pytest>=8.0.0`, `pytest-cov>=5.0.0`, `ruff>=0.6.0`, `black>=24.0.0`, `mypy>=1.11.0`, `pandas-stubs>=2.0.0` (development tools)
+- `dev`: `pytest>=8.0.0`, `pytest-cov>=5.0.0`, `ruff>=0.6.0`, `mypy>=1.11.0`, `pandas-stubs>=2.0.0` (development tools)
+
+**Code Quality Tools (run via uv):**
+- `ruff` - Fast linter and formatter (replaces black)
+- `mypy` - Static type checker
+- `pytest` - Test framework
 
 ---
 

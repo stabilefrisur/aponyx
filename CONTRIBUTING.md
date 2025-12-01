@@ -21,9 +21,11 @@
 ### Prerequisites
 
 - **Python 3.12** (no backward compatibility with 3.11 or earlier)
-- **uv** package manager ([installation guide](https://docs.astral.sh/uv/))
+- **uv** package and project manager ([installation guide](https://docs.astral.sh/uv/))
 - Git for version control
 - (Optional) Bloomberg Terminal with `blpapi` for data provider development
+
+**Note:** All commands in this guide use `uv` for dependency management, running scripts, and executing code quality tools.
 
 ### Development Environment Setup
 
@@ -38,19 +40,12 @@
    uv sync --extra dev --extra viz
    ```
 
-3. **Activate the virtual environment:**
+3. **Verify installation:**
    ```bash
-   # On Windows
-   .venv\Scripts\activate
-   
-   # On macOS/Linux
-   source .venv/bin/activate
+   uv run pytest
    ```
 
-4. **Verify installation:**
-   ```bash
-   pytest
-   ```
+**Note:** You don't need to manually activate the virtual environment. Use `uv run <command>` to automatically execute commands in the project environment.
 
 ---
 
@@ -74,11 +69,11 @@
 
 3. **Run tests and checks:**
    ```bash
-   pytest                              # Unit tests
-   pytest --cov=aponyx                # With coverage
-   black src/ tests/                   # Format code
-   ruff check src/ tests/              # Lint
-   mypy src/                          # Type check
+   uv run pytest                              # Unit tests
+   uv run pytest --cov=aponyx                # With coverage
+   uv run ruff format src/ tests/            # Format code
+   uv run ruff check src/ tests/             # Lint
+   uv run mypy src/                          # Type check
    ```
 
 4. **Commit with conventional commit format** (see below)
@@ -205,16 +200,16 @@ def test_feature():
 
 ```bash
 # All tests
-pytest
+uv run pytest
 
 # With coverage report
-pytest --cov=aponyx --cov-report=html
+uv run pytest --cov=aponyx --cov-report=html
 
 # Specific module
-pytest tests/models/
+uv run pytest tests/models/
 
 # Specific test
-pytest tests/models/test_signals.py::test_compute_cdx_etf_basis
+uv run pytest tests/models/test_signals.py::test_compute_cdx_etf_basis
 ```
 
 ---
@@ -320,14 +315,14 @@ update docs.
 
 1. **Ensure all tests pass:**
    ```bash
-   pytest --cov=aponyx
+   uv run pytest --cov=aponyx
    ```
 
 2. **Run code quality checks:**
    ```bash
-   black src/ tests/
-   ruff check src/ tests/
-   mypy src/
+   uv run ruff format src/ tests/
+   uv run ruff check src/ tests/
+   uv run mypy src/
    ```
 
 3. **Update documentation** as needed
@@ -360,10 +355,10 @@ Brief description of changes
 Describe testing performed
 
 ## Checklist
-- [ ] Tests pass locally
-- [ ] Code formatted with black
-- [ ] Linting passes (ruff)
-- [ ] Type checking passes (mypy)
+- [ ] Tests pass locally (`uv run pytest`)
+- [ ] Code formatted (`uv run ruff format`)
+- [ ] Linting passes (`uv run ruff check`)
+- [ ] Type checking passes (`uv run mypy`)
 - [ ] Documentation updated
 - [ ] CHANGELOG.md updated
 ```
