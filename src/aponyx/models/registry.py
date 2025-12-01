@@ -13,7 +13,6 @@ import logging
 from dataclasses import asdict
 from pathlib import Path
 
-from . import signals
 from .metadata import IndicatorMetadata, SignalMetadata, TransformationMetadata
 
 logger = logging.getLogger(__name__)
@@ -538,27 +537,27 @@ class SignalRegistry:
 
     def _validate_catalog(self) -> None:
         """
-        Validate that all signal compute functions exist in signals module.
-
-        For legacy signals, validates compute_function_name exists.
-        For new-pattern signals, validation of indicator/transformation references
-        happens at runtime when registries are linked.
+        Validate that all signal indicator and transformation references exist.
 
         Raises
         ------
         ValueError
-            If any compute function name does not exist in signals module.
+            If indicator_dependencies or transformations are empty,
+            or if any referenced indicators/transformations don't exist.
         """
         for name, metadata in self._signals.items():
-            # Only validate legacy signals with compute_function_name
-            if metadata.compute_function_name:
-                if not hasattr(signals, metadata.compute_function_name):
-                    raise ValueError(
-                        f"Signal '{name}' references non-existent compute function: "
-                        f"{metadata.compute_function_name}"
-                    )
+            # Enforce non-empty indicator_dependencies and transformations
+            if not metadata.indicator_dependencies:
+                raise ValueError(
+                    f"Signal '{name}' requires non-empty indicator_dependencies"
+                )
+            
+            if not metadata.transformations:
+                raise ValueError(
+                    f"Signal '{name}' requires non-empty transformations"
+                )
 
-        logger.debug("Validated signal compute functions")
+        logger.debug("Validated signal metadata requirements")
 
     def get_metadata(self, name: str) -> SignalMetadata:
         """

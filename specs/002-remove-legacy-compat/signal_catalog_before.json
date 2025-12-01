@@ -2,24 +2,55 @@
   {
     "name": "cdx_etf_basis",
     "description": "Flow-driven mispricing signal from CDX-ETF basis divergence",
+    "compute_function_name": "compute_cdx_etf_basis",
+    "data_requirements": {
+      "cdx": "spread",
+      "etf": "spread"
+    },
+    "arg_mapping": ["cdx", "etf"],
+    "default_securities": {
+      "cdx": "cdx_ig_5y",
+      "etf": "lqd"
+    },
     "indicator_dependencies": ["cdx_etf_spread_diff"],
     "transformations": ["z_score_20d"],
+    "composition_logic": null,
     "enabled": true,
     "sign_multiplier": 1
   },
   {
     "name": "cdx_vix_gap",
     "description": "Cross-asset risk sentiment divergence between credit and equity volatility",
+    "compute_function_name": "compute_cdx_vix_gap",
+    "data_requirements": {
+      "cdx": "spread",
+      "vix": "level"
+    },
+    "arg_mapping": ["cdx", "vix"],
+    "default_securities": {
+      "cdx": "cdx_ig_5y",
+      "vix": "vix"
+    },
     "indicator_dependencies": ["cdx_vix_deviation_gap_20d"],
     "transformations": ["z_score_60d"],
+    "composition_logic": null,
     "enabled": true,
     "sign_multiplier": 1
   },
   {
     "name": "spread_momentum",
     "description": "Short-term volatility-adjusted momentum in CDX spreads",
+    "compute_function_name": "compute_spread_momentum",
+    "data_requirements": {
+      "cdx": "spread"
+    },
+    "arg_mapping": ["cdx"],
+    "default_securities": {
+      "cdx": "cdx_ig_5y"
+    },
     "indicator_dependencies": ["spread_momentum_5d"],
     "transformations": ["volatility_adjust_20d"],
+    "composition_logic": null,
     "enabled": true,
     "sign_multiplier": 1
   }

@@ -2,8 +2,8 @@
 Signal computation orchestration using registry pattern.
 
 This module orchestrates batch signal computation from the signal catalog.
-It bridges the gap between signal metadata (registry.py, metadata.py) and
-signal computation functions (signals.py).
+It coordinates between signal metadata (registry.py, metadata.py) and
+signal composition (signal_composer.py) via the indicator + transformation pattern.
 
 Design Notes
 ------------
@@ -12,19 +12,14 @@ market_data dict pattern:
     to DataFrame objects. This enables catalog-driven computation where:
 
     1. Different signals require different data combinations
-    2. Catalog defines requirements declaratively via data_requirements
-    3. Orchestrator resolves data dynamically using arg_mapping
+    2. Indicators define requirements declaratively via data_requirements
+    3. Orchestrator resolves data dynamically for indicator computation
 
     Alternative approaches considered:
     - Named parameters: Inflexible, requires knowing all data types upfront
     - Auto-loading from DataRegistry: Couples signal computation to data loading
 
     The dict pattern is kept for flexibility despite adding indirection.
-
-arg_mapping pattern:
-    Uses positional argument mapping for simplicity in pilot phase.
-    Alternative keyword-based approach ({"cdx": "cdx_param"}) was considered
-    but rejected to avoid complexity. May revisit in future if needed.
 """
 
 from __future__ import annotations
@@ -34,8 +29,6 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from . import signals
-from .config import SignalConfig
 from .metadata import SignalMetadata
 
 if TYPE_CHECKING:
@@ -47,13 +40,12 @@ logger = logging.getLogger(__name__)
 def compute_registered_signals(
     registry: SignalRegistry,
     market_data: dict[str, pd.DataFrame],
-    config: SignalConfig,
 ) -> dict[str, pd.Series]:
     """
     Compute all enabled signals from registry using provided market data.
 
-    Validates data requirements, resolves compute functions dynamically,
-    and executes signal computations in registration order.
+    Validates data requirements and executes signal compositions via the
+    indicator + transformation pattern.
 
     Correct Usage Pattern
     ---------------------
@@ -72,14 +64,12 @@ def compute_registered_signals(
     registry : SignalRegistry
         Signal registry containing metadata and catalog.
     market_data : dict[str, pd.DataFrame]
-        Market data mapping. Keys should match signal data_requirements.
+        Market data mapping. Keys should match indicator data_requirements.
         Must contain ALL data keys required by ANY enabled signal.
         Example: {"cdx": cdx_df, "etf": etf_df, "vix": vix_df}
 
         The dict pattern enables catalog-driven computation where different
         signals can specify different data requirements without hardcoding.
-    config : SignalConfig
-        Configuration parameters for signal computation (lookback, min_periods).
 
     Returns
     -------
@@ -91,8 +81,6 @@ def compute_registered_signals(
     ------
     ValueError
         If required market data is missing or lacks required columns.
-    AttributeError
-        If compute function name does not exist in signals module.
 
     Examples
     --------
@@ -100,7 +88,7 @@ def compute_registered_signals(
 
     >>> from aponyx.config import SIGNAL_CATALOG_PATH
     >>> from aponyx.data.requirements import get_required_data_keys
-    >>> from aponyx.models import SignalRegistry, SignalConfig, compute_registered_signals
+    >>> from aponyx.models import SignalRegistry, compute_registered_signals
     >>>
     >>> # 1. Get required data keys from catalog
     >>> required_keys = get_required_data_keys(SIGNAL_CATALOG_PATH)  # {"cdx", "etf", "vix"}
@@ -112,8 +100,7 @@ def compute_registered_signals(
     >>>
     >>> # 3. Compute all enabled signals
     >>> registry = SignalRegistry(SIGNAL_CATALOG_PATH)
-    >>> config = SignalConfig(lookback=20)
-    >>> all_signals = compute_registered_signals(registry, market_data, config)
+    >>> all_signals = compute_registered_signals(registry, market_data)
     >>>
     >>> # 4. Use individual signals for analysis
     >>> basis_signal = all_signals["cdx_etf_basis"]
@@ -121,8 +108,8 @@ def compute_registered_signals(
 
     Notes
     -----
-    The market_data dict keys must match the keys in each signal's
-    data_requirements field from the catalog. For example, if a signal
+    The market_data dict keys must match the keys in each indicator's
+    data_requirements field from the catalog. For example, if an indicator
     specifies {"cdx": "spread", "vix": "level"}, then market_data must
     contain keys "cdx" and "vix" with DataFrames having those columns.
 
@@ -141,7 +128,7 @@ def compute_registered_signals(
 
     for signal_name, metadata in enabled_signals.items():
         try:
-            signal_series = _compute_signal(metadata, market_data, config)
+            signal_series = _compute_signal(metadata, market_data)
             results[signal_name] = signal_series
 
             logger.debug(
@@ -166,101 +153,11 @@ def compute_registered_signals(
 def _compute_signal(
     metadata: SignalMetadata,
     market_data: dict[str, pd.DataFrame],
-    config: SignalConfig,
 ) -> pd.Series:
     """
-    Compute a single signal using metadata specification.
-
-    Supports both legacy pattern (compute_function_name) and new pattern
-    (indicator_dependencies + transformations).
+    Compute a single signal using indicator + transformation composition.
 
     Applies sign multiplier from catalog metadata.
-
-    Parameters
-    ----------
-    metadata : SignalMetadata
-        Signal metadata with data requirements and function mapping.
-    market_data : dict[str, pd.DataFrame]
-        Available market data.
-    config : SignalConfig
-        Signal computation parameters.
-
-    Returns
-    -------
-    pd.Series
-        Computed signal with sign multiplier applied.
-
-    Raises
-    ------
-    ValueError
-        If required data is missing or lacks required columns.
-    AttributeError
-        If compute function does not exist in signals module (legacy pattern only).
-    """
-    # Determine which pattern to use
-    if metadata.indicator_dependencies:
-        # New pattern: compose signal from indicators + transformations
-        raw_signal = _compute_signal_new_pattern(metadata, market_data)
-    else:
-        # Legacy pattern: call compute function directly
-        raw_signal = _compute_signal_legacy_pattern(metadata, market_data, config)
-
-    # Apply sign multiplier from catalog
-    signal = raw_signal * metadata.sign_multiplier
-
-    if metadata.sign_multiplier == -1:
-        logger.debug(
-            "Applied sign inversion to signal '%s'",
-            metadata.name,
-        )
-
-    return signal
-
-
-def _compute_signal_legacy_pattern(
-    metadata: SignalMetadata,
-    market_data: dict[str, pd.DataFrame],
-    config: SignalConfig,
-) -> pd.Series:
-    """
-    Compute signal using legacy pattern (compute_function_name).
-
-    Parameters
-    ----------
-    metadata : SignalMetadata
-        Signal metadata with compute_function_name.
-    market_data : dict[str, pd.DataFrame]
-        Available market data.
-    config : SignalConfig
-        Signal computation parameters.
-
-    Returns
-    -------
-    pd.Series
-        Computed signal (before sign multiplier).
-    """
-    # Validate all required data is available
-    _validate_data_requirements(metadata, market_data)
-
-    # Resolve compute function from signals module
-    compute_fn_name = metadata.compute_function_name or ""
-    compute_fn = getattr(signals, compute_fn_name)
-
-    # Build positional arguments from arg_mapping
-    arg_mapping = metadata.arg_mapping or []
-    args = [market_data[key] for key in arg_mapping]
-
-    # Call compute function with market data and config
-    result: pd.Series = compute_fn(*args, config)
-    return result
-
-
-def _compute_signal_new_pattern(
-    metadata: SignalMetadata,
-    market_data: dict[str, pd.DataFrame],
-) -> pd.Series:
-    """
-    Compute signal using new pattern (indicator_dependencies + transformations).
 
     Parameters
     ----------
@@ -272,9 +169,15 @@ def _compute_signal_new_pattern(
     Returns
     -------
     pd.Series
-        Computed signal (before sign multiplier).
+        Computed signal with sign multiplier applied.
+
+    Raises
+    ------
+    ValueError
+        If required data is missing or lacks required columns.
     """
     from dataclasses import asdict
+
     from ..config import INDICATOR_CATALOG_PATH, TRANSFORMATION_CATALOG_PATH
     from .registry import IndicatorRegistry, TransformationRegistry
     from .signal_composer import compose_signal
@@ -283,47 +186,21 @@ def _compute_signal_new_pattern(
     indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
     transformation_registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
 
-    # Compose signal using new pattern
-    return compose_signal(
+    # Compose signal using indicator + transformation pattern
+    raw_signal = compose_signal(
         indicator_registry,
         transformation_registry,
         asdict(metadata),
         market_data,
     )
 
+    # Apply sign multiplier from catalog
+    signal = raw_signal * metadata.sign_multiplier
 
-def _validate_data_requirements(
-    metadata: SignalMetadata,
-    market_data: dict[str, pd.DataFrame],
-) -> None:
-    """
-    Validate market data satisfies signal's data requirements.
+    if metadata.sign_multiplier == -1:
+        logger.debug(
+            "Applied sign inversion to signal '%s'",
+            metadata.name,
+        )
 
-    Parameters
-    ----------
-    metadata : SignalMetadata
-        Signal metadata with data requirements.
-    market_data : dict[str, pd.DataFrame]
-        Available market data.
-
-    Raises
-    ------
-    ValueError
-        If required data key is missing or DataFrame lacks required column.
-    """
-    data_requirements = metadata.data_requirements or {}
-    for data_key, required_column in data_requirements.items():
-        # Check data key exists
-        if data_key not in market_data:
-            raise ValueError(
-                f"Signal '{metadata.name}' requires market data key '{data_key}'. "
-                f"Available keys: {sorted(market_data.keys())}"
-            )
-
-        # Check required column exists in DataFrame
-        df = market_data[data_key]
-        if required_column not in df.columns:
-            raise ValueError(
-                f"Signal '{metadata.name}' requires column '{required_column}' "
-                f"in '{data_key}' data. Available columns: {list(df.columns)}"
-            )
+    return signal

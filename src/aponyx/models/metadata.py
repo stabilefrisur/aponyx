@@ -144,111 +144,72 @@ class SignalMetadata:
     """
     Metadata for a registered signal computation.
 
-    Signals are trading signals derived from one or more indicators via transformations.
-    Supports both legacy pattern (compute_function_name) and new composition pattern
-    (indicator_dependencies + transformations).
+    Signals are trading signals derived from indicators via transformations.
+    All signals MUST use the indicator + transformation composition pattern.
 
     Attributes
     ----------
     name : str
-        Unique signal identifier (e.g., "cdx_etf_basis").
+        Unique signal identifier (lowercase with underscores).
+        Example: "cdx_etf_basis", "spread_momentum"
     description : str
         Human-readable description of signal purpose and logic.
-
-    # New composition pattern fields
-    indicator_dependencies : list[str] | None
-        List of indicator names required for this signal.
+        Minimum 10 characters.
+    indicator_dependencies : list[str]
+        List of indicator names required for this signal (REQUIRED).
+        All indicators must exist in indicator_catalog.json.
         Example: ["cdx_etf_spread_diff"]
-    transformations : list[str] | None
-        List of transformation names to apply to indicators.
+    transformations : list[str]
+        List of transformation names to apply to indicators (REQUIRED).
+        All transformations must exist in transformation_catalog.json.
         Example: ["z_score_20d"]
     composition_logic : str | None
         Optional Python expression for combining multiple indicators.
+        Used only for multi-indicator signals.
         Example: "cdx_spread / etf_spread"
-
-    # Legacy pattern fields (deprecated)
-    compute_function_name : str | None
-        Name of the compute function in signals module (DEPRECATED).
-        Maintained for backward compatibility only.
-    data_requirements : dict[str, str] | None
-        Mapping from market data keys to required column names (DEPRECATED).
-        Moved to indicators in new pattern.
-    arg_mapping : list[str] | None
-        Ordered list of data keys to pass as positional arguments (DEPRECATED).
-        Moved to indicators in new pattern.
-    default_securities : dict[str, str] | None
-        Default security IDs to use for each instrument type (DEPRECATED).
-        Moved to indicators in new pattern.
-
-    # Common fields
+        Default: None (single indicator, sequential transformations)
     enabled : bool
         Whether signal should be included in computation.
+        Default: True
     sign_multiplier : int
         Multiplier to apply to signal output for sign correction.
         Use -1 to invert signals with negative Sharpe ratios.
-        Default is 1 (no inversion).
-
-    Notes
-    -----
-    Migration Strategy:
-    - Legacy signals have compute_function_name (facade pattern)
-    - New signals have indicator_dependencies + transformations (composition)
-    - Both patterns coexist during migration period
+        Must be -1 or 1.
+        Default: 1 (no inversion)
     """
 
     name: str
     description: str
-
-    # New composition pattern (preferred)
-    indicator_dependencies: list[str] | None = None
-    transformations: list[str] | None = None
+    indicator_dependencies: list[str]
+    transformations: list[str]
     composition_logic: str | None = None
-
-    # Legacy pattern (deprecated, for backward compatibility)
-    compute_function_name: str | None = None
-    data_requirements: dict[str, str] | None = None
-    arg_mapping: list[str] | None = None
-    default_securities: dict[str, str] | None = None
-
     enabled: bool = True
     sign_multiplier: int = 1
 
     def __post_init__(self) -> None:
         """Validate signal metadata."""
-        if not self.name:
-            raise ValueError("Signal name cannot be empty")
-
-        # Either legacy or new pattern required
-        has_legacy = self.compute_function_name is not None
-        has_new = self.indicator_dependencies is not None
-
-        if not has_legacy and not has_new:
+        # Validate name format
+        if not self.name or not re.match(r"^[a-z][a-z0-9_]*$", self.name):
             raise ValueError(
-                f"Signal {self.name} must specify either compute_function_name (legacy) "
-                "or indicator_dependencies (new pattern)"
+                f"Signal name must be lowercase with underscores, got: {self.name}"
             )
 
-        # Validate legacy pattern if used
-        if has_legacy:
-            if not self.arg_mapping:
-                raise ValueError(f"Legacy signal {self.name} requires arg_mapping")
+        # Validate description
+        if not self.description or len(self.description) < 10:
+            raise ValueError(
+                f"Signal description must be at least 10 characters, got: {len(self.description)}"
+            )
 
-            # Validate arg_mapping matches data_requirements
-            if self.data_requirements:
-                arg_set = set(self.arg_mapping)
-                req_set = set(self.data_requirements.keys())
-                if arg_set != req_set:
-                    raise ValueError(
-                        f"arg_mapping {self.arg_mapping} must match "
-                        f"data_requirements {list(self.data_requirements.keys())}"
-                    )
+        # Enforce indicator + transformation pattern (REQUIRED)
+        if not self.indicator_dependencies:
+            raise ValueError(
+                f"Signal '{self.name}' requires indicator_dependencies (cannot be empty)"
+            )
 
-        # Validate new pattern if used
-        if has_new:
-            if not self.indicator_dependencies:
-                raise ValueError(
-                    f"New pattern signal {self.name} requires indicator_dependencies"
-                )
+        if not self.transformations:
+            raise ValueError(
+                f"Signal '{self.name}' requires transformations (cannot be empty)"
+            )
 
         # Validate sign_multiplier is ±1
         if self.sign_multiplier not in (-1, 1):

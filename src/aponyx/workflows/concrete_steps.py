@@ -183,7 +183,7 @@ class DataStep(BaseWorkflowStep):
 
 
 class SignalStep(BaseWorkflowStep):
-    """Compute signal values."""
+    """Compute signal values using indicator + transformation composition."""
 
     @property
     def name(self) -> str:
@@ -201,8 +201,14 @@ class SignalStep(BaseWorkflowStep):
         # Get the specific signal metadata for this workflow
         signal_metadata = signal_registry.get_metadata(self.config.signal_name)
 
-        # Determine which securities to use for this signal's computation
-        # Priority: 1) security_mapping from config, 2) default_securities from catalog
+        # Load indicator registry to get default_securities from indicators
+        from aponyx.config import INDICATOR_CATALOG_PATH
+        from aponyx.models.registry import IndicatorRegistry
+
+        indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+
+        # Build securities mapping from first indicator's default_securities
+        # (or use config override if provided)
         if self.config.security_mapping:
             securities_to_use = self.config.security_mapping
             logger.info(
@@ -211,9 +217,15 @@ class SignalStep(BaseWorkflowStep):
                 securities_to_use,
             )
         else:
-            securities_to_use = signal_metadata.default_securities
+            # Get default_securities from the first indicator
+            first_indicator_name = signal_metadata.indicator_dependencies[0]
+            first_indicator_metadata = indicator_registry.get_metadata(
+                first_indicator_name
+            )
+            securities_to_use = first_indicator_metadata.default_securities
             logger.info(
-                "Using default securities for signal '%s': %s",
+                "Using default securities from indicator '%s' for signal '%s': %s",
+                first_indicator_name,
                 self.config.signal_name,
                 securities_to_use,
             )
@@ -236,24 +248,10 @@ class SignalStep(BaseWorkflowStep):
                 len(raw_market_data[security_id]),
             )
 
-        # Validate that we have all required instrument types for this signal
-        required_types = set(signal_metadata.data_requirements.keys())
-        provided_types = set(market_data.keys())
-        if required_types != provided_types:
-            raise ValueError(
-                f"Signal '{self.config.signal_name}' requires instrument types {sorted(required_types)}, "
-                f"but security mapping provides {sorted(provided_types)}. "
-                f"Missing: {sorted(required_types - provided_types)}, "
-                f"Extra: {sorted(provided_types - required_types)}"
-            )
-
         # Compute the specific signal for this workflow
-        config = SignalConfig(lookback=20, min_periods=10)
-
-        # Create a single-signal registry for this workflow's signal
         from aponyx.models.orchestrator import _compute_signal
 
-        signal = _compute_signal(signal_metadata, market_data, config)
+        signal = _compute_signal(signal_metadata, market_data)
 
         logger.info(
             "Computed signal '%s': %d values, %.2f%% non-null",

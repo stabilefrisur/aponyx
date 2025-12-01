@@ -24,9 +24,9 @@ description: "Task list for removing legacy compatibility from indicator-signal 
 
 **Purpose**: Project structure validation and backup preparation
 
-- [ ] T001 Validate current project structure matches plan.md expectations
-- [ ] T002 Create git branch `002-remove-legacy-compat` from main
-- [ ] T003 Backup current signal_catalog.json to specs/002-remove-legacy-compat/signal_catalog_before.json
+- [X] T001 Validate current project structure matches plan.md expectations
+- [X] T002 Create git branch `002-remove-legacy-compat` from main
+- [X] T003 Backup current signal_catalog.json to specs/002-remove-legacy-compat/signal_catalog_before.json
 
 ---
 
@@ -36,11 +36,11 @@ description: "Task list for removing legacy compatibility from indicator-signal 
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Update SignalMetadata dataclass in src/aponyx/models/metadata.py to remove legacy fields (compute_function_name, data_requirements, arg_mapping, default_securities) - KEEP composition_logic field (optional for multi-indicator signals)
-- [ ] T005 Update SignalMetadata.__post_init__ validation in src/aponyx/models/metadata.py to enforce indicator_dependencies and transformations required
-- [ ] T006 Update signal_catalog.json entries to remove legacy fields from all 3 signals (cdx_etf_basis, cdx_vix_gap, spread_momentum)
-- [ ] T007 Update SignalRegistry._validate_catalog() in src/aponyx/models/registry.py to remove compute_function_name validation
-- [ ] T008 Add indicator_dependencies and transformations existence validation in src/aponyx/models/registry.py
+- [X] T004 Update SignalMetadata dataclass in src/aponyx/models/metadata.py to remove legacy fields (compute_function_name, data_requirements, arg_mapping, default_securities) - KEEP composition_logic field (optional for multi-indicator signals)
+- [X] T005 Update SignalMetadata.__post_init__ validation in src/aponyx/models/metadata.py to enforce indicator_dependencies and transformations required
+- [X] T006 Update signal_catalog.json entries to remove legacy fields from all 3 signals (cdx_etf_basis, cdx_vix_gap, spread_momentum)
+- [X] T007 Update SignalRegistry._validate_catalog() in src/aponyx/models/registry.py to remove compute_function_name validation
+- [X] T008 Add indicator_dependencies and transformations existence validation in src/aponyx/models/registry.py
 - [ ] T008a Implement JSON Schema validation in SignalRegistry._load_catalog() using contracts/signal_catalog_schema.json to enforce schema at load time
 
 **Checkpoint**: Schema updated - legacy fields removed, new pattern enforced
@@ -55,14 +55,14 @@ description: "Task list for removing legacy compatibility from indicator-signal 
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Delete src/aponyx/models/signals.py file entirely (contains only legacy facade functions)
-- [ ] T010 [US1] Remove _compute_signal_legacy_pattern() function from src/aponyx/models/orchestrator.py
-- [ ] T011 [US1] Remove _validate_data_requirements() function from src/aponyx/models/orchestrator.py
-- [ ] T012 [US1] Simplify _compute_signal() function in src/aponyx/models/orchestrator.py to only call _compute_signal_new_pattern()
-- [ ] T013 [US1] Remove config parameter from _compute_signal() function signature in src/aponyx/models/orchestrator.py
-- [ ] T014 [US1] Update compute_registered_signals() function in src/aponyx/models/orchestrator.py if needed after _compute_signal() changes
-- [ ] T015 [US1] Remove any legacy mode conditional logic from src/aponyx/workflows/concrete_steps.py SignalStep
-- [ ] T016 [US1] Search codebase for any remaining "legacy", "deprecated", or "backward compatibility" references and remove them
+- [X] T009 [US1] Delete src/aponyx/models/signals.py file entirely (contains only legacy facade functions)
+- [X] T010 [US1] Remove _compute_signal_legacy_pattern() function from src/aponyx/models/orchestrator.py
+- [X] T011 [US1] Remove _validate_data_requirements() function from src/aponyx/models/orchestrator.py
+- [X] T012 [US1] Simplify _compute_signal() function in src/aponyx/models/orchestrator.py to only call _compute_signal_new_pattern()
+- [X] T013 [US1] Remove config parameter from _compute_signal() function signature in src/aponyx/models/orchestrator.py
+- [X] T014 [US1] Update compute_registered_signals() function in src/aponyx/models/orchestrator.py if needed after _compute_signal() changes
+- [X] T015 [US1] Remove any legacy mode conditional logic from src/aponyx/workflows/concrete_steps.py SignalStep
+- [X] T016 [US1] Search codebase for any remaining "legacy", "deprecated", or "backward compatibility" references and remove them
 
 **Checkpoint**: At this point, all legacy computation code is removed, only indicator + transformation pattern exists
 
@@ -102,7 +102,7 @@ description: "Task list for removing legacy compatibility from indicator-signal 
 - [ ] T027 [US3] Update .github/copilot-instructions.md to remove legacy pattern examples and warnings
 - [ ] T028 [US3] Update docs/ files to remove all references to deprecated signal patterns
 - [ ] T029 [US3] Run `aponyx run --signal spread_momentum --strategy balanced` and verify zero deprecation warnings in logs
-- [ ] T030 [US3] Update CHANGELOG.md with breaking changes notice for this feature
+- [X] T030 [US3] Update CHANGELOG.md with breaking changes notice for this feature
 
 **Checkpoint**: All deprecation warnings eliminated, documentation clean
 
@@ -112,13 +112,13 @@ description: "Task list for removing legacy compatibility from indicator-signal 
 
 **Purpose**: Remove legacy tests and update tests to reflect new architecture
 
-- [ ] T031 [P] Delete tests/models/test_signals.py file entirely (tests legacy facade functions)
-- [ ] T032 [P] Update tests/models/test_sign_multiplier.py to use indicator + transformation pattern instead of compute_function_name
-- [ ] T033 [P] Remove legacy pattern test functions from tests/models/test_registry.py (keep new pattern tests)
-- [ ] T034 [P] Remove legacy field validation tests from tests/models/test_metadata.py (keep new pattern validation)
-- [ ] T035 [P] Remove legacy pattern test functions from tests/models/test_orchestrator.py (keep new pattern orchestration tests)
-- [ ] T036 Run full test suite with `pytest tests/` and verify all tests pass
-- [ ] T037 Verify test count reduced by approximately 27 tests (~4% reduction from baseline 681 tests)
+- [X] T031 [P] Delete tests/models/test_signals.py file entirely (tests legacy facade functions)
+- [X] T032 [P] Update tests/models/test_sign_multiplier.py to use indicator + transformation pattern instead of compute_function_name
+- [X] T033 [P] Remove legacy pattern test functions from tests/models/test_registry.py (keep new pattern tests)
+- [X] T034 [P] Remove legacy field validation tests from tests/models/test_metadata.py (keep new pattern validation)
+- [X] T035 [P] Remove legacy pattern test functions from tests/models/test_orchestrator.py (keep new pattern orchestration tests)
+- [X] T036 Run full test suite with `pytest tests/` and verify all tests pass
+- [X] T037 Verify test count reduced by approximately 27 tests (~4% reduction from baseline 681 tests)
 
 ---
 
@@ -126,8 +126,8 @@ description: "Task list for removing legacy compatibility from indicator-signal 
 
 **Purpose**: Final cleanup and validation
 
-- [ ] T038 [P] Run `mypy src/aponyx/models/` to verify type checking passes
-- [ ] T039 [P] Run `ruff check src/aponyx/models/` to verify linting passes
+- [X] T038 [P] Run `mypy src/aponyx/models/` to verify type checking passes
+- [X] T039 [P] Run `ruff check src/aponyx/models/` to verify linting passes
 - [ ] T040 [P] Search codebase for remaining TODOs, FIXMEs related to legacy patterns and remove them
 - [ ] T041 Update PROJECT_STATUS.md to reflect completion of legacy removal
 - [ ] T042 Verify signal_catalog_schema.json in contracts/ matches updated schema (6 fields only)

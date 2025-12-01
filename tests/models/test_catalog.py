@@ -9,12 +9,8 @@ import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from aponyx.models.orchestrator import (
-    compute_registered_signals,
-    _validate_data_requirements,
-)
+from aponyx.models.orchestrator import compute_registered_signals
 from aponyx.data.requirements import get_required_data_keys
-from aponyx.models.config import SignalConfig
 from aponyx.models.metadata import SignalMetadata
 from aponyx.models.registry import SignalRegistry
 
