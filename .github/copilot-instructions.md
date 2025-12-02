@@ -1,6 +1,6 @@
 # Copilot Instructions for Aponyx
 
-> **Auto-generated from codebase analysis** | Last Updated: December 1, 2025
+> **Auto-generated from codebase analysis** | Last Updated: December 2, 2025
 
 This file provides comprehensive guidance for AI coding assistants working on the aponyx systematic fixed-income research framework. All patterns documented here are based on actual codebase analysis, not invented practices.
 
@@ -22,8 +22,8 @@ uv run mypy src/           # Type checking
 uv run ruff check src/     # Linting
 
 # CLI workflows
-uv run aponyx run --signal spread_momentum --strategy balanced
-uv run aponyx report --signal spread_momentum --strategy balanced
+uv run aponyx run examples/workflow_minimal.yaml
+uv run aponyx report minimal_test
 uv run aponyx list signals
 ```
 
@@ -291,17 +291,27 @@ data/
 **Example**:
 ```python
 @click.command(name="run")
-@click.argument("config_path", type=click.Path(exists=True))
-def run(config_path: str) -> None:
-    # Load YAML config and validate required fields including label
-    config_dict = yaml.safe_load(open(config_path))
-    label = config_dict["label"]  # Required field
-    config = WorkflowConfig(label=label, signal_name=signal, ...)
+@click.argument("config_path", type=click.Path(exists=True, path_type=Path))
+def run(config_path: Path) -> None:
+    # Load YAML config and validate required fields
+    with open(config_path, "r", encoding="utf-8") as f:
+        config_dict = yaml.safe_load(f) or {}
+    
+    # Validate required fields
+    required = ["label", "signal", "product", "strategy"]
+    missing = [f for f in required if f not in config_dict]
+    if missing:
+        raise click.ClickException(f"Missing required fields: {missing}")
+    
+    config = WorkflowConfig(
+        label=config_dict["label"],
+        signal_name=config_dict["signal"],
+        strategy_name=config_dict["strategy"],
+        product=config_dict["product"],
+        # ... other fields with defaults
+    )
     engine = WorkflowEngine(config)
     results = engine.execute()
-    # New output format includes Label
-    click.echo(f"Label: {label} [config]")
-    click.echo(f"Signal: {signal} [config]")
 ```
 
 #### Workflow Engine (`workflows/`)
@@ -410,6 +420,7 @@ indicator_metadata = indicator_registry.get_metadata("cdx_etf_spread_diff")
 print(indicator_metadata.default_securities)  # {"cdx": "cdx_ig_5y", "etf": "lqd"}
 
 # Override defaults via WorkflowConfig.security_mapping
+# In YAML: use 'securities' key which maps to security_mapping parameter
 config = WorkflowConfig(security_mapping={"cdx": "cdx_hy_5y", "etf": "hyg"})
 ```
 
@@ -1163,15 +1174,15 @@ def test_compute_cdx_vix_percentile_gap():
 ```bash
 # Create workflow config with transformation override
 cat > workflow_custom.yaml << EOF
+label: custom_transform_test
 signal: cdx_etf_basis
-strategy: balanced
 product: cdx_ig_5y
-data: synthetic
-transformation_override: z_score_60d  # Override default z_score_20d
+strategy: balanced
+transformation: z_score_60d  # Override default z_score_20d
 EOF
 
 # Run workflow
-uv run aponyx run --config workflow_custom.yaml
+uv run aponyx run workflow_custom.yaml
 ```
 
 ### Example 3: Add a Workflow Step
@@ -1245,19 +1256,35 @@ class StepRegistry:
 **User Prompt**:
 > "Run the spread_momentum signal with the balanced strategy using Bloomberg data"
 
-**Expected AI Command**:
+**Expected AI Response**:
+
+First create a workflow config:
+```yaml
+# workflow_bloomberg.yaml
+label: bloomberg_test
+signal: spread_momentum
+product: cdx_ig_5y
+strategy: balanced
+data: bloomberg
+```
+
+Then run:
 ```bash
-aponyx run --signal spread_momentum --strategy balanced --data bloomberg
+aponyx run workflow_bloomberg.yaml
 ```
 
 ### Example 4: Generate Report
 
 **User Prompt**:
-> "Generate a markdown report for the cdx_etf_basis signal with aggressive strategy"
+> "Generate a markdown report for the latest workflow"
 
 **Expected AI Command**:
 ```bash
-aponyx report --signal cdx_etf_basis --strategy aggressive --format markdown
+# By index (0 = most recent)
+aponyx report 0 --format markdown
+
+# Or by label if known
+aponyx report my_test --format markdown
 ```
 
 ---
@@ -1435,6 +1462,6 @@ from aponyx.models import compute_signal
 
 *This instruction file is auto-generated from codebase analysis. All patterns are based on actual implementation, not invented best practices.*
 
-**Last Updated**: December 1, 2025  
+**Last Updated**: December 2, 2025  
 **Version**: 0.1.14  
 **Maintainer**: stabilefrisur

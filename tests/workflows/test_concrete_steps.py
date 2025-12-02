@@ -26,6 +26,7 @@ from aponyx.workflows.concrete_steps import (
 def workflow_config(tmp_path: Path) -> WorkflowConfig:
     """Create test workflow configuration."""
     return WorkflowConfig(
+        label="test_workflow",
         signal_name="spread_momentum",
         strategy_name="balanced",
         product="cdx_ig_5y",
@@ -181,6 +182,7 @@ class TestDataStep:
         from aponyx.workflows.config import WorkflowConfig
 
         bloomberg_config = WorkflowConfig(
+            label="test_workflow",
             signal_name="test_signal",
             strategy_name="test_strategy",
             product="cdx_ig_5y",

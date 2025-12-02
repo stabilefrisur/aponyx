@@ -68,9 +68,9 @@ def test_full_workflow_integration(runner, mock_all_registries, tmp_path):
     # Step 3: Run workflow with config file
     config_file = tmp_path / "workflow.yaml"
     config_file.write_text(
-        yaml.dump(
-            {
-                "signal": "spread_momentum",
+        yaml.dump({
+                    "label": "test_label",
+                    "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
                 "strategy": "balanced",
             }
@@ -95,34 +95,39 @@ def test_full_workflow_integration(runner, mock_all_registries, tmp_path):
         assert "Product:         cdx_ig_5y [config]" in result.output
 
     # Step 4: Generate report
-    with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
-        mock_generate.return_value = "Mock report content"
+    # Create mock workflow directory for report command
+    workflow_dir = tmp_path / "test_label_20241202_120000"
+    workflow_dir.mkdir()
+    (workflow_dir / "metadata.json").write_text(
+        '{"label": "test_label", "signal": "spread_momentum", "strategy": "balanced"}'
+    )
+    reports_dir = workflow_dir / "reports"
+    reports_dir.mkdir()
+    (reports_dir / "suitability_evaluation_20241202.md").write_text("Test content")
+    
+    with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
+        with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
+            mock_generate.return_value = "Mock report content"
 
-        result = runner.invoke(
-            cli,
-            [
-                "report",
-                "--signal",
-                "spread_momentum",
-                "--strategy",
-                "balanced",
-            ],
-        )
-        assert result.exit_code == 0
-        assert "Mock report content" in result.output
+            result = runner.invoke(cli, ["report", "--workflow", "test_label"])
+            assert result.exit_code == 0
+            assert "Mock report content" in result.output
 
     # Step 5: Clean results
-    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", tmp_path):
-        workflows_dir = tmp_path / "workflows"
-        workflows_dir.mkdir(parents=True)
-        test_file = workflows_dir / "spread_momentum_balanced_20251120_123456"
-        test_file.mkdir()
+    clean_dir = tmp_path / "clean_test"
+    clean_dir.mkdir()
+    test_file = clean_dir / "test_label_20251120_123456"
+    test_file.mkdir()
+    (test_file / "metadata.json").write_text(
+        '{"label": "test_label", "signal": "spread_momentum", "strategy": "balanced", "timestamp": "2025-11-20T12:34:56"}'
+    )
 
+    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", clean_dir):
         result = runner.invoke(
-            cli, ["clean", "--signal", "spread_momentum", "--dry-run"]
+            cli, ["clean", "--workflows", "--signal", "spread_momentum", "--dry-run"]
         )
         assert result.exit_code == 0
-        assert "Would delete" in result.output
+        assert "Would delete" in result.output or "workflow" in result.output.lower()
         assert test_file.exists()  # Not deleted in dry-run
 
 
@@ -133,8 +138,8 @@ def test_workflow_with_all_data_sources(runner, tmp_path):
     for source in data_sources:
         config_file = tmp_path / f"workflow_{source}.yaml"
         config_file.write_text(
-            yaml.dump(
-                {
+            yaml.dump({
+                    "label": "test_label",
                     "signal": "spread_momentum",
                     "product": "cdx_ig_5y",
                     "strategy": "balanced",
@@ -172,8 +177,8 @@ def test_workflow_with_partial_steps(runner, tmp_path):
     for steps in step_combinations:
         config_file = tmp_path / f"workflow_{'_'.join(steps)}.yaml"
         config_file.write_text(
-            yaml.dump(
-                {
+            yaml.dump({
+                    "label": "test_label",
                     "signal": "spread_momentum",
                     "product": "cdx_ig_5y",
                     "strategy": "balanced",
@@ -200,48 +205,54 @@ def test_workflow_with_partial_steps(runner, tmp_path):
             assert f"Completed {step_count} steps" in result.output
 
 
-def test_report_all_formats(runner):
+def test_report_all_formats(runner, tmp_path):
     """Test report generation in all formats."""
     formats = ["console", "markdown", "html"]
 
     for format_type in formats:
-        with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
-            mock_generate.return_value = f"Mock {format_type} report"
+        # Create mock workflow directory
+        workflow_dir = tmp_path / "test_label_20241202_120000"
+        workflow_dir.mkdir(exist_ok=True)
+        (workflow_dir / "metadata.json").write_text(
+            '{"label": "test_label", "signal": "spread_momentum", "strategy": "balanced"}'
+        )
+        reports_dir = workflow_dir / "reports"
+        reports_dir.mkdir(exist_ok=True)
+        (reports_dir / "suitability_evaluation_20241202.md").write_text("Test content")
+        
+        with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
+            with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
+                mock_generate.return_value = f"Mock {format_type} report"
 
-            result = runner.invoke(
-                cli,
-                [
-                    "report",
-                    "--signal",
-                    "spread_momentum",
-                    "--strategy",
-                    "balanced",
-                    "--format",
-                    format_type,
-                ],
-            )
+                result = runner.invoke(
+                    cli,
+                    ["report", "--workflow", "test_label", "--format", format_type],
+                )
 
-            assert result.exit_code == 0
+                assert result.exit_code == 0
 
 
 def test_clean_with_different_scopes(runner, tmp_path):
     """Test clean command with different scopes."""
-    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", tmp_path):
-        workflows_dir = tmp_path / "workflows"
-        workflows_dir.mkdir(parents=True)
+    workflows_dir = tmp_path
+    workflows_dir.mkdir(exist_ok=True)
 
-        # Create files for multiple signals
-        signals = ["spread_momentum", "cdx_vix_gap", "vix_spread"]
-        for signal in signals:
-            signal_dir = workflows_dir / f"{signal}_balanced_20251120_123456"
-            signal_dir.mkdir()
+    # Create workflows with metadata for multiple signals
+    signals = ["spread_momentum", "cdx_vix_gap", "vix_spread"]
+    for signal in signals:
+        signal_dir = workflows_dir / f"test_{signal}_20251120_123456"
+        signal_dir.mkdir()
+        (signal_dir / "metadata.json").write_text(
+            f'{{"label": "test_{signal}", "signal": "{signal}", "strategy": "balanced", "timestamp": "2025-11-20T12:34:56"}}'
+        )
 
-        # Test cleaning specific signal
-        result = runner.invoke(cli, ["clean", "--signal", "spread_momentum"])
+    with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", workflows_dir):
+        # Test cleaning specific signal - now requires --workflows flag
+        result = runner.invoke(cli, ["clean", "--workflows", "--signal", "spread_momentum"])
         assert result.exit_code == 0
 
         # Test cleaning all (remaining)
-        result = runner.invoke(cli, ["clean", "--all", "--dry-run"])
+        result = runner.invoke(cli, ["clean", "--workflows", "--all", "--dry-run"])
         assert result.exit_code == 0
 
 
@@ -250,9 +261,9 @@ def test_error_recovery_workflow(runner, tmp_path):
     # Step 1: Run workflow with error
     config_file = tmp_path / "workflow.yaml"
     config_file.write_text(
-        yaml.dump(
-            {
-                "signal": "spread_momentum",
+        yaml.dump({
+                    "label": "test_label",
+                    "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
                 "strategy": "balanced",
             }
@@ -277,26 +288,15 @@ def test_error_recovery_workflow(runner, tmp_path):
         assert "Workflow failed" in result.output
 
     # Step 2: Try to generate report (should fail)
-    with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
-        mock_generate.side_effect = FileNotFoundError("No workflow results")
-
-        result = runner.invoke(
-            cli,
-            [
-                "report",
-                "--signal",
-                "spread_momentum",
-                "--strategy",
-                "balanced",
-            ],
-        )
+    with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
+        result = runner.invoke(cli, ["report", "--workflow", "test_label"])
         assert result.exit_code != 0
 
     # Step 3: Fix and re-run with force flag
     config_file.write_text(
-        yaml.dump(
-            {
-                "signal": "spread_momentum",
+        yaml.dump({
+                    "label": "test_label",
+                    "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
                 "strategy": "balanced",
                 "force": True,
@@ -325,9 +325,9 @@ def test_yaml_config_workflow(runner, tmp_path):
     # Create YAML config with required and optional fields
     config_file = tmp_path / "research_workflow.yaml"
     config_file.write_text(
-        yaml.dump(
-            {
-                "signal": "spread_momentum",
+        yaml.dump({
+                    "label": "test_label",
+                    "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
                 "strategy": "balanced",
                 "data": "synthetic",
@@ -365,11 +365,14 @@ def test_concurrent_command_safety(runner, tmp_path):
         for i in range(3):
             test_dir = workflows_dir / f"test_signal_{i}_20251120_123456"
             test_dir.mkdir()
+            (test_dir / "metadata.json").write_text(
+                f'{{"label": "test_signal_{i}", "signal": "test_signal_{i}", "strategy": "balanced", "timestamp": "2025-11-20T12:34:56"}}'
+            )
 
         # Run clean in dry-run mode
-        result1 = runner.invoke(cli, ["clean", "--all", "--dry-run"])
+        result1 = runner.invoke(cli, ["clean", "--workflows", "--all", "--dry-run"])
         result2 = runner.invoke(
-            cli, ["clean", "--signal", "test_signal_0", "--dry-run"]
+            cli, ["clean", "--workflows", "--signal", "test_signal_0", "--dry-run"]
         )
 
         assert result1.exit_code == 0

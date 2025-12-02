@@ -6,6 +6,7 @@ from datetime import datetime
 
 import click
 
+from aponyx import __version__
 from aponyx.cli.commands import run, report, list_items, clean
 from aponyx.config import LOGS_DIR
 
@@ -39,11 +40,11 @@ BANNER = r"""
 """
 
 
-def print_banner(version: str = "0.1.14") -> None:
+def print_banner() -> None:
     """Display stylized CLI banner."""
     click.echo(click.style(BANNER, fg="cyan", bold=True))
     click.echo(
-        click.style(f"  Version {version}", fg="bright_black")
+        click.style(f"  Version {__version__}", fg="bright_black")
         + click.style(" | ", fg="bright_black")
         + click.style("Python 3.12+", fg="bright_black")
     )

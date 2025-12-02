@@ -1,7 +1,7 @@
 # Project Status — aponyx
 
-**Last Updated:** December 1, 2025  
-**Version:** 0.1.14 (Post-Legacy-Cleanup)
+**Last Updated:** December 2, 2025  
+**Version:** 0.1.14 (YAML-Only CLI)
 
 ## Quick Reference
 
@@ -14,7 +14,7 @@
 | **Maturity Level** | Early-stage research framework |
 | **Breaking Changes** | May occur without deprecation warnings |
 | **License** | MIT |
-| **Test Coverage** | 681 tests across all layers |
+| **Test Coverage** | 681 tests across all layers (verified Dec 2025) |
 
 **Project Management:**
 - `uv` - Package installer, environment manager, and task runner

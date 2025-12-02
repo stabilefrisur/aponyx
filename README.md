@@ -179,6 +179,7 @@ strategy: balanced
 
 **Complete configuration with all options**:
 ```yaml
+label: complete_test
 signal: cdx_etf_basis
 product: cdx_ig_5y
 strategy: balanced
@@ -187,10 +188,10 @@ strategy: balanced
 indicator: cdx_etf_spread_diff
 transformation: z_score_20d
 securities:
-  cdx: cdx_hy_5y
-  etf: hyg
-data: bloomberg
-steps: [data, signal, backtest, performance]
+  cdx: cdx_ig_5y
+  etf: lqd
+data: synthetic
+steps: [data, signal, suitability, backtest, performance, visualization]
 force: true
 ```
 
@@ -202,15 +203,14 @@ aponyx run workflow.yaml
 
 # Use example configs
 aponyx run examples/workflow_minimal.yaml
-aponyx run examples/workflow_bloomberg.yaml
-aponyx run examples/workflow_custom_securities.yaml
+aponyx run examples/workflow_complete.yaml
 ```
 
 **Available YAML fields:**
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `label` | string | ✓ | - | Workflow label (lowercase, underscores, numbers only) |
+| `label` | string | ✓ | - | Workflow label (lowercase letters, numbers, underscores; must start with letter) |
 | `signal` | string | ✓ | - | Signal name from signal_catalog.json |
 | `product` | string | ✓ | - | Product identifier (e.g., "cdx_ig_5y") |
 | `strategy` | string | ✓ | - | Strategy name from strategy_catalog.json |
@@ -227,16 +227,16 @@ aponyx run examples/workflow_custom_securities.yaml
 
 ```bash
 # Console output with formatted tables (by label)
-aponyx report --workflow minimal_test
+aponyx report minimal_test
 
 # By numeric index (0 = most recent, ephemeral)
-aponyx report --workflow 0
+aponyx report 0
 
 # Markdown file (default location: reports/)
-aponyx report --workflow minimal_test --format markdown
+aponyx report minimal_test --format markdown
 
 # HTML file with styled formatting
-aponyx report --workflow minimal_test --format html --output custom_report.html
+aponyx report minimal_test --format html --output custom_report.html
 ```
 
 Reports aggregate suitability evaluation and performance analysis with comprehensive metrics and visualizations.
@@ -247,8 +247,8 @@ Reports aggregate suitability evaluation and performance analysis with comprehen
 aponyx list signals      # View signal catalog
 aponyx list strategies   # View strategy catalog
 aponyx list datasets     # View data registry
-aponyx list workflows    # View workflow results (sorted by timestamp)
-aponyx list workflows --signal spread_momentum  # Filter workflows
+aponyx list workflows    # View workflow results (sorted by timestamp, newest first)
+aponyx list workflows --label minimal_test  # Filter workflows by label
 ```
 
 ### Clean Workflow Cache
@@ -260,8 +260,8 @@ aponyx clean --workflows --all --dry-run
 # Clean workflows older than 30 days
 aponyx clean --workflows --older-than 30d
 
-# Clean specific signal's workflows
-aponyx clean --workflows --signal spread_momentum --older-than 7d
+# Clean specific label's workflows
+aponyx clean --workflows --label minimal_test --older-than 7d
 ```
 
 ### Using Configuration Files
@@ -271,10 +271,10 @@ Create `workflow.yaml`:
 ```yaml
 label: my_workflow
 signal: spread_momentum
-strategy: balanced
 product: cdx_ig_5y
+strategy: balanced
 data: synthetic
-security_mapping:
+securities:
   cdx: cdx_ig_5y
   etf: lqd
 steps:
@@ -287,21 +287,27 @@ force: false
 Run with config:
 
 ```bash
-aponyx run --config workflow.yaml
+aponyx run workflow.yaml
 ```
 
 **Output format:**
 ```
-Label: minimal_test [config]
-Signal: spread_momentum [config]
-Product: cdx_ig_5y [config]
-Strategy: balanced [config]
-Data: synthetic [default]
-Steps: all [default]
-Force re-run: False [default]
+=== Workflow Configuration ===
+Label:           minimal_test [config]
+Product:         cdx_ig_5y [config]
+Signal:          spread_momentum [config]
+Indicator:       spread_momentum_5d [from signal]
+Securities:      cdx:cdx_ig_5y [from indicator]
+Transformation:  volatility_adjust_20d [from signal]
+Strategy:        balanced [config]
+Data:            synthetic [default]
+Steps:           all [default]
+Force re-run:    False [default]
+==============================
 
 Completed 6 steps in 15.2s
-Results: data/workflows/minimal_test_20251123_143230/
+Skipped 0 cached steps
+Results: data/workflows/minimal_test_20251202_143230/
 ```
 
 **Benefits:**
@@ -496,4 +502,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 **Maintained by stabilefrisur**  
-**Last Updated**: November 23, 2025
+**Last Updated**: December 2, 2025

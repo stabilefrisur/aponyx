@@ -45,6 +45,7 @@ def test_workflow_config_validation():
     """Test WorkflowConfig validates step names."""
     # Valid config
     config = WorkflowConfig(
+        label="test_workflow",
         signal_name="spread_momentum",
         strategy_name="balanced",
         product="cdx_ig_5y",
@@ -55,6 +56,7 @@ def test_workflow_config_validation():
     # Invalid step name should raise
     with pytest.raises(ValueError, match="Invalid steps"):
         WorkflowConfig(
+            label="test_workflow",
             signal_name="spread_momentum",
             strategy_name="balanced",
             product="cdx_ig_5y",
@@ -65,6 +67,7 @@ def test_workflow_config_validation():
 def test_workflow_engine_execution_order():
     """Test steps execute in correct order."""
     config = WorkflowConfig(
+        label="test_workflow",
         signal_name="test_signal",
         strategy_name="test_strategy",
         product="cdx_ig_5y",
@@ -113,6 +116,7 @@ def test_workflow_engine_execution_order():
 def test_workflow_engine_caching():
     """Test workflow skips steps with existing output."""
     config = WorkflowConfig(
+        label="test_workflow",
         signal_name="test_signal",
         strategy_name="test_strategy",
         product="cdx_ig_5y",
@@ -166,6 +170,7 @@ def test_workflow_engine_caching():
 def test_workflow_engine_force_rerun():
     """Test force_rerun overrides caching."""
     config = WorkflowConfig(
+        label="test_workflow",
         signal_name="test_signal",
         strategy_name="test_strategy",
         product="cdx_ig_5y",
@@ -214,6 +219,7 @@ def test_workflow_engine_force_rerun():
 def test_workflow_engine_error_handling():
     """Test workflow stops on first error and preserves partial results."""
     config = WorkflowConfig(
+        label="test_workflow",
         signal_name="test_signal",
         strategy_name="test_strategy",
         product="cdx_ig_5y",
@@ -246,6 +252,7 @@ def test_workflow_engine_error_handling():
 def test_workflow_engine_context_passing():
     """Test steps receive outputs from previous steps."""
     config = WorkflowConfig(
+        label="test_workflow",
         signal_name="test_signal",
         strategy_name="test_strategy",
         product="cdx_ig_5y",
@@ -306,6 +313,7 @@ def test_workflow_engine_context_passing():
 def test_workflow_engine_subset_execution():
     """Test executing specific subset of steps."""
     config = WorkflowConfig(
+        label="test_workflow",
         signal_name="test_signal",
         strategy_name="test_strategy",
         product="cdx_ig_5y",

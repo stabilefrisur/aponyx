@@ -69,12 +69,13 @@ class TestReportData:
     def test_report_data_creation(self):
         """Test creating ReportData instance."""
         data = ReportData(
+            workflow_dir=Path("/test/dir"),
+            label="test_label",
             signal_name="spread_momentum",
             strategy_name="balanced",
             suitability_report="Test suitability",
             performance_report="Test performance",
             has_visualizations=True,
-            workflow_dir=Path("/test/dir"),
         )
 
         assert data.signal_name == "spread_momentum"
@@ -84,6 +85,8 @@ class TestReportData:
     def test_report_data_defaults(self):
         """Test ReportData default values."""
         data = ReportData(
+            workflow_dir=Path("/test/dir"),
+            label="test_label",
             signal_name="test_signal",
             strategy_name="test_strategy",
         )
@@ -91,7 +94,6 @@ class TestReportData:
         assert data.suitability_report is None
         assert data.performance_report is None
         assert data.has_visualizations is False
-        assert data.workflow_dir is None
 
 
 class TestCollectReportData:
@@ -137,8 +139,13 @@ class TestCollectReportData:
         # Empty glob result
         mock_workflows_dir.glob.return_value = []
 
-        with pytest.raises(FileNotFoundError, match="No workflow results found"):
-            _collect_report_data("nonexistent_signal", "nonexistent_strategy")
+        # _collect_report_data now requires workflow_dir as first parameter
+        # Create a fake workflow dir for the test
+        fake_workflow_dir = workflows_dir / "nonexistent_20241120_123456"
+        fake_workflow_dir.mkdir()
+        
+        with pytest.raises(FileNotFoundError, match="No reports found"):
+            _collect_report_data(fake_workflow_dir, "test_label", "nonexistent_signal", "nonexistent_strategy")
 
 
 class TestGenerateConsoleReport:
@@ -147,6 +154,8 @@ class TestGenerateConsoleReport:
     def test_generate_console_report_basic(self):
         """Test basic console report generation."""
         data = ReportData(
+            workflow_dir=Path("/test/dir"),
+            label="test_label",
             signal_name="test_signal",
             strategy_name="test_strategy",
             suitability_report="Test suitability content",
@@ -177,6 +186,8 @@ class TestGenerateConsoleReport:
         viz_file.write_text("<html>chart</html>")
 
         data = ReportData(
+            workflow_dir=DATA_WORKFLOWS_DIR / "test_signal_test_strategy_20241120_123456",
+            label="test_label",
             signal_name="test_signal",
             strategy_name="test_strategy",
             has_visualizations=True,
@@ -197,6 +208,8 @@ class TestGenerateMarkdownReport:
     ):
         """Test basic markdown report generation."""
         data = ReportData(
+            workflow_dir=Path("/test/dir"),
+            label="test_label",
             signal_name="test_signal",
             strategy_name="test_strategy",
             suitability_report=sample_suitability_report,
@@ -205,7 +218,7 @@ class TestGenerateMarkdownReport:
 
         report = _generate_markdown_report(data)
 
-        assert "# Research Report: test_signal (test_strategy)" in report
+        assert "# Research Report: test_label" in report
         assert "## Suitability Evaluation" in report
         assert "## Performance Analysis" in report
         assert "**Generated:**" in report
@@ -213,9 +226,10 @@ class TestGenerateMarkdownReport:
     def test_generate_markdown_report_with_workflow_dir(self):
         """Test markdown report includes workflow directory."""
         data = ReportData(
+            workflow_dir=Path("/test/workflows/test_signal_20241120"),
+            label="test_label",
             signal_name="test_signal",
             strategy_name="test_strategy",
-            workflow_dir=Path("/test/workflows/test_signal_20241120"),
         )
 
         report = _generate_markdown_report(data)
@@ -230,6 +244,8 @@ class TestGenerateHTMLReport:
     def test_generate_html_report_basic(self):
         """Test basic HTML report generation."""
         data = ReportData(
+            workflow_dir=Path("/test/dir"),
+            label="test_label",
             signal_name="test_signal",
             strategy_name="test_strategy",
             suitability_report="# Test\n\n**Bold text**",
@@ -247,6 +263,8 @@ class TestGenerateHTMLReport:
     def test_generate_html_report_converts_markdown(self):
         """Test HTML report converts markdown formatting."""
         data = ReportData(
+            workflow_dir=Path("/test/dir"),
+            label="test_label",
             signal_name="test_signal",
             strategy_name="test_strategy",
             suitability_report="**Bold** and `code`",
@@ -260,6 +278,8 @@ class TestGenerateHTMLReport:
     def test_generate_html_report_with_tables(self):
         """Test HTML report handles markdown tables."""
         data = ReportData(
+            workflow_dir=Path("/test/dir"),
+            label="test_label",
             signal_name="test_signal",
             strategy_name="test_strategy",
             performance_report="""
@@ -280,38 +300,54 @@ class TestGenerateHTMLReport:
 class TestGenerateReport:
     """Test main report generation function."""
 
-    @patch("aponyx.reporting.generator._collect_report_data")
-    def test_generate_report_console(self, mock_collect):
+    def test_generate_report_console(self, tmp_path):
         """Test generating console report."""
-        mock_collect.return_value = ReportData(
-            signal_name="test_signal",
-            strategy_name="test_strategy",
-            suitability_report="Test content",
-        )
-
+        # Create test workflow directory with metadata
+        workflow_dir = tmp_path / "test_workflow_20241120_123456"
+        workflow_dir.mkdir()
+        metadata_path = workflow_dir / "metadata.json"
+        import json
+        metadata_path.write_text(json.dumps({
+            "label": "test_workflow",
+            "signal": "test_signal",
+            "strategy": "test_strategy"
+        }))
+        
+        # Need at least one report file for generate_report to work
+        reports_dir = workflow_dir / "reports"
+        reports_dir.mkdir()
+        (reports_dir / "suitability_evaluation_20241120.md").write_text("Test content")
+        
         report = generate_report(
-            "test_signal",
-            "test_strategy",
+            workflow_dir=workflow_dir,
             format=ReportFormat.CONSOLE,
         )
 
         assert isinstance(report, str)
-        assert "test_signal" in report
+        assert "test_workflow" in report
 
-    @patch("aponyx.reporting.generator._collect_report_data")
-    def test_generate_report_markdown_with_file(self, mock_collect, tmp_path):
+    def test_generate_report_markdown_with_file(self, tmp_path):
         """Test generating markdown report saves to file."""
-        mock_collect.return_value = ReportData(
-            signal_name="test_signal",
-            strategy_name="test_strategy",
-            performance_report="Test content",
-        )
+        # Create test workflow directory with metadata
+        workflow_dir = tmp_path / "test_workflow_20241120_123456"
+        workflow_dir.mkdir()
+        metadata_path = workflow_dir / "metadata.json"
+        import json
+        metadata_path.write_text(json.dumps({
+            "label": "test_workflow",
+            "signal": "test_signal",
+            "strategy": "test_strategy"
+        }))
+        
+        # Need at least one report file
+        reports_dir = workflow_dir / "reports"
+        reports_dir.mkdir()
+        (reports_dir / "performance_analysis_20241120.md").write_text("Test content")
 
         output_path = tmp_path / "report.md"
 
         report = generate_report(
-            "test_signal",
-            "test_strategy",
+            workflow_dir=workflow_dir,
             format=ReportFormat.MARKDOWN,
             output_path=output_path,
         )
@@ -319,20 +355,28 @@ class TestGenerateReport:
         assert output_path.exists()
         assert "test_signal" in report
 
-    @patch("aponyx.reporting.generator._collect_report_data")
-    def test_generate_report_html_with_file(self, mock_collect, tmp_path):
+    def test_generate_report_html_with_file(self, tmp_path):
         """Test generating HTML report saves to file."""
-        mock_collect.return_value = ReportData(
-            signal_name="test_signal",
-            strategy_name="test_strategy",
-            suitability_report="Test content",
-        )
+        # Create test workflow directory with metadata
+        workflow_dir = tmp_path / "test_workflow_20241120_123456"
+        workflow_dir.mkdir()
+        metadata_path = workflow_dir / "metadata.json"
+        import json
+        metadata_path.write_text(json.dumps({
+            "label": "test_workflow",
+            "signal": "test_signal",
+            "strategy": "test_strategy"
+        }))
+        
+        # Need at least one report file
+        reports_dir = workflow_dir / "reports"
+        reports_dir.mkdir()
+        (reports_dir / "suitability_evaluation_20241120.md").write_text("Test content")
 
         output_path = tmp_path / "report.html"
 
         report = generate_report(
-            "test_signal",
-            "test_strategy",
+            workflow_dir=workflow_dir,
             format=ReportFormat.HTML,
             output_path=output_path,
         )
@@ -340,17 +384,26 @@ class TestGenerateReport:
         assert output_path.exists()
         assert "<!DOCTYPE html>" in report
 
-    @patch("aponyx.reporting.generator._collect_report_data")
-    def test_generate_report_string_format(self, mock_collect):
+    def test_generate_report_string_format(self, tmp_path):
         """Test generate_report accepts string format."""
-        mock_collect.return_value = ReportData(
-            signal_name="test_signal",
-            strategy_name="test_strategy",
-        )
+        # Create test workflow directory with metadata
+        workflow_dir = tmp_path / "test_workflow_20241120_123456"
+        workflow_dir.mkdir()
+        metadata_path = workflow_dir / "metadata.json"
+        import json
+        metadata_path.write_text(json.dumps({
+            "label": "test_workflow",
+            "signal": "test_signal",
+            "strategy": "test_strategy"
+        }))
+        
+        # Need at least one report file
+        reports_dir = workflow_dir / "reports"
+        reports_dir.mkdir()
+        (reports_dir / "performance_analysis_20241120.md").write_text("Test content")
 
         report = generate_report(
-            "test_signal",
-            "test_strategy",
+            workflow_dir=workflow_dir,
             format="markdown",
         )
 
@@ -363,6 +416,8 @@ class TestEdgeCases:
     def test_generate_console_report_empty_data(self):
         """Test console report with minimal data."""
         data = ReportData(
+            workflow_dir=Path("/test/dir"),
+            label="test_label",
             signal_name="test_signal",
             strategy_name="test_strategy",
         )
@@ -375,12 +430,14 @@ class TestEdgeCases:
     def test_generate_markdown_report_no_sections(self):
         """Test markdown report with no content sections."""
         data = ReportData(
+            workflow_dir=Path("/test/dir"),
+            label="test_label",
             signal_name="test_signal",
             strategy_name="test_strategy",
         )
 
         report = _generate_markdown_report(data)
 
-        # Should still have header
-        assert "# Research Report" in report
+        # Should still have header with label
+        assert "# Research Report: test_label" in report
         assert "test_signal" in report
