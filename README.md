@@ -92,13 +92,17 @@ from aponyx.config import INDICATOR_CATALOG_PATH, TRANSFORMATION_CATALOG_PATH, S
 cdx_df = fetch_cdx(FileSource("data/raw/synthetic/cdx_ig_5y_<hash>.parquet"), security="cdx_ig_5y")
 etf_df = fetch_etf(FileSource("data/raw/synthetic/hyg_<hash>.parquet"), security="hyg")
 
-# Generate signal using indicator + transformation pattern
+# SIGNAL COMPOSITION: Every signal is ALWAYS composed from indicator + transformation
+# 1. Indicator = economically interpretable metric (e.g., CDX-ETF basis in bps)
+# 2. Transformation = signal processing (e.g., z-score normalization)
+# This separation enables reuse and runtime experimentation
+
 market_data = {"cdx": cdx_df, "etf": etf_df}
 indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
 transformation_registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
 signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
-# Compute signal via catalog composition
+# Compose signal: indicator (cdx_etf_spread_diff) + transformation (z_score_20d)
 signal = compose_signal(
     signal_metadata=signal_registry.get_metadata("cdx_etf_basis"),
     market_data=market_data,

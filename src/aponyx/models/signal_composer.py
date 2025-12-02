@@ -84,6 +84,15 @@ def compose_signal(
 ) -> pd.Series:
     """
     Compose a trading signal from indicators and transformations.
+    
+    SIGNAL COMPOSITION PATTERN
+    --------------------------
+    Every signal is ALWAYS constructed from:
+    1. Indicator(s) - Economically interpretable market metrics
+    2. Transformation(s) - Signal processing operations
+    
+    This function is the ONLY way to generate signals in the system.
+    Direct indicator computation is for analysis/debugging only.
 
     Orchestrates the signal composition workflow:
     1. Load indicators (from cache or compute)

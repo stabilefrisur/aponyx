@@ -37,9 +37,10 @@ uv run aponyx list signals
 1. **Modern Python**: `str | None` not `Optional[str]`, `dict[str, Any]` not `Dict[str, Any]`
 2. **Frozen configs**: `@dataclass(frozen=True)` with `__post_init__` validation
 3. **Signal sign**: Positive = long credit risk (buy CDX)
-4. **Logging**: `logger = logging.getLogger(__name__)` at module level, never `basicConfig()`
-5. **Visualization**: Return `go.Figure`, never auto-display
-6. **Catalogs**: Indicators → Transformations → Signals (3-layer composition)
+4. **Signal composition**: ALWAYS indicator + transformation (no direct signal computation)
+5. **Logging**: `logger = logging.getLogger(__name__)` at module level, never `basicConfig()`
+6. **Visualization**: Return `go.Figure`, never auto-display
+7. **Runtime overrides**: security_mapping, indicator_override, transformation_override (all optional)
 
 ---
 
@@ -362,13 +363,20 @@ name = registry.find_dataset_by_security("cdx_ig_5y")     # Returns dataset name
 
 **Purpose**: Compute reusable market indicators, apply transformations, and compose trading signals
 
+**CRITICAL: Signal Composition Pattern**:
+Every signal is ALWAYS composed from exactly two components:
+1. **Indicator** - Economically interpretable metric (spread difference, momentum, gap) in natural units (bps, ratios, percentages)
+2. **Transformation** - Signal processing operation (z-score, volatility adjustment, differencing)
+
+This pattern is MANDATORY. There is no direct signal computation. All signals go through compose_signal().
+
 **Patterns**:
-- **Indicators**: Economically interpretable metrics (bps, ratios, percentages) without normalization
-- **Transformations**: Reusable signal processing operations (z-score, volatility adjustment)
-- **Signals**: Composed from indicators + transformations via catalog references
+- **Indicators**: Output raw economic values WITHOUT pre-normalization (e.g., basis in bps, not z-score)
+- **Transformations**: Convert indicators to trading signals (z-score, volatility-adjusted returns)
+- **Signals**: Reference indicators + transformations in catalog (no embedded computation logic)
 - Registry-based computation from three separate JSON catalogs
-- Indicator caching for reuse across multiple signals
-- Frozen config dataclasses
+- Indicator caching for reuse across multiple signals with different transformations
+- Runtime overrides: indicator_override, transformation_override, security_mapping
 
 **Example**:
 ```python
@@ -405,13 +413,15 @@ config = WorkflowConfig(security_mapping={"cdx": "cdx_hy_5y", "etf": "hyg"})
 ```
 
 **Constraints**:
+- **MANDATORY PATTERN**: All signals use compose_signal() with indicator + transformation (no exceptions)
 - Indicators output economically interpretable values (bps, ratios, percentages) - NOT pre-normalized
 - Transformations are pure functions cataloged in transformation_catalog.json
 - Signals reference indicators via indicator_dependencies field (no embedded computation)
 - Signals reference transformations via transformations field (applied sequentially)
 - Positive signal = long credit risk (buy CDX) after all transformations applied
-- Catalog schema enforced: signals MUST have indicator_dependencies and transformations
-- Each indicator/transformation defines default_securities for instrument types
+- Catalog schema enforced: signals MUST have indicator_dependencies and transformations (both non-empty)
+- Each indicator defines default_securities that can be overridden via WorkflowConfig.security_mapping
+- Runtime overrides available: indicator_override, transformation_override, security_mapping
 
 #### Backtest Execution (`backtest/`)
 
@@ -1142,7 +1152,28 @@ def test_compute_cdx_vix_percentile_gap():
     assert signal.dtype == np.float64
 ```
 
-### Example 2: Add a Workflow Step
+### Example 2: Override Signal Components at Runtime
+
+**User Prompt**:
+> "Run cdx_etf_basis signal but use 60-day z-score instead of 20-day"
+
+**Expected AI Response**:
+
+```bash
+# Create workflow config with transformation override
+cat > workflow_custom.yaml << EOF
+signal: cdx_etf_basis
+strategy: balanced
+product: cdx_ig_5y
+data: synthetic
+transformation_override: z_score_60d  # Override default z_score_20d
+EOF
+
+# Run workflow
+uv run aponyx run --config workflow_custom.yaml
+```
+
+### Example 3: Add a Workflow Step
 
 **User Prompt**:
 > "Add a workflow step that generates a correlation matrix between signals"

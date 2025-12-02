@@ -144,8 +144,22 @@ class SignalMetadata:
     """
     Metadata for a registered signal computation.
 
-    Signals are trading signals derived from indicators via transformations.
-    All signals MUST use the indicator + transformation composition pattern.
+    SIGNAL COMPOSITION PATTERN
+    --------------------------
+    Every signal is ALWAYS composed from two components:
+    1. Indicator(s) - Economically interpretable metrics (spread differences, momentum, etc.)
+    2. Transformation(s) - Signal processing operations (z-score, volatility adjustment, etc.)
+    
+    This separation enables:
+    - Reusing indicators across multiple signals with different transformations
+    - Swapping transformations without recomputing indicators (caching efficiency)
+    - Clear attribution of signal behavior to economic driver vs. processing
+    - Runtime experimentation via indicator_override/transformation_override
+    
+    EXAMPLE: cdx_etf_basis signal
+    - Indicator: "cdx_etf_spread_diff" (basis in raw bps)
+    - Transformation: "z_score_20d" (normalize to trading signal)
+    - Result: Tradeable signal with positive = long credit risk
 
     Attributes
     ----------
@@ -156,26 +170,39 @@ class SignalMetadata:
         Human-readable description of signal purpose and logic.
         Minimum 10 characters.
     indicator_dependencies : list[str]
-        List of indicator names required for this signal (REQUIRED).
+        List of indicator names required for this signal (REQUIRED, cannot be empty).
         All indicators must exist in indicator_catalog.json.
-        Example: ["cdx_etf_spread_diff"]
+        For single-indicator signals: ["cdx_etf_spread_diff"]
+        For multi-indicator signals: ["indicator_a", "indicator_b"]
     transformations : list[str]
-        List of transformation names to apply to indicators (REQUIRED).
+        List of transformation names to apply to indicators (REQUIRED, cannot be empty).
         All transformations must exist in transformation_catalog.json.
-        Example: ["z_score_20d"]
+        For single-indicator signals: ["z_score_20d"] (applied to indicator)
+        For multi-indicator signals: ["z_score_20d", "z_score_60d"] (one per indicator)
     composition_logic : str | None
         Optional Python expression for combining multiple indicators.
-        Used only for multi-indicator signals.
-        Example: "cdx_spread / etf_spread"
-        Default: None (single indicator, sequential transformations)
+        ONLY used for multi-indicator signals (len(indicator_dependencies) > 1).
+        Example: "(indicator_a + indicator_b) / 2"
+        Default: None (single indicator, transformation applied directly)
     enabled : bool
         Whether signal should be included in computation.
         Default: True
     sign_multiplier : int
-        Multiplier to apply to signal output for sign correction.
-        Use -1 to invert signals with negative Sharpe ratios.
+        Multiplier to apply to final signal output for sign convention alignment.
+        Positive signal = long credit risk (buy CDX).
+        Use -1 to invert signals that naturally produce opposite signs.
         Must be -1 or 1.
         Default: 1 (no inversion)
+    
+    Notes
+    -----
+    The indicator + transformation pattern is MANDATORY for all signals.
+    Signals without this structure will fail validation at registry load time.
+    
+    Runtime overrides (via WorkflowConfig):
+    - indicator_override: Swap indicator while keeping transformation
+    - transformation_override: Swap transformation while keeping indicator
+    - security_mapping: Override which securities to load for indicator data requirements
     """
 
     name: str

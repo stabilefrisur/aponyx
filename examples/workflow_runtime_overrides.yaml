@@ -1,0 +1,50 @@
+# Workflow configuration demonstrating runtime overrides
+# Usage: aponyx run --config workflow_runtime_overrides.yaml
+
+# SIGNAL COMPOSITION PATTERN
+# ---------------------------
+# Every signal is composed from: Indicator + Transformation
+# This file demonstrates how to override components at runtime
+
+# Base signal from catalog
+signal: cdx_etf_basis  # Default: indicator=cdx_etf_spread_diff, transformation=z_score_20d
+strategy: balanced
+product: cdx_ig_5y
+data: synthetic
+
+# RUNTIME OVERRIDE OPTIONS
+# -------------------------
+
+# 1. Security Override (which data to load)
+# Default for cdx_etf_basis: cdx=cdx_ig_5y, etf=lqd
+# Override to use different securities:
+securities:
+  cdx: cdx_hy_5y
+  etf: hyg
+
+# 2. Indicator Override (which metric to compute)
+# Swap indicator while keeping transformation
+# Example: Use momentum indicator instead of basis
+# indicator_override: spread_momentum_5d
+
+# 3. Transformation Override (which signal processing to apply)
+# Swap transformation while keeping indicator
+# Example: Use 60-day z-score instead of 20-day
+# transformation_override: z_score_60d
+
+# COMMON USE CASES
+# ----------------
+# A. Test same indicator with different normalizations:
+#    Keep indicator, swap transformation (z_score_20d → z_score_60d)
+#
+# B. Test same normalization on different metrics:
+#    Keep transformation, swap indicator (cdx_etf_spread_diff → spread_momentum_5d)
+#
+# C. Test different data for same signal logic:
+#    Keep indicator + transformation, swap securities (IG → HY, LQD → HYG)
+
+# VALIDATION
+# ----------
+# - indicator_override must exist in indicator_catalog.json
+# - transformation_override must exist in transformation_catalog.json
+# - All overrides validated at workflow initialization
