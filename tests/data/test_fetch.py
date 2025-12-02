@@ -26,7 +26,10 @@ def sample_df() -> pd.DataFrame:
     """Generate sample DataFrame for testing."""
     dates = pd.date_range("2024-01-01", periods=10, freq="D")
     return pd.DataFrame(
-        {"spread": [100.0 + i for i in range(10)]},
+        {
+            "spread": [100.0 + i for i in range(10)],
+            "security": ["cdx_ig_5y"] * 10,  # Add security column
+        },
         index=dates,
     )
 
@@ -256,7 +259,7 @@ class TestFetchCDXIntegration:
         mock_validate.return_value = sample_df
 
         source = FileSource(Path("dummy.parquet"))
-        result = fetch_cdx(source, use_cache=True)
+        result = fetch_cdx(source, security="cdx_ig_5y", use_cache=True)
 
         # Should fetch and cache
         mock_fetch_file.assert_called_once()

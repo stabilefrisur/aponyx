@@ -148,7 +148,6 @@ def _get_provider_fetch_function(source: DataSource):
 def fetch_cdx(
     source: DataSource | None = None,
     security: str | None = None,
-    bloomberg_ticker: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
     use_cache: bool = CACHE_ENABLED,
@@ -164,9 +163,6 @@ def fetch_cdx(
     security : str or None
         Security identifier (e.g., "cdx_ig_5y", "cdx_hy_5y").
         Used for Bloomberg ticker lookup and metadata.
-    bloomberg_ticker : str or None
-        Optional Bloomberg ticker override for ad-hoc research.
-        If provided, bypasses registry lookup.
     start_date : str or None
         Start date in YYYY-MM-DD format.
     end_date : str or None
@@ -190,25 +186,23 @@ def fetch_cdx(
     >>> from aponyx.data import fetch_cdx, FileSource, BloombergSource
     >>> df = fetch_cdx(FileSource("data/raw/cdx.parquet"), security="cdx_ig_5y")
     >>> df = fetch_cdx(BloombergSource(), security="cdx_ig_5y")
-    >>> df = fetch_cdx(BloombergSource(), bloomberg_ticker="CDX IG CDSI GEN 5Y Corp")
     >>> # Update only today's data point (intraday refresh)
     >>> df = fetch_cdx(BloombergSource(), security="cdx_ig_5y", update_current_day=True)
     """
     if source is None:
         raise ValueError("Data source must be specified for CDX fetch")
+    
+    if security is None:
+        raise ValueError("Security must be specified for CDX fetch (e.g., 'cdx_ig_5y', 'cdx_hy_5y')")
 
     instrument = "cdx"
     cache_dir = DATA_DIR / "cache"
-
-    # Determine security identifier for caching
-    # Use provided security or default to instrument type
-    security_for_cache = security if security is not None else instrument
 
     # Check cache first
     if use_cache:
         cached = get_cached_data(
             source,
-            security_for_cache,
+            security,
             cache_dir,
             start_date=start_date,
             end_date=end_date,
@@ -223,14 +217,7 @@ def fetch_cdx(
                 logger.info("Updating current day data from Bloomberg")
 
                 # Get Bloomberg ticker
-                if bloomberg_ticker is not None:
-                    ticker = bloomberg_ticker
-                elif security is not None:
-                    ticker = get_bloomberg_ticker(security)
-                else:
-                    raise ValueError(
-                        "Either 'security' or 'bloomberg_ticker' required for Bloomberg fetch"
-                    )
+                ticker = get_bloomberg_ticker(security)
 
                 # Fetch current data point
                 current_df = fetch_current_from_bloomberg(
@@ -244,10 +231,9 @@ def fetch_cdx(
                     logger.info(
                         "No current data available (non-trading day), returning cached data"
                     )
-                    df = cached
-                    if security is not None and "security" in df.columns:
-                        df = df[df["security"] == security]
-                    return df
+                    if "security" in cached.columns:
+                        return cached[cached["security"] == security]
+                    return cached
 
                 current_df = validate_cdx_schema(current_df)
 
@@ -259,24 +245,22 @@ def fetch_cdx(
                 save_to_cache(
                     df,
                     source,
-                    instrument,
+                    security,
                     cache_dir,
                     registry=registry,
                     start_date=start_date,
                     end_date=end_date,
-                    security=security,
                 )
 
-                # Apply filter if needed
-                if security is not None and "security" in df.columns:
-                    df = df[df["security"] == security]
+                # Apply security filter
+                if "security" in df.columns:
+                    return df[df["security"] == security]
                 return df
             else:
-                df = cached
-                # Apply filter if needed
-                if security is not None and "security" in df.columns:
-                    df = df[df["security"] == security]
-                return df
+                # Apply security filter
+                if "security" in cached.columns:
+                    return cached[cached["security"] == security]
+                return cached
 
     # Fetch from source
     logger.info("Fetching CDX from %s", resolve_provider(source))
@@ -290,19 +274,11 @@ def fetch_cdx(
             end_date=end_date,
         )
     elif isinstance(source, BloombergSource):
-        # Get Bloomberg ticker from registry or use override
-        if bloomberg_ticker is not None:
-            ticker = bloomberg_ticker
-            logger.debug("Using Bloomberg ticker override: %s", ticker)
-        elif security is not None:
-            ticker = get_bloomberg_ticker(security)
-            logger.debug(
-                "Resolved security '%s' to Bloomberg ticker: %s", security, ticker
-            )
-        else:
-            raise ValueError(
-                "Either 'security' or 'bloomberg_ticker' required for Bloomberg CDX fetch"
-            )
+        # Get Bloomberg ticker from registry
+        ticker = get_bloomberg_ticker(security)
+        logger.debug(
+            "Resolved security '%s' to Bloomberg ticker: %s", security, ticker
+        )
         df = fetch_fn(
             ticker=ticker,
             instrument=instrument,
@@ -317,11 +293,10 @@ def fetch_cdx(
     df = validate_cdx_schema(df)
 
     # Apply security filter
-    if security is not None:
-        if "security" not in df.columns:
-            raise ValueError("Cannot filter by security: 'security' column not found")
-        df = df[df["security"] == security]
-        logger.debug("Filtered to security=%s: %d rows", security, len(df))
+    if "security" not in df.columns:
+        raise ValueError("Cannot filter by security: 'security' column not found")
+    df = df[df["security"] == security]
+    logger.debug("Filtered to security=%s: %d rows", security, len(df))
 
     # Save Bloomberg data to raw storage (permanent source of truth)
     if isinstance(source, BloombergSource):
@@ -336,7 +311,7 @@ def fetch_cdx(
         save_to_cache(
             df,
             source,
-            security_for_cache,
+            security,
             cache_dir,
             registry=registry,
             start_date=start_date,
@@ -500,7 +475,6 @@ def fetch_vix(
 def fetch_etf(
     source: DataSource | None = None,
     security: str | None = None,
-    bloomberg_ticker: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
     use_cache: bool = CACHE_ENABLED,
@@ -516,9 +490,6 @@ def fetch_etf(
     security : str or None
         Security identifier (e.g., "hyg", "lqd").
         Used for Bloomberg ticker lookup and metadata.
-    bloomberg_ticker : str or None
-        Optional Bloomberg ticker override for ad-hoc research.
-        If provided, bypasses registry lookup.
     start_date : str or None
         Start date in YYYY-MM-DD format.
     end_date : str or None
@@ -541,25 +512,23 @@ def fetch_etf(
     >>> from aponyx.data import fetch_etf, FileSource, BloombergSource
     >>> df = fetch_etf(FileSource("data/raw/etf.parquet"), security="hyg")
     >>> df = fetch_etf(BloombergSource(), security="hyg")
-    >>> df = fetch_etf(BloombergSource(), bloomberg_ticker="HYG US Equity")
     >>> # Update only today's data point (intraday refresh)
     >>> df = fetch_etf(BloombergSource(), security="hyg", update_current_day=True)
     """
     if source is None:
         raise ValueError("Data source must be specified for ETF fetch")
+    
+    if security is None:
+        raise ValueError("Security must be specified for ETF fetch (e.g., 'hyg', 'lqd')")
 
     instrument = "etf"
     cache_dir = DATA_DIR / "cache"
-
-    # Determine security identifier for caching
-    # Use provided security or default to instrument type
-    security_for_cache = security if security is not None else instrument
 
     # Check cache first
     if use_cache:
         cached = get_cached_data(
             source,
-            security_for_cache,
+            security,
             cache_dir,
             start_date=start_date,
             end_date=end_date,
@@ -574,14 +543,7 @@ def fetch_etf(
                 logger.info("Updating current day ETF data from Bloomberg")
 
                 # Get Bloomberg ticker
-                if bloomberg_ticker is not None:
-                    ticker = bloomberg_ticker
-                elif security is not None:
-                    ticker = get_bloomberg_ticker(security)
-                else:
-                    raise ValueError(
-                        "Either 'security' or 'bloomberg_ticker' required for Bloomberg fetch"
-                    )
+                ticker = get_bloomberg_ticker(security)
 
                 # Fetch current data point
                 current_df = fetch_current_from_bloomberg(
@@ -595,10 +557,9 @@ def fetch_etf(
                     logger.info(
                         "No current ETF data available (non-trading day), returning cached data"
                     )
-                    df = cached
-                    if security is not None and "security" in df.columns:
-                        df = df[df["security"] == security]
-                    return df
+                    if "security" in cached.columns:
+                        return cached[cached["security"] == security]
+                    return cached
 
                 current_df = validate_etf_schema(current_df)
 
@@ -610,22 +571,22 @@ def fetch_etf(
                 save_to_cache(
                     df,
                     source,
-                    security_for_cache,
+                    security,
                     cache_dir,
                     registry=registry,
                     start_date=start_date,
                     end_date=end_date,
                 )
 
-                # Apply filter if needed
-                if security is not None and "security" in df.columns:
-                    df = df[df["security"] == security]
+                # Apply security filter
+                if "security" in df.columns:
+                    return df[df["security"] == security]
                 return df
             else:
-                df = cached
-                if security is not None and "security" in df.columns:
-                    df = df[df["security"] == security]
-                return df
+                # Apply security filter
+                if "security" in cached.columns:
+                    return cached[cached["security"] == security]
+                return cached
 
     # Fetch from source
     logger.info("Fetching ETF from %s", resolve_provider(source))
@@ -639,19 +600,11 @@ def fetch_etf(
             end_date=end_date,
         )
     elif isinstance(source, BloombergSource):
-        # Get Bloomberg ticker from registry or use override
-        if bloomberg_ticker is not None:
-            ticker = bloomberg_ticker
-            logger.debug("Using Bloomberg ticker override: %s", ticker)
-        elif security is not None:
-            ticker = get_bloomberg_ticker(security)
-            logger.debug(
-                "Resolved security '%s' to Bloomberg ticker: %s", security, ticker
-            )
-        else:
-            raise ValueError(
-                "Either 'security' or 'bloomberg_ticker' required for Bloomberg ETF fetch"
-            )
+        # Get Bloomberg ticker from registry
+        ticker = get_bloomberg_ticker(security)
+        logger.debug(
+            "Resolved security '%s' to Bloomberg ticker: %s", security, ticker
+        )
         df = fetch_fn(
             ticker=ticker,
             instrument=instrument,
@@ -666,11 +619,10 @@ def fetch_etf(
     df = validate_etf_schema(df)
 
     # Apply security filter
-    if security is not None:
-        if "security" not in df.columns:
-            raise ValueError("Cannot filter by security: 'security' column not found")
-        df = df[df["security"] == security]
-        logger.debug("Filtered to security=%s: %d rows", security, len(df))
+    if "security" not in df.columns:
+        raise ValueError("Cannot filter by security: 'security' column not found")
+    df = df[df["security"] == security]
+    logger.debug("Filtered to security=%s: %d rows", security, len(df))
 
     # Save Bloomberg data to raw storage (permanent source of truth)
     if isinstance(source, BloombergSource):
@@ -685,7 +637,7 @@ def fetch_etf(
         save_to_cache(
             df,
             source,
-            security_for_cache,
+            security,
             cache_dir,
             registry=registry,
             start_date=start_date,

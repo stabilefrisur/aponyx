@@ -70,19 +70,21 @@ class DataStep(BaseWorkflowStep):
         market_data = {}
 
         for security_id in sorted(all_securities):
-            # Try loading from registry first (cached/processed data)
-            matching_datasets = data_registry.list_datasets(instrument=security_id)
+            # When force_rerun is enabled, skip registry lookup and fetch fresh data
+            if not self.config.force_rerun:
+                # Try loading from registry first (cached/processed data)
+                matching_datasets = data_registry.list_datasets(instrument=security_id)
 
-            if matching_datasets:
-                # Use most recent dataset from registry
-                dataset_name = sorted(matching_datasets)[-1]
-                info = data_registry.get_dataset_info(dataset_name)
-                df = load_parquet(info["file_path"])
-                market_data[security_id] = df
-                logger.debug("Loaded %s from registry: %d rows", security_id, len(df))
-                continue
+                if matching_datasets:
+                    # Use most recent dataset from registry
+                    dataset_name = sorted(matching_datasets)[-1]
+                    info = data_registry.get_dataset_info(dataset_name)
+                    df = load_parquet(info["file_path"])
+                    market_data[security_id] = df
+                    logger.debug("Loaded %s from registry: %d rows", security_id, len(df))
+                    continue
 
-            # Registry empty - handle bloomberg vs file/synthetic sources differently
+            # Registry empty or force_rerun enabled - handle bloomberg vs file/synthetic sources
             if self.config.data_source == "bloomberg":
                 # Bloomberg source: fetch fresh data or update current day
                 logger.info(

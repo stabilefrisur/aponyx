@@ -197,7 +197,64 @@ class TestDataStep:
             mock_fetch.side_effect = RuntimeError("Bloomberg returned empty data")
             with pytest.raises(RuntimeError, match="Bloomberg returned empty data"):
                 step.execute({})
+    @patch("aponyx.data.bloomberg_config.list_securities")
+    @patch("aponyx.workflows.concrete_steps.DataRegistry")
+    @patch("aponyx.data.fetch_cdx")
+    @patch("aponyx.data.fetch_vix")
+    def test_data_step_bypasses_registry_with_force_rerun(
+        self,
+        mock_fetch_vix,
+        mock_fetch_cdx,
+        mock_data_registry_class,
+        mock_list_securities,
+        tmp_path,
+        sample_market_data,
+    ):
+        """Test DataStep bypasses registry and fetches fresh data when force_rerun=True."""
+        # Mock securities list
+        mock_list_securities.return_value = ["cdx_ig_5y", "vix"]
 
+        # Mock registry with existing data
+        mock_registry = MagicMock()
+        mock_registry.list_datasets.return_value = ["cached_dataset"]
+        mock_registry.get_dataset_info.return_value = {
+            "file_path": tmp_path / "cached.parquet"
+        }
+        mock_data_registry_class.return_value = mock_registry
+
+        # Mock fetch functions to return fresh data
+        mock_fetch_cdx.return_value = sample_market_data["cdx"]
+        mock_fetch_vix.return_value = sample_market_data["vix"]
+
+        # Create config with force_rerun=True and bloomberg source
+        config = WorkflowConfig(
+            label="force_test",
+            signal_name="test_signal",
+            strategy_name="test_strategy",
+            product="cdx_ig_5y",
+            data_source="bloomberg",
+            force_rerun=True,
+            output_dir=tmp_path / "workflows",
+        )
+
+        step = DataStep(config)
+        result = step.execute({})
+
+        # Verify registry was NOT queried (bypassed due to force_rerun)
+        mock_registry.list_datasets.assert_not_called()
+
+        # Verify fetch functions were called instead
+        mock_fetch_cdx.assert_called_once()
+        mock_fetch_vix.assert_called_once()
+
+        # Verify update_current_day was passed correctly
+        assert mock_fetch_cdx.call_args.kwargs["update_current_day"] is True
+        assert mock_fetch_vix.call_args.kwargs["update_current_day"] is True
+
+        # Verify data was loaded
+        assert "market_data" in result
+        assert "cdx_ig_5y" in result["market_data"]
+        assert "vix" in result["market_data"]
 
 class TestSignalStep:
     """Test SignalStep implementation."""
