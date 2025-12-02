@@ -266,37 +266,27 @@ def fetch_cdx(
     logger.info("Fetching CDX from %s", resolve_provider(source))
     fetch_fn = _get_provider_fetch_function(source)
 
-    if isinstance(source, FileSource):
-        df = fetch_fn(
-            source=source,
-            instrument=instrument,
-            start_date=start_date,
-            end_date=end_date,
-        )
-    elif isinstance(source, BloombergSource):
-        # Get Bloomberg ticker from registry
+    # Get ticker (Bloomberg ticker for Bloomberg, security ID for file)
+    if isinstance(source, BloombergSource):
         ticker = get_bloomberg_ticker(security)
         logger.debug(
             "Resolved security '%s' to Bloomberg ticker: %s", security, ticker
         )
-        df = fetch_fn(
-            ticker=ticker,
-            instrument=instrument,
-            start_date=start_date,
-            end_date=end_date,
-            security=security,
-        )
     else:
-        raise ValueError(f"Unsupported source type: {type(source)}")
+        ticker = security  # File source uses security ID directly
+    
+    # Fetch with unified interface
+    df = fetch_fn(
+        source=source,
+        ticker=ticker,
+        instrument=instrument,
+        security=security,
+        start_date=start_date,
+        end_date=end_date,
+    )
 
     # Validate schema
     df = validate_cdx_schema(df)
-
-    # Apply security filter
-    if "security" not in df.columns:
-        raise ValueError("Cannot filter by security: 'security' column not found")
-    df = df[df["security"] == security]
-    logger.debug("Filtered to security=%s: %d rows", security, len(df))
 
     # Save Bloomberg data to raw storage (permanent source of truth)
     if isinstance(source, BloombergSource):
@@ -326,6 +316,7 @@ def fetch_cdx(
 
 def fetch_vix(
     source: DataSource | None = None,
+    security: str = "vix",
     start_date: str | None = None,
     end_date: str | None = None,
     use_cache: bool = CACHE_ENABLED,
@@ -338,6 +329,8 @@ def fetch_vix(
     ----------
     source : DataSource or None
         Data source. If None, uses default from config.
+    security : str, default "vix"
+        Security identifier (always "vix" for VIX index).
     start_date : str or None
         Start date in YYYY-MM-DD format.
     end_date : str or None
@@ -352,12 +345,12 @@ def fetch_vix(
     -------
     pd.DataFrame
         Validated VIX data with DatetimeIndex and columns:
-        - close: VIX closing level
+        - level: VIX closing level
 
     Examples
     --------
-    >>> from aponyx.data import fetch_vix, FileSource
-    >>> df = fetch_vix(FileSource("data/raw/vix.parquet"))
+    >>> from aponyx.data import fetch_vix, FileSource, BloombergSource
+    >>> df = fetch_vix(FileSource("data/raw/synthetic"))
     >>> # Update only today's data point (intraday refresh)
     >>> df = fetch_vix(BloombergSource(), update_current_day=True)
     """
@@ -365,14 +358,13 @@ def fetch_vix(
         raise ValueError("Data source must be specified for VIX fetch")
 
     instrument = "vix"
-    security_for_cache = "vix"  # VIX has single security identifier
     cache_dir = DATA_DIR / "cache"
 
     # Check cache first
     if use_cache:
         cached = get_cached_data(
             source,
-            security_for_cache,
+            security,
             cache_dir,
             start_date=start_date,
             end_date=end_date,
@@ -386,11 +378,11 @@ def fetch_vix(
 
                 logger.info("Updating current day VIX data from Bloomberg")
 
-                ticker = get_bloomberg_ticker("vix")
+                ticker = get_bloomberg_ticker(security)
                 current_df = fetch_current_from_bloomberg(
                     ticker=ticker,
                     instrument=instrument,
-                    security="vix",
+                    security=security,
                 )
 
                 # Handle non-trading days (no current data available)
@@ -410,7 +402,7 @@ def fetch_vix(
                 save_to_cache(
                     df,
                     source,
-                    security_for_cache,
+                    security,
                     cache_dir,
                     registry=registry,
                     start_date=start_date,
@@ -424,24 +416,24 @@ def fetch_vix(
     logger.info("Fetching VIX from %s", resolve_provider(source))
     fetch_fn = _get_provider_fetch_function(source)
 
-    if isinstance(source, FileSource):
-        df = fetch_fn(
-            source=source,
-            instrument=instrument,
-            start_date=start_date,
-            end_date=end_date,
-        )
-    elif isinstance(source, BloombergSource):
-        ticker = get_bloomberg_ticker("vix")
-        df = fetch_fn(
-            ticker=ticker,
-            instrument=instrument,
-            start_date=start_date,
-            end_date=end_date,
-            security="vix",
+    # Get ticker (Bloomberg ticker for Bloomberg, security ID for file)
+    if isinstance(source, BloombergSource):
+        ticker = get_bloomberg_ticker(security)
+        logger.debug(
+            "Resolved security '%s' to Bloomberg ticker: %s", security, ticker
         )
     else:
-        raise ValueError(f"Unsupported source type: {type(source)}")
+        ticker = security  # File source uses security ID directly
+    
+    # Fetch with unified interface
+    df = fetch_fn(
+        source=source,
+        ticker=ticker,
+        instrument=instrument,
+        security=security,
+        start_date=start_date,
+        end_date=end_date,
+    )
 
     # Validate schema
     df = validate_vix_schema(df)
@@ -451,7 +443,7 @@ def fetch_vix(
         from ..config import RAW_DIR
 
         registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
-        save_to_raw(df, "bloomberg", "vix", RAW_DIR, registry)
+        save_to_raw(df, "bloomberg", security, RAW_DIR, registry)
 
     # Cache if enabled
     if use_cache:
@@ -459,7 +451,7 @@ def fetch_vix(
         save_to_cache(
             df,
             source,
-            security_for_cache,
+            security,
             cache_dir,
             registry=registry,
             start_date=start_date,
@@ -592,37 +584,27 @@ def fetch_etf(
     logger.info("Fetching ETF from %s", resolve_provider(source))
     fetch_fn = _get_provider_fetch_function(source)
 
-    if isinstance(source, FileSource):
-        df = fetch_fn(
-            source=source,
-            instrument=instrument,
-            start_date=start_date,
-            end_date=end_date,
-        )
-    elif isinstance(source, BloombergSource):
-        # Get Bloomberg ticker from registry
+    # Get ticker (Bloomberg ticker for Bloomberg, security ID for file)
+    if isinstance(source, BloombergSource):
         ticker = get_bloomberg_ticker(security)
         logger.debug(
             "Resolved security '%s' to Bloomberg ticker: %s", security, ticker
         )
-        df = fetch_fn(
-            ticker=ticker,
-            instrument=instrument,
-            start_date=start_date,
-            end_date=end_date,
-            security=security,
-        )
     else:
-        raise ValueError(f"Unsupported source type: {type(source)}")
+        ticker = security  # File source uses security ID directly
+    
+    # Fetch with unified interface
+    df = fetch_fn(
+        source=source,
+        ticker=ticker,
+        instrument=instrument,
+        security=security,
+        start_date=start_date,
+        end_date=end_date,
+    )
 
     # Validate schema
     df = validate_etf_schema(df)
-
-    # Apply security filter
-    if "security" not in df.columns:
-        raise ValueError("Cannot filter by security: 'security' column not found")
-    df = df[df["security"] == security]
-    logger.debug("Filtered to security=%s: %d rows", security, len(df))
 
     # Save Bloomberg data to raw storage (permanent source of truth)
     if isinstance(source, BloombergSource):

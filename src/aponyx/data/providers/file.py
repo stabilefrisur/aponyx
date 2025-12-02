@@ -17,24 +17,30 @@ logger = logging.getLogger(__name__)
 
 def fetch_from_file(
     source: FileSource,
+    ticker: str,
     instrument: str,
+    security: str,
     start_date: str | None = None,
     end_date: str | None = None,
     **params: Any,
 ) -> pd.DataFrame:
     """
-    Fetch data from local Parquet or CSV file.
+    Fetch data from local Parquet or CSV file using security-based lookup.
 
     Parameters
     ----------
     source : FileSource
-        File source configuration with path.
+        File source configuration with base_dir and security_mapping.
+    ticker : str
+        Ticker identifier (unused for file provider, for signature compatibility).
     instrument : str
-        Instrument identifier (for logging).
+        Instrument type (cdx, vix, etf).
+    security : str
+        Security identifier to fetch (e.g., 'cdx_ig_5y', 'vix', 'hyg').
     start_date : str or None
-        Optional start date filter (ISO format).
+        Optional start date filter (ISO format, unused for file provider).
     end_date : str or None
-        Optional end date filter (ISO format).
+        Optional end date filter (ISO format, unused for file provider).
     **params : Any
         Additional parameters (unused for file provider).
 
@@ -46,18 +52,28 @@ def fetch_from_file(
     Raises
     ------
     ValueError
-        If file format is not supported.
+        If security not found in mapping or file format not supported.
     FileNotFoundError
         If file does not exist.
 
     Notes
     -----
+    - Uses security_mapping to resolve security ID to filename
     - Automatically detects Parquet vs CSV from file extension
-    - Date filtering applied after loading (files assumed small enough)
-    - Does not perform schema validation (handled by fetch layer)
+    - Adds 'security' column if instrument requires it
+    - Date filtering not performed (files pre-filtered to match needs)
     """
-    file_path = source.path
-    logger.info("Fetching %s from file: %s", instrument, file_path)
+    # Resolve security to filename
+    if security not in source.security_mapping:
+        available = ", ".join(sorted(source.security_mapping.keys()))
+        raise ValueError(
+            f"Security '{security}' not found in registry. Available: {available}"
+        )
+    
+    filename = source.security_mapping[security]
+    file_path = source.base_dir / filename
+    
+    logger.info("Fetching %s (security=%s) from file: %s", instrument, security, file_path)
 
     if not file_path.exists():
         raise FileNotFoundError(f"Data file not found: {file_path}")
@@ -75,17 +91,17 @@ def fetch_from_file(
     else:
         raise ValueError(f"Unsupported file format: {file_path.suffix}")
 
-    # Apply date filtering if requested
-    if isinstance(df.index, pd.DatetimeIndex):
-        if start_date is not None:
-            start = pd.Timestamp(start_date)
-            df = df[df.index >= start]
-            logger.debug("Filtered to start_date >= %s: %d rows", start_date, len(df))
-
-        if end_date is not None:
-            end = pd.Timestamp(end_date)
-            df = df[df.index <= end]
-            logger.debug("Filtered to end_date <= %s: %d rows", end_date, len(df))
+    # Add security column if instrument requires it
+    from ..bloomberg_config import get_instrument_spec
+    
+    try:
+        inst_spec = get_instrument_spec(instrument)
+        if inst_spec.requires_security_metadata and "security" not in df.columns:
+            df["security"] = security
+            logger.debug("Added security column: %s", security)
+    except ValueError:
+        # Unknown instrument type, skip metadata enrichment
+        logger.debug("Unknown instrument type '%s', skipping metadata enrichment", instrument)
 
     logger.info("Loaded %d rows from file", len(df))
     return df

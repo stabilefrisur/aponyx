@@ -17,20 +17,48 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class FileSource:
     """
-    File-based data source (Parquet or CSV).
+    File-based data source with security-to-file mapping.
 
     Attributes
     ----------
-    path : Path
-        Path to the data file.
+    base_dir : Path
+        Base directory containing data files.
+    registry_path : Path or None
+        Path to registry JSON file. If None, defaults to {base_dir}/registry.json.
+    security_mapping : dict[str, str]
+        Mapping from security ID to filename (auto-loaded from registry).
     """
 
-    path: Path
+    base_dir: Path
+    registry_path: Path | None = None
+    security_mapping: dict[str, str] | None = None
 
     def __post_init__(self) -> None:
-        """Convert path to Path object if string provided."""
-        if isinstance(self.path, str):
-            object.__setattr__(self, "path", Path(self.path))
+        """Load security mapping from registry file."""
+        import json
+        
+        # Convert base_dir to Path if string
+        if isinstance(self.base_dir, str):
+            object.__setattr__(self, "base_dir", Path(self.base_dir))
+        
+        # Determine registry path
+        if self.registry_path is None:
+            registry_path = self.base_dir / "registry.json"
+        else:
+            registry_path = self.registry_path if isinstance(self.registry_path, Path) else Path(self.registry_path)
+        
+        # Load security mapping from registry if not provided
+        if self.security_mapping is None:
+            if registry_path.exists():
+                with open(registry_path, encoding="utf-8") as f:
+                    mapping = json.load(f)
+                object.__setattr__(self, "security_mapping", mapping)
+                logger.debug("Loaded security mapping from %s: %d securities", registry_path, len(mapping))
+            else:
+                raise FileNotFoundError(
+                    f"Registry file not found: {registry_path}. "
+                    "Generate synthetic data or provide explicit security_mapping."
+                )
 
 
 @dataclass(frozen=True)

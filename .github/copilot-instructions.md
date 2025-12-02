@@ -226,7 +226,9 @@ src/aponyx/
 data/
 ├── raw/                   # Source data (permanent)
 │   ├── synthetic/        # Generated test data
+│   │   └── registry.json # Security-to-file mapping
 │   └── bloomberg/        # Terminal downloads
+│       └── registry.json # Security-to-file mapping
 ├── cache/                # TTL cache (regenerable, security-based: {security}_{hash}.parquet)
 │   ├── file/
 │   ├── bloomberg/
@@ -253,6 +255,7 @@ data/
 | `signal_catalog.json` | `src/aponyx/models/` | Static | Signal definitions (3 signals) |
 | `strategy_catalog.json` | `src/aponyx/backtest/` | Static | Strategy configs (4 strategies) |
 | `bloomberg_securities.json` | `src/aponyx/data/` | Static | Security-to-ticker mapping |
+| `registry.json` | `data/raw/{provider}/` | Static | Security-to-file mapping (per provider) |
 | `registry.json` | `data/.registries/` | Runtime | Dataset tracking |
 | `suitability.json` | `data/.registries/` | Runtime | Evaluation results |
 | `performance.json` | `data/.registries/` | Runtime | Performance analysis |
@@ -346,17 +349,27 @@ class WorkflowEngine:
 **Purpose**: Load, validate, transform market data
 
 **Patterns**:
-- Provider pattern with frozen dataclasses (FileSource, BloombergSource)
-- Unified fetch functions (fetch_cdx, fetch_vix, fetch_etf)
+- **Unified provider interface**: FileSource and BloombergSource are interchangeable
+- **Security-based lookup**: FileSource uses registry.json (like Bloomberg's ticker mapping)
+- Frozen dataclasses for immutable source configs
 - Strict schema validation with range checks
 - TTL-based caching (1 day default)
 - DataRegistry for metadata tracking
 
 **Example**:
 ```python
-source = FileSource("data/raw/cdx.parquet")
+# FileSource with registry-based lookup (new pattern)
+source = FileSource(Path("data/raw/synthetic"))  # Auto-loads registry.json
 cdx_df = fetch_cdx(source, security="cdx_ig_5y", use_cache=True)
-# Returns: pd.DataFrame with DatetimeIndex, validated schema
+# Returns: pd.DataFrame with DatetimeIndex, validated schema, security column
+
+# BloombergSource (same interface!)
+source = BloombergSource()
+cdx_df = fetch_cdx(source, security="cdx_ig_5y", use_cache=True)
+# Identical call - provider differences hidden internally
+
+# VIX with security parameter for consistency
+vix_df = fetch_vix(source, security="vix")  # Works for both FileSource and BloombergSource
 
 # DataRegistry helpers for security-based lookup
 registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
@@ -369,6 +382,8 @@ name = registry.find_dataset_by_security("cdx_ig_5y")     # Returns dataset name
 - CDX spreads: 0-10,000 bps, VIX: 0-200 (validated)
 - Forward-fill for missing dates
 - No imports from models/backtest/evaluation
+- FileSource requires registry.json in base_dir (generate with `generate_synthetic.py`)
+- Security column automatically added by providers when instrument requires it
 
 #### Indicator, Transformation, and Signal Composition (`models/`)
 
@@ -792,13 +807,14 @@ class MyMetadata:
 **REQUIRED**: Use DataSource protocol for data loading:
 
 ```python
-# Define source
-source = FileSource("data/raw/cdx.parquet")
+# Define source with registry-based lookup
+source = FileSource(Path("data/raw/synthetic"))  # Auto-loads registry.json
 # OR
 source = BloombergSource()
 
-# Fetch via unified interface
+# Fetch via unified interface (identical for both providers)
 cdx_df = fetch_cdx(source, security="cdx_ig_5y")
+vix_df = fetch_vix(source, security="vix")
 ```
 
 **DO NOT**:
@@ -808,6 +824,9 @@ df = pd.read_parquet("data/raw/cdx.parquet")
 
 # ❌ String-based provider identification
 df = fetch_cdx(provider="file", path="...")
+
+# ❌ Old FileSource pattern (removed)
+source = FileSource("data/raw/cdx.parquet")
 ```
 
 ### 4. Workflow Context Sharing
@@ -1073,7 +1092,7 @@ def fetch_cdx(
     
     Examples
     --------
-    >>> source = FileSource("data/raw/cdx.parquet")
+    >>> source = FileSource(Path("data/raw/synthetic"))
     >>> df = fetch_cdx(source, security="cdx_ig_5y")
     >>> df.head()
     """
@@ -1391,7 +1410,7 @@ def plot_chart(data: pd.Series) -> None:  # ❌ Wrong
 4. **Direct File Paths Instead of Provider Pattern**:
 ```python
 df = pd.read_parquet("data/raw/cdx.parquet")  # ❌ Wrong
-# Use: fetch_cdx(FileSource("data/raw/cdx.parquet"))
+# Use: fetch_cdx(FileSource(Path("data/raw/synthetic")))
 ```
 
 5. **Mutable Config Objects**:
@@ -1404,7 +1423,7 @@ class MyConfig:
 6. **String-Based Provider Identification**:
 ```python
 fetch_data(provider="file", path="...")  # ❌ Wrong
-# Use: fetch_data(FileSource("..."))
+# Use: fetch_data(FileSource(Path("data/raw/synthetic")))
 ```
 
 7. **logging.basicConfig() in Library Code**:

@@ -188,9 +188,16 @@ class TestSaveToRaw:
 class TestGetProviderFetchFunction:
     """Test provider fetch function resolution."""
 
-    def test_get_provider_fetch_function_file(self):
+    def test_get_provider_fetch_function_file(self, tmp_path):
         """Test resolves file provider fetch function."""
-        source = FileSource(Path("dummy.parquet"))
+        import json
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        registry = {"test": "test.parquet"}
+        with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
+            json.dump(registry, f)
+        
+        source = FileSource(data_dir)
 
         fetch_fn = _get_provider_fetch_function(source)
 
@@ -224,14 +231,23 @@ class TestFetchCDXIntegration:
         mock_fetch_file,
         mock_get_cached,
         sample_df,
+        tmp_path,
     ):
         """Test fetch_cdx returns cached data when available."""
+        import json
         from aponyx.data.fetch import fetch_cdx
+
+        # Create temporary data directory with registry
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        registry = {"cdx_ig_5y": "cdx_ig_5y.parquet"}
+        with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
+            json.dump(registry, f)
 
         # Mock cache hit
         mock_get_cached.return_value = sample_df
 
-        source = FileSource(Path("dummy.parquet"))
+        source = FileSource(data_dir)
         result = fetch_cdx(source, security="cdx_ig_5y", use_cache=True)
 
         # Should return cached data without calling fetch
@@ -249,16 +265,25 @@ class TestFetchCDXIntegration:
         mock_fetch_file,
         mock_get_cached,
         sample_df,
+        tmp_path,
     ):
         """Test fetch_cdx fetches data on cache miss."""
+        import json
         from aponyx.data.fetch import fetch_cdx
+
+        # Create temporary data directory with registry
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        registry = {"cdx_ig_5y": "cdx_ig_5y.parquet"}
+        with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
+            json.dump(registry, f)
 
         # Mock cache miss
         mock_get_cached.return_value = None
         mock_fetch_file.return_value = sample_df
         mock_validate.return_value = sample_df
 
-        source = FileSource(Path("dummy.parquet"))
+        source = FileSource(data_dir)
         result = fetch_cdx(source, security="cdx_ig_5y", use_cache=True)
 
         # Should fetch and cache

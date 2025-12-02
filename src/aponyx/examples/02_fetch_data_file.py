@@ -3,7 +3,7 @@ Load all market data instruments from file sources.
 
 Prerequisites
 -------------
-Raw data files must exist in data/raw/synthetic/:
+Raw data files must exist in data/raw/synthetic/ with registry.json:
 - cdx_ig_5y_{hash}.parquet (CDX IG 5Y spreads)
 - cdx_ig_10y_{hash}.parquet (CDX IG 10Y spreads)
 - cdx_hy_5y_{hash}.parquet (CDX HY 5Y spreads)
@@ -12,14 +12,15 @@ Raw data files must exist in data/raw/synthetic/:
 - vix_{hash}.parquet (VIX volatility index)
 - hyg_{hash}.parquet (HYG high yield ETF)
 - lqd_{hash}.parquet (LQD investment grade ETF)
+- registry.json (security-to-file mapping)
 
-Run 01_generate_synthetic_data.py first if files don't exist.
+Run scripts/generate_synthetic.py first if files don't exist.
 
 Outputs
 -------
 Validated DataFrames for each instrument:
 - CDX instruments: spread column with DatetimeIndex
-- VIX: close column with DatetimeIndex
+- VIX: level column with DatetimeIndex
 - ETF instruments: close column with DatetimeIndex
 
 All data validated against schema expectations.
@@ -46,8 +47,8 @@ def main() -> dict[str, pd.DataFrame]:
     Load and validate all market data from file sources.
 
     Loads all instruments defined in bloomberg_securities.json from
-    the synthetic data directory. Uses fetch interface with FileSource
-    to ensure proper validation and schema compliance.
+    the synthetic data directory. Uses FileSource with registry-based
+    lookup for security-to-file mapping.
 
     Returns
     -------
@@ -55,49 +56,28 @@ def main() -> dict[str, pd.DataFrame]:
         Dictionary mapping security IDs to validated DataFrames.
     """
     synthetic_dir = RAW_DIR / "synthetic"
+    
+    # Initialize FileSource with registry (auto-loads registry.json)
+    source = FileSource(synthetic_dir)
+    
     data = {}
 
     # Load CDX instruments
     cdx_securities = list_securities(instrument_type="cdx")
     for security in cdx_securities:
-        file_path = _find_data_file(synthetic_dir, security)
-        df = fetch_cdx(FileSource(file_path), security=security)
+        df = fetch_cdx(source, security=security)
         data[security] = df
 
     # Load VIX
-    vix_path = _find_data_file(synthetic_dir, "vix")
-    data["vix"] = fetch_vix(FileSource(vix_path))
+    data["vix"] = fetch_vix(source, security="vix")
 
     # Load ETF instruments
     etf_securities = list_securities(instrument_type="etf")
     for security in etf_securities:
-        file_path = _find_data_file(synthetic_dir, security)
-        df = fetch_etf(FileSource(file_path), security=security)
+        df = fetch_etf(source, security=security)
         data[security] = df
 
     return data
-
-
-def _find_data_file(directory: Path, security: str) -> Path:
-    """
-    Find data file for security in directory.
-
-    Parameters
-    ----------
-    directory : Path
-        Directory to search for data files.
-    security : str
-        Security identifier (e.g., "cdx_ig_5y", "vix").
-
-    Returns
-    -------
-    Path
-        Path to data file.
-    """
-    safe_security = security.replace(".", "_").replace("/", "_")
-    pattern = f"{safe_security}_*.parquet"
-    matches = list(directory.glob(pattern))
-    return matches[0]
 
 
 if __name__ == "__main__":

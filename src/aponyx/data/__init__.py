@@ -30,7 +30,7 @@ from .registry import DataRegistry, DatasetEntry
 from .transforms import apply_transform, TransformType
 from .requirements import get_required_data_keys
 from .fetch_registry import get_fetch_spec, list_instruments
-from .loaders import find_raw_file, load_instrument_from_raw, load_signal_required_data
+from .loaders import load_instrument_from_raw, load_signal_required_data
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +94,6 @@ __all__ = [
     "get_fetch_spec",
     "list_instruments",
     # Loaders
-    "find_raw_file",
     "load_instrument_from_raw",
     "load_signal_required_data",
 ]

@@ -99,12 +99,13 @@ from aponyx.backtest import run_backtest, BacktestConfig
 from aponyx.evaluation.performance import compute_all_metrics
 from aponyx.evaluation.suitability import evaluate_signal_suitability, SuitabilityConfig
 from aponyx.config import INDICATOR_CATALOG_PATH, TRANSFORMATION_CATALOG_PATH, SIGNAL_CATALOG_PATH
+from pathlib import Path
 
 # Load validated market data
-# Note: After generating synthetic data, find actual filenames in data/raw/synthetic/
-# Files use hash-based naming: cdx_ig_5y_<hash>.parquet, hyg_<hash>.parquet
-cdx_df = fetch_cdx(FileSource("data/raw/synthetic/cdx_ig_5y_<hash>.parquet"), security="cdx_ig_5y")
-etf_df = fetch_etf(FileSource("data/raw/synthetic/hyg_<hash>.parquet"), security="hyg")
+# FileSource uses registry.json for security-to-file mapping
+source = FileSource(Path("data/raw/synthetic"))
+cdx_df = fetch_cdx(source, security="cdx_ig_5y")
+etf_df = fetch_etf(source, security="hyg")
 
 # SIGNAL COMPOSITION: Every signal is ALWAYS composed from indicator + transformation
 # 1. Indicator = economically interpretable metric (e.g., CDX-ETF basis in bps)
@@ -150,7 +151,9 @@ print(f"Win Rate: {metrics.hit_rate:.1%}")
 
 ```python
 from aponyx.data import BloombergSource
+from pathlib import Path
 
+# Both sources use identical interface
 source = BloombergSource()
 cdx_df = fetch_cdx(source, security="cdx_ig_5y")
 ```
@@ -306,9 +309,11 @@ Aponyx follows a **layered architecture** with clean separation of concerns:
 data/
   raw/              # Original source data (permanent)
     bloomberg/      # Bloomberg Terminal downloads
+      registry.json # Security-to-file mapping
     synthetic/      # Synthetic test data
+      registry.json # Security-to-file mapping
   cache/            # Temporary performance cache (security-based naming: {security}_{hash}.parquet)
-  workflows/        # Timestamped workflow results ({signal}_{strategy}_{timestamp}/)
+  workflows/        # Timestamped workflow results ({label}_{timestamp}/)
   .registries/      # Runtime metadata (not in git)
 ```
 

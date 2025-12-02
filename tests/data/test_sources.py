@@ -5,6 +5,7 @@ Validates FileSource, BloombergSource, APISource configuration
 and provider resolution logic.
 """
 
+import json
 from pathlib import Path
 
 import pytest
@@ -20,36 +21,76 @@ from aponyx.data.sources import (
 class TestFileSource:
     """Test FileSource configuration."""
 
-    def test_file_source_creation(self):
-        """Test creating FileSource instance."""
-        path = Path("data/test.parquet")
-        source = FileSource(path)
+    def test_file_source_creation(self, tmp_path: Path):
+        """Test creating FileSource instance with registry."""
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        
+        # Create registry.json
+        registry = {"cdx_ig_5y": "cdx_ig_5y_abc123.parquet"}
+        registry_path = data_dir / "registry.json"
+        with open(registry_path, "w", encoding="utf-8") as f:
+            json.dump(registry, f)
+        
+        source = FileSource(data_dir)
 
-        assert source.path == path
-        assert isinstance(source.path, Path)
+        assert source.base_dir == data_dir
+        assert isinstance(source.base_dir, Path)
+        assert source.security_mapping == registry
 
-    def test_file_source_from_string(self):
+    def test_file_source_from_string(self, tmp_path: Path):
         """Test FileSource accepts string path."""
-        source = FileSource("data/test.parquet")
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        
+        # Create registry.json
+        registry = {"vix": "vix_abc123.parquet"}
+        registry_path = data_dir / "registry.json"
+        with open(registry_path, "w", encoding="utf-8") as f:
+            json.dump(registry, f)
+        
+        source = FileSource(str(data_dir))
 
-        assert isinstance(source.path, Path)
-        assert source.path == Path("data/test.parquet")
+        assert isinstance(source.base_dir, Path)
+        assert source.base_dir == data_dir
+        assert source.security_mapping == registry
 
-    def test_file_source_frozen(self):
+    def test_file_source_frozen(self, tmp_path: Path):
         """Test FileSource is frozen (immutable)."""
-        source = FileSource(Path("test.parquet"))
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        
+        # Create registry.json
+        registry = {"vix": "vix_abc123.parquet"}
+        registry_path = data_dir / "registry.json"
+        with open(registry_path, "w", encoding="utf-8") as f:
+            json.dump(registry, f)
+        
+        source = FileSource(data_dir)
 
         with pytest.raises(AttributeError):
-            source.path = Path("other.parquet")  # type: ignore
+            source.base_dir = Path("other")  # type: ignore
 
-    def test_file_source_equality(self):
+    def test_file_source_equality(self, tmp_path: Path):
         """Test FileSource equality comparison."""
-        source1 = FileSource(Path("test.parquet"))
-        source2 = FileSource(Path("test.parquet"))
-        source3 = FileSource(Path("other.parquet"))
+        # Create two directories with same registry
+        data_dir1 = tmp_path / "data1"
+        data_dir1.mkdir()
+        registry = {"vix": "vix_abc123.parquet"}
+        with open(data_dir1 / "registry.json", "w", encoding="utf-8") as f:
+            json.dump(registry, f)
+        
+        data_dir2 = tmp_path / "data2"
+        data_dir2.mkdir()
+        with open(data_dir2 / "registry.json", "w", encoding="utf-8") as f:
+            json.dump(registry, f)
+        
+        source1 = FileSource(data_dir1)
+        source2 = FileSource(data_dir1)
+        source3 = FileSource(data_dir2)
 
         assert source1 == source2
-        assert source1 != source3
+        assert source1 != source3  # Different base_dir
 
 
 class TestBloombergSource:
@@ -124,9 +165,17 @@ class TestAPISource:
 class TestResolveProvider:
     """Test provider resolution logic."""
 
-    def test_resolve_provider_file(self):
+    def test_resolve_provider_file(self, tmp_path: Path):
         """Test resolving FileSource provider."""
-        source = FileSource(Path("data.parquet"))
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        
+        # Create registry.json
+        registry = {"vix": "vix_abc123.parquet"}
+        with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
+            json.dump(registry, f)
+        
+        source = FileSource(data_dir)
 
         provider = resolve_provider(source)
 
@@ -164,11 +213,19 @@ class TestResolveProvider:
 class TestDataSourceUnion:
     """Test DataSource union type usage."""
 
-    def test_data_source_accepts_file(self):
+    def test_data_source_accepts_file(self, tmp_path: Path):
         """Test DataSource accepts FileSource."""
         from aponyx.data.sources import DataSource
 
-        source: DataSource = FileSource(Path("test.parquet"))
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        
+        # Create registry.json
+        registry = {"vix": "vix_abc123.parquet"}
+        with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
+            json.dump(registry, f)
+        
+        source: DataSource = FileSource(data_dir)
         assert isinstance(source, FileSource)
 
     def test_data_source_accepts_bloomberg(self):
@@ -189,25 +246,30 @@ class TestDataSourceUnion:
 class TestEdgeCases:
     """Test edge cases and special scenarios."""
 
-    def test_file_source_with_relative_path(self):
-        """Test FileSource with relative path."""
-        source = FileSource(Path("../data/test.parquet"))
+    def test_file_source_with_relative_path(self, tmp_path: Path):
+        """Test FileSource with relative path can fail if registry missing."""
+        # This test validates that relative paths work when registry exists
+        # In practice, relative paths should be avoided in favor of absolute paths
+        
+        # FileSource requires registry.json to exist
+        # Without registry, it should raise FileNotFoundError
+        with pytest.raises(FileNotFoundError, match="Registry file not found"):
+            source = FileSource(Path("../data"))
 
-        assert source.path == Path("../data/test.parquet")
-
-    def test_file_source_with_absolute_path(self):
+    def test_file_source_with_absolute_path(self, tmp_path: Path):
         """Test FileSource with absolute path."""
-        import sys
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        
+        # Create registry.json
+        registry = {"vix": "vix_abc123.parquet"}
+        with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
+            json.dump(registry, f)
+        
+        source = FileSource(data_dir)
 
-        if sys.platform == "win32":
-            abs_path = Path("C:/absolute/path/test.parquet")
-        else:
-            abs_path = Path("/absolute/path/test.parquet")
-
-        source = FileSource(abs_path)
-
-        assert source.path == abs_path
-        assert source.path.is_absolute()
+        assert source.base_dir == data_dir
+        assert source.base_dir.is_absolute()
 
     def test_api_source_with_empty_params(self):
         """Test APISource with empty params dict."""
