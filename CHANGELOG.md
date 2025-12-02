@@ -5,7 +5,86 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.15] - 2024-12-02
 
+### Added
+- **Indicator-Signal Separation Architecture**
+  - New `indicators.py` module with reusable indicator computation functions
+  - New `transformations.py` module with signal processing operations
+  - `indicator_catalog.json` defining 3 core indicators with metadata
+  - `transformation_catalog.json` defining 4 transformation operations
+  - Indicator caching for performance optimization across signals
+  - `IndicatorRegistry` and `TransformationRegistry` for metadata management
+  - Runtime overrides: `indicator_override`, `transformation_override`, `security_mapping`
+- **Enhanced CLI List Command**
+  - New `aponyx list products` to display available CDX products
+  - New `aponyx list indicators` to show indicator catalog with data requirements
+  - New `aponyx list transformations` to show available signal transformations
+  - New `aponyx list securities` to display Bloomberg security mappings
+  - Improved formatting with rich table output for all list commands
+- **Comprehensive Test Suite**
+  - 361 tests in `test_indicator_registry.py` for indicator metadata validation
+  - 329 tests in `test_indicators.py` for indicator computation logic
+  - 317 tests in `test_transformation_registry.py` for transformation metadata
+  - 379 tests in `test_signal_composer.py` for signal composition patterns
+  - All CLI tests updated and passing (681 total tests)
+
+### Changed
+- **Signal Composition Pattern** (Breaking)
+  - Signals now ALWAYS composed from indicator + transformation (no direct computation)
+  - Removed `signals.py` module - all computation split into indicators and transformations
+  - Signal catalog entries now reference `indicator_dependencies` and `transformations`
+  - `compose_signal()` replaces direct signal computation functions
+  - Indicators output raw economic values (bps, ratios) - NOT pre-normalized
+  - Transformations apply signal processing (z-score, volatility adjustment, differencing)
+- **Workflow Configuration** (Breaking)
+  - CLI simplified to YAML-config-only approach (no CLI parameter overrides)
+  - Removed `--signal`, `--strategy`, `--product`, `--securities`, `--data` flags from `run` command
+  - All workflow parameters configured via YAML files only
+  - New `workflow_minimal.yaml` and `workflow_complete.yaml` examples
+  - Removed `workflow_basic.yaml`, `workflow_bloomberg.yaml`, `workflow_custom_securities.yaml`, `workflow_custom_steps.yaml`
+- **Label-Based Workflow System**
+  - Workflow directories renamed to `{label}_{timestamp}` format
+  - Label field now required in workflow config
+  - `aponyx report` accepts label or index (0 = most recent)
+  - Improved workflow discovery and organization
+- **Registry Architecture**
+  - Split `SignalRegistry` into `IndicatorRegistry`, `TransformationRegistry`, `SignalRegistry`
+  - Enhanced metadata validation with comprehensive error messages
+  - Removed legacy compatibility code and deprecated patterns
+  - Catalog schema enforced at load time with fail-fast validation
+
+### Fixed
+- **CLI Test Suite** completely refactored for new workflow API
+  - Fixed all 894 test assertions in `test_commands.py`
+  - Updated error handling tests for YAML-only configuration
+  - Fixed integration tests for label-based workflow discovery
+  - All 681 tests passing with new architecture
+
+### Removed
+- **Legacy Compatibility Code**
+  - Removed backward compatibility layer from indicator-signal architecture
+  - Removed CLI parameter override support (YAML-only now)
+  - Removed deprecated `signals.py` module
+  - Removed `.github` internal files (kept `copilot-instructions.md` only)
+  - Removed `.specify` and `specs/` folders from version control
+  - Cleaned up 4,213 lines of legacy code
+
+### Documentation
+- **Comprehensive Updates** for new architecture
+  - Updated `copilot-instructions.md` with indicator-transformation-signal pattern
+  - Clarified signal composition pattern with MANDATORY indicator + transformation requirement
+  - Added runtime override documentation (indicator_override, transformation_override, security_mapping)
+  - Updated CLI guide for YAML-config-only approach
+  - Enhanced governance documentation with architectural evolution details
+  - Updated README with new workflow examples and list command capabilities
+
+### Breaking Changes
+- Signal catalog schema changed - all signals must declare `indicator_dependencies` and `transformations`
+- Direct signal computation functions removed - use `compose_signal()` with indicator + transformation
+- CLI no longer accepts workflow parameter overrides - use YAML config files only
+- Workflow directory naming changed to `{label}_{timestamp}` format
+- Removed multiple example workflow files - use `workflow_minimal.yaml` or `workflow_complete.yaml`
 
 ## [0.1.14] - 2025-11-23
 
@@ -680,6 +759,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.15]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.15
 [0.1.14]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.14
 [0.1.13]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.13
 [0.1.12]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.12

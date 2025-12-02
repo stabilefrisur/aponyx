@@ -98,7 +98,9 @@ class TestValidateComputeFunctionsExist:
         catalog_path = tmp_path / "bad_catalog.json"
         catalog_path.write_text(json.dumps(bad_catalog, indent=2))
 
-        with pytest.raises(ValueError, match="references non-existent compute function"):
+        with pytest.raises(
+            ValueError, match="references non-existent compute function"
+        ):
             IndicatorRegistry(catalog_path)
 
     def test_duplicate_names_raises_error(self, tmp_path: Path):
@@ -297,9 +299,9 @@ class TestDependencyTracking:
                     dependent_signals = indicator_registry.get_dependent_signals(
                         indicator_name
                     )
-                    assert (
-                        signal_name in dependent_signals
-                    ), f"Signal {signal_name} should be in dependencies for {indicator_name}"
+                    assert signal_name in dependent_signals, (
+                        f"Signal {signal_name} should be in dependencies for {indicator_name}"
+                    )
 
     def test_nonexistent_indicator_returns_empty_list(self):
         """Test that querying dependencies for nonexistent indicator returns empty list."""

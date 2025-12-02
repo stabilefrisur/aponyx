@@ -130,7 +130,11 @@ def test_run_command_requires_config_file(runner):
 def test_run_command_missing_signal_field(runner, tmp_path):
     """Test run command validates signal field is required."""
     config_file = tmp_path / "config.yaml"
-    config_file.write_text(yaml.dump({"label": "test_label", "product": "cdx_ig_5y", "strategy": "balanced"}))
+    config_file.write_text(
+        yaml.dump(
+            {"label": "test_label", "product": "cdx_ig_5y", "strategy": "balanced"}
+        )
+    )
 
     result = runner.invoke(cli, ["run", str(config_file)])
 
@@ -143,7 +147,9 @@ def test_run_command_missing_product_field(runner, tmp_path):
     """Test run command validates product field is required."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({"label": "test_label", "signal": "spread_momentum", "strategy": "balanced"})
+        yaml.dump(
+            {"label": "test_label", "signal": "spread_momentum", "strategy": "balanced"}
+        )
     )
 
     result = runner.invoke(cli, ["run", str(config_file)])
@@ -157,7 +163,9 @@ def test_run_command_missing_strategy_field(runner, tmp_path):
     """Test run command validates strategy field is required."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({"label": "test_label", "signal": "spread_momentum", "product": "cdx_ig_5y"})
+        yaml.dump(
+            {"label": "test_label", "signal": "spread_momentum", "product": "cdx_ig_5y"}
+        )
     )
 
     result = runner.invoke(cli, ["run", str(config_file)])
@@ -171,7 +179,8 @@ def test_run_command_invalid_signal(runner, tmp_path):
     """Test run command validates signal exists in catalog."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({
+        yaml.dump(
+            {
                 "label": "test_label",
                 "signal": "nonexistent_signal",
                 "product": "cdx_ig_5y",
@@ -191,7 +200,8 @@ def test_run_command_invalid_strategy(runner, tmp_path):
     """Test run command validates strategy exists in catalog."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({
+        yaml.dump(
+            {
                 "label": "test_label",
                 "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
@@ -211,7 +221,8 @@ def test_run_command_invalid_indicator_override(runner, tmp_path):
     """Test run command validates indicator override exists in catalog."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({
+        yaml.dump(
+            {
                 "label": "test_label",
                 "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
@@ -232,7 +243,8 @@ def test_run_command_invalid_transformation_override(runner, tmp_path):
     """Test run command validates transformation override exists in catalog."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({
+        yaml.dump(
+            {
                 "label": "test_label",
                 "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
@@ -253,7 +265,8 @@ def test_run_command_invalid_security_not_found(runner, tmp_path):
     """Test run command validates securities exist in bloomberg_securities.json."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({
+        yaml.dump(
+            {
                 "label": "test_label",
                 "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
@@ -274,12 +287,15 @@ def test_run_command_invalid_security_wrong_instrument_type(runner, tmp_path):
     """Test run command validates security instrument_type matches mapping key."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({
+        yaml.dump(
+            {
                 "label": "test_label",
                 "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
                 "strategy": "balanced",
-                "securities": {"cdx": "vix"},  # vix has instrument_type 'vix', not 'cdx'
+                "securities": {
+                    "cdx": "vix"
+                },  # vix has instrument_type 'vix', not 'cdx'
             }
         )
     )
@@ -294,7 +310,8 @@ def test_run_command_minimal_config(runner, mock_workflow_engine, tmp_path):
     """Test run command with minimal config (only required fields)."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({
+        yaml.dump(
+            {
                 "label": "test_label",
                 "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
@@ -320,7 +337,8 @@ def test_run_command_complete_config(runner, mock_workflow_engine, tmp_path):
     """Test run command with complete config (all fields specified)."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({
+        yaml.dump(
+            {
                 "label": "test_label",
                 "signal": "cdx_etf_basis",
                 "product": "cdx_ig_5y",
@@ -350,7 +368,8 @@ def test_run_command_indicator_override_only(runner, mock_workflow_engine, tmp_p
     """Test run command with indicator override (keeps transformation from signal)."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({
+        yaml.dump(
+            {
                 "label": "test_label",
                 "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
@@ -374,7 +393,8 @@ def test_run_command_transformation_override_only(
     """Test run command with transformation override (keeps indicator from signal)."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({
+        yaml.dump(
+            {
                 "label": "test_label",
                 "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
@@ -396,7 +416,8 @@ def test_run_command_securities_override(runner, mock_workflow_engine, tmp_path)
     """Test run command with securities override."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({
+        yaml.dump(
+            {
                 "label": "test_label",
                 "signal": "cdx_etf_basis",
                 "product": "cdx_ig_5y",
@@ -416,7 +437,8 @@ def test_run_command_with_workflow_error(runner, tmp_path):
     """Test run command handles workflow execution errors."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({
+        yaml.dump(
+            {
                 "label": "test_label",
                 "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
@@ -467,7 +489,8 @@ def test_run_command_with_skipped_steps(runner, tmp_path):
     """Test run command displays skipped steps correctly."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({
+        yaml.dump(
+            {
                 "label": "test_label",
                 "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
@@ -493,11 +516,14 @@ def test_run_command_with_skipped_steps(runner, tmp_path):
         assert "Skipped 2" in result.output
 
 
-def test_run_command_displays_source_attribution(runner, mock_workflow_engine, tmp_path):
+def test_run_command_displays_source_attribution(
+    runner, mock_workflow_engine, tmp_path
+):
     """Test run command displays correct source tags for all fields."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
-        yaml.dump({
+        yaml.dump(
+            {
                 "label": "test_label",
                 "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
@@ -593,19 +619,13 @@ def test_list_products_command(runner, tmp_path):
     """Test list products command."""
     # Create mock bloomberg_securities.json
     securities = {
-        "cdx_ig_5y": {
-            "description": "CDX IG 5Y",
-            "instrument_type": "cdx"
-        },
-        "lqd": {
-            "description": "LQD ETF",
-            "instrument_type": "etf"
-        }
+        "cdx_ig_5y": {"description": "CDX IG 5Y", "instrument_type": "cdx"},
+        "lqd": {"description": "LQD ETF", "instrument_type": "etf"},
     }
-    
+
     securities_file = tmp_path / "bloomberg_securities.json"
     securities_file.write_text(json.dumps(securities))
-    
+
     with patch("aponyx.cli.commands.list.BLOOMBERG_SECURITIES_PATH", securities_file):
         result = runner.invoke(cli, ["list", "products"])
         assert result.exit_code == 0
@@ -632,7 +652,9 @@ def test_list_indicators_command(runner):
 
 def test_list_transformations_command(runner):
     """Test list transformations command."""
-    with patch("aponyx.cli.commands.list.TransformationRegistry") as mock_registry_class:
+    with patch(
+        "aponyx.cli.commands.list.TransformationRegistry"
+    ) as mock_registry_class:
         mock_registry = MagicMock()
         mock_registry.list_all.return_value = {
             "z_score_20d": MagicMock(description="20-day z-score"),
@@ -650,23 +672,14 @@ def test_list_securities_command(runner, tmp_path):
     """Test list securities command."""
     # Create mock bloomberg_securities.json
     securities = {
-        "cdx_ig_5y": {
-            "description": "CDX IG 5Y",
-            "instrument_type": "cdx"
-        },
-        "lqd": {
-            "description": "LQD ETF",
-            "instrument_type": "etf"
-        },
-        "vix": {
-            "description": "VIX Index",
-            "instrument_type": "vix"
-        }
+        "cdx_ig_5y": {"description": "CDX IG 5Y", "instrument_type": "cdx"},
+        "lqd": {"description": "LQD ETF", "instrument_type": "etf"},
+        "vix": {"description": "VIX Index", "instrument_type": "vix"},
     }
-    
+
     securities_file = tmp_path / "bloomberg_securities.json"
     securities_file.write_text(json.dumps(securities))
-    
+
     with patch("aponyx.cli.commands.list.BLOOMBERG_SECURITIES_PATH", securities_file):
         result = runner.invoke(cli, ["list", "securities"])
         assert result.exit_code == 0
@@ -682,7 +695,12 @@ def test_list_steps_command(runner):
     with patch("aponyx.cli.commands.list.StepRegistry") as mock_registry_class:
         mock_registry = MagicMock()
         mock_registry.get_canonical_order.return_value = [
-            "data", "signal", "suitability", "backtest", "performance", "visualization"
+            "data",
+            "signal",
+            "suitability",
+            "backtest",
+            "performance",
+            "visualization",
         ]
         mock_registry_class.return_value = mock_registry
 
@@ -702,7 +720,10 @@ def test_clean_command_requires_signal_or_all(runner):
     """Test clean command requires --workflows or --indicators flag."""
     result = runner.invoke(cli, ["clean"])
     assert result.exit_code != 0
-    assert "Must specify --workflows, --indicators, or --all" in result.output or "Missing option" in result.output
+    assert (
+        "Must specify --workflows, --indicators, or --all" in result.output
+        or "Missing option" in result.output
+    )
 
 
 def test_clean_command_dry_run(runner, tmp_path):
@@ -748,7 +769,9 @@ def test_clean_command_specific_signal(runner, tmp_path):
     )
 
     with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", workflows_dir):
-        result = runner.invoke(cli, ["clean", "--workflows", "--signal", "spread_momentum"])
+        result = runner.invoke(
+            cli, ["clean", "--workflows", "--signal", "spread_momentum"]
+        )
 
         assert result.exit_code == 0
         assert not test_dir.exists()
@@ -760,7 +783,10 @@ def test_clean_command_no_cached_results(runner, tmp_path):
         result = runner.invoke(cli, ["clean", "--workflows", "--all"])
 
         assert result.exit_code == 0
-        assert "No workflows found" in result.output or "No cached results" in result.output
+        assert (
+            "No workflows found" in result.output
+            or "No cached results" in result.output
+        )
 
 
 def test_clean_command_signal_not_found(runner, tmp_path):
@@ -769,10 +795,15 @@ def test_clean_command_signal_not_found(runner, tmp_path):
         workflows_dir = tmp_path / "workflows"
         workflows_dir.mkdir(parents=True)
 
-        result = runner.invoke(cli, ["clean", "--workflows", "--signal", "nonexistent_signal"])
+        result = runner.invoke(
+            cli, ["clean", "--workflows", "--signal", "nonexistent_signal"]
+        )
 
         assert result.exit_code == 0
-        assert "No cached results found" in result.output or "No workflows found" in result.output
+        assert (
+            "No cached results found" in result.output
+            or "No workflows found" in result.output
+        )
 
 
 # ============================================================================
@@ -809,7 +840,7 @@ def test_report_command_generates_output(runner, tmp_path):
     reports_dir = workflow_dir / "reports"
     reports_dir.mkdir()
     (reports_dir / "suitability_evaluation_20241202.md").write_text("Test content")
-    
+
     with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
         with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
             mock_generate.return_value = "Mock report content"
@@ -831,7 +862,7 @@ def test_report_command_markdown_format(runner, tmp_path):
     reports_dir = workflow_dir / "reports"
     reports_dir.mkdir()
     (reports_dir / "suitability_evaluation_20241202.md").write_text("Test content")
-    
+
     with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
         with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
             mock_generate.return_value = "# Mock Report"
@@ -856,7 +887,7 @@ def test_report_command_html_format(runner, tmp_path):
     reports_dir = workflow_dir / "reports"
     reports_dir.mkdir()
     (reports_dir / "suitability_evaluation_20241202.md").write_text("Test content")
-    
+
     with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
         with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
             mock_generate.return_value = "<html>Mock Report</html>"
@@ -881,9 +912,9 @@ def test_report_command_with_output_path(runner, tmp_path):
     reports_dir = workflow_dir / "reports"
     reports_dir.mkdir()
     (reports_dir / "suitability_evaluation_20241202.md").write_text("Test content")
-    
+
     output_file = tmp_path / "custom_report.md"
-    
+
     with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
         with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
             mock_generate.return_value = "Mock report"
@@ -923,7 +954,7 @@ def test_report_command_generation_error(runner, tmp_path):
     (workflow_dir / "metadata.json").write_text(
         '{"label": "test_label", "signal": "spread_momentum", "strategy": "balanced"}'
     )
-    
+
     with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
         with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
             mock_generate.side_effect = RuntimeError("Mock generation error")
@@ -931,7 +962,10 @@ def test_report_command_generation_error(runner, tmp_path):
             result = runner.invoke(cli, ["report", "--workflow", "test_label"])
 
             assert result.exit_code != 0
-            assert "Report generation failed" in result.output or "error" in result.output.lower()
+            assert (
+                "Report generation failed" in result.output
+                or "error" in result.output.lower()
+            )
 
 
 def test_report_command_invalid_format(runner):

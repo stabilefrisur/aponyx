@@ -551,11 +551,9 @@ class SignalRegistry:
                 raise ValueError(
                     f"Signal '{name}' requires non-empty indicator_dependencies"
                 )
-            
+
             if not metadata.transformations:
-                raise ValueError(
-                    f"Signal '{name}' requires non-empty transformations"
-                )
+                raise ValueError(f"Signal '{name}' requires non-empty transformations")
 
         logger.debug("Validated signal metadata requirements")
 

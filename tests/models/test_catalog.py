@@ -86,14 +86,14 @@ def test_get_required_data_keys(test_catalog_path: Path) -> None:
     """Test that get_required_data_keys returns union of all enabled signals' requirements."""
     from aponyx.models.registry import SignalRegistry, IndicatorRegistry
     from aponyx.config import INDICATOR_CATALOG_PATH
-    
+
     # Get signal registry
     signal_registry = SignalRegistry(test_catalog_path)
     indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
-    
+
     # Get all signals (list_all returns dict[str, SignalMetadata])
     all_signals = signal_registry.list_all()
-    
+
     # Collect data requirements from indicators for enabled signals
     all_requirements = set()
     for signal_name, signal_metadata in all_signals.items():
@@ -101,7 +101,11 @@ def test_get_required_data_keys(test_catalog_path: Path) -> None:
             for indicator_name in signal_metadata.indicator_dependencies:
                 indicator_metadata = indicator_registry.get_metadata(indicator_name)
                 all_requirements.update(indicator_metadata.data_requirements.keys())
-    
+
     # Should include keys from enabled signals' indicators
     assert len(all_requirements) >= 2
-    assert "cdx" in all_requirements or "etf" in all_requirements or "vix" in all_requirements
+    assert (
+        "cdx" in all_requirements
+        or "etf" in all_requirements
+        or "vix" in all_requirements
+    )

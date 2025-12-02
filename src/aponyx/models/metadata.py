@@ -149,13 +149,13 @@ class SignalMetadata:
     Every signal is ALWAYS composed from two components:
     1. Indicator(s) - Economically interpretable metrics (spread differences, momentum, etc.)
     2. Transformation(s) - Signal processing operations (z-score, volatility adjustment, etc.)
-    
+
     This separation enables:
     - Reusing indicators across multiple signals with different transformations
     - Swapping transformations without recomputing indicators (caching efficiency)
     - Clear attribution of signal behavior to economic driver vs. processing
     - Runtime experimentation via indicator_override/transformation_override
-    
+
     EXAMPLE: cdx_etf_basis signal
     - Indicator: "cdx_etf_spread_diff" (basis in raw bps)
     - Transformation: "z_score_20d" (normalize to trading signal)
@@ -193,12 +193,12 @@ class SignalMetadata:
         Use -1 to invert signals that naturally produce opposite signs.
         Must be -1 or 1.
         Default: 1 (no inversion)
-    
+
     Notes
     -----
     The indicator + transformation pattern is MANDATORY for all signals.
     Signals without this structure will fail validation at registry load time.
-    
+
     Runtime overrides (via WorkflowConfig):
     - indicator_override: Swap indicator while keeping transformation
     - transformation_override: Swap transformation while keeping indicator

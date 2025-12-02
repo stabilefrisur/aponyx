@@ -171,12 +171,8 @@ class TestComposeSignal:
         """Sample market data for testing."""
         dates = pd.date_range("2024-01-01", periods=100, freq="D")
 
-        cdx_df = pd.DataFrame(
-            {"spread": np.random.randn(100) * 20 + 120}, index=dates
-        )
-        etf_df = pd.DataFrame(
-            {"spread": np.random.randn(100) * 15 + 110}, index=dates
-        )
+        cdx_df = pd.DataFrame({"spread": np.random.randn(100) * 20 + 120}, index=dates)
+        etf_df = pd.DataFrame({"spread": np.random.randn(100) * 15 + 110}, index=dates)
         vix_df = pd.DataFrame({"level": np.random.randn(100) * 5 + 18}, index=dates)
 
         return {"cdx": cdx_df, "etf": etf_df, "vix": vix_df}
@@ -189,8 +185,11 @@ class TestComposeSignal:
         monkeypatch,
     ):
         """Test composing signal from single indicator with transformation."""
+
         # Mock compute_indicator to return deterministic data
-        def mock_compute_indicator(indicator_name, indicator_metadata, market_data, use_cache=True):
+        def mock_compute_indicator(
+            indicator_name, indicator_metadata, market_data, use_cache=True
+        ):
             # Return simple spread difference
             cdx_spread = market_data["cdx"]["spread"]
             etf_spread = market_data["etf"]["spread"]
@@ -236,7 +235,9 @@ class TestComposeSignal:
     ):
         """Test sign multiplier application."""
 
-        def mock_compute_indicator(indicator_name, indicator_metadata, market_data, use_cache=True):
+        def mock_compute_indicator(
+            indicator_name, indicator_metadata, market_data, use_cache=True
+        ):
             # Return positive values
             return pd.Series(
                 np.ones(100), index=sample_market_data["cdx"].index, name="indicator"
@@ -264,7 +265,7 @@ class TestComposeSignal:
         )
 
         # Validate - should be inverted
-        #After z-score of constant series (std=0), we get NaN or 0, but sign multiplier applied
+        # After z-score of constant series (std=0), we get NaN or 0, but sign multiplier applied
         # This is a simple check that sign_multiplier is applied
         assert isinstance(signal, pd.Series)
 
@@ -278,7 +279,9 @@ class TestComposeSignal:
         signal_metadata = {
             "name": "mismatched_signal",
             "indicator_dependencies": ["cdx_etf_spread_diff", "spread_momentum_5d"],
-            "transformations": ["z_score_20d"],  # Only 1 transformation for 2 indicators
+            "transformations": [
+                "z_score_20d"
+            ],  # Only 1 transformation for 2 indicators
             "composition_logic": "cdx_etf_spread_diff + spread_momentum_5d",
             "sign_multiplier": 1,
         }
@@ -300,7 +303,9 @@ class TestComposeSignal:
     ):
         """Test error when multi-indicator signal lacks composition_logic."""
 
-        def mock_compute_indicator(indicator_name, indicator_metadata, market_data, use_cache=True):
+        def mock_compute_indicator(
+            indicator_name, indicator_metadata, market_data, use_cache=True
+        ):
             return pd.Series(
                 np.ones(100), index=sample_market_data["cdx"].index, name="indicator"
             )
@@ -336,7 +341,9 @@ class TestComposeSignal:
         # Mock to return different indicators
         call_count = [0]
 
-        def mock_compute_indicator(indicator_name, indicator_metadata, market_data, use_cache=True):
+        def mock_compute_indicator(
+            indicator_name, indicator_metadata, market_data, use_cache=True
+        ):
             call_count[0] += 1
             # First call: spread_diff, second call: momentum
             if call_count[0] == 1:

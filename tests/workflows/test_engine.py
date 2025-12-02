@@ -372,12 +372,8 @@ def test_workflow_with_indicator_caching():
 
     # Create test market data
     dates = pd.date_range("2024-01-01", periods=100, freq="D")
-    cdx_df = pd.DataFrame(
-        {"spread": np.random.uniform(80, 120, 100)}, index=dates
-    )
-    etf_df = pd.DataFrame(
-        {"spread": np.random.uniform(70, 110, 100)}, index=dates
-    )
+    cdx_df = pd.DataFrame({"spread": np.random.uniform(80, 120, 100)}, index=dates)
+    etf_df = pd.DataFrame({"spread": np.random.uniform(70, 110, 100)}, index=dates)
     market_data = {"cdx": cdx_df, "etf": etf_df}
 
     # Load indicator registry
@@ -402,10 +398,13 @@ def test_workflow_with_indicator_caching():
 
     # Verify cache was created
     cache_files_after_first = list(INDICATOR_CACHE_DIR.glob("*.parquet"))
-    assert len(cache_files_after_first) == 1, "Cache should contain one cached indicator"
+    assert len(cache_files_after_first) == 1, (
+        "Cache should contain one cached indicator"
+    )
 
     # Second computation - should use cache
     import time
+
     start = time.time()
     indicator2 = compute_indicator(
         "cdx_etf_spread_diff",
@@ -416,7 +415,9 @@ def test_workflow_with_indicator_caching():
     cache_time = time.time() - start
 
     # Verify identical results
-    pd.testing.assert_series_equal(indicator1, indicator2, check_freq=False, check_names=False)
+    pd.testing.assert_series_equal(
+        indicator1, indicator2, check_freq=False, check_names=False
+    )
 
     # Verify cache still exists
     cache_files_after_second = list(INDICATOR_CACHE_DIR.glob("*.parquet"))
@@ -434,7 +435,9 @@ def test_workflow_with_indicator_caching():
     no_cache_time = time.time() - start
 
     # Verify same results but no cache created (use_cache=False)
-    pd.testing.assert_series_equal(indicator1, indicator3, check_freq=False, check_names=False)
+    pd.testing.assert_series_equal(
+        indicator1, indicator3, check_freq=False, check_names=False
+    )
 
     # Clean up
     invalidate_indicator_cache()

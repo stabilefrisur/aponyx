@@ -68,9 +68,10 @@ def test_full_workflow_integration(runner, mock_all_registries, tmp_path):
     # Step 3: Run workflow with config file
     config_file = tmp_path / "workflow.yaml"
     config_file.write_text(
-        yaml.dump({
-                    "label": "test_label",
-                    "signal": "spread_momentum",
+        yaml.dump(
+            {
+                "label": "test_label",
+                "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
                 "strategy": "balanced",
             }
@@ -104,7 +105,7 @@ def test_full_workflow_integration(runner, mock_all_registries, tmp_path):
     reports_dir = workflow_dir / "reports"
     reports_dir.mkdir()
     (reports_dir / "suitability_evaluation_20241202.md").write_text("Test content")
-    
+
     with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
         with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
             mock_generate.return_value = "Mock report content"
@@ -138,7 +139,8 @@ def test_workflow_with_all_data_sources(runner, tmp_path):
     for source in data_sources:
         config_file = tmp_path / f"workflow_{source}.yaml"
         config_file.write_text(
-            yaml.dump({
+            yaml.dump(
+                {
                     "label": "test_label",
                     "signal": "spread_momentum",
                     "product": "cdx_ig_5y",
@@ -177,7 +179,8 @@ def test_workflow_with_partial_steps(runner, tmp_path):
     for steps in step_combinations:
         config_file = tmp_path / f"workflow_{'_'.join(steps)}.yaml"
         config_file.write_text(
-            yaml.dump({
+            yaml.dump(
+                {
                     "label": "test_label",
                     "signal": "spread_momentum",
                     "product": "cdx_ig_5y",
@@ -219,7 +222,7 @@ def test_report_all_formats(runner, tmp_path):
         reports_dir = workflow_dir / "reports"
         reports_dir.mkdir(exist_ok=True)
         (reports_dir / "suitability_evaluation_20241202.md").write_text("Test content")
-        
+
         with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
             with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
                 mock_generate.return_value = f"Mock {format_type} report"
@@ -248,7 +251,9 @@ def test_clean_with_different_scopes(runner, tmp_path):
 
     with patch("aponyx.cli.commands.clean.DATA_WORKFLOWS_DIR", workflows_dir):
         # Test cleaning specific signal - now requires --workflows flag
-        result = runner.invoke(cli, ["clean", "--workflows", "--signal", "spread_momentum"])
+        result = runner.invoke(
+            cli, ["clean", "--workflows", "--signal", "spread_momentum"]
+        )
         assert result.exit_code == 0
 
         # Test cleaning all (remaining)
@@ -261,9 +266,10 @@ def test_error_recovery_workflow(runner, tmp_path):
     # Step 1: Run workflow with error
     config_file = tmp_path / "workflow.yaml"
     config_file.write_text(
-        yaml.dump({
-                    "label": "test_label",
-                    "signal": "spread_momentum",
+        yaml.dump(
+            {
+                "label": "test_label",
+                "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
                 "strategy": "balanced",
             }
@@ -294,9 +300,10 @@ def test_error_recovery_workflow(runner, tmp_path):
 
     # Step 3: Fix and re-run with force flag
     config_file.write_text(
-        yaml.dump({
-                    "label": "test_label",
-                    "signal": "spread_momentum",
+        yaml.dump(
+            {
+                "label": "test_label",
+                "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
                 "strategy": "balanced",
                 "force": True,
@@ -325,9 +332,10 @@ def test_yaml_config_workflow(runner, tmp_path):
     # Create YAML config with required and optional fields
     config_file = tmp_path / "research_workflow.yaml"
     config_file.write_text(
-        yaml.dump({
-                    "label": "test_label",
-                    "signal": "spread_momentum",
+        yaml.dump(
+            {
+                "label": "test_label",
+                "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
                 "strategy": "balanced",
                 "data": "synthetic",

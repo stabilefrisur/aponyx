@@ -48,7 +48,9 @@ def test_run_command_config_validation_error(runner, tmp_path):
     """Test run command handles WorkflowConfig validation errors."""
     # Create config file with label
     config_file = tmp_path / "workflow.yaml"
-    config_file.write_text("label: test_label\nsignal: spread_momentum\nproduct: cdx_ig_5y\nstrategy: balanced\n")
+    config_file.write_text(
+        "label: test_label\nsignal: spread_momentum\nproduct: cdx_ig_5y\nstrategy: balanced\n"
+    )
 
     with patch("aponyx.cli.commands.run.WorkflowConfig") as mock_config:
         mock_config.side_effect = ValueError("Invalid configuration")
@@ -98,14 +100,16 @@ def test_run_command_yaml_with_null_values(runner, tmp_path):
 
     assert result.exit_code != 0
     # Null values are converted to string "None" and fail catalog validation
-    assert ("Signal 'None' not found" in result.output or "Missing" in result.output)
+    assert "Signal 'None' not found" in result.output or "Missing" in result.output
 
 
 def test_run_command_workflow_engine_exception(runner, tmp_path):
     """Test run command handles WorkflowEngine exceptions."""
     # Create config file
     config_file = tmp_path / "workflow.yaml"
-    config_file.write_text("signal: spread_momentum\nproduct: cdx_ig_5y\nstrategy: balanced\n")
+    config_file.write_text(
+        "signal: spread_momentum\nproduct: cdx_ig_5y\nstrategy: balanced\n"
+    )
 
     with patch("aponyx.cli.commands.run.WorkflowEngine") as mock_engine_class:
         mock_engine_class.side_effect = RuntimeError("Engine initialization failed")
@@ -125,7 +129,9 @@ def test_run_command_multiple_errors_in_workflow(runner, tmp_path):
     """Test run command displays multiple workflow errors."""
     # Create config file with label
     config_file = tmp_path / "workflow.yaml"
-    config_file.write_text("label: test_label\nsignal: spread_momentum\nproduct: cdx_ig_5y\nstrategy: balanced\n")
+    config_file.write_text(
+        "label: test_label\nsignal: spread_momentum\nproduct: cdx_ig_5y\nstrategy: balanced\n"
+    )
 
     with patch("aponyx.cli.commands.run.WorkflowEngine") as mock_engine_class:
         mock_engine = MagicMock()
@@ -269,7 +275,7 @@ def test_report_command_unexpected_error(runner, tmp_path):
     (workflow_dir / "metadata.json").write_text(
         '{"label": "test_label", "signal": "spread_momentum", "strategy": "balanced"}'
     )
-    
+
     with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
         with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
             mock_generate.side_effect = Exception("Unexpected error")
@@ -277,7 +283,10 @@ def test_report_command_unexpected_error(runner, tmp_path):
             result = runner.invoke(cli, ["report", "--workflow", "test_label"])
 
             assert result.exit_code != 0
-            assert "Report generation failed" in result.output or "error" in result.output.lower()
+            assert (
+                "Report generation failed" in result.output
+                or "error" in result.output.lower()
+            )
 
 
 def test_report_command_invalid_output_path(runner):
@@ -389,9 +398,9 @@ def test_report_command_output_with_absolute_path(runner, tmp_path):
     reports_dir = workflow_dir / "reports"
     reports_dir.mkdir()
     (reports_dir / "suitability_evaluation_20241202.md").write_text("Test content")
-    
+
     output_file = tmp_path / "reports" / "test_report.md"
-    
+
     with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
         with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
             mock_generate.return_value = "Mock report"

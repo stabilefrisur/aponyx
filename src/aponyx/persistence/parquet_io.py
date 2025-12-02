@@ -346,6 +346,7 @@ def invalidate_indicator_cache(
     """
     if cache_dir is None:
         from ..config import INDICATOR_CACHE_DIR
+
         cache_dir = INDICATOR_CACHE_DIR
 
     if not cache_dir.exists():

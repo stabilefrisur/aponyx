@@ -65,13 +65,13 @@ class WorkflowConfig:
     -----
     Configuration is frozen to prevent accidental mutation during execution.
     Use dataclasses.replace() to create modified copies if needed.
-    
+
     Signal Composition Pattern
     --------------------------
     Signals are ALWAYS composed from:
     1. Indicator (economically interpretable metric from indicator_catalog.json)
     2. Transformation (signal processing operation from transformation_catalog.json)
-    
+
     Runtime overrides allow swapping components without editing catalogs:
     - security_mapping: Override which securities to load for each instrument type
     - indicator_override: Override which indicator to use (keeps transformation)
@@ -93,14 +93,14 @@ class WorkflowConfig:
     def __post_init__(self) -> None:
         """Validate configuration on initialization."""
         import re
-        
+
         # Validate label format
         if not re.match(r"^[a-z][a-z0-9_]*$", self.label):
             raise ValueError(
                 f"Label '{self.label}' is invalid. "
                 "Must start with lowercase letter and contain only lowercase letters, numbers, and underscores."
             )
-        
+
         # Validate steps
         if self.steps is not None:
             valid_steps = {

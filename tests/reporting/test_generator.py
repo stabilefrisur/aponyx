@@ -143,9 +143,14 @@ class TestCollectReportData:
         # Create a fake workflow dir for the test
         fake_workflow_dir = workflows_dir / "nonexistent_20241120_123456"
         fake_workflow_dir.mkdir()
-        
+
         with pytest.raises(FileNotFoundError, match="No reports found"):
-            _collect_report_data(fake_workflow_dir, "test_label", "nonexistent_signal", "nonexistent_strategy")
+            _collect_report_data(
+                fake_workflow_dir,
+                "test_label",
+                "nonexistent_signal",
+                "nonexistent_strategy",
+            )
 
 
 class TestGenerateConsoleReport:
@@ -186,7 +191,8 @@ class TestGenerateConsoleReport:
         viz_file.write_text("<html>chart</html>")
 
         data = ReportData(
-            workflow_dir=DATA_WORKFLOWS_DIR / "test_signal_test_strategy_20241120_123456",
+            workflow_dir=DATA_WORKFLOWS_DIR
+            / "test_signal_test_strategy_20241120_123456",
             label="test_label",
             signal_name="test_signal",
             strategy_name="test_strategy",
@@ -307,17 +313,22 @@ class TestGenerateReport:
         workflow_dir.mkdir()
         metadata_path = workflow_dir / "metadata.json"
         import json
-        metadata_path.write_text(json.dumps({
-            "label": "test_workflow",
-            "signal": "test_signal",
-            "strategy": "test_strategy"
-        }))
-        
+
+        metadata_path.write_text(
+            json.dumps(
+                {
+                    "label": "test_workflow",
+                    "signal": "test_signal",
+                    "strategy": "test_strategy",
+                }
+            )
+        )
+
         # Need at least one report file for generate_report to work
         reports_dir = workflow_dir / "reports"
         reports_dir.mkdir()
         (reports_dir / "suitability_evaluation_20241120.md").write_text("Test content")
-        
+
         report = generate_report(
             workflow_dir=workflow_dir,
             format=ReportFormat.CONSOLE,
@@ -333,12 +344,17 @@ class TestGenerateReport:
         workflow_dir.mkdir()
         metadata_path = workflow_dir / "metadata.json"
         import json
-        metadata_path.write_text(json.dumps({
-            "label": "test_workflow",
-            "signal": "test_signal",
-            "strategy": "test_strategy"
-        }))
-        
+
+        metadata_path.write_text(
+            json.dumps(
+                {
+                    "label": "test_workflow",
+                    "signal": "test_signal",
+                    "strategy": "test_strategy",
+                }
+            )
+        )
+
         # Need at least one report file
         reports_dir = workflow_dir / "reports"
         reports_dir.mkdir()
@@ -362,12 +378,17 @@ class TestGenerateReport:
         workflow_dir.mkdir()
         metadata_path = workflow_dir / "metadata.json"
         import json
-        metadata_path.write_text(json.dumps({
-            "label": "test_workflow",
-            "signal": "test_signal",
-            "strategy": "test_strategy"
-        }))
-        
+
+        metadata_path.write_text(
+            json.dumps(
+                {
+                    "label": "test_workflow",
+                    "signal": "test_signal",
+                    "strategy": "test_strategy",
+                }
+            )
+        )
+
         # Need at least one report file
         reports_dir = workflow_dir / "reports"
         reports_dir.mkdir()
@@ -391,12 +412,17 @@ class TestGenerateReport:
         workflow_dir.mkdir()
         metadata_path = workflow_dir / "metadata.json"
         import json
-        metadata_path.write_text(json.dumps({
-            "label": "test_workflow",
-            "signal": "test_signal",
-            "strategy": "test_strategy"
-        }))
-        
+
+        metadata_path.write_text(
+            json.dumps(
+                {
+                    "label": "test_workflow",
+                    "signal": "test_signal",
+                    "strategy": "test_strategy",
+                }
+            )
+        )
+
         # Need at least one report file
         reports_dir = workflow_dir / "reports"
         reports_dir.mkdir()

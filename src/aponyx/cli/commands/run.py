@@ -13,7 +13,11 @@ import click
 import yaml
 
 from aponyx.workflows import WorkflowEngine, WorkflowConfig
-from aponyx.models.registry import SignalRegistry, IndicatorRegistry, TransformationRegistry
+from aponyx.models.registry import (
+    SignalRegistry,
+    IndicatorRegistry,
+    TransformationRegistry,
+)
 from aponyx.backtest.registry import StrategyRegistry
 from aponyx.config import (
     SIGNAL_CATALOG_PATH,
@@ -179,13 +183,17 @@ def _display_workflow_config(
 
     # Display all fields with proper alignment
     click.echo(f"Label:           {config.label} [config]")
-    click.echo(f"Product:         {config.product} {'[config]' if 'product' in config_dict else '[default]'}")
+    click.echo(
+        f"Product:         {config.product} {'[config]' if 'product' in config_dict else '[default]'}"
+    )
     click.echo(f"Signal:          {config.signal_name} [config]")
     click.echo(f"Indicator:       {indicator_name} {indicator_source}")
     click.echo(f"Securities:      {securities_str} {securities_source}")
     click.echo(f"Transformation:  {transformation_name} {transformation_source}")
     click.echo(f"Strategy:        {config.strategy_name} [config]")
-    click.echo(f"Data:            {config.data_source} {'[config]' if 'data' in config_dict else '[default]'}")
+    click.echo(
+        f"Data:            {config.data_source} {'[config]' if 'data' in config_dict else '[default]'}"
+    )
 
     # Display steps
     if config.steps:

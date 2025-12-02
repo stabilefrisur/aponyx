@@ -26,7 +26,6 @@ from aponyx.config import (
 from aponyx.data import DataRegistry
 from aponyx.data.fetch_registry import get_fetch_spec
 from aponyx.data.loaders import load_instrument_from_raw
-from aponyx.models import SignalConfig
 from aponyx.models.registry import SignalRegistry
 from aponyx.evaluation.suitability import (
     evaluate_signal_suitability,

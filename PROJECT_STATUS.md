@@ -1,7 +1,7 @@
 # Project Status — aponyx
 
 **Last Updated:** December 2, 2025  
-**Version:** 0.1.14 (YAML-Only CLI)
+**Version:** 0.1.15 (Indicator-Signal Separation)
 
 ## Quick Reference
 

@@ -109,18 +109,19 @@ def generate_report(
     # Validate workflow directory exists
     if not workflow_dir.exists():
         raise FileNotFoundError(f"Workflow directory not found: {workflow_dir}")
-    
+
     # Load metadata
     metadata_path = workflow_dir / "metadata.json"
     if not metadata_path.exists():
         raise FileNotFoundError(
             f"Metadata not found in workflow directory: {workflow_dir}"
         )
-    
+
     import json
+
     with open(metadata_path, "r", encoding="utf-8") as f:
         metadata = json.load(f)
-    
+
     label = metadata.get("label", "unknown")
     signal_name = metadata.get("signal", "unknown")
     strategy_name = metadata.get("strategy", "unknown")

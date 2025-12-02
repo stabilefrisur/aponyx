@@ -12,7 +12,6 @@ from pathlib import Path
 import click
 
 from aponyx.config import DATA_WORKFLOWS_DIR, INDICATOR_CACHE_DIR
-from aponyx.persistence.parquet_io import invalidate_indicator_cache
 
 logger = logging.getLogger(__name__)
 
@@ -20,27 +19,27 @@ logger = logging.getLogger(__name__)
 def _parse_days(older_than: str) -> int:
     """
     Parse days from string format like '30d', '7d', '90d'.
-    
+
     Parameters
     ----------
     older_than : str
         String in format '<number>d'.
-    
+
     Returns
     -------
     int
         Number of days.
-    
+
     Raises
     ------
     click.ClickException
         If format is invalid.
     """
-    if not older_than.endswith('d'):
+    if not older_than.endswith("d"):
         raise click.ClickException(
             f"Invalid format '{older_than}'. Expected format: '<number>d' (e.g., '30d', '7d')"
         )
-    
+
     try:
         days = int(older_than[:-1])
         if days <= 0:
@@ -130,16 +129,16 @@ def clean(
     Examples:
         # Clean all workflow results
         aponyx clean --workflows --all
-        
+
         # Clean workflows older than 30 days
         aponyx clean --workflows --older-than 30d
-        
+
         # Clean old workflows for specific signal
         aponyx clean --workflows --signal spread_momentum --older-than 30d
-        
+
         # Clean indicator cache
         aponyx clean --indicators
-        
+
         # Preview changes without deleting
         aponyx clean --workflows --older-than 30d --dry-run
     """
@@ -149,12 +148,12 @@ def clean(
         if not signal and not clean_all and not workflows:
             # If only --indicators flag, we're done
             return
-    
+
     # Validate options
     if older_than and not workflows:
         click.echo("Error: --older-than requires --workflows flag", err=True)
         raise click.Abort()
-    
+
     # Handle workflow cleaning
     if workflows or clean_all:
         _clean_workflows(
@@ -164,7 +163,7 @@ def clean(
             dry_run=dry_run,
         )
         return
-    
+
     # If no workflow/indicator flags, show error
     if not indicators:
         click.echo("Must specify --workflows, --indicators, or --all", err=True)
@@ -179,7 +178,7 @@ def _clean_workflows(
 ) -> None:
     """
     Clean workflow directories based on filters.
-    
+
     Parameters
     ----------
     signal_filter : str | None
@@ -196,20 +195,20 @@ def _clean_workflows(
     if not workflows_dir.exists():
         click.echo("No workflows found")
         return
-    
+
     # Parse age threshold if provided
     age_threshold = None
     if older_than:
         days = _parse_days(older_than)
         age_threshold = datetime.now() - timedelta(days=days)
-    
+
     # Collect workflow directories to delete
     workflow_dirs_to_delete = []
-    
+
     for workflow_dir in workflows_dir.iterdir():
         if not workflow_dir.is_dir():
             continue
-        
+
         # Load metadata for filtering
         metadata_path = workflow_dir / "metadata.json"
         if not metadata_path.exists():
@@ -217,7 +216,7 @@ def _clean_workflows(
             if clean_all:
                 workflow_dirs_to_delete.append(workflow_dir)
             continue
-        
+
         try:
             with open(metadata_path, "r", encoding="utf-8") as f:
                 metadata = json.load(f)
@@ -226,12 +225,12 @@ def _clean_workflows(
             if clean_all:
                 workflow_dirs_to_delete.append(workflow_dir)
             continue
-        
+
         # Apply signal filter
         if signal_filter:
             if metadata.get("signal") != signal_filter:
                 continue
-        
+
         # Apply age filter (unless --all specified)
         if not clean_all and age_threshold:
             timestamp_str = metadata.get("timestamp")
@@ -242,12 +241,14 @@ def _clean_workflows(
                         # Workflow is newer than threshold, skip
                         continue
                 except Exception as e:
-                    logger.debug("Failed to parse timestamp from %s: %s", workflow_dir, e)
+                    logger.debug(
+                        "Failed to parse timestamp from %s: %s", workflow_dir, e
+                    )
                     continue
-        
+
         # Add to deletion list
         workflow_dirs_to_delete.append(workflow_dir)
-    
+
     if not workflow_dirs_to_delete:
         if signal_filter:
             click.echo(f"No workflows found matching signal '{signal_filter}'")
@@ -256,16 +257,18 @@ def _clean_workflows(
         else:
             click.echo("No workflows found")
         return
-    
+
     # Collect all files and directories from matched workflows
     targets = []
     for workflow_dir in workflow_dirs_to_delete:
         targets.extend(_collect_targets(workflow_dir))
-    
+
     # Display summary
     if dry_run:
-        click.echo(f"Would delete {len(workflow_dirs_to_delete)} workflow(s) ({len(targets)} items):\n")
-    
+        click.echo(
+            f"Would delete {len(workflow_dirs_to_delete)} workflow(s) ({len(targets)} items):\n"
+        )
+
     deleted_count = 0
     for target in targets:
         # Display path relative to workflows dir for clarity
@@ -287,12 +290,16 @@ def _clean_workflows(
             except Exception as e:
                 logger.warning("Failed to delete %s: %s", target, e)
                 click.echo(f"  Failed: {e}", err=True)
-    
+
     # Summary
     if dry_run:
-        click.echo(f"\nDry run complete: {len(workflow_dirs_to_delete)} workflow(s) would be deleted")
+        click.echo(
+            f"\nDry run complete: {len(workflow_dirs_to_delete)} workflow(s) would be deleted"
+        )
     else:
-        click.echo(f"\nCleaned {deleted_count}/{len(targets)} item(s) from {len(workflow_dirs_to_delete)} workflow(s)")
+        click.echo(
+            f"\nCleaned {deleted_count}/{len(targets)} item(s) from {len(workflow_dirs_to_delete)} workflow(s)"
+        )
 
 
 def _clean_indicator_cache(dry_run: bool) -> None:
@@ -319,7 +326,9 @@ def _clean_indicator_cache(dry_run: bool) -> None:
         click.echo(f"\nWould delete {len(cache_files)} cached indicator(s):")
         for cache_file in sorted(cache_files):
             click.echo(f"  {cache_file.name}")
-        click.echo(f"\nDry run complete: {len(cache_files)} indicator(s) would be deleted")
+        click.echo(
+            f"\nDry run complete: {len(cache_files)} indicator(s) would be deleted"
+        )
     else:
         click.echo(f"Cleaning {len(cache_files)} cached indicator(s)...")
         deleted_count = 0
@@ -335,4 +344,6 @@ def _clean_indicator_cache(dry_run: bool) -> None:
                 logger.warning("Failed to delete %s: %s", cache_file, e)
                 click.echo(f"  Failed: {e}", err=True)
 
-        click.echo(f"\nCleaned {deleted_count}/{len(cache_files)} indicator cache file(s)")
+        click.echo(
+            f"\nCleaned {deleted_count}/{len(cache_files)} indicator cache file(s)"
+        )

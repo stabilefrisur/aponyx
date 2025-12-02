@@ -7,7 +7,6 @@ datasets, strategies, and workflow steps.
 
 import json
 import logging
-from pathlib import Path
 
 import click
 
@@ -93,7 +92,7 @@ def list_items(
             err=True,
         )
         raise click.Abort()
-    
+
     if item_type == "signals":
         registry = SignalRegistry(SIGNAL_CATALOG_PATH)
         signals = registry.list_all()
@@ -181,46 +180,48 @@ def list_items(
 
     elif item_type == "workflows":
         from datetime import datetime
-        
+
         if not DATA_WORKFLOWS_DIR.exists():
             click.echo("No workflows found")
             return
-        
+
         # Collect all workflow metadata
         workflows = []
         for workflow_dir in DATA_WORKFLOWS_DIR.iterdir():
             if not workflow_dir.is_dir():
                 continue
-            
+
             metadata_path = workflow_dir / "metadata.json"
             if not metadata_path.exists():
                 continue
-            
+
             try:
                 with open(metadata_path, "r", encoding="utf-8") as f:
                     metadata = json.load(f)
-                
+
                 # Skip workflows without label (old format)
                 if "label" not in metadata:
                     continue
-                
-                workflows.append({
-                    "dir": workflow_dir,
-                    "label": metadata.get("label", "unknown"),
-                    "signal": metadata.get("signal", "unknown"),
-                    "strategy": metadata.get("strategy", "unknown"),
-                    "product": metadata.get("product", "unknown"),
-                    "status": metadata.get("status", "unknown"),
-                    "timestamp": metadata.get("timestamp", ""),
-                })
+
+                workflows.append(
+                    {
+                        "dir": workflow_dir,
+                        "label": metadata.get("label", "unknown"),
+                        "signal": metadata.get("signal", "unknown"),
+                        "strategy": metadata.get("strategy", "unknown"),
+                        "product": metadata.get("product", "unknown"),
+                        "status": metadata.get("status", "unknown"),
+                        "timestamp": metadata.get("timestamp", ""),
+                    }
+                )
             except Exception as e:
                 logger.debug("Failed to load metadata from %s: %s", workflow_dir, e)
                 continue
-        
+
         if not workflows:
             click.echo("No workflows found")
             return
-        
+
         # Apply filters
         if signal:
             workflows = [w for w in workflows if w["signal"] == signal]
@@ -228,26 +229,30 @@ def list_items(
             workflows = [w for w in workflows if w["product"] == product]
         if strategy:
             workflows = [w for w in workflows if w["strategy"] == strategy]
-        
+
         if not workflows:
             click.echo("No workflows match the specified filters")
             return
-        
+
         # Sort by timestamp descending (newest first)
         workflows.sort(key=lambda w: w["timestamp"], reverse=True)
-        
+
         # Apply limit only if no filters active
         has_filters = bool(signal or product or strategy)
         if not has_filters and len(workflows) > 50:
             workflows_to_show = workflows[:50]
-            click.echo(f"Showing 50 most recent workflows (of {len(workflows)} total). Use filters to narrow results.\n")
+            click.echo(
+                f"Showing 50 most recent workflows (of {len(workflows)} total). Use filters to narrow results.\n"
+            )
         else:
             workflows_to_show = workflows
-        
+
         # Display header
-        click.echo(f"{'IDX':<5} {'LABEL':<25} {'SIGNAL':<20} {'STRATEGY':<15} {'PRODUCT':<15} {'STATUS':<10} {'TIMESTAMP':<20}")
+        click.echo(
+            f"{'IDX':<5} {'LABEL':<25} {'SIGNAL':<20} {'STRATEGY':<15} {'PRODUCT':<15} {'STATUS':<10} {'TIMESTAMP':<20}"
+        )
         click.echo("-" * 115)
-        
+
         # Display workflows
         for idx, workflow in enumerate(workflows_to_show):
             # Parse timestamp for display
@@ -255,8 +260,10 @@ def list_items(
                 ts = datetime.fromisoformat(workflow["timestamp"])
                 ts_str = ts.strftime("%Y-%m-%d %H:%M:%S")
             except Exception:
-                ts_str = workflow["timestamp"][:19] if workflow["timestamp"] else "unknown"
-            
+                ts_str = (
+                    workflow["timestamp"][:19] if workflow["timestamp"] else "unknown"
+                )
+
             click.echo(
                 f"{idx:<5} "
                 f"{workflow['label'][:24]:<25} "
@@ -266,13 +273,17 @@ def list_items(
                 f"{workflow['status']:<10} "
                 f"{ts_str}"
             )
-        
+
         # Show summary
         if has_filters:
-            click.echo(f"\nShowing {len(workflows_to_show)} workflow(s) matching filters")
+            click.echo(
+                f"\nShowing {len(workflows_to_show)} workflow(s) matching filters"
+            )
         else:
             click.echo(f"\nShowing {len(workflows_to_show)} workflow(s)")
-        
+
         # Note about indices
-        click.echo("\nNote: Indices are ephemeral and change as new workflows are added.")
+        click.echo(
+            "\nNote: Indices are ephemeral and change as new workflows are added."
+        )
         click.echo("Use workflow label for stable references in report command.")

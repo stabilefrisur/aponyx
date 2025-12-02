@@ -19,17 +19,17 @@ logger = logging.getLogger(__name__)
 def _resolve_workflow_dir(workflow: str) -> Path:
     """
     Resolve workflow directory from label or index.
-    
+
     Parameters
     ----------
     workflow : str
         Workflow label or numeric index.
-    
+
     Returns
     -------
     Path
         Resolved workflow directory path.
-    
+
     Raises
     ------
     click.ClickException
@@ -39,54 +39,56 @@ def _resolve_workflow_dir(workflow: str) -> Path:
         raise click.ClickException(
             "No workflows directory found. Run a workflow first."
         )
-    
+
     # Collect all workflows with valid metadata
     workflows = []
     for workflow_dir in DATA_WORKFLOWS_DIR.iterdir():
         if not workflow_dir.is_dir():
             continue
-        
+
         metadata_path = workflow_dir / "metadata.json"
         if not metadata_path.exists():
             continue
-        
+
         try:
             with open(metadata_path, "r", encoding="utf-8") as f:
                 metadata = json.load(f)
-            
+
             # Skip workflows without label (old format)
             if "label" not in metadata:
                 continue
-            
-            workflows.append({
-                "dir": workflow_dir,
-                "label": metadata["label"],
-                "timestamp": metadata.get("timestamp", ""),
-            })
+
+            workflows.append(
+                {
+                    "dir": workflow_dir,
+                    "label": metadata["label"],
+                    "timestamp": metadata.get("timestamp", ""),
+                }
+            )
         except Exception as e:
             logger.debug("Failed to load metadata from %s: %s", workflow_dir, e)
             continue
-    
+
     if not workflows:
         raise click.ClickException(
             "No workflows found with valid metadata. Run a workflow first."
         )
-    
+
     # Sort by timestamp descending (newest first)
     workflows.sort(key=lambda w: w["timestamp"], reverse=True)
-    
+
     # Try to parse as index
     try:
         idx = int(workflow)
         if idx < 0 or idx >= len(workflows):
             raise click.ClickException(
-                f"Index {idx} out of range. Valid indices: 0-{len(workflows)-1}. "
+                f"Index {idx} out of range. Valid indices: 0-{len(workflows) - 1}. "
                 f"Use 'aponyx list workflows' to see available workflows."
             )
         return workflows[idx]["dir"]
     except ValueError:
         pass
-    
+
     # Search by label (latest matching timestamp)
     matching = [w for w in workflows if w["label"] == workflow]
     if not matching:
@@ -94,7 +96,7 @@ def _resolve_workflow_dir(workflow: str) -> Path:
             f"Workflow '{workflow}' not found. "
             f"Use 'aponyx list workflows' to see available workflows."
         )
-    
+
     # Return latest matching workflow
     return matching[0]["dir"]
 
@@ -139,14 +141,14 @@ def report(
         aponyx report --workflow 0
         aponyx report --workflow my_test_run --format markdown
         aponyx report --workflow 0 --format html --output report.html
-    
+
     Note: Indices are ephemeral and change as new workflows are added.
     Use workflow labels for stable references.
     """
     try:
         # Resolve workflow directory
         workflow_dir = _resolve_workflow_dir(workflow)
-        
+
         # Generate report
         content = generate_report(
             workflow_dir=workflow_dir,

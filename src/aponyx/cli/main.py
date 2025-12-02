@@ -13,17 +13,18 @@ from aponyx.config import LOGS_DIR
 
 class BannerGroup(click.Group):
     """Custom Click Group that displays banner before help."""
-    
+
     def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> str:
         """Format help with banner at the top."""
         # Check if --no-banner is in sys.argv directly
         import sys
+
         no_banner = "--no-banner" in sys.argv
-        
+
         # Print banner before help
         if not no_banner:
             print_banner()
-        
+
         # Return standard help
         return super().format_help(ctx, formatter)
 
@@ -75,7 +76,7 @@ def cli(ctx: click.Context, verbose: bool, no_banner: bool) -> None:
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
         ctx.exit()
-    
+
     # Configure logging based on verbosity
     log_level = logging.DEBUG if verbose else logging.WARNING
 
