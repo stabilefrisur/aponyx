@@ -221,8 +221,6 @@ aponyx run examples/workflow_complete.yaml
 | `steps` | list | | all | Specific steps to execute |
 | `force` | boolean | | false | Force re-run (skip cache) |
 
-**Workflow steps:** data → signal → suitability → backtest → performance → visualization
-
 ### Generate Reports
 
 ```bash
@@ -264,32 +262,6 @@ aponyx clean --workflows --older-than 30d
 aponyx clean --workflows --label minimal_test --older-than 7d
 ```
 
-### Using Configuration Files
-
-Create `workflow.yaml`:
-
-```yaml
-label: my_workflow
-signal: spread_momentum
-product: cdx_ig_5y
-strategy: balanced
-data: synthetic
-securities:
-  cdx: cdx_ig_5y
-  etf: lqd
-steps:
-  - signal
-  - backtest
-  - performance
-force: false
-```
-
-Run with config:
-
-```bash
-aponyx run workflow.yaml
-```
-
 **Output format:**
 ```
 === Workflow Configuration ===
@@ -309,13 +281,6 @@ Completed 6 steps in 15.2s
 Skipped 0 cached steps
 Results: data/workflows/minimal_test_20251202_143230/
 ```
-
-**Benefits:**
-- **Reproducible workflows** via YAML configuration
-- **Smart caching** skips completed steps automatically
-- **Dependency tracking** ensures correct execution order
-- **Error handling** with partial result preservation
-- **Progress logging** with step completion times (WARNING level default, use `-v` for DEBUG)
 
 **See [CLI Guide](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/cli_guide.md) for complete documentation and advanced usage.**
 
@@ -372,14 +337,6 @@ Reporting Layer (multi-format output)
     ↓
 Persistence Layer (results + metadata)
 ```
-
-**Key Features:**
-- Smart caching skips completed steps
-- Dependency validation ensures correct execution order
-- YAML config support for reproducible workflows
-- Error handling preserves partial results
-
-
 
 ## Documentation
 

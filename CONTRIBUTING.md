@@ -4,132 +4,63 @@
 
 **Breaking changes:** This project may introduce breaking changes between versions without deprecation warnings. No backward compatibility guarantees.
 
-## Table of Contents
-
-- [Getting Started](#getting-started)
-- [Development Workflow](#development-workflow)
-- [Code Standards](#code-standards)
-- [Testing Requirements](#testing-requirements)
-- [Documentation](#documentation)
-- [Commit Messages](#commit-messages)
-- [Pull Request Process](#pull-request-process)
-
 ---
 
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
-- **Python 3.12** (no backward compatibility with 3.11 or earlier)
-- **uv** package and project manager ([installation guide](https://docs.astral.sh/uv/))
+- **Python 3.12** (strict requirement)
+- **uv** package manager ([installation guide](https://docs.astral.sh/uv/))
 - Git for version control
-- (Optional) Bloomberg Terminal with `blpapi` for data provider development
 
-**Note:** All commands in this guide use `uv` for dependency management, running scripts, and executing code quality tools.
+### Setup
 
-### Development Environment Setup
+```bash
+git clone https://github.com/YOUR_USERNAME/aponyx.git
+cd aponyx
+uv sync --extra dev --extra viz
+uv run pytest  # 681 tests should pass
+```
 
-1. **Fork and clone the repository:**
+### Workflow
+
+1. **Create branch:** `git checkout -b feat/your-feature-name`
+2. **Make changes** following [code standards](#code-standards)
+3. **Run checks:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/aponyx.git
-   cd aponyx
+   uv run pytest --cov=aponyx    # Tests
+   uv run ruff format src/ tests/ # Format
+   uv run ruff check src/ tests/  # Lint
+   uv run mypy src/               # Type check
    ```
-
-2. **Install dependencies:**
-   ```bash
-   uv sync --extra dev --extra viz
-   ```
-
-3. **Verify installation:**
-   ```bash
-   uv run pytest
-   ```
-
-**Note:** You don't need to manually activate the virtual environment. Use `uv run <command>` to automatically execute commands in the project environment.
-
----
-
-## Development Workflow
-
-### Branch Strategy
-
-- `master` - Stable releases only
-- Feature branches - `feat/description`
-- Bug fixes - `fix/description`
-- Documentation - `docs/description`
-
-### Making Changes
-
-1. **Create a feature branch:**
-   ```bash
-   git checkout -b feat/your-feature-name
-   ```
-
-2. **Make your changes following code standards** (see below)
-
-3. **Run tests and checks:**
-   ```bash
-   uv run pytest                              # Unit tests
-   uv run pytest --cov=aponyx                # With coverage
-   uv run ruff format src/ tests/            # Format code
-   uv run ruff check src/ tests/             # Lint
-   uv run mypy src/                          # Type check
-   ```
-
-4. **Commit with conventional commit format** (see below)
-
-5. **Push and create pull request:**
-   ```bash
-   git push origin feat/your-feature-name
-   ```
+4. **Commit** with [conventional commit format](#commit-messages)
+5. **Push** and create PR
 
 ---
 
 ## Code Standards
 
-Aponyx follows **strict code quality standards**. Please review these documents before contributing:
+**Primary References:**
+- [Python Guidelines](src/aponyx/docs/python_guidelines.md) - Comprehensive code standards
+- [Copilot Instructions](.github/copilot-instructions.md) - Architecture and patterns
 
-### Primary References
+### Key Requirements
 
-- **[Python Guidelines](src/aponyx/docs/python_guidelines.md)** - Comprehensive code standards
-- **[Copilot Instructions](.github/copilot-instructions.md)** - Development context and patterns
-
-### Quick Standards Summary
-
-#### Type Hints (Modern Python Syntax)
-✅ **Use:**
+**Modern Type Hints:**
 ```python
-def process_data(
-    data: dict[str, Any],
-    filters: list[str] | None = None,
-) -> pd.DataFrame | None:
+def process(data: dict[str, Any], filters: list[str] | None = None) -> pd.DataFrame | None:
     ...
 ```
 
-❌ **Avoid:**
-```python
-from typing import Optional, Union, List, Dict  # Old syntax
-```
-
-#### Functions Over Classes
-- Default to **pure functions** for transformations and calculations
-- Use **`@dataclass`** for data containers (prefer `frozen=True` for immutability)
-- Only use classes for: state management, lifecycle management, or plugin patterns
-
-#### Logging Standards
+**Module-Level Logging:**
 ```python
 import logging
 logger = logging.getLogger(__name__)
-
-# Use %-formatting (not f-strings)
-logger.info("Loaded %d rows from %s", len(df), path)
-
-# Never in library code:
-# logging.basicConfig(...)  # User's responsibility
+logger.info("Loaded %d rows from %s", len(df), path)  # %-formatting
 ```
 
-#### Docstrings
-All public functions require **NumPy-style docstrings**:
+**NumPy Docstrings:**
 ```python
 def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
     """
@@ -146,239 +77,175 @@ def compute_signal(spread: pd.Series, window: int = 20) -> pd.Series:
     -------
     pd.Series
         Z-score normalized momentum signal.
-        
-    Notes
-    -----
-    Signal sign convention: positive = long credit risk (buy CDX).
     """
 ```
 
-#### Import Organization
+**Functions Over Classes:**
+- Default to pure functions for transformations
+- Use `@dataclass(frozen=True)` for configs/metadata
+- Classes only for: state management, lifecycle, or plugin patterns
+
+---
+
+## Architecture
+
+### Signal Composition (CRITICAL)
+
+All signals = **Indicator** + **Transformation**
+
+```json
+{
+  "name": "cdx_etf_basis",
+  "indicator_dependencies": ["cdx_etf_spread_diff"],
+  "transformations": ["z_score_20d"],
+  "enabled": true
+}
+```
+
+**See:** [Signal Registry Usage](src/aponyx/docs/signal_registry_usage.md)
+
+### Workflow Configuration (YAML-Only)
+
+```yaml
+label: my_test          # Required
+signal: spread_momentum # Required
+product: cdx_ig_5y      # Required
+strategy: balanced      # Required
+
+# Optional overrides
+securities: {cdx: cdx_hy_5y, etf: hyg}
+indicator: cdx_vix_deviation_gap_20d
+transformation: z_score_60d
+```
+
+**See:** [CLI Guide](src/aponyx/docs/cli_guide.md)
+
+---
+
+## Contributing Features
+
+### Add Indicator
+
+1. Add function to `src/aponyx/models/indicators.py`
+2. Add entry to `indicator_catalog.json`
+3. Add tests to `tests/models/test_indicators.py`
+
 ```python
-# Standard library
-import logging
-from datetime import datetime
+def compute_my_indicator(cdx_df: pd.DataFrame, vix_df: pd.DataFrame) -> pd.Series:
+    """Compute indicator in natural units (bps, ratios) - NOT normalized."""
+    return cdx_df["spread"] - vix_df["level"]  # Example
+```
 
-# Third-party
-import pandas as pd
-import numpy as np
+### Add Signal
 
-# Local
-from aponyx.config import DATA_DIR
-from aponyx.data import fetch_cdx
+Add entry to `signal_catalog.json`:
+```json
+{
+  "name": "my_signal",
+  "indicator_dependencies": ["my_indicator"],
+  "transformations": ["z_score_20d"],
+  "enabled": true
+}
+```
+
+### Add Strategy
+
+Add entry to `strategy_catalog.json`:
+```json
+{
+  "name": "my_strategy",
+  "entry_threshold": 2.0,
+  "exit_threshold": 1.0,
+  "enabled": true
+}
 ```
 
 ---
 
-## Testing Requirements
+## Testing
 
-### Test Coverage
-
-- **All new features require unit tests**
-- Maintain >85% test coverage
-- Test determinism (fixed random seeds)
-- Test edge cases and error handling
-
-### Test Structure
-
-```python
-def test_feature():
-    """Test description following docstring standards."""
-    # Arrange
-    input_data = generate_test_data(seed=42)
-    
-    # Act
-    result = compute_feature(input_data)
-    
-    # Assert
-    assert isinstance(result, pd.Series)
-    assert len(result) == len(input_data)
-    assert result.isna().sum() == 0
-```
-
-### Running Tests
+**Requirements:**
+- All new features need unit tests
+- Maintain >85% coverage
+- Fixed random seeds (seed=42)
+- Test edge cases and errors
 
 ```bash
-# All tests
-uv run pytest
-
-# With coverage report
-uv run pytest --cov=aponyx --cov-report=html
-
-# Specific module
-uv run pytest tests/models/
-
-# Specific test
-uv run pytest tests/models/test_signals.py::test_compute_cdx_etf_basis
+uv run pytest                              # All tests (681)
+uv run pytest --cov=aponyx --cov-report=html # With coverage
+uv run pytest tests/models/                # Specific module
 ```
-
----
-
-## Documentation
-
-### Documentation Requirements
-
-All contributions must include appropriate documentation:
-
-1. **Docstrings** - NumPy-style for all public functions/classes
-2. **Type hints** - Full type annotations using modern syntax
-3. **Inline comments** - For complex logic or non-obvious decisions
-4. **Design docs** - For architectural changes (add to `src/aponyx/docs/`)
-
-### Documentation Structure
-
-Follow the **Single Source of Truth** principle:
-
-| Doc Type | Location | Purpose |
-|----------|----------|---------|
-| **API Reference** | Module docstrings | Function/class contracts |
-| **Quickstart** | `README.md` | Installation, examples, navigation |
-| **Design Docs** | `src/aponyx/docs/*.md` | Architecture, standards, strategy |
-| **Notebooks** | `src/aponyx/notebooks/*.ipynb` | Workflow demonstrations |
-
-**See:** [Documentation Structure](src/aponyx/docs/documentation_structure.md)
-
-### Updating Documentation
-
-- Update `README.md` only if changing quickstart or installation
-- Update design docs for architectural decisions
-- Update `CHANGELOG.md` following Keep a Changelog format
-- Do NOT create README files in implementation directories
 
 ---
 
 ## Commit Messages
 
-Follow **Conventional Commits** format for consistency and automated changelog generation.
+**Format:** `<type>: <description>`
 
-### Format
+**Types:** `feat`, `fix`, `docs`, `refactor`, `test`, `perf`, `chore`
+
+**Examples:**
 ```
-<type>: <description>
+feat: Add VIX-CDX divergence signal
 
-[optional body]
-```
-
-### Types
-- `feat` - New feature or capability
-- `fix` - Bug fix or correction
-- `docs` - Documentation changes only
-- `refactor` - Code restructuring without behavior change
-- `test` - Adding or updating tests
-- `perf` - Performance improvement
-- `chore` - Maintenance (dependencies, tooling, config)
-- `style` - Formatting (not CSS)
-
-### Rules
-- **Type**: Lowercase, from list above
-- **Description**: Capitalize first letter, no period, imperative mood ("Add" not "Added")
-- **Length**: Keep first line under 72 characters
-- **Body**: Optional, explain *why* not *what*, wrap at 72 characters
-
-### Examples
-
-✅ **Good:**
-```
-feat: Add VIX-CDX divergence signal computation
-
-Implements z-score normalized gap between equity vol and credit spreads
-to identify cross-asset risk sentiment divergence.
-```
-
-```
 refactor: Extract data loading to separate module
 
-Improves modularity and testability by separating I/O from computation.
+docs: Update CLI guide
 ```
 
-```
-docs: Update persistence layer documentation
+---
+
+## CLI Commands
+
+```bash
+# Run workflow
+aponyx run examples/workflow_minimal.yaml
+
+# Generate reports
+aponyx report 0                    # Most recent
+aponyx report my_test --format md  # By label
+
+# List catalogs
+aponyx list signals
+aponyx list strategies
+aponyx list indicators
+
+# Clean data
+aponyx clean           # Cache only
+aponyx clean --all     # Everything
 ```
 
-❌ **Bad:**
-```
-Added new feature
-```
-
-```
-Fix: bug in backtest
-```
-
-```
-update docs.
-```
+**See:** [CLI Guide](src/aponyx/docs/cli_guide.md)
 
 ---
 
 ## Pull Request Process
 
-### Before Submitting
+**Before submitting:**
+1. All tests pass: `uv run pytest --cov=aponyx`
+2. Code formatted: `uv run ruff format src/ tests/`
+3. Linting passes: `uv run ruff check src/ tests/`
+4. Type checks pass: `uv run mypy src/`
+5. Documentation updated
+6. `CHANGELOG.md` entry added
 
-1. **Ensure all tests pass:**
-   ```bash
-   uv run pytest --cov=aponyx
-   ```
-
-2. **Run code quality checks:**
-   ```bash
-   uv run ruff format src/ tests/
-   uv run ruff check src/ tests/
-   uv run mypy src/
-   ```
-
-3. **Update documentation** as needed
-
-4. **Add entry to `CHANGELOG.md`** under "Unreleased" section
-
-### PR Requirements
-
-Your pull request must:
-- Have a clear, descriptive title following conventional commit format
-- Reference any related issues
-- Include comprehensive tests for new features
-- Maintain or improve test coverage
+**PR Requirements:**
+- Clear title (conventional commit format)
+- Reference related issues
+- Comprehensive tests
 - Pass all CI checks
-- Include updated documentation
-
-### PR Template
-
-```markdown
-## Description
-Brief description of changes
-
-## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Documentation update
-
-## Testing
-Describe testing performed
-
-## Checklist
-- [ ] Tests pass locally (`uv run pytest`)
-- [ ] Code formatted (`uv run ruff format`)
-- [ ] Linting passes (`uv run ruff check`)
-- [ ] Type checking passes (`uv run mypy`)
-- [ ] Documentation updated
-- [ ] CHANGELOG.md updated
-```
-
-### Review Process
-
-PRs will be reviewed as time permits. No SLA or guaranteed response time.
 
 ---
 
 ## Questions?
 
-If you have questions:
-1. Check existing documentation in `src/aponyx/docs/`
+1. Check documentation in `src/aponyx/docs/`
 2. Search closed issues
-3. Open a new issue (response time varies)
+3. Open new issue (response time varies)
 
-**Thank you for contributing to aponyx!**
+**Thank you for contributing!**
 
 ---
 
 **Maintained by stabilefrisur**  
-**Last Updated:** November 14, 2025
+**Last Updated:** December 2, 2025
