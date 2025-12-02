@@ -79,15 +79,13 @@ def test_registries_enforce_deterministic_loading() -> None:
 
 def test_catalog_validation_prevents_invalid_state() -> None:
     """Test that fail-fast validation prevents invalid catalogs."""
-    # Invalid signal catalog (non-existent function)
+    # Invalid signal catalog (missing required fields)
     signal_catalog = [
         {
             "name": "invalid_signal",
             "description": "Invalid",
-            "compute_function_name": "nonexistent_function",
-            "data_requirements": {"cdx": "spread"},
-            "arg_mapping": ["cdx"],
             "enabled": True,
+            # Missing required fields: indicator_dependencies, transformations
         },
     ]
 
@@ -99,9 +97,9 @@ def test_catalog_validation_prevents_invalid_state() -> None:
         # Should fail at load time
         try:
             SignalRegistry(catalog_path)
-            assert False, "Expected ValueError for invalid compute function"
+            assert False, "Expected ValueError for missing required fields"
         except ValueError as e:
-            assert "non-existent compute function" in str(e)
+            assert "Invalid signal metadata" in str(e)
 
     # Invalid strategy catalog (bad thresholds)
     strategy_catalog = [
@@ -129,13 +127,14 @@ def test_catalog_validation_prevents_invalid_state() -> None:
 
 def test_cross_layer_integration() -> None:
     """Test that governance enables clean cross-layer integration."""
-    # Signal catalog references compute functions in models layer
+    # Signal catalog references indicators via indicator_dependencies
     signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
     signal_metadata = signal_registry.get_metadata("cdx_etf_basis")
 
-    # Verify compute function name follows convention
-    assert signal_metadata.compute_function_name.startswith("compute_")
-    assert signal_metadata.compute_function_name == "compute_cdx_etf_basis"
+    # Verify signal references indicators and transformations
+    assert len(signal_metadata.indicator_dependencies) > 0
+    assert len(signal_metadata.transformations) > 0
+    assert "cdx_etf_spread_diff" in signal_metadata.indicator_dependencies
 
     # Strategy catalog produces configs for backtest layer
     strategy_registry = StrategyRegistry(STRATEGY_CATALOG_PATH)

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The signal registry infrastructure enables scalable signal research by decoupling signal definitions from backtest logic. Add new signals by editing a JSON catalog instead of modifying code. Each signal is evaluated independently to establish clear performance attribution.
+The signal registry infrastructure enables scalable signal research through a three-layer architecture: **indicators** (economically interpretable metrics), **transformations** (signal processing operations), and **signals** (composed from indicators + transformations). Add new signals by editing JSON catalogs instead of modifying code. Each signal is evaluated independently to establish clear performance attribution.
 
 ## Quick Start
 
@@ -11,14 +11,17 @@ The signal registry infrastructure enables scalable signal research by decouplin
 ```python
 from pathlib import Path
 from aponyx.models import (
-    SignalRegistry,
-    SignalConfig,
-    compute_registered_signals,
+    IndicatorRegistry, TransformationRegistry, SignalRegistry,
+    compose_signal, compute_registered_signals
 )
+from aponyx.config import INDICATOR_CATALOG_PATH, TRANSFORMATION_CATALOG_PATH, SIGNAL_CATALOG_PATH
 from aponyx.backtest import run_backtest, BacktestConfig
+from aponyx.evaluation.performance import compute_all_metrics
 
-# Load signal catalog
-registry = SignalRegistry("src/aponyx/models/signal_catalog.json")
+# Load registries
+indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+transformation_registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
+signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
 # Prepare market data
 market_data = {
@@ -28,78 +31,85 @@ market_data = {
 }
 
 # Compute all enabled signals
-signal_config = SignalConfig(lookback=20, min_periods=10)
-signals = compute_registered_signals(registry, market_data, signal_config)
+signals = compute_registered_signals(
+    signal_registry, market_data, indicator_registry, transformation_registry
+)
 
 # Evaluate each signal independently
-from aponyx.evaluation.performance import compute_all_metrics
-
 backtest_config = BacktestConfig(entry_threshold=1.5, exit_threshold=0.75)
 
 for signal_name, signal_series in signals.items():
     result = run_backtest(signal_series, cdx_df["spread"], backtest_config)
-    # Compute metrics from result
     metrics = compute_all_metrics(result.pnl, result.positions)
     print(f"{signal_name}: Sharpe={metrics.sharpe_ratio:.2f}")
 ```
 
 ## Adding a New Signal
 
-### Step 1: Implement Compute Function
+### Step 1: Create Indicator (if needed)
 
-Add to `src/aponyx/models/signals.py`:
+Add to `src/aponyx/models/indicators.py`:
 
 ```python
-def compute_my_new_signal(
+def compute_my_new_indicator(
     cdx_df: pd.DataFrame,
     other_df: pd.DataFrame,
-    config: SignalConfig | None = None,
 ) -> pd.Series:
     """
-    Compute my new signal.
+    Compute my new indicator in basis points.
     
-    Signal convention: positive = long credit risk (buy CDX).
+    Outputs economically interpretable values WITHOUT pre-normalization.
+    Transformations are applied at signal composition layer.
     """
-    if config is None:
-        config = SignalConfig()
-    
-    logger.info("Computing my new signal: lookback=%d", config.lookback)
-    
-    # Your signal logic here
-    raw_signal = ...
-    
-    # Z-score normalize
-    normalized = (raw_signal - mean) / std
-    
-    logger.debug("Generated %d valid signals", normalized.notna().sum())
-    return normalized
+    # Your indicator logic here - return raw values in natural units
+    return cdx_df["spread"] - other_df["spread"]  # Example: basis in bps
 ```
 
-### Step 2: Register in Catalog
+### Step 2: Register Indicator
+
+Edit `src/aponyx/models/indicator_catalog.json`:
+
+```json
+{
+  "name": "my_new_indicator",
+  "description": "CDX-other spread differential in basis points",
+  "compute_function_name": "compute_my_new_indicator",
+  "data_requirements": {
+    "cdx": "spread",
+    "other": "spread"
+  },
+  "default_securities": {
+    "cdx": "cdx_ig_5y",
+    "other": "other_security"
+  },
+  "output_units": "basis_points",
+  "parameters": {},
+  "enabled": true
+}
+```
+
+### Step 3: Define Signal
 
 Edit `src/aponyx/models/signal_catalog.json`:
 
 ```json
-[
-  {
-    "name": "my_new_signal",
-    "description": "Brief description of what this signal captures",
-    "compute_function_name": "compute_my_new_signal",
-    "data_requirements": {
-      "cdx": "spread",
-      "other": "column_name"
-    },
-    "arg_mapping": ["cdx", "other"],
-    "enabled": true
-  }
-]
+{
+  "name": "my_new_signal",
+  "description": "Trading signal based on my indicator",
+  "indicator_dependencies": ["my_new_indicator"],
+  "transformations": ["z_score_20d"],
+  "enabled": true,
+  "sign_multiplier": 1
+}
 ```
 
-### Step 3: Evaluate Independently
+### Step 4: Evaluate Independently
 
 ```python
 # Registry automatically picks up the new signal
-signals = compute_registered_signals(registry, market_data, config)
+signals = compute_registered_signals(
+    signal_registry, market_data, indicator_registry, transformation_registry
+)
 # Now includes "my_new_signal"
 
 # Run backtest to evaluate performance
@@ -120,24 +130,22 @@ print(f"Sharpe Ratio: {metrics.sharpe_ratio:.2f}")
 |-------|------|-------------|
 | `name` | string | Unique signal identifier (snake_case) |
 | `description` | string | Human-readable signal description |
-| `compute_function_name` | string | Function name in `signals.py` module |
-| `data_requirements` | dict | Map of data keys to required column names |
-| `arg_mapping` | list | Ordered list of data keys for function arguments |
+| `indicator_dependencies` | list | List of required indicator names |
+| `transformations` | list | List of transformation names (applied sequentially) |
+| `composition_logic` | string | Optional custom composition for multi-indicator signals |
 | `enabled` | boolean | Whether to compute this signal |
+| `sign_multiplier` | int | Sign adjustment (1 or -1) |
 
 ### Example Entry
 
 ```json
 {
-  "name": "cdx_vix_gap",
-  "description": "Cross-asset risk sentiment gap between credit and equity vol",
-  "compute_function_name": "compute_cdx_vix_gap",
-  "data_requirements": {
-    "cdx": "spread",
-    "vix": "level"
-  },
-  "arg_mapping": ["cdx", "vix"],
-  "enabled": true
+  "name": "cdx_etf_basis",
+  "description": "Flow-driven mispricing from CDX-ETF basis divergence",
+  "indicator_dependencies": ["cdx_etf_spread_diff"],
+  "transformations": ["z_score_20d"],
+  "enabled": true,
+  "sign_multiplier": 1
 }
 ```
 

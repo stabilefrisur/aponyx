@@ -117,6 +117,8 @@ CACHE_TTL_DAYS: Final[int] = 1
 CACHE_DIR: Final[Path] = DATA_DIR / "cache"
 
 # Catalog paths
+INDICATOR_CATALOG_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/models/indicator_catalog.json"
+TRANSFORMATION_CATALOG_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/models/transformation_catalog.json"
 SIGNAL_CATALOG_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/models/signal_catalog.json"
 STRATEGY_CATALOG_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/backtest/strategy_catalog.json"
 
@@ -172,66 +174,163 @@ registry.register_dataset(
 
 ---
 
-### 6.3 SignalRegistry — Class-Based Catalog with Fail-Fast Validation
+### 6.3 IndicatorRegistry — Class-Based Catalog for Market Indicators
+
+**Files:**
+- `src/aponyx/models/metadata.py` — IndicatorMetadata dataclass  
+- `src/aponyx/models/registry.py` — IndicatorRegistry class
+- `src/aponyx/models/indicators.py` — Indicator compute functions
+
+**Lifecycle:**
+
+```python
+from aponyx.config import INDICATOR_CATALOG_PATH
+from aponyx.models import IndicatorRegistry, compute_indicator
+
+# 1. LOAD: Instantiate registry (loads + validates JSON)
+registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+# Validation happens automatically in __init__:
+# - Checks all compute functions exist in indicators module
+# - Validates output_units and data_requirements
+# - Raises ValueError if function missing or validation fails
+
+# 2. INSPECT: Query indicator metadata
+enabled = registry.get_enabled()  # Only enabled indicators
+all_indicators = registry.list_all()  # All indicators
+metadata = registry.get_metadata("cdx_etf_spread_diff")
+
+# 3. USE: Compute indicator with caching
+market_data = {"cdx": cdx_df, "etf": etf_df}
+indicator = compute_indicator(
+    indicator_metadata=metadata,
+    market_data=market_data,
+    use_cache=True  # Cached at data/cache/indicators/
+)
+
+# 4. DEPENDENCY TRACKING: Query which signals use an indicator
+dependent_signals = registry.get_dependent_signals("cdx_etf_spread_diff")
+```
+
+**Pattern:**
+- Class-based registry with fail-fast validation
+- Indicators output economically interpretable values (basis_points, ratio, percentage)
+- Caching via hash-based file names in `data/cache/indicators/`
+- Dependency tracking for impact analysis
+
+---
+
+### 6.4 TransformationRegistry — Class-Based Catalog for Signal Transformations
+
+**Files:**
+- `src/aponyx/models/metadata.py` — TransformationMetadata dataclass
+- `src/aponyx/models/registry.py` — TransformationRegistry class  
+- `src/aponyx/models/transformations.py` — Transformation functions
+
+**Lifecycle:**
+
+```python
+from aponyx.config import TRANSFORMATION_CATALOG_PATH
+from aponyx.models import TransformationRegistry, apply_signal_transformation
+
+# 1. LOAD: Instantiate registry (loads + validates JSON)
+registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
+
+# 2. INSPECT: Query transformation metadata
+all_transforms = registry.list_all()
+metadata = registry.get_metadata("z_score_20d")
+
+# 3. USE: Apply transformation to indicator
+transformed = apply_signal_transformation(
+    data=indicator,
+    transformation_metadata=metadata
+)
+```
+
+**Pattern:**
+- Class-based registry for reusable transformations
+- Transformations are pure functions (z-score, volatility adjustment, etc.)
+- Parameters defined in catalog (window, min_periods, etc.)
+- Applied sequentially in signal composition
+
+---
+
+### 6.5 SignalRegistry — Class-Based Catalog with Indicator Dependencies
 
 **Files:** 
 - `src/aponyx/models/metadata.py` — SignalMetadata dataclass
 - `src/aponyx/models/registry.py` — SignalRegistry class
+- `src/aponyx/models/signal_composer.py` — compose_signal() function
 - `src/aponyx/models/orchestrator.py` — compute_registered_signals() function
 
 **Lifecycle:**
 
 ```python
-from aponyx.config import SIGNAL_CATALOG_PATH
-from aponyx.models import SignalRegistry, SignalConfig, compute_registered_signals
+from aponyx.config import SIGNAL_CATALOG_PATH, INDICATOR_CATALOG_PATH, TRANSFORMATION_CATALOG_PATH
+from aponyx.models import SignalRegistry, IndicatorRegistry, TransformationRegistry
+from aponyx.models import compose_signal, compute_registered_signals
 
-# 1. LOAD: Instantiate registry (loads + validates JSON)
-registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+# 1. LOAD: Instantiate registries (loads + validates JSON)
+signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+transformation_registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
 # Validation happens automatically in __init__:
-# - Checks all compute functions exist in signals module
-# - Validates arg_mapping matches data_requirements exactly
-# - Raises ValueError if function missing or validation fails
+# - Signals MUST have indicator_dependencies and transformations fields
+# - No compute_function_name, data_requirements, or arg_mapping allowed
+# - Raises ValueError if schema violated
 
 # 2. INSPECT: Query signal metadata
-enabled = registry.get_enabled()  # Only enabled signals
-all_signals = registry.list_all()  # All signals
-metadata = registry.get_metadata("cdx_etf_basis")
+enabled = signal_registry.get_enabled()  # Only enabled signals
+all_signals = signal_registry.list_all()  # All signals
+metadata = signal_registry.get_metadata("cdx_etf_basis")
 
-# 3. USE: Compute signals via catalog orchestration
-market_data = {"cdx": cdx_df, "etf": etf_df, "vix": vix_df}
-config = SignalConfig(lookback=20)
-signals = compute_registered_signals(registry, market_data, config)
+# 3. USE: Compose signal from indicator + transformation
+market_data = {"cdx": cdx_df, "etf": etf_df}
+signal = compose_signal(
+    signal_metadata=metadata,
+    market_data=market_data,
+    indicator_registry=indicator_registry,
+    transformation_registry=transformation_registry
+)
+
+# Batch computation of all enabled signals
+signals = compute_registered_signals(
+    signal_registry, market_data, indicator_registry, transformation_registry
+)
 
 # 4. SAVE: Update catalog (optional)
-# Modify registry state (not typical workflow)
 # registry.save_catalog()  # Overwrites original JSON
 ```
 
 **Pattern:** 
 - Class-based registry with fail-fast validation
-- Validates compute function existence using `hasattr(signals, func_name)` at load time
-- Validates arg_mapping equals data_requirements keys (not just subset)
-- SignalMetadata separated into metadata.py for clarity
-- Orchestration function in orchestrator.py bridges catalog and computation
+- Signals reference indicators (no embedded computation logic)
+- Signals reference transformations (applied sequentially)
+- Schema enforcement via SignalMetadata.__post_init__
+- Orchestration bridges three registries
 
-**Module Organization (Option B):**
+**Module Organization:**
 ```
 models/
-  metadata.py      # SignalMetadata dataclass definition
-  registry.py      # SignalRegistry catalog management
-  orchestrator.py  # compute_registered_signals() batch computation
-  signals.py       # Individual signal compute functions
-  config.py        # SignalConfig dataclass
+  metadata.py          # IndicatorMetadata, TransformationMetadata, SignalMetadata
+  registry.py          # IndicatorRegistry, TransformationRegistry, SignalRegistry
+  indicators.py        # Indicator compute functions
+  transformations.py   # Transformation functions
+  signal_composer.py   # compose_signal() - combines indicators + transformations
+  orchestrator.py      # compute_registered_signals() - batch computation
+  config.py            # IndicatorConfig, TransformationConfig
 ```
 
 This separation clarifies responsibilities:
-- `metadata.py` = data structure definition
-- `registry.py` = catalog lifecycle management
-- `orchestrator.py` = catalog usage and computation
+- `metadata.py` = data structure definitions
+- `registry.py` = catalog lifecycle management for all three layers
+- `indicators.py` = economically interpretable market metrics
+- `transformations.py` = signal processing operations
+- `signal_composer.py` = signal composition logic
+- `orchestrator.py` = batch orchestration
 
 ---
 
-### 6.4 PerformanceRegistry — Class-Based Catalog for Performance Evaluations
+### 6.6 PerformanceRegistry — Class-Based Catalog for Performance Evaluations
 
 **File:** `src/aponyx/evaluation/performance/registry.py`
 
@@ -336,12 +435,14 @@ ticker = get_bloomberg_ticker("CDX.NA.IG", "5Y")
 
 ---
 
-### 6.7 Pattern Comparison
+### 6.10 Pattern Comparison
 
 | Pillar | Implementation | State | Validation | Save Support |
 |--------|---------------|-------|------------|--------------|
 | **Config** | Import-time constants | None | N/A | No |
 | **DataRegistry** | Class-based | Mutable (`self._catalog`) | On save | Yes |
+| **IndicatorRegistry** | Class-based | Immutable (frozen dataclass) | Fail-fast (load time) | Yes |
+| **TransformationRegistry** | Class-based | Immutable (frozen dataclass) | Fail-fast (load time) | Yes |
 | **SignalRegistry** | Class-based | Immutable (frozen dataclass) | Fail-fast (load time) | Yes |
 | **StrategyRegistry** | Class-based | Immutable (frozen dataclass) | Fail-fast (load time) | Yes |
 | **SuitabilityRegistry** | Class-based | Mutable (`self._evaluations`) | On register | Yes |
@@ -352,7 +453,7 @@ ticker = get_bloomberg_ticker("CDX.NA.IG", "5Y")
 
 - **Import-time constants:** Static configuration that never changes (paths, flags)
 - **Class-based registry:** Needs CRUD operations or mutable state (DataRegistry)
-- **Class-based catalog:** Needs validation + orchestration (SignalRegistry, StrategyRegistry)
+- **Class-based catalog:** Needs validation + orchestration (IndicatorRegistry, TransformationRegistry, SignalRegistry, StrategyRegistry)
 - **Functional pattern:** Read-only lookup with lazy loading (Bloomberg config)
 
 **Key insight:** Both class-based and functional patterns satisfy the governance spine. Choose based on:
@@ -364,15 +465,15 @@ ticker = get_bloomberg_ticker("CDX.NA.IG", "5Y")
 
 ## 7. Fail-Fast Validation
 
-### SignalRegistry Validation
+### IndicatorRegistry Validation
 
 ```python
 def _validate_catalog(self) -> None:
-    """Validate that all signal compute functions exist in signals module."""
-    for name, metadata in self._signals.items():
-        if not hasattr(signals, metadata.compute_function_name):
+    """Validate that all indicator compute functions exist in indicators module."""
+    for name, metadata in self._indicators.items():
+        if not hasattr(indicators, metadata.compute_function_name):
             raise ValueError(
-                f"Signal '{name}' references non-existent compute function: "
+                f"Indicator '{name}' references non-existent compute function: "
                 f"{metadata.compute_function_name}"
             )
 ```
@@ -381,8 +482,39 @@ def _validate_catalog(self) -> None:
 
 **Benefits:**
 - Catches typos in function names immediately
-- Prevents runtime failures during signal computation
-- Clear error messages with signal name and missing function
+- Prevents runtime failures during indicator computation
+- Clear error messages with indicator name and missing function
+
+### SignalRegistry Validation
+
+```python
+def _validate_catalog(self) -> None:
+    """Validate that all signals have required fields and reference valid indicators."""
+    for name, metadata in self._signals.items():
+        # Enforce schema: signals MUST have indicator_dependencies and transformations
+        if not metadata.indicator_dependencies:
+            raise ValueError(
+                f"Signal '{name}' missing required field: indicator_dependencies"
+            )
+        if not metadata.transformations:
+            raise ValueError(
+                f"Signal '{name}' missing required field: transformations"
+            )
+        
+        # Reject legacy fields
+        if hasattr(metadata, 'compute_function_name'):
+            raise ValueError(
+                f"Signal '{name}' uses deprecated field 'compute_function_name'. "
+                "Signals must reference indicators via indicator_dependencies."
+            )
+```
+
+**Timing:** Called during SignalMetadata.__post_init__() and at end of `_load_catalog()`.
+
+**Benefits:**
+- Enforces new architecture (no embedded computation in signals)
+- Prevents mixing of old and new patterns
+- Clear migration path for deprecated fields
 
 ### StrategyRegistry Validation
 

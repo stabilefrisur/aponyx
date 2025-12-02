@@ -1,0 +1,7 @@
+# Minimal workflow configuration
+# Only required fields specified - all others use defaults
+
+label: minimal_test
+signal: spread_momentum
+product: cdx_ig_5y
+strategy: balanced

@@ -1,31 +1,24 @@
 """
 Models layer for systematic credit strategies.
 
-This module provides signal generation and strategy logic for the CDX overlay pilot.
+This module provides signal generation via the indicator + transformation composition pattern.
 
-Module Organization (Option B pattern):
----------------------------------------
-metadata.py      - SignalMetadata dataclass
-registry.py      - SignalRegistry catalog management
-orchestrator.py  - compute_registered_signals() batch computation
-signals.py       - Individual signal compute functions
-config.py        - SignalConfig dataclass
+Module Organization:
+-------------------
+metadata.py         - Metadata dataclasses (SignalMetadata, IndicatorMetadata, TransformationMetadata)
+registry.py         - Registry classes for catalog management
+orchestrator.py     - compute_registered_signals() batch computation
+signal_composer.py  - compose_signal() indicator + transformation composition
+indicators.py       - Indicator compute functions
+config.py           - SignalConfig dataclass
 """
 
-from .signals import (
-    compute_cdx_etf_basis,
-    compute_cdx_vix_gap,
-    compute_spread_momentum,
-)
 from .config import SignalConfig
 from .metadata import SignalMetadata
-from .registry import SignalRegistry
 from .orchestrator import compute_registered_signals
+from .registry import SignalRegistry
 
 __all__ = [
-    "compute_cdx_etf_basis",
-    "compute_cdx_vix_gap",
-    "compute_spread_momentum",
     "SignalConfig",
     "SignalMetadata",
     "SignalRegistry",

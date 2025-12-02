@@ -1,8 +1,9 @@
-"""Integration tests for CLI workflow."""
+"""Integration tests for CLI workflow (config-only)."""
 
 from unittest.mock import MagicMock, patch
 
 import pytest
+import yaml
 from click.testing import CliRunner
 
 from aponyx.cli.main import cli
@@ -64,7 +65,18 @@ def test_full_workflow_integration(runner, mock_all_registries, tmp_path):
     assert result.exit_code == 0
     assert "balanced" in result.output
 
-    # Step 3: Run workflow
+    # Step 3: Run workflow with config file
+    config_file = tmp_path / "workflow.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "spread_momentum",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+            }
+        )
+    )
+
     with patch("aponyx.cli.commands.run.WorkflowEngine") as mock_engine_class:
         mock_engine = MagicMock()
         mock_engine.execute.return_value = {
@@ -76,20 +88,11 @@ def test_full_workflow_integration(runner, mock_all_registries, tmp_path):
         }
         mock_engine_class.return_value = mock_engine
 
-        result = runner.invoke(
-            cli,
-            [
-                "run",
-                "--signal",
-                "spread_momentum",
-                "--strategy",
-                "balanced",
-            ],
-        )
+        result = runner.invoke(cli, ["run", str(config_file)])
         assert result.exit_code == 0
-        assert "Signal: spread_momentum" in result.output
-        assert "Strategy: balanced" in result.output
-        assert "Product:" in result.output
+        assert "Signal:          spread_momentum [config]" in result.output
+        assert "Strategy:        balanced [config]" in result.output
+        assert "Product:         cdx_ig_5y [config]" in result.output
 
     # Step 4: Generate report
     with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
@@ -123,11 +126,23 @@ def test_full_workflow_integration(runner, mock_all_registries, tmp_path):
         assert test_file.exists()  # Not deleted in dry-run
 
 
-def test_workflow_with_all_data_sources(runner):
+def test_workflow_with_all_data_sources(runner, tmp_path):
     """Test run command with different data sources."""
     data_sources = ["synthetic", "file", "bloomberg"]
 
     for source in data_sources:
+        config_file = tmp_path / f"workflow_{source}.yaml"
+        config_file.write_text(
+            yaml.dump(
+                {
+                    "signal": "spread_momentum",
+                    "product": "cdx_ig_5y",
+                    "strategy": "balanced",
+                    "data": source,
+                }
+            )
+        )
+
         with patch("aponyx.cli.commands.run.WorkflowEngine") as mock_engine_class:
             mock_engine = MagicMock()
             mock_engine.execute.return_value = {
@@ -139,36 +154,37 @@ def test_workflow_with_all_data_sources(runner):
             }
             mock_engine_class.return_value = mock_engine
 
-            result = runner.invoke(
-                cli,
-                [
-                    "run",
-                    "--signal",
-                    "spread_momentum",
-                    "--strategy",
-                    "balanced",
-                    "--data",
-                    source,
-                ],
-            )
+            result = runner.invoke(cli, ["run", str(config_file)])
 
             assert result.exit_code == 0
-            assert f"Data: {source}" in result.output
+            assert f"Data:            {source} [config]" in result.output
 
 
-def test_workflow_with_partial_steps(runner):
+def test_workflow_with_partial_steps(runner, tmp_path):
     """Test run command with different step combinations."""
     step_combinations = [
-        "data",
-        "data,signal",
-        "data,signal,backtest",
-        "signal,backtest",
+        ["data"],
+        ["data", "signal"],
+        ["data", "signal", "backtest"],
+        ["signal", "backtest"],
     ]
 
     for steps in step_combinations:
+        config_file = tmp_path / f"workflow_{'_'.join(steps)}.yaml"
+        config_file.write_text(
+            yaml.dump(
+                {
+                    "signal": "spread_momentum",
+                    "product": "cdx_ig_5y",
+                    "strategy": "balanced",
+                    "steps": steps,
+                }
+            )
+        )
+
         with patch("aponyx.cli.commands.run.WorkflowEngine") as mock_engine_class:
             mock_engine = MagicMock()
-            step_count = len(steps.split(","))
+            step_count = len(steps)
             mock_engine.execute.return_value = {
                 "steps_completed": step_count,
                 "steps_skipped": 0,
@@ -178,18 +194,7 @@ def test_workflow_with_partial_steps(runner):
             }
             mock_engine_class.return_value = mock_engine
 
-            result = runner.invoke(
-                cli,
-                [
-                    "run",
-                    "--signal",
-                    "spread_momentum",
-                    "--strategy",
-                    "balanced",
-                    "--steps",
-                    steps,
-                ],
-            )
+            result = runner.invoke(cli, ["run", str(config_file)])
 
             assert result.exit_code == 0
             assert f"Completed {step_count} steps" in result.output
@@ -240,9 +245,20 @@ def test_clean_with_different_scopes(runner, tmp_path):
         assert result.exit_code == 0
 
 
-def test_error_recovery_workflow(runner):
+def test_error_recovery_workflow(runner, tmp_path):
     """Test workflow error handling and recovery."""
     # Step 1: Run workflow with error
+    config_file = tmp_path / "workflow.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "spread_momentum",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+            }
+        )
+    )
+
     with patch("aponyx.cli.commands.run.WorkflowEngine") as mock_engine_class:
         mock_engine = MagicMock()
         mock_engine.execute.return_value = {
@@ -256,16 +272,7 @@ def test_error_recovery_workflow(runner):
         }
         mock_engine_class.return_value = mock_engine
 
-        result = runner.invoke(
-            cli,
-            [
-                "run",
-                "--signal",
-                "spread_momentum",
-                "--strategy",
-                "balanced",
-            ],
-        )
+        result = runner.invoke(cli, ["run", str(config_file)])
         assert result.exit_code != 0
         assert "Workflow failed" in result.output
 
@@ -286,6 +293,17 @@ def test_error_recovery_workflow(runner):
         assert result.exit_code != 0
 
     # Step 3: Fix and re-run with force flag
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "spread_momentum",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+                "force": True,
+            }
+        )
+    )
+
     with patch("aponyx.cli.commands.run.WorkflowEngine") as mock_engine_class:
         mock_engine = MagicMock()
         mock_engine.execute.return_value = {
@@ -297,37 +315,27 @@ def test_error_recovery_workflow(runner):
         }
         mock_engine_class.return_value = mock_engine
 
-        result = runner.invoke(
-            cli,
-            [
-                "run",
-                "--signal",
-                "spread_momentum",
-                "--strategy",
-                "balanced",
-                "--force",
-            ],
-        )
+        result = runner.invoke(cli, ["run", str(config_file)])
         assert result.exit_code == 0
-        assert "Force re-run: True" in result.output
+        assert "Force re-run:    True [config]" in result.output
 
 
 def test_yaml_config_workflow(runner, tmp_path):
     """Test complete workflow using YAML configuration."""
-    # Create YAML config
+    # Create YAML config with required and optional fields
     config_file = tmp_path / "research_workflow.yaml"
-    config_content = """
-signal: spread_momentum
-strategy: balanced
-data: synthetic
-steps:
-  - data
-  - signal
-  - backtest
-  - visualization
-force: false
-"""
-    config_file.write_text(config_content)
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "spread_momentum",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+                "data": "synthetic",
+                "steps": ["data", "signal", "backtest", "visualization"],
+                "force": False,
+            }
+        )
+    )
 
     # Run workflow from config
     with patch("aponyx.cli.commands.run.WorkflowEngine") as mock_engine_class:
@@ -341,9 +349,9 @@ force: false
         }
         mock_engine_class.return_value = mock_engine
 
-        result = runner.invoke(cli, ["run", "--config", str(config_file)])
+        result = runner.invoke(cli, ["run", str(config_file)])
         assert result.exit_code == 0
-        assert "Signal: spread_momentum" in result.output
+        assert "Signal:          spread_momentum [config]" in result.output
 
 
 def test_concurrent_command_safety(runner, tmp_path):
@@ -376,7 +384,11 @@ def test_command_help_consistency(runner):
         result = runner.invoke(cli, [cmd, "--help"])
         assert result.exit_code == 0
         assert "Usage:" in result.output
-        assert "Options:" in result.output or "Arguments:" in result.output
+        # run command uses Arguments, others use Options
+        if cmd == "run":
+            assert "Arguments:" in result.output or "CONFIG_PATH" in result.output
+        else:
+            assert "Options:" in result.output
 
 
 def test_invalid_command_suggestions(runner):

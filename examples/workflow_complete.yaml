@@ -1,0 +1,23 @@
+# Complete workflow configuration
+# All fields explicitly specified (no defaults used)
+
+label: complete_test
+signal: cdx_etf_basis
+product: cdx_ig_5y
+strategy: balanced
+
+# Optional signal overrides
+indicator: cdx_etf_spread_diff
+transformation: z_score_20d
+securities:
+  cdx: cdx_ig_5y
+  etf: lqd
+
+# Data source
+data: synthetic
+
+# Execute specific steps only
+steps: [data, signal, suitability, backtest, performance, visualization]
+
+# Force re-run all steps
+force: true

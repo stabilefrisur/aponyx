@@ -67,20 +67,38 @@ File-based data loading (`FileSource`) works without Bloomberg dependencies.
 
 ### 1. Run Analysis
 
-**Option A: Use CLI (Recommended)**
+**Option A: Use CLI with YAML Config (Recommended)**
+
+Create a workflow configuration file:
+
+```yaml
+# workflow.yaml
+label: my_test
+signal: cdx_etf_basis
+product: cdx_ig_5y
+strategy: balanced
+```
+
+Run the workflow:
 
 ```bash
-aponyx run --signal cdx_etf_basis --strategy balanced
+aponyx run workflow.yaml
+# Or use example configs
+aponyx run examples/workflow_minimal.yaml
 ```
 
 **Option B: Python API**
 
 ```python
 from aponyx.data import fetch_cdx, fetch_etf, FileSource
-from aponyx.models import compute_cdx_etf_basis, SignalConfig
+from aponyx.models import (
+    IndicatorRegistry, TransformationRegistry, SignalRegistry,
+    compute_indicator, compose_signal
+)
 from aponyx.backtest import run_backtest, BacktestConfig
 from aponyx.evaluation.performance import compute_all_metrics
 from aponyx.evaluation.suitability import evaluate_signal_suitability, SuitabilityConfig
+from aponyx.config import INDICATOR_CATALOG_PATH, TRANSFORMATION_CATALOG_PATH, SIGNAL_CATALOG_PATH
 
 # Load validated market data
 # Note: After generating synthetic data, find actual filenames in data/raw/synthetic/
@@ -88,9 +106,23 @@ from aponyx.evaluation.suitability import evaluate_signal_suitability, Suitabili
 cdx_df = fetch_cdx(FileSource("data/raw/synthetic/cdx_ig_5y_<hash>.parquet"), security="cdx_ig_5y")
 etf_df = fetch_etf(FileSource("data/raw/synthetic/hyg_<hash>.parquet"), security="hyg")
 
-# Generate signal with configuration
-signal_config = SignalConfig(lookback=20, min_periods=10)
-signal = compute_cdx_etf_basis(cdx_df, etf_df, signal_config)
+# SIGNAL COMPOSITION: Every signal is ALWAYS composed from indicator + transformation
+# 1. Indicator = economically interpretable metric (e.g., CDX-ETF basis in bps)
+# 2. Transformation = signal processing (e.g., z-score normalization)
+# This separation enables reuse and runtime experimentation
+
+market_data = {"cdx": cdx_df, "etf": etf_df}
+indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+transformation_registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
+signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+
+# Compose signal: indicator (cdx_etf_spread_diff) + transformation (z_score_20d)
+signal = compose_signal(
+    signal_metadata=signal_registry.get_metadata("cdx_etf_basis"),
+    market_data=market_data,
+    indicator_registry=indicator_registry,
+    transformation_registry=transformation_registry
+)
 
 # Evaluate signal-product suitability (optional pre-backtest assessment)
 suitability_config = SuitabilityConfig(rolling_window=252)  # ~1 year daily data
@@ -135,39 +167,76 @@ aponyx --help  # or aponyx -h
 
 ### Run Complete Workflow
 
-```bash
-# Execute full 6-step workflow with synthetic data
-aponyx run --signal spread_momentum --strategy balanced
+All workflows are configured via YAML files. Create a config file with required fields:
 
-# Use Bloomberg data (requires active Terminal session)
-aponyx run --signal spread_momentum --strategy balanced --data bloomberg
-
-# Custom security mapping (override signal defaults)
-aponyx run --signal cdx_etf_basis --strategy balanced --securities cdx:cdx_hy_5y,etf:hyg
-
-# Run specific steps only
-aponyx run --signal spread_momentum --strategy balanced --steps signal,backtest,performance
-
-# Force re-run (skip cache, regenerate all outputs)
-aponyx run --signal spread_momentum --strategy balanced --force
-
-# Custom product
-aponyx run --signal cdx_etf_basis --strategy aggressive --product cdx_hy_5y
+**Minimal configuration** (`workflow.yaml`):
+```yaml
+label: minimal_test
+signal: spread_momentum
+product: cdx_ig_5y
+strategy: balanced
 ```
+
+**Complete configuration with all options**:
+```yaml
+signal: cdx_etf_basis
+product: cdx_ig_5y
+strategy: balanced
+
+# Optional overrides
+indicator: cdx_etf_spread_diff
+transformation: z_score_20d
+securities:
+  cdx: cdx_hy_5y
+  etf: hyg
+data: bloomberg
+steps: [data, signal, backtest, performance]
+force: true
+```
+
+**Run workflows:**
+
+```bash
+# Execute full 6-step workflow with minimal config
+aponyx run workflow.yaml
+
+# Use example configs
+aponyx run examples/workflow_minimal.yaml
+aponyx run examples/workflow_bloomberg.yaml
+aponyx run examples/workflow_custom_securities.yaml
+```
+
+**Available YAML fields:**
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `label` | string | ✓ | - | Workflow label (lowercase, underscores, numbers only) |
+| `signal` | string | ✓ | - | Signal name from signal_catalog.json |
+| `product` | string | ✓ | - | Product identifier (e.g., "cdx_ig_5y") |
+| `strategy` | string | ✓ | - | Strategy name from strategy_catalog.json |
+| `indicator` | string | | from signal | Override indicator computation |
+| `transformation` | string | | from signal | Override transformation |
+| `securities` | dict | | from indicator | Custom security mapping |
+| `data` | string | | "synthetic" | Data source (synthetic, file, bloomberg) |
+| `steps` | list | | all | Specific steps to execute |
+| `force` | boolean | | false | Force re-run (skip cache) |
 
 **Workflow steps:** data → signal → suitability → backtest → performance → visualization
 
 ### Generate Reports
 
 ```bash
-# Console output with formatted tables
-aponyx report --signal spread_momentum --strategy balanced
+# Console output with formatted tables (by label)
+aponyx report --workflow minimal_test
+
+# By numeric index (0 = most recent, ephemeral)
+aponyx report --workflow 0
 
 # Markdown file (default location: reports/)
-aponyx report --signal spread_momentum --strategy balanced --format markdown
+aponyx report --workflow minimal_test --format markdown
 
 # HTML file with styled formatting
-aponyx report --signal spread_momentum --strategy balanced --format html --output custom_report.html
+aponyx report --workflow minimal_test --format html --output custom_report.html
 ```
 
 Reports aggregate suitability evaluation and performance analysis with comprehensive metrics and visualizations.
@@ -178,16 +247,21 @@ Reports aggregate suitability evaluation and performance analysis with comprehen
 aponyx list signals      # View signal catalog
 aponyx list strategies   # View strategy catalog
 aponyx list datasets     # View data registry
+aponyx list workflows    # View workflow results (sorted by timestamp)
+aponyx list workflows --signal spread_momentum  # Filter workflows
 ```
 
 ### Clean Workflow Cache
 
 ```bash
-# Remove cached workflow outputs for specific signal-strategy
-aponyx clean --signal spread_momentum --strategy balanced
+# Preview workflow cleanup
+aponyx clean --workflows --all --dry-run
 
-# Clean all cached workflows
-aponyx clean --all
+# Clean workflows older than 30 days
+aponyx clean --workflows --older-than 30d
+
+# Clean specific signal's workflows
+aponyx clean --workflows --signal spread_momentum --older-than 7d
 ```
 
 ### Using Configuration Files
@@ -195,6 +269,7 @@ aponyx clean --all
 Create `workflow.yaml`:
 
 ```yaml
+label: my_workflow
 signal: spread_momentum
 strategy: balanced
 product: cdx_ig_5y
@@ -217,15 +292,16 @@ aponyx run --config workflow.yaml
 
 **Output format:**
 ```
-Signal: spread_momentum (cdx:cdx_ig_5y)
-Strategy: balanced
-Product: cdx_ig_5y
-Data: synthetic
-Steps: all
-Force re-run: False
+Label: minimal_test [config]
+Signal: spread_momentum [config]
+Product: cdx_ig_5y [config]
+Strategy: balanced [config]
+Data: synthetic [default]
+Steps: all [default]
+Force re-run: False [default]
 
 Completed 6 steps in 15.2s
-Results: data/workflows/spread_momentum_balanced_20251123_143230/
+Results: data/workflows/minimal_test_20251123_143230/
 ```
 
 **Benefits:**
@@ -247,7 +323,7 @@ Aponyx follows a **layered architecture** with clean separation of concerns:
 | **Workflows** | Pipeline orchestration with dependency tracking | `WorkflowEngine`, `WorkflowConfig`, `StepRegistry`, concrete steps |
 | **Reporting** | Multi-format report generation | `generate_report`, console/markdown/HTML formatters |
 | **Data** | Load, validate, transform market data | `fetch_cdx`, `fetch_vix`, `fetch_etf`, `apply_transform`, `FileSource`, `BloombergSource` |
-| **Models** | Generate signals for independent evaluation | `compute_cdx_etf_basis`, `compute_cdx_vix_gap`, `SignalRegistry` |
+| **Models** | Indicators, transformations, and signal composition | `IndicatorRegistry`, `TransformationRegistry`, `compute_indicator`, `compose_signal` |
 | **Evaluation** | Pre-backtest screening (rolling window stability) and post-backtest analysis | `evaluate_signal_suitability`, `analyze_backtest_performance`, `PerformanceRegistry` |
 | **Backtest** | Simulate execution and generate P&L | `run_backtest`, `BacktestConfig`, `StrategyRegistry` |
 | **Visualization** | Interactive charts and dashboards | `plot_equity_curve`, `plot_signal`, `plot_drawdown` |
@@ -276,7 +352,7 @@ Workflow Engine (dependency tracking + caching)
     ↓
 [Step 1] Data Layer (load, validate, transform)
     ↓
-[Step 2] Models Layer (signal computation)
+[Step 2] Models Layer (indicator computation + signal composition)
     ↓
 [Step 3] Evaluation Layer (signal-product suitability)
     ↓

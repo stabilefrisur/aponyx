@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BREAKING CHANGES
+
+- **Legacy Signal Computation Removed** - All signals now exclusively use the indicator + transformation composition pattern
+  - **Action Required**: Delete `data/workflows/` directory and re-run workflows to regenerate caches with new architecture
+  - Removed `src/aponyx/models/signals.py` - Legacy compute functions (compute_cdx_etf_basis, compute_cdx_vix_gap, compute_spread_momentum) no longer exist
+  - Removed `SignalMetadata.compute_function_name` field from signal catalog schema
+  - Removed `SignalMetadata.arg_mapping` field from signal catalog schema  
+  - Removed `SignalMetadata.data_requirements` field (moved to indicator layer)
+  - Removed `SignalMetadata.default_securities` field (moved to indicator layer)
+  - SignalMetadata now REQUIRES `indicator_dependencies` and `transformations` fields (no longer optional)
+  - Removed `config` parameter from `compute_registered_signals()` function
+  - All workflow results before 2025-12-01 must be regenerated
+
+### Removed
+
+- Legacy backward compatibility code for indicator-signal separation (feature 001)
+- Deprecated signal computation pattern via compute functions
+- Dual-pattern support in orchestrator (_compute_signal_legacy_pattern, _validate_data_requirements)
+- Legacy test files for deprecated compute functions
+
 ## [0.1.14] - 2025-11-23
 
 ### Added

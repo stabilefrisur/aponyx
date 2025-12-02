@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Indicator Catalog Schema",
+  "description": "JSON schema for indicator_catalog.json defining reusable market metric computations",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "name",
+      "description",
+      "compute_function_name",
+      "data_requirements",
+      "default_securities",
+      "output_units",
+      "parameters"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]*$",
+        "description": "Unique indicator identifier (lowercase, underscores only)",
+        "examples": ["cdx_etf_spread_diff", "spread_momentum_5d", "vix_deviation_20d"]
+      },
+      "description": {
+        "type": "string",
+        "minLength": 10,
+        "description": "Human-readable explanation of economic meaning",
+        "examples": ["CDX spread minus ETF spread in basis points"]
+      },
+      "compute_function_name": {
+        "type": "string",
+        "pattern": "^compute_[a-z][a-z0-9_]*$",
+        "description": "Python function name in indicators.py module",
+        "examples": ["compute_cdx_etf_spread_diff", "compute_spread_momentum"]
+      },
+      "data_requirements": {
+        "type": "object",
+        "minProperties": 1,
+        "description": "Instrument types to data fields mapping",
+        "patternProperties": {
+          "^[a-z_]+$": {
+            "type": "string",
+            "enum": ["spread", "level", "price", "yield", "volatility"]
+          }
+        },
+        "examples": [
+          {"cdx": "spread", "etf": "spread"},
+          {"cdx": "spread"},
+          {"cdx": "spread", "vix": "level"}
+        ]
+      },
+      "default_securities": {
+        "type": "object",
+        "minProperties": 1,
+        "description": "Default security identifiers for each instrument type",
+        "patternProperties": {
+          "^[a-z_]+$": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          }
+        },
+        "examples": [
+          {"cdx": "cdx_ig_5y", "etf": "lqd"},
+          {"cdx": "cdx_ig_5y"},
+          {"cdx": "cdx_ig_5y", "vix": "vix"}
+        ]
+      },
+      "output_units": {
+        "type": "string",
+        "enum": ["basis_points", "ratio", "percentage", "index_level", "volatility_points"],
+        "description": "Units of indicator output values for interpretability"
+      },
+      "parameters": {
+        "type": "object",
+        "description": "Fixed computation parameters (lookback windows, methods, etc.)",
+        "examples": [
+          {"lookback": 5},
+          {"lookback": 20, "method": "simple"},
+          {}
+        ]
+      },
+      "enabled": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether indicator is available for use"
+      }
+    },
+    "additionalProperties": false
+  },
+  "minItems": 1
+}

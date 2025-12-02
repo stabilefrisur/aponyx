@@ -226,6 +226,22 @@ class StrategyRegistry:
         """
         return self._strategies.copy()
 
+    def strategy_exists(self, name: str) -> bool:
+        """
+        Check if strategy is registered.
+
+        Parameters
+        ----------
+        name : str
+            Strategy name.
+
+        Returns
+        -------
+        bool
+            True if strategy exists in registry.
+        """
+        return name in self._strategies
+
     def save_catalog(self, path: str | Path | None = None) -> None:
         """
         Save strategy metadata to JSON catalog file.

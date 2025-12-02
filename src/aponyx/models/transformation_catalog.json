@@ -1,0 +1,42 @@
+[
+  {
+    "name": "z_score_20d",
+    "description": "Z-score normalization over 20-day rolling window with minimum 10 periods",
+    "transform_type": "z_score",
+    "parameters": {
+      "window": 20,
+      "min_periods": 10
+    },
+    "enabled": true
+  },
+  {
+    "name": "z_score_60d",
+    "description": "Z-score normalization over 60-day rolling window with minimum 30 periods",
+    "transform_type": "z_score",
+    "parameters": {
+      "window": 60,
+      "min_periods": 30
+    },
+    "enabled": true
+  },
+  {
+    "name": "volatility_adjust_20d",
+    "description": "Change normalized by 20-day rolling volatility",
+    "transform_type": "normalized_change",
+    "parameters": {
+      "window": 20,
+      "min_periods": 10,
+      "periods": 1
+    },
+    "enabled": true
+  },
+  {
+    "name": "diff_5d",
+    "description": "5-day first difference (absolute change)",
+    "transform_type": "diff",
+    "parameters": {
+      "periods": 5
+    },
+    "enabled": true
+  }
+]
