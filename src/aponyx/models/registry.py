@@ -607,6 +607,22 @@ class SignalRegistry:
         """
         return self._signals.copy()
 
+    def signal_exists(self, name: str) -> bool:
+        """
+        Check if signal is registered.
+
+        Parameters
+        ----------
+        name : str
+            Signal name.
+
+        Returns
+        -------
+        bool
+            True if signal exists in registry.
+        """
+        return name in self._signals
+
     def save_catalog(self, path: str | Path | None = None) -> None:
         """
         Save signal metadata to JSON catalog file.

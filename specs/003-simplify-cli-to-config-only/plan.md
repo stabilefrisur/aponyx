@@ -32,15 +32,15 @@ aponyx run --signal spread_momentum --strategy balanced --force
 All workflow configurations must be specified in YAML files with the following structure:
 
 **Required Fields:**
-- `product`: Product identifier (e.g., "cdx_ig_5y")
 - `signal`: Signal name (must exist in signal_catalog.json)
+- `product`: Product identifier (e.g., "cdx_ig_5y")
+- `strategy`: Strategy name (must exist in strategy_catalog.json)
 
 **Optional Fields (with defaults):**
 - `indicator`: Indicator override (default: from signal's indicator_dependencies)
+- `transformation`: Transformation override (default: from signal's transformations)
 - `securities`: Security mapping dictionary (default: from indicator's default_securities)
   - Format: `{instrument_type: security_id}`
-- `transformation`: Transformation override (default: from signal's transformations)
-- `strategy`: Strategy name (default: "balanced")
 - `data`: Data source (default: "synthetic")
 - `steps`: List of steps to execute (default: all steps)
 - `force`: Boolean flag to force re-run (default: false)
@@ -63,9 +63,9 @@ Signal:          cdx_etf_basis
 Indicator:       cdx_etf_spread_diff [from signal]
 Securities:      cdx:cdx_ig_5y, etf:lqd [from indicator]
 Transformation:  z_score_20d [from signal]
-Strategy:        balanced [default]
+Strategy:        balanced [config]
 Data:            synthetic [default]
-Steps:           all (data, signal, suitability, backtest, performance, visualization) [default]
+Steps:           all [default]
 Force re-run:    False [default]
 ========================================
 
@@ -82,7 +82,7 @@ Results: data/workflows/cdx_etf_basis_balanced_20251201_143230/
 - Remove all individual parameter options (--signal, --strategy, --force, etc.)
 - Update docstring to reflect config-only usage
 - Add YAML loading and parsing logic
-- Add required field validation (signal, product)
+- Add required field validation (signal, product, strategy)
 - Extract optional fields with appropriate defaults
 - Call validation helper before creating WorkflowConfig
 - Call display helper after creating WorkflowConfig
@@ -92,9 +92,10 @@ Results: data/workflows/cdx_etf_basis_balanced_20251201_143230/
 
 1. `_validate_config_references()`:
    - Validate signal exists in signal_catalog.json
+   - Validate strategy exists in strategy_catalog.json
    - Validate indicator override exists in indicator_catalog.json (if provided)
    - Validate transformation override exists in transformation_catalog.json (if provided)
-   - Validate securities exist in bloomberg_instruments.json (if provided)
+   - Validate securities exist in bloomberg_securities.json with matching instrument_type (if provided)
    - Provide helpful error messages listing available options when validation fails
 
 2. `_display_workflow_config()`:
@@ -161,10 +162,10 @@ Results: data/workflows/cdx_etf_basis_balanced_20251201_143230/
 All config references must be validated before workflow execution:
 
 1. **Signal validation**: Must exist in signal_catalog.json
-2. **Indicator validation**: Must exist in indicator_catalog.json (if override provided)
-3. **Transformation validation**: Must exist in transformation_catalog.json (if override provided)
-4. **Securities validation**: Each security_id must exist in bloomberg_instruments.json for its instrument_type (if mapping provided)
-5. **Strategy validation**: Already handled by StrategyRegistry
+2. **Strategy validation**: Must exist in strategy_catalog.json
+3. **Indicator validation**: Must exist in indicator_catalog.json (if override provided)
+4. **Transformation validation**: Must exist in transformation_catalog.json (if override provided)
+5. **Securities validation**: Each security_id must exist in bloomberg_securities.json with matching instrument_type (if mapping provided)
 
 When validation fails, provide helpful error messages that:
 - Clearly state what's wrong
@@ -178,7 +179,7 @@ The display helper must resolve defaults in this priority order:
 1. **User-specified in config** → Mark as `[config]`
 2. **From signal metadata** → Mark as `[from signal]` (for indicator, transformation)
 3. **From indicator metadata** → Mark as `[from indicator]` (for securities)
-4. **System default** → Mark as `[default]` (for strategy, data, steps, force)
+4. **System default** → Mark as `[default]` (for data, steps, force)
 
 ## Backward Compatibility
 
@@ -194,7 +195,7 @@ The display helper must resolve defaults in this priority order:
 
 1. ✅ `aponyx run <config.yaml>` works with only config file argument
 2. ✅ All CLI flags removed (no `--signal`, `--strategy`, etc.)
-3. ✅ Required fields (product, signal) validated with clear error messages
+3. ✅ Required fields (signal, product, strategy) validated with clear error messages
 4. ✅ Optional field overrides validated against catalogs
 5. ✅ Every run displays complete configuration with default resolution sources
 6. ✅ All example YAML files work correctly
@@ -225,6 +226,6 @@ The display helper must resolve defaults in this priority order:
 5. Test invalid indicator override
 6. Test invalid transformation override
 7. Test invalid security mapping
-8. Test missing required fields (signal, product)
+8. Test missing required fields (signal, product, strategy)
 9. Test default value display formatting
 10. Test workflow execution with various configs

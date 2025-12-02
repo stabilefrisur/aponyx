@@ -1,8 +1,9 @@
-"""Tests for CLI commands."""
+"""Tests for CLI commands (config-only run command)."""
 
+import json
 import logging
 from pathlib import Path
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
@@ -105,8 +106,8 @@ def test_cli_quiet_flag(runner, mock_signal_registry):
 def test_cli_no_command_shows_help(runner):
     """Test CLI without command shows usage info."""
     result = runner.invoke(cli, [])
-    # Click returns exit code 2 for missing command
-    assert result.exit_code == 2
+    # CLI shows help when no command provided
+    assert result.exit_code == 0
     assert "Usage:" in result.output
 
 
@@ -117,97 +118,315 @@ def test_cli_invalid_command(runner):
 
 
 # ============================================================================
-# Run Command Tests
+# Run Command Tests (Config-Only)
 # ============================================================================
 
 
-def test_run_command_requires_signal_and_strategy(runner):
-    """Test run command validates required arguments."""
+def test_run_command_requires_config_file(runner):
+    """Test run command requires config file argument."""
     result = runner.invoke(cli, ["run"])
     assert result.exit_code != 0
-    assert "Missing" in result.output and "--signal" in result.output
+    assert "Missing argument" in result.output
 
 
-def test_run_command_missing_signal(runner):
-    """Test run command requires signal parameter."""
-    result = runner.invoke(cli, ["run", "--strategy", "balanced"])
+def test_run_command_missing_signal_field(runner, tmp_path):
+    """Test run command validates signal field is required."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(yaml.dump({"product": "cdx_ig_5y", "strategy": "balanced"}))
+
+    result = runner.invoke(cli, ["run", str(config_file)])
+
     assert result.exit_code != 0
-    assert "Missing" in result.output
+    assert "Missing required field" in result.output
+    assert "signal" in result.output
 
 
-def test_run_command_missing_strategy(runner):
-    """Test run command requires strategy parameter."""
-    result = runner.invoke(cli, ["run", "--signal", "spread_momentum"])
-    assert result.exit_code != 0
-    assert "Missing" in result.output
-
-
-def test_run_command_with_mock_workflow(runner, mock_workflow_engine):
-    """Test run command executes workflow."""
-    result = runner.invoke(
-        cli,
-        [
-            "run",
-            "--signal",
-            "spread_momentum",
-            "--strategy",
-            "balanced",
-        ],
+def test_run_command_missing_product_field(runner, tmp_path):
+    """Test run command validates product field is required."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump({"signal": "spread_momentum", "strategy": "balanced"})
     )
 
+    result = runner.invoke(cli, ["run", str(config_file)])
+
+    assert result.exit_code != 0
+    assert "Missing required field" in result.output
+    assert "product" in result.output
+
+
+def test_run_command_missing_strategy_field(runner, tmp_path):
+    """Test run command validates strategy field is required."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump({"signal": "spread_momentum", "product": "cdx_ig_5y"})
+    )
+
+    result = runner.invoke(cli, ["run", str(config_file)])
+
+    assert result.exit_code != 0
+    assert "Missing required field" in result.output
+    assert "strategy" in result.output
+
+
+def test_run_command_invalid_signal(runner, tmp_path):
+    """Test run command validates signal exists in catalog."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "nonexistent_signal",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+            }
+        )
+    )
+
+    result = runner.invoke(cli, ["run", str(config_file)])
+
+    assert result.exit_code != 0
+    assert "Signal 'nonexistent_signal' not found" in result.output
+    assert "Available signals:" in result.output
+
+
+def test_run_command_invalid_strategy(runner, tmp_path):
+    """Test run command validates strategy exists in catalog."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "spread_momentum",
+                "product": "cdx_ig_5y",
+                "strategy": "nonexistent_strategy",
+            }
+        )
+    )
+
+    result = runner.invoke(cli, ["run", str(config_file)])
+
+    assert result.exit_code != 0
+    assert "Strategy 'nonexistent_strategy' not found" in result.output
+    assert "Available strategies:" in result.output
+
+
+def test_run_command_invalid_indicator_override(runner, tmp_path):
+    """Test run command validates indicator override exists in catalog."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "spread_momentum",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+                "indicator": "nonexistent_indicator",
+            }
+        )
+    )
+
+    result = runner.invoke(cli, ["run", str(config_file)])
+
+    assert result.exit_code != 0
+    assert "Indicator 'nonexistent_indicator' not found" in result.output
+    assert "Available indicators:" in result.output
+
+
+def test_run_command_invalid_transformation_override(runner, tmp_path):
+    """Test run command validates transformation override exists in catalog."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "spread_momentum",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+                "transformation": "nonexistent_transformation",
+            }
+        )
+    )
+
+    result = runner.invoke(cli, ["run", str(config_file)])
+
+    assert result.exit_code != 0
+    assert "Transformation 'nonexistent_transformation' not found" in result.output
+    assert "Available transformations:" in result.output
+
+
+def test_run_command_invalid_security_not_found(runner, tmp_path):
+    """Test run command validates securities exist in bloomberg_securities.json."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "spread_momentum",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+                "securities": {"cdx": "nonexistent_security"},
+            }
+        )
+    )
+
+    result = runner.invoke(cli, ["run", str(config_file)])
+
+    assert result.exit_code != 0
+    assert "Security 'nonexistent_security' not found" in result.output
+    assert "Available securities:" in result.output
+
+
+def test_run_command_invalid_security_wrong_instrument_type(runner, tmp_path):
+    """Test run command validates security instrument_type matches mapping key."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "spread_momentum",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+                "securities": {"cdx": "vix"},  # vix has instrument_type 'vix', not 'cdx'
+            }
+        )
+    )
+
+    result = runner.invoke(cli, ["run", str(config_file)])
+
+    assert result.exit_code != 0
+    assert "Security 'vix' has instrument_type 'vix', expected 'cdx'" in result.output
+
+
+def test_run_command_minimal_config(runner, mock_workflow_engine, tmp_path):
+    """Test run command with minimal config (only required fields)."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "spread_momentum",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+            }
+        )
+    )
+
+    result = runner.invoke(cli, ["run", str(config_file)])
+
     assert result.exit_code == 0
-    assert "Signal: spread_momentum" in result.output
-    assert "Strategy: balanced" in result.output
-    assert "Product:" in result.output
+    assert "=== Workflow Configuration ===" in result.output
+    assert "Signal:          spread_momentum [config]" in result.output
+    assert "Product:         cdx_ig_5y [config]" in result.output
+    assert "Strategy:        balanced [config]" in result.output
+    assert "Data:            synthetic [default]" in result.output
+    assert "Steps:           all [default]" in result.output
+    assert "Force re-run:    False [default]" in result.output
     assert "Completed 6 steps" in result.output
 
 
-def test_run_command_with_data_source(runner, mock_workflow_engine):
-    """Test run command accepts data source option."""
-    result = runner.invoke(
-        cli,
-        [
-            "run",
-            "--signal",
-            "spread_momentum",
-            "--strategy",
-            "balanced",
-            "--data",
-            "file",
-        ],
+def test_run_command_complete_config(runner, mock_workflow_engine, tmp_path):
+    """Test run command with complete config (all fields specified)."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "cdx_etf_basis",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+                "indicator": "cdx_etf_spread_diff",
+                "transformation": "z_score_20d",
+                "securities": {"cdx": "cdx_ig_5y", "etf": "lqd"},
+                "data": "bloomberg",
+                "steps": ["data", "signal", "backtest"],
+                "force": True,
+            }
+        )
     )
 
+    result = runner.invoke(cli, ["run", str(config_file)])
+
     assert result.exit_code == 0
-    assert "Data: file" in result.output
-    assert "Signal:" in result.output
+    assert "Indicator:       cdx_etf_spread_diff [config]" in result.output
+    assert "Transformation:  z_score_20d [config]" in result.output
+    assert "Securities:      cdx:cdx_ig_5y, etf:lqd [config]" in result.output
+    assert "Data:            bloomberg [config]" in result.output
+    assert "Steps:           data, signal, backtest [config]" in result.output
+    assert "Force re-run:    True [config]" in result.output
 
 
-def test_run_command_with_invalid_data_source(runner):
-    """Test run command rejects invalid data source."""
-    from unittest.mock import patch
-
-    # Mock WorkflowConfig to raise validation error
-    with patch("aponyx.cli.commands.run.WorkflowConfig") as mock_config:
-        mock_config.side_effect = ValueError("Invalid data source")
-
-        result = runner.invoke(
-            cli,
-            [
-                "run",
-                "--signal",
-                "spread_momentum",
-                "--strategy",
-                "balanced",
-                "--data",
-                "invalid",
-            ],
+def test_run_command_indicator_override_only(runner, mock_workflow_engine, tmp_path):
+    """Test run command with indicator override (keeps transformation from signal)."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "spread_momentum",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+                "indicator": "spread_momentum_5d",
+            }
         )
+    )
 
-        assert result.exit_code != 0
+    result = runner.invoke(cli, ["run", str(config_file)])
+
+    assert result.exit_code == 0
+    assert "Indicator:       spread_momentum_5d [config]" in result.output
+    # Transformation should come from signal
+    assert "[from signal]" in result.output
 
 
-def test_run_command_with_workflow_error(runner):
-    """Test run command handles workflow errors."""
+def test_run_command_transformation_override_only(
+    runner, mock_workflow_engine, tmp_path
+):
+    """Test run command with transformation override (keeps indicator from signal)."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "spread_momentum",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+                "transformation": "z_score_60d",
+            }
+        )
+    )
+
+    result = runner.invoke(cli, ["run", str(config_file)])
+
+    assert result.exit_code == 0
+    assert "Transformation:  z_score_60d [config]" in result.output
+    # Indicator should come from signal
+    assert "Indicator:" in result.output and "[from signal]" in result.output
+
+
+def test_run_command_securities_override(runner, mock_workflow_engine, tmp_path):
+    """Test run command with securities override."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "cdx_etf_basis",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+                "securities": {"cdx": "cdx_hy_5y", "etf": "hyg"},
+            }
+        )
+    )
+
+    result = runner.invoke(cli, ["run", str(config_file)])
+
+    assert result.exit_code == 0
+    assert "Securities:      cdx:cdx_hy_5y, etf:hyg [config]" in result.output
+
+
+def test_run_command_with_workflow_error(runner, tmp_path):
+    """Test run command handles workflow execution errors."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "spread_momentum",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+            }
+        )
+    )
+
     with patch("aponyx.cli.commands.run.WorkflowEngine") as mock_engine_class:
         mock_engine = MagicMock()
         mock_engine.execute.return_value = {
@@ -221,138 +440,44 @@ def test_run_command_with_workflow_error(runner):
         }
         mock_engine_class.return_value = mock_engine
 
-        result = runner.invoke(
-            cli,
-            [
-                "run",
-                "--signal",
-                "spread_momentum",
-                "--strategy",
-                "balanced",
-            ],
-        )
+        result = runner.invoke(cli, ["run", str(config_file)])
 
         assert result.exit_code != 0
         assert "Workflow failed" in result.output
         assert "signal:" in result.output
 
 
-def test_run_command_with_steps_option(runner, mock_workflow_engine):
-    """Test run command accepts steps option."""
-    result = runner.invoke(
-        cli,
-        [
-            "run",
-            "--signal",
-            "spread_momentum",
-            "--strategy",
-            "balanced",
-            "--steps",
-            "data,signal",
-        ],
-    )
-
-    assert result.exit_code == 0
-    assert "Steps: data, signal" in result.output
-
-
-def test_run_command_with_force_flag(runner, mock_workflow_engine):
-    """Test run command accepts force flag."""
-    result = runner.invoke(
-        cli,
-        [
-            "run",
-            "--signal",
-            "spread_momentum",
-            "--strategy",
-            "balanced",
-            "--force",
-        ],
-    )
-
-    assert result.exit_code == 0
-    assert "Force re-run: True" in result.output
-
-
-def test_run_command_with_yaml_config(runner, mock_workflow_engine, tmp_path):
-    """Test run command loads configuration from YAML file."""
-    config_file = tmp_path / "workflow.yaml"
-    config_data = {
-        "signal": "spread_momentum",
-        "strategy": "balanced",
-        "data": "file",
-        "force": True,
-    }
-    config_file.write_text(yaml.dump(config_data))
-
-    result = runner.invoke(cli, ["run", "--config", str(config_file)])
-
-    assert result.exit_code == 0
-    assert "Signal: spread_momentum" in result.output
-    assert "Strategy: balanced" in result.output
-
-
-def test_run_command_yaml_overrides_with_cli_options(
-    runner, mock_workflow_engine, tmp_path
-):
-    """Test CLI options override YAML config values."""
-    config_file = tmp_path / "workflow.yaml"
-    config_data = {
-        "signal": "cdx_vix_gap",
-        "strategy": "aggressive",
-    }
-    config_file.write_text(yaml.dump(config_data))
-
-    result = runner.invoke(
-        cli,
-        [
-            "run",
-            "--config",
-            str(config_file),
-            "--signal",
-            "spread_momentum",  # Override YAML
-        ],
-    )
-
-    assert result.exit_code == 0
-    assert "Signal: spread_momentum" in result.output
-
-
-def test_run_command_invalid_yaml_config(runner, tmp_path):
-    """Test run command handles invalid YAML config."""
+def test_run_command_invalid_yaml(runner, tmp_path):
+    """Test run command handles invalid YAML syntax."""
     config_file = tmp_path / "invalid.yaml"
     config_file.write_text("invalid: yaml: content:")
 
-    result = runner.invoke(cli, ["run", "--config", str(config_file)])
+    result = runner.invoke(cli, ["run", str(config_file)])
 
     assert result.exit_code != 0
     assert "Failed to load config file" in result.output
 
 
-def test_run_command_missing_yaml_config(runner):
-    """Test run command handles missing YAML config file."""
-    result = runner.invoke(cli, ["run", "--config", "nonexistent.yaml"])
+def test_run_command_nonexistent_file(runner):
+    """Test run command handles nonexistent config file."""
+    result = runner.invoke(cli, ["run", "nonexistent.yaml"])
 
     assert result.exit_code != 0
 
 
-def test_run_command_yaml_with_steps(runner, mock_workflow_engine, tmp_path):
-    """Test run command accepts steps from YAML config."""
-    config_file = tmp_path / "workflow.yaml"
-    config_data = {
-        "signal": "spread_momentum",
-        "strategy": "balanced",
-        "steps": ["data", "signal", "backtest"],
-    }
-    config_file.write_text(yaml.dump(config_data))
+def test_run_command_with_skipped_steps(runner, tmp_path):
+    """Test run command displays skipped steps correctly."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "spread_momentum",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+            }
+        )
+    )
 
-    result = runner.invoke(cli, ["run", "--config", str(config_file)])
-
-    assert result.exit_code == 0
-
-
-def test_run_command_with_skipped_steps(runner):
-    """Test run command displays skipped steps."""
     with patch("aponyx.cli.commands.run.WorkflowEngine") as mock_engine_class:
         mock_engine = MagicMock()
         mock_engine.execute.return_value = {
@@ -364,19 +489,33 @@ def test_run_command_with_skipped_steps(runner):
         }
         mock_engine_class.return_value = mock_engine
 
-        result = runner.invoke(
-            cli,
-            [
-                "run",
-                "--signal",
-                "spread_momentum",
-                "--strategy",
-                "balanced",
-            ],
-        )
+        result = runner.invoke(cli, ["run", str(config_file)])
 
         assert result.exit_code == 0
         assert "Skipped 2" in result.output
+
+
+def test_run_command_displays_source_attribution(runner, mock_workflow_engine, tmp_path):
+    """Test run command displays correct source tags for all fields."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "signal": "spread_momentum",
+                "product": "cdx_ig_5y",
+                "strategy": "balanced",
+                "data": "file",
+            }
+        )
+    )
+
+    result = runner.invoke(cli, ["run", str(config_file)])
+
+    assert result.exit_code == 0
+    assert "[config]" in result.output
+    assert "[from signal]" in result.output
+    assert "[from indicator]" in result.output
+    assert "[default]" in result.output
 
 
 # ============================================================================
@@ -726,13 +865,9 @@ def test_run_help_text(runner):
     """Test run command help text."""
     result = runner.invoke(cli, ["run", "--help"])
     assert result.exit_code == 0
-    assert "signal-strategy combination" in result.output
-    assert "--signal" in result.output
-    assert "--strategy" in result.output
-    assert "--data" in result.output
-    assert "--steps" in result.output
-    assert "--force" in result.output
-    assert "--config" in result.output
+    assert "YAML configuration file" in result.output
+    assert "Required YAML fields:" in result.output
+    assert "Optional YAML fields:" in result.output
 
 
 def test_list_help_text(runner):

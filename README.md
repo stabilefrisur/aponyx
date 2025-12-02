@@ -67,10 +67,23 @@ File-based data loading (`FileSource`) works without Bloomberg dependencies.
 
 ### 1. Run Analysis
 
-**Option A: Use CLI (Recommended)**
+**Option A: Use CLI with YAML Config (Recommended)**
+
+Create a workflow configuration file:
+
+```yaml
+# workflow.yaml
+signal: cdx_etf_basis
+product: cdx_ig_5y
+strategy: balanced
+```
+
+Run the workflow:
 
 ```bash
-aponyx run --signal cdx_etf_basis --strategy balanced
+aponyx run workflow.yaml
+# Or use example configs
+aponyx run examples/workflow_minimal.yaml
 ```
 
 **Option B: Python API**
@@ -153,25 +166,57 @@ aponyx --help  # or aponyx -h
 
 ### Run Complete Workflow
 
-```bash
-# Execute full 6-step workflow with synthetic data
-aponyx run --signal spread_momentum --strategy balanced
+All workflows are configured via YAML files. Create a config file with required fields:
 
-# Use Bloomberg data (requires active Terminal session)
-aponyx run --signal spread_momentum --strategy balanced --data bloomberg
-
-# Custom security mapping (override signal defaults)
-aponyx run --signal cdx_etf_basis --strategy balanced --securities cdx:cdx_hy_5y,etf:hyg
-
-# Run specific steps only
-aponyx run --signal spread_momentum --strategy balanced --steps signal,backtest,performance
-
-# Force re-run (skip cache, regenerate all outputs)
-aponyx run --signal spread_momentum --strategy balanced --force
-
-# Custom product
-aponyx run --signal cdx_etf_basis --strategy aggressive --product cdx_hy_5y
+**Minimal configuration** (`workflow.yaml`):
+```yaml
+signal: spread_momentum
+product: cdx_ig_5y
+strategy: balanced
 ```
+
+**Complete configuration with all options**:
+```yaml
+signal: cdx_etf_basis
+product: cdx_ig_5y
+strategy: balanced
+
+# Optional overrides
+indicator: cdx_etf_spread_diff
+transformation: z_score_20d
+securities:
+  cdx: cdx_hy_5y
+  etf: hyg
+data: bloomberg
+steps: [data, signal, backtest, performance]
+force: true
+```
+
+**Run workflows:**
+
+```bash
+# Execute full 6-step workflow with minimal config
+aponyx run workflow.yaml
+
+# Use example configs
+aponyx run examples/workflow_minimal.yaml
+aponyx run examples/workflow_bloomberg.yaml
+aponyx run examples/workflow_custom_securities.yaml
+```
+
+**Available YAML fields:**
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `signal` | string | ✓ | - | Signal name from signal_catalog.json |
+| `product` | string | ✓ | - | Product identifier (e.g., "cdx_ig_5y") |
+| `strategy` | string | ✓ | - | Strategy name from strategy_catalog.json |
+| `indicator` | string | | from signal | Override indicator computation |
+| `transformation` | string | | from signal | Override transformation |
+| `securities` | dict | | from indicator | Custom security mapping |
+| `data` | string | | "synthetic" | Data source (synthetic, file, bloomberg) |
+| `steps` | list | | all | Specific steps to execute |
+| `force` | boolean | | false | Force re-run (skip cache) |
 
 **Workflow steps:** data → signal → suitability → backtest → performance → visualization
 

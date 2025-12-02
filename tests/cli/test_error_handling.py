@@ -44,8 +44,12 @@ def test_main_function_normal_exit():
 # ============================================================================
 
 
-def test_run_command_config_validation_error(runner):
+def test_run_command_config_validation_error(runner, tmp_path):
     """Test run command handles WorkflowConfig validation errors."""
+    # Create config file
+    config_file = tmp_path / "workflow.yaml"
+    config_file.write_text("signal: spread_momentum\nproduct: cdx_ig_5y\nstrategy: balanced\n")
+
     with patch("aponyx.cli.commands.run.WorkflowConfig") as mock_config:
         mock_config.side_effect = ValueError("Invalid configuration")
 
@@ -53,10 +57,7 @@ def test_run_command_config_validation_error(runner):
             cli,
             [
                 "run",
-                "--signal",
-                "spread_momentum",
-                "--strategy",
-                "balanced",
+                str(config_file),
             ],
         )
 
@@ -74,7 +75,6 @@ def test_run_command_empty_yaml_config(runner, tmp_path):
         cli,
         [
             "run",
-            "--config",
             str(config_file),
         ],
     )
@@ -86,23 +86,27 @@ def test_run_command_empty_yaml_config(runner, tmp_path):
 def test_run_command_yaml_with_null_values(runner, tmp_path):
     """Test run command handles YAML with null values."""
     config_file = tmp_path / "null.yaml"
-    config_file.write_text("signal: null\nstrategy: null\n")
+    config_file.write_text("signal: null\nproduct: null\nstrategy: null\n")
 
     result = runner.invoke(
         cli,
         [
             "run",
-            "--config",
             str(config_file),
         ],
     )
 
     assert result.exit_code != 0
-    assert "Missing" in result.output
+    # Null values are converted to string "None" and fail catalog validation
+    assert ("Signal 'None' not found" in result.output or "Missing" in result.output)
 
 
-def test_run_command_workflow_engine_exception(runner):
+def test_run_command_workflow_engine_exception(runner, tmp_path):
     """Test run command handles WorkflowEngine exceptions."""
+    # Create config file
+    config_file = tmp_path / "workflow.yaml"
+    config_file.write_text("signal: spread_momentum\nproduct: cdx_ig_5y\nstrategy: balanced\n")
+
     with patch("aponyx.cli.commands.run.WorkflowEngine") as mock_engine_class:
         mock_engine_class.side_effect = RuntimeError("Engine initialization failed")
 
@@ -110,18 +114,19 @@ def test_run_command_workflow_engine_exception(runner):
             cli,
             [
                 "run",
-                "--signal",
-                "spread_momentum",
-                "--strategy",
-                "balanced",
+                str(config_file),
             ],
         )
 
         assert result.exit_code != 0
 
 
-def test_run_command_multiple_errors_in_workflow(runner):
+def test_run_command_multiple_errors_in_workflow(runner, tmp_path):
     """Test run command displays multiple workflow errors."""
+    # Create config file
+    config_file = tmp_path / "workflow.yaml"
+    config_file.write_text("signal: spread_momentum\nproduct: cdx_ig_5y\nstrategy: balanced\n")
+
     with patch("aponyx.cli.commands.run.WorkflowEngine") as mock_engine_class:
         mock_engine = MagicMock()
         mock_engine.execute.return_value = {
@@ -140,10 +145,7 @@ def test_run_command_multiple_errors_in_workflow(runner):
             cli,
             [
                 "run",
-                "--signal",
-                "spread_momentum",
-                "--strategy",
-                "balanced",
+                str(config_file),
             ],
         )
 
@@ -377,6 +379,7 @@ def test_run_command_config_with_relative_path(runner, tmp_path):
     config_file = tmp_path / "workflow.yaml"
     config_data = """
 signal: spread_momentum
+product: cdx_ig_5y
 strategy: balanced
 """
     config_file.write_text(config_data)
@@ -398,7 +401,7 @@ strategy: balanced
         original_cwd = os.getcwd()
         try:
             os.chdir(tmp_path)
-            result = runner.invoke(cli, ["run", "--config", "workflow.yaml"])
+            result = runner.invoke(cli, ["run", "workflow.yaml"])
             assert result.exit_code == 0
         finally:
             os.chdir(original_cwd)

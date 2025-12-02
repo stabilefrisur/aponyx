@@ -1,0 +1,6 @@
+# Minimal workflow configuration
+# Only required fields specified - all others use defaults
+
+signal: spread_momentum
+product: cdx_ig_5y
+strategy: balanced
