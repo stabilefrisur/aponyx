@@ -270,7 +270,7 @@ src/aponyx/
 **Configuration:**
 - Cache enabled by default (`CACHE_ENABLED = True`)
 - 1-day TTL for market data (`CACHE_TTL_DAYS = 1`)
-- Data directory structure: `data/raw/`, `data/workflows/`, `data/cache/`, `data/.registries/`
+- Data directory structure: `data/raw/`, `data/workflows/{label}_{timestamp}/`, `data/cache/`, `data/.registries/`
 - Data registry path: `data/.registries/registry.json` (runtime-generated, from `config.REGISTRY_PATH`)
 - Signal catalog path: `src/aponyx/models/signal_catalog.json` (static, from `config.SIGNAL_CATALOG_PATH`)
 - Strategy catalog path: `src/aponyx/backtest/strategy_catalog.json` (static, from `config.STRATEGY_CATALOG_PATH`)

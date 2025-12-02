@@ -1,6 +1,7 @@
 # Complete workflow configuration
 # All fields explicitly specified (no defaults used)
 
+label: complete_test
 signal: cdx_etf_basis
 product: cdx_ig_5y
 strategy: balanced

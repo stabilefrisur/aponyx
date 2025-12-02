@@ -73,6 +73,7 @@ Create a workflow configuration file:
 
 ```yaml
 # workflow.yaml
+label: my_test
 signal: cdx_etf_basis
 product: cdx_ig_5y
 strategy: balanced
@@ -170,6 +171,7 @@ All workflows are configured via YAML files. Create a config file with required 
 
 **Minimal configuration** (`workflow.yaml`):
 ```yaml
+label: minimal_test
 signal: spread_momentum
 product: cdx_ig_5y
 strategy: balanced
@@ -208,6 +210,7 @@ aponyx run examples/workflow_custom_securities.yaml
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
+| `label` | string | ✓ | - | Workflow label (lowercase, underscores, numbers only) |
 | `signal` | string | ✓ | - | Signal name from signal_catalog.json |
 | `product` | string | ✓ | - | Product identifier (e.g., "cdx_ig_5y") |
 | `strategy` | string | ✓ | - | Strategy name from strategy_catalog.json |
@@ -223,14 +226,17 @@ aponyx run examples/workflow_custom_securities.yaml
 ### Generate Reports
 
 ```bash
-# Console output with formatted tables
-aponyx report --signal spread_momentum --strategy balanced
+# Console output with formatted tables (by label)
+aponyx report --workflow minimal_test
+
+# By numeric index (0 = most recent, ephemeral)
+aponyx report --workflow 0
 
 # Markdown file (default location: reports/)
-aponyx report --signal spread_momentum --strategy balanced --format markdown
+aponyx report --workflow minimal_test --format markdown
 
 # HTML file with styled formatting
-aponyx report --signal spread_momentum --strategy balanced --format html --output custom_report.html
+aponyx report --workflow minimal_test --format html --output custom_report.html
 ```
 
 Reports aggregate suitability evaluation and performance analysis with comprehensive metrics and visualizations.
@@ -241,16 +247,21 @@ Reports aggregate suitability evaluation and performance analysis with comprehen
 aponyx list signals      # View signal catalog
 aponyx list strategies   # View strategy catalog
 aponyx list datasets     # View data registry
+aponyx list workflows    # View workflow results (sorted by timestamp)
+aponyx list workflows --signal spread_momentum  # Filter workflows
 ```
 
 ### Clean Workflow Cache
 
 ```bash
-# Remove cached workflow outputs for specific signal-strategy
-aponyx clean --signal spread_momentum --strategy balanced
+# Preview workflow cleanup
+aponyx clean --workflows --all --dry-run
 
-# Clean all cached workflows
-aponyx clean --all
+# Clean workflows older than 30 days
+aponyx clean --workflows --older-than 30d
+
+# Clean specific signal's workflows
+aponyx clean --workflows --signal spread_momentum --older-than 7d
 ```
 
 ### Using Configuration Files
@@ -258,6 +269,7 @@ aponyx clean --all
 Create `workflow.yaml`:
 
 ```yaml
+label: my_workflow
 signal: spread_momentum
 strategy: balanced
 product: cdx_ig_5y
@@ -280,15 +292,16 @@ aponyx run --config workflow.yaml
 
 **Output format:**
 ```
-Signal: spread_momentum (cdx:cdx_ig_5y)
-Strategy: balanced
-Product: cdx_ig_5y
-Data: synthetic
-Steps: all
-Force re-run: False
+Label: minimal_test [config]
+Signal: spread_momentum [config]
+Product: cdx_ig_5y [config]
+Strategy: balanced [config]
+Data: synthetic [default]
+Steps: all [default]
+Force re-run: False [default]
 
 Completed 6 steps in 15.2s
-Results: data/workflows/spread_momentum_balanced_20251123_143230/
+Results: data/workflows/minimal_test_20251123_143230/
 ```
 
 **Benefits:**

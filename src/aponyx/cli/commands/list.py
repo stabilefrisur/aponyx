@@ -27,6 +27,7 @@ from aponyx.config import (
     BLOOMBERG_SECURITIES_PATH,
     REGISTRY_PATH,
     DATA_DIR,
+    DATA_WORKFLOWS_DIR,
 )
 
 logger = logging.getLogger(__name__)
@@ -45,28 +46,54 @@ logger = logging.getLogger(__name__)
             "datasets",
             "strategies",
             "steps",
+            "workflows",
         ],
         case_sensitive=False,
     ),
 )
-def list_items(item_type: str) -> None:
+@click.option(
+    "--signal",
+    type=str,
+    help="Filter workflows by signal name (workflows only)",
+)
+@click.option(
+    "--product",
+    type=str,
+    help="Filter workflows by product (workflows only)",
+)
+@click.option(
+    "--strategy",
+    type=str,
+    help="Filter workflows by strategy name (workflows only)",
+)
+def list_items(
+    item_type: str,
+    signal: str | None,
+    product: str | None,
+    strategy: str | None,
+) -> None:
     """
-    List available catalog items.
+    List available catalog items or workflow results.
 
     ITEM_TYPE can be: signals, products, indicators, transformations,
-    securities, datasets, strategies, or steps
+    securities, datasets, strategies, steps, or workflows
 
     \b
     Examples:
         aponyx list signals
         aponyx list products
-        aponyx list indicators
-        aponyx list transformations
-        aponyx list securities
-        aponyx list datasets
-        aponyx list strategies
-        aponyx list steps
+        aponyx list workflows
+        aponyx list workflows --signal spread_momentum
+        aponyx list workflows --product cdx_ig_5y --strategy balanced
     """
+    # Validate that filters only apply to workflows
+    if item_type != "workflows" and (signal or product or strategy):
+        click.echo(
+            "Error: --signal, --product, and --strategy filters only apply to 'workflows'",
+            err=True,
+        )
+        raise click.Abort()
+    
     if item_type == "signals":
         registry = SignalRegistry(SIGNAL_CATALOG_PATH)
         signals = registry.list_all()
@@ -151,3 +178,101 @@ def list_items(item_type: str) -> None:
             }
             desc = descriptions.get(step_name, "No description available")
             click.echo(f"{i}. {step_name:<15} {desc}")
+
+    elif item_type == "workflows":
+        from datetime import datetime
+        
+        if not DATA_WORKFLOWS_DIR.exists():
+            click.echo("No workflows found")
+            return
+        
+        # Collect all workflow metadata
+        workflows = []
+        for workflow_dir in DATA_WORKFLOWS_DIR.iterdir():
+            if not workflow_dir.is_dir():
+                continue
+            
+            metadata_path = workflow_dir / "metadata.json"
+            if not metadata_path.exists():
+                continue
+            
+            try:
+                with open(metadata_path, "r", encoding="utf-8") as f:
+                    metadata = json.load(f)
+                
+                # Skip workflows without label (old format)
+                if "label" not in metadata:
+                    continue
+                
+                workflows.append({
+                    "dir": workflow_dir,
+                    "label": metadata.get("label", "unknown"),
+                    "signal": metadata.get("signal", "unknown"),
+                    "strategy": metadata.get("strategy", "unknown"),
+                    "product": metadata.get("product", "unknown"),
+                    "status": metadata.get("status", "unknown"),
+                    "timestamp": metadata.get("timestamp", ""),
+                })
+            except Exception as e:
+                logger.debug("Failed to load metadata from %s: %s", workflow_dir, e)
+                continue
+        
+        if not workflows:
+            click.echo("No workflows found")
+            return
+        
+        # Apply filters
+        if signal:
+            workflows = [w for w in workflows if w["signal"] == signal]
+        if product:
+            workflows = [w for w in workflows if w["product"] == product]
+        if strategy:
+            workflows = [w for w in workflows if w["strategy"] == strategy]
+        
+        if not workflows:
+            click.echo("No workflows match the specified filters")
+            return
+        
+        # Sort by timestamp descending (newest first)
+        workflows.sort(key=lambda w: w["timestamp"], reverse=True)
+        
+        # Apply limit only if no filters active
+        has_filters = bool(signal or product or strategy)
+        if not has_filters and len(workflows) > 50:
+            workflows_to_show = workflows[:50]
+            click.echo(f"Showing 50 most recent workflows (of {len(workflows)} total). Use filters to narrow results.\n")
+        else:
+            workflows_to_show = workflows
+        
+        # Display header
+        click.echo(f"{'IDX':<5} {'LABEL':<25} {'SIGNAL':<20} {'STRATEGY':<15} {'PRODUCT':<15} {'STATUS':<10} {'TIMESTAMP':<20}")
+        click.echo("-" * 115)
+        
+        # Display workflows
+        for idx, workflow in enumerate(workflows_to_show):
+            # Parse timestamp for display
+            try:
+                ts = datetime.fromisoformat(workflow["timestamp"])
+                ts_str = ts.strftime("%Y-%m-%d %H:%M:%S")
+            except Exception:
+                ts_str = workflow["timestamp"][:19] if workflow["timestamp"] else "unknown"
+            
+            click.echo(
+                f"{idx:<5} "
+                f"{workflow['label'][:24]:<25} "
+                f"{workflow['signal'][:19]:<20} "
+                f"{workflow['strategy'][:14]:<15} "
+                f"{workflow['product'][:14]:<15} "
+                f"{workflow['status']:<10} "
+                f"{ts_str}"
+            )
+        
+        # Show summary
+        if has_filters:
+            click.echo(f"\nShowing {len(workflows_to_show)} workflow(s) matching filters")
+        else:
+            click.echo(f"\nShowing {len(workflows_to_show)} workflow(s)")
+        
+        # Note about indices
+        click.echo("\nNote: Indices are ephemeral and change as new workflows are added.")
+        click.echo("Use workflow label for stable references in report command.")

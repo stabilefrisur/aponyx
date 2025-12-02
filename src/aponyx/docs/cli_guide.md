@@ -7,6 +7,7 @@ Aponyx CLI consolidates systematic credit research workflows into single-command
 ```bash
 # Create minimal config
 cat > workflow.yaml << EOF
+label: my_test
 signal: spread_momentum
 product: cdx_ig_5y
 strategy: balanced
@@ -15,11 +16,12 @@ EOF
 # Run complete workflow
 uv run aponyx run workflow.yaml
 
-# Generate report
-uv run aponyx report --signal spread_momentum --strategy balanced
+# Generate report (by label)
+uv run aponyx report --workflow my_test
 
 # List available items
 uv run aponyx list signals
+uv run aponyx list workflows
 ```
 
 **Logging:** Default is WARNING. Use `-v` for DEBUG. Logs saved to `logs/aponyx_{timestamp}.log`.
@@ -50,6 +52,7 @@ uv run aponyx run <config_path>
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
+| `label` | string | ✓ | - | Workflow label (lowercase, underscores, numbers only: ^[a-z][a-z0-9_]*$) |
 | `signal` | string | ✓ | - | Signal name from signal_catalog.json |
 | `product` | string | ✓ | - | Product identifier (e.g., "cdx_ig_5y") |
 | `strategy` | string | ✓ | - | Strategy name from strategy_catalog.json |
@@ -64,6 +67,7 @@ uv run aponyx run <config_path>
 
 **Minimal configuration** (`workflow_minimal.yaml`):
 ```yaml
+label: minimal_test
 signal: spread_momentum
 product: cdx_ig_5y
 strategy: balanced
@@ -71,6 +75,7 @@ strategy: balanced
 
 **Complete configuration** (`workflow_complete.yaml`):
 ```yaml
+label: complete_test
 signal: cdx_etf_basis
 product: cdx_ig_5y
 strategy: balanced
@@ -93,6 +98,7 @@ uv run aponyx run examples/workflow_complete.yaml
 
 **Terminal Output:**
 ```
+Label: minimal_test [config]
 Signal: spread_momentum [config]
 Product: cdx_ig_5y [config]
 Strategy: balanced [config]
@@ -104,7 +110,7 @@ Steps: all [default]
 Force re-run: False [default]
 
 Completed 6 steps in 15.2s
-Results: data/workflows/spread_momentum_balanced_20251123_143230/
+Results: data/workflows/minimal_test_20251123_143230/
 ```
 
 **Source Tags:**
@@ -128,47 +134,71 @@ uv run aponyx report [OPTIONS]
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--signal` | TEXT | Required | Signal name |
-| `--strategy` | TEXT | Required | Strategy name |
+| `--workflow` | TEXT | Required | Workflow label or numeric index (0 = most recent) |
 | `--format` | CHOICE | console | Format: `console`, `markdown`, `html` |
 | `--output` | PATH | - | Custom output path |
+
+**Workflow Selection:**
+
+- **By label**: Use the workflow label from YAML config (stable reference)
+- **By index**: Use numeric index from `aponyx list workflows` (ephemeral, sorted by timestamp descending)
 
 **Examples:**
 
 ```bash
-# Console summary
-uv run aponyx report --signal spread_momentum --strategy balanced
+# Console summary (by label)
+uv run aponyx report --workflow minimal_test
+
+# By numeric index (0 = most recent)
+uv run aponyx report --workflow 0
 
 # Generate markdown
-uv run aponyx report --signal spread_momentum --strategy balanced --format markdown
+uv run aponyx report --workflow minimal_test --format markdown
 
 # Custom location
-uv run aponyx report --signal spread_momentum --strategy balanced --format html --output reports/custom.html
+uv run aponyx report --workflow minimal_test --format html --output reports/custom.html
 ```
+
+**Note:** Numeric indices are ephemeral and change as new workflows are created. Use labels for stable references in scripts.
 
 ---
 
 ### `list` — Show Catalog Items
 
-List available signals, strategies, or datasets.
+List available signals, strategies, datasets, or workflow results.
 
 **Usage:**
 ```bash
-uv run aponyx list {signals|strategies|datasets}
+uv run aponyx list {signals|strategies|datasets|workflows}
 ```
+
+**Workflow Filters (workflows only):**
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `--signal` | TEXT | Filter by signal name |
+| `--product` | TEXT | Filter by product identifier |
+| `--strategy` | TEXT | Filter by strategy name |
 
 **Examples:**
 ```bash
 uv run aponyx list signals
 uv run aponyx list strategies
 uv run aponyx list datasets
+uv run aponyx list workflows                      # All workflows (up to 50 most recent)
+uv run aponyx list workflows --signal spread_momentum
+uv run aponyx list workflows --product cdx_ig_5y --strategy balanced
 ```
+
+**Workflow Output:**
+
+Displays table with IDX (ephemeral index), LABEL, SIGNAL, STRATEGY, PRODUCT, STATUS, and TIMESTAMP. Sorted by timestamp descending (newest first). Limited to 50 results unless filtered.
 
 ---
 
 ### `clean` — Clear Cached Results
 
-Remove cached workflow results.
+Remove cached workflow results with age-based filtering.
 
 **Usage:**
 ```bash
@@ -179,22 +209,32 @@ uv run aponyx clean [OPTIONS]
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `--signal` | TEXT | Clean specific signal only |
-| `--all` | FLAG | Clean all cached results |
+| `--workflows` | FLAG | Enable workflow pruning mode |
+| `--signal` | TEXT | Filter by signal name (workflows only) |
+| `--older-than` | TEXT | Age threshold (e.g., "30d", minimum 1 day) |
+| `--all` | FLAG | Clean all matching items |
 | `--dry-run` | FLAG | Preview without deleting |
 
 **Examples:**
 
 ```bash
-# Clean specific signal
-uv run aponyx clean --signal spread_momentum
+# Preview all workflow deletions
+uv run aponyx clean --workflows --all --dry-run
 
-# Clean all (shows deletions)
-uv run aponyx clean --all
+# Clean workflows older than 30 days
+uv run aponyx clean --workflows --older-than 30d
 
-# Preview
-uv run aponyx clean --all --dry-run
+# Clean specific signal's workflows older than 7 days
+uv run aponyx clean --workflows --signal spread_momentum --older-than 7d
+
+# Clean all workflows (no preview)
+uv run aponyx clean --workflows --all
 ```
+
+**Validation:**
+- `--older-than` format: `{number}d` (e.g., "30d", "7d")
+- Minimum age: 1 day (prevents accidental deletion of current work)
+- Can combine `--signal` and `--older-than` filters
 
 ---
 
@@ -217,10 +257,10 @@ Workflows execute 6 steps in order:
 
 ### Output Structure
 
-Results saved to: `data/workflows/{signal}_{strategy}_{timestamp}/`
+Results saved to: `data/workflows/{label}_{timestamp}/`
 
 ```
-├── metadata.json                          # Run parameters, securities used
+├── metadata.json                          # Run parameters (label, signal, strategy, product, securities used)
 ├── signal.parquet                         # Signal time series
 ├── suitability_evaluation_{timestamp}.md  # Pre-backtest analysis
 ├── backtest_result.parquet               # P&L and positions
@@ -239,6 +279,7 @@ All workflows use YAML configuration files with required and optional fields.
 
 **Minimal workflow** (`workflow_minimal.yaml`):
 ```yaml
+label: minimal_test
 signal: spread_momentum
 product: cdx_ig_5y
 strategy: balanced
@@ -246,6 +287,7 @@ strategy: balanced
 
 **Custom securities**:
 ```yaml
+label: custom_securities
 signal: cdx_etf_basis
 product: cdx_ig_5y
 strategy: balanced
@@ -256,6 +298,7 @@ securities:
 
 **Partial pipeline**:
 ```yaml
+label: partial_test
 signal: spread_momentum
 product: cdx_ig_5y
 strategy: balanced
@@ -265,6 +308,7 @@ force: true
 
 **Bloomberg data**:
 ```yaml
+label: bloomberg_test
 signal: spread_momentum
 product: cdx_ig_5y
 strategy: balanced
@@ -274,6 +318,7 @@ force: true  # Update current day data
 
 **Runtime overrides**:
 ```yaml
+label: override_test
 signal: cdx_etf_basis
 product: cdx_ig_5y
 strategy: balanced
@@ -301,6 +346,7 @@ uv run aponyx run examples/workflow_minimal.yaml
 ```bash
 # Create Bloomberg workflow config
 cat > workflow_bloomberg.yaml << EOF
+label: bloomberg_run
 signal: spread_momentum
 product: cdx_ig_5y
 strategy: balanced
@@ -312,7 +358,7 @@ EOF
 uv run aponyx run workflow_bloomberg.yaml
 
 # 2. Generate HTML report
-uv run aponyx report --signal spread_momentum --strategy balanced --format html --output reports/latest.html
+uv run aponyx report --workflow bloomberg_run --format html --output reports/latest.html
 ```
 
 ### Batch Processing
@@ -323,22 +369,25 @@ for config in configs/*.yaml; do
   uv run aponyx run "$config"
 done
 
-# Generate consolidated reports
-uv run aponyx report --signal spread_momentum --strategy balanced --format markdown
-uv run aponyx report --signal cdx_vix_gap --strategy aggressive --format markdown
+# Generate consolidated reports (using labels from configs)
+uv run aponyx report --workflow run1 --format markdown
+uv run aponyx report --workflow run2 --format markdown
 ```
 
 ### Maintenance
 
 ```bash
 # Preview what will be deleted
-uv run aponyx clean --all --dry-run
+uv run aponyx clean --workflows --all --dry-run
 
 # Fresh start (clear all cached results)
-uv run aponyx clean --all
+uv run aponyx clean --workflows --all
 
-# Remove old signal results
-uv run aponyx clean --signal old_signal
+# Remove old workflows (older than 30 days)
+uv run aponyx clean --workflows --older-than 30d
+
+# Clean specific signal's old workflows
+uv run aponyx clean --workflows --signal old_signal --older-than 7d
 ```
 
 ---
@@ -375,10 +424,11 @@ cat examples/workflow_minimal.yaml
 
 **Missing required fields:**
 ```bash
-# Error: "Missing required field: signal"
+# Error: "Missing required field: label"
 # Solution: Add all required fields to YAML
 
 cat > workflow.yaml << EOF
+label: my_test
 signal: spread_momentum
 product: cdx_ig_5y
 strategy: balanced
@@ -444,4 +494,4 @@ uv run aponyx clean --all
 ---
 
 **Maintained by:** stabilefrisur  
-**Last Updated:** November 23, 2025
+**Last Updated:** December 02, 2025

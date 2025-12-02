@@ -31,6 +31,9 @@ class WorkflowConfig:
 
     Attributes
     ----------
+    label : str
+        Workflow label (lowercase, underscores only, pattern: ^[a-z][a-z0-9_]*$).
+        Used for workflow identification and directory naming.
     signal_name : str
         Signal name from signal catalog.
     strategy_name : str
@@ -75,6 +78,7 @@ class WorkflowConfig:
     - transformation_override: Override which transformation to apply (keeps indicator)
     """
 
+    label: str
     signal_name: str
     strategy_name: str
     product: str
@@ -88,6 +92,16 @@ class WorkflowConfig:
 
     def __post_init__(self) -> None:
         """Validate configuration on initialization."""
+        import re
+        
+        # Validate label format
+        if not re.match(r"^[a-z][a-z0-9_]*$", self.label):
+            raise ValueError(
+                f"Label '{self.label}' is invalid. "
+                "Must start with lowercase letter and contain only lowercase letters, numbers, and underscores."
+            )
+        
+        # Validate steps
         if self.steps is not None:
             valid_steps = {
                 "data",

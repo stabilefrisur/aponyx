@@ -178,6 +178,7 @@ def _display_workflow_config(
         securities_source = "[from indicator]"
 
     # Display all fields with proper alignment
+    click.echo(f"Label:           {config.label} [config]")
     click.echo(f"Product:         {config.product} {'[config]' if 'product' in config_dict else '[default]'}")
     click.echo(f"Signal:          {config.signal_name} [config]")
     click.echo(f"Indicator:       {indicator_name} {indicator_source}")
@@ -263,15 +264,16 @@ def run(config_path: Path) -> None:
         raise click.ClickException(f"Failed to load config file: {e}")
 
     # Validate required fields present in YAML
-    required_fields = ["signal", "product", "strategy"]
+    required_fields = ["label", "signal", "product", "strategy"]
     missing_fields = [f for f in required_fields if f not in config_dict]
     if missing_fields:
         raise click.ClickException(
             f"Missing required field(s) in config file: {', '.join(missing_fields)}\n"
-            f"Required fields: signal, product, strategy"
+            f"Required fields: label, signal, product, strategy"
         )
 
     # Extract fields from YAML (map simple keys to WorkflowConfig field names)
+    label = config_dict["label"]
     signal_name = config_dict["signal"]
     product_id = config_dict["product"]
     strategy_name = config_dict["strategy"]
@@ -294,6 +296,7 @@ def run(config_path: Path) -> None:
     # Create WorkflowConfig
     try:
         workflow_config = WorkflowConfig(
+            label=label,
             signal_name=signal_name,
             strategy_name=strategy_name,
             product=product_id,

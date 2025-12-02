@@ -221,10 +221,10 @@ class WorkflowEngine:
 
         Notes
         -----
-        Format: workflows/{signal}_{strategy}_{timestamp}/
+        Format: workflows/{label}_{timestamp}/
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        dirname = f"{self.config.signal_name}_{self.config.strategy_name}_{timestamp}"
+        dirname = f"{self.config.label}_{timestamp}"
         output_dir = self.config.output_dir / dirname
         output_dir.mkdir(parents=True, exist_ok=True)
         return output_dir
@@ -259,6 +259,7 @@ class WorkflowEngine:
         securities_used = self._context.get("signal", {}).get("securities_used", {})
 
         metadata = {
+            "label": self.config.label,
             "signal": self.config.signal_name,
             "strategy": self.config.strategy_name,
             "product": self.config.product,

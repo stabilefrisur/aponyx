@@ -31,6 +31,10 @@ class ReportData:
 
     Attributes
     ----------
+    workflow_dir : Path
+        Workflow output directory path.
+    label : str
+        Workflow label.
     signal_name : str
         Signal identifier.
     strategy_name : str
@@ -41,21 +45,19 @@ class ReportData:
         Performance analysis report content.
     has_visualizations : bool
         Whether visualization files exist.
-    workflow_dir : Path | None
-        Workflow output directory path.
     """
 
+    workflow_dir: Path
+    label: str
     signal_name: str
     strategy_name: str
     suitability_report: str | None = None
     performance_report: str | None = None
     has_visualizations: bool = False
-    workflow_dir: Path | None = None
 
 
 def generate_report(
-    signal_name: str,
-    strategy_name: str,
+    workflow_dir: Path,
     format: ReportFormat | str = ReportFormat.CONSOLE,
     output_path: Path | None = None,
 ) -> str:
@@ -67,10 +69,8 @@ def generate_report(
 
     Parameters
     ----------
-    signal_name : str
-        Signal identifier.
-    strategy_name : str
-        Strategy identifier.
+    workflow_dir : Path
+        Workflow output directory containing metadata.json and reports.
     format : ReportFormat or str
         Output format (console, markdown, or html).
     output_path : Path, optional
@@ -85,18 +85,19 @@ def generate_report(
     Raises
     ------
     FileNotFoundError
-        If workflow results not found for signal-strategy combination.
+        If workflow directory or required reports not found.
 
     Examples
     --------
     Generate console report:
-        >>> report = generate_report("spread_momentum", "balanced")
+        >>> from pathlib import Path
+        >>> workflow_dir = Path("data/workflows/my_test_20241202_120000")
+        >>> report = generate_report(workflow_dir)
         >>> print(report)
 
     Generate markdown file:
         >>> report = generate_report(
-        ...     "spread_momentum",
-        ...     "balanced",
+        ...     workflow_dir,
         ...     format="markdown",
         ...     output_path=Path("my_report.md"),
         ... )
@@ -105,15 +106,35 @@ def generate_report(
     if isinstance(format, str):
         format = ReportFormat(format.lower())
 
+    # Validate workflow directory exists
+    if not workflow_dir.exists():
+        raise FileNotFoundError(f"Workflow directory not found: {workflow_dir}")
+    
+    # Load metadata
+    metadata_path = workflow_dir / "metadata.json"
+    if not metadata_path.exists():
+        raise FileNotFoundError(
+            f"Metadata not found in workflow directory: {workflow_dir}"
+        )
+    
+    import json
+    with open(metadata_path, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+    
+    label = metadata.get("label", "unknown")
+    signal_name = metadata.get("signal", "unknown")
+    strategy_name = metadata.get("strategy", "unknown")
+
     logger.info(
-        "Generating %s report: signal=%s, strategy=%s",
+        "Generating %s report: workflow=%s (signal=%s, strategy=%s)",
         format.value,
+        label,
         signal_name,
         strategy_name,
     )
 
     # Collect report data
-    data = _collect_report_data(signal_name, strategy_name)
+    data = _collect_report_data(workflow_dir, label, signal_name, strategy_name)
 
     # Generate report based on format
     if format == ReportFormat.CONSOLE:
@@ -127,9 +148,7 @@ def generate_report(
     if format != ReportFormat.CONSOLE:
         if output_path is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = (
-                f"{signal_name}_{strategy_name}_{timestamp}.{_get_extension(format)}"
-            )
+            filename = f"{label}_{timestamp}.{_get_extension(format)}"
             # Save aggregated reports to .reports subdirectory in workflows
             output_path = DATA_WORKFLOWS_DIR / ".reports" / filename
 
@@ -140,12 +159,21 @@ def generate_report(
     return content
 
 
-def _collect_report_data(signal_name: str, strategy_name: str) -> ReportData:
+def _collect_report_data(
+    workflow_dir: Path,
+    label: str,
+    signal_name: str,
+    strategy_name: str,
+) -> ReportData:
     """
     Collect workflow results for report generation.
 
     Parameters
     ----------
+    workflow_dir : Path
+        Workflow output directory.
+    label : str
+        Workflow label.
     signal_name : str
         Signal identifier.
     strategy_name : str
@@ -161,23 +189,19 @@ def _collect_report_data(signal_name: str, strategy_name: str) -> ReportData:
     FileNotFoundError
         If required workflow results not found.
     """
-    data = ReportData(signal_name=signal_name, strategy_name=strategy_name)
+    data = ReportData(
+        workflow_dir=workflow_dir,
+        label=label,
+        signal_name=signal_name,
+        strategy_name=strategy_name,
+    )
 
-    # Find most recent workflow run directory
-    workflow_dirs = sorted(DATA_WORKFLOWS_DIR.glob(f"{signal_name}_{strategy_name}_*"))
+    logger.debug("Loading reports from workflow directory: %s", workflow_dir.name)
 
-    if not workflow_dirs:
-        raise FileNotFoundError(
-            f"No workflow results found for {signal_name} ({strategy_name}). "
-            f"Run workflow first: aponyx run --signal {signal_name} --strategy {strategy_name}"
-        )
-
-    latest_dir = workflow_dirs[-1]
-    data.workflow_dir = latest_dir
-    logger.debug("Found workflow directory: %s", latest_dir.name)
+    logger.debug("Loading reports from workflow directory: %s", workflow_dir.name)
 
     # Load reports from reports/ subdirectory
-    reports_dir = latest_dir / "reports"
+    reports_dir = workflow_dir / "reports"
     if reports_dir.exists():
         # Load suitability report (filename pattern: suitability_evaluation_{timestamp}.md)
         suitability_files = list(reports_dir.glob("suitability_evaluation_*.md"))
@@ -194,13 +218,13 @@ def _collect_report_data(signal_name: str, strategy_name: str) -> ReportData:
             logger.debug("Loaded performance report: %s", performance_file.name)
 
     # Check for visualizations
-    viz_dir = latest_dir / "visualizations"
+    viz_dir = workflow_dir / "visualizations"
     data.has_visualizations = viz_dir.exists() and any(viz_dir.glob("*.html"))
 
     # Validate that we have some results
     if not (data.suitability_report or data.performance_report):
         raise FileNotFoundError(
-            f"No reports found in workflow directory {latest_dir}. "
+            f"No reports found in workflow directory {workflow_dir}. "
             f"Run workflow with all steps enabled."
         )
 
@@ -211,7 +235,8 @@ def _generate_console_report(data: ReportData) -> str:
     """Generate console-friendly report."""
     lines = []
     lines.append("=" * 80)
-    lines.append(f"Research Report: {data.signal_name} ({data.strategy_name})")
+    lines.append(f"Research Report: {data.label}")
+    lines.append(f"Signal: {data.signal_name} | Strategy: {data.strategy_name}")
     lines.append("=" * 80)
     lines.append("")
 
@@ -234,18 +259,16 @@ def _generate_console_report(data: ReportData) -> str:
     if data.has_visualizations:
         lines.append("VISUALIZATIONS")
         lines.append("-" * 80)
-        if data.workflow_dir:
-            viz_dir = data.workflow_dir / "visualizations"
-            for viz_file in sorted(viz_dir.glob("*.html")):
-                lines.append(f"  • {viz_file.name}: {viz_file}")
+        viz_dir = data.workflow_dir / "visualizations"
+        for viz_file in sorted(viz_dir.glob("*.html")):
+            lines.append(f"  • {viz_file.name}: {viz_file}")
         lines.append("")
 
     # Workflow info
-    if data.workflow_dir:
-        lines.append("WORKFLOW OUTPUT")
-        lines.append("-" * 80)
-        lines.append(f"  Directory: {data.workflow_dir}")
-        lines.append("")
+    lines.append("WORKFLOW OUTPUT")
+    lines.append("-" * 80)
+    lines.append(f"  Directory: {data.workflow_dir}")
+    lines.append("")
 
     lines.append("=" * 80)
 
@@ -255,7 +278,9 @@ def _generate_console_report(data: ReportData) -> str:
 def _generate_markdown_report(data: ReportData) -> str:
     """Generate markdown report."""
     lines = []
-    lines.append(f"# Research Report: {data.signal_name} ({data.strategy_name})")
+    lines.append(f"# Research Report: {data.label}")
+    lines.append("")
+    lines.append(f"**Signal:** {data.signal_name} | **Strategy:** {data.strategy_name}")
     lines.append("")
     lines.append(f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     lines.append("")
@@ -278,18 +303,16 @@ def _generate_markdown_report(data: ReportData) -> str:
     if data.has_visualizations:
         lines.append("## Visualizations")
         lines.append("")
-        if data.workflow_dir:
-            viz_dir = data.workflow_dir / "visualizations"
-            for viz_file in sorted(viz_dir.glob("*.html")):
-                lines.append(f"- [{viz_file.stem}]({viz_file.resolve().as_uri()})")
+        viz_dir = data.workflow_dir / "visualizations"
+        for viz_file in sorted(viz_dir.glob("*.html")):
+            lines.append(f"- [{viz_file.stem}]({viz_file.resolve().as_uri()})")
         lines.append("")
 
     # Workflow info
-    if data.workflow_dir:
-        lines.append("## Workflow Details")
-        lines.append("")
-        lines.append(f"**Output Directory:** `{data.workflow_dir}`")
-        lines.append("")
+    lines.append("## Workflow Details")
+    lines.append("")
+    lines.append(f"**Output Directory:** `{data.workflow_dir}`")
+    lines.append("")
 
     return "\n".join(lines)
 
@@ -306,9 +329,7 @@ def _generate_html_report(data: ReportData) -> str:
     html_parts.append(
         '    <meta name="viewport" content="width=device-width, initial-scale=1.0">'
     )
-    html_parts.append(
-        f"    <title>Research Report: {data.signal_name} ({data.strategy_name})</title>"
-    )
+    html_parts.append(f"    <title>Research Report: {data.label}</title>")
     html_parts.append("    <style>")
     html_parts.append(
         "        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 1200px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }"
@@ -337,8 +358,9 @@ def _generate_html_report(data: ReportData) -> str:
     html_parts.append("<body>")
 
     # Title
+    html_parts.append(f"    <h1>Research Report: {data.label}</h1>")
     html_parts.append(
-        f"    <h1>Research Report: {data.signal_name} ({data.strategy_name})</h1>"
+        f'    <div class="metadata">Signal: {data.signal_name} | Strategy: {data.strategy_name}</div>'
     )
     html_parts.append(
         f'    <div class="metadata">Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</div>'
@@ -358,20 +380,18 @@ def _generate_html_report(data: ReportData) -> str:
     if data.has_visualizations:
         html_parts.append("    <h2>Visualizations</h2>")
         html_parts.append("    <ul>")
-        if data.workflow_dir:
-            viz_dir = data.workflow_dir / "visualizations"
-            for viz_file in sorted(viz_dir.glob("*.html")):
-                html_parts.append(
-                    f'        <li><a href="{viz_file.resolve().as_uri()}" target="_blank">{viz_file.stem}</a></li>'
-                )
+        viz_dir = data.workflow_dir / "visualizations"
+        for viz_file in sorted(viz_dir.glob("*.html")):
+            html_parts.append(
+                f'        <li><a href="{viz_file.resolve().as_uri()}" target="_blank">{viz_file.stem}</a></li>'
+            )
         html_parts.append("    </ul>")
 
     # Workflow info
-    if data.workflow_dir:
-        html_parts.append("    <h2>Workflow Details</h2>")
-        html_parts.append(
-            f"    <p><strong>Output Directory:</strong> <code>{data.workflow_dir}</code></p>"
-        )
+    html_parts.append("    <h2>Workflow Details</h2>")
+    html_parts.append(
+        f"    <p><strong>Output Directory:</strong> <code>{data.workflow_dir}</code></p>"
+    )
 
     # HTML footer
     html_parts.append("</body>")

@@ -232,8 +232,8 @@ data/
 │   ├── bloomberg/
 │   └── indicators/       # Indicator computation cache
 ├── workflows/            # Timestamped workflow runs
-│   └── {signal}_{strategy}_{timestamp}/
-│       ├── metadata.json (includes securities_used mapping)
+│   └── {label}_{timestamp}/
+│       ├── metadata.json (includes label, signal, strategy, product, securities_used)
 │       ├── signal.parquet
 │       ├── suitability_evaluation_{timestamp}.md
 │       ├── performance_analysis_{timestamp}.md
@@ -291,16 +291,17 @@ data/
 **Example**:
 ```python
 @click.command(name="run")
-@click.option("--signal", type=str)
-@click.option("--strategy", type=str)
-@click.option("--force", is_flag=True)
-def run(signal: str | None, strategy: str | None, force: bool) -> None:
-    config = WorkflowConfig(signal_name=signal, strategy_name=strategy, force_rerun=force)
+@click.argument("config_path", type=click.Path(exists=True))
+def run(config_path: str) -> None:
+    # Load YAML config and validate required fields including label
+    config_dict = yaml.safe_load(open(config_path))
+    label = config_dict["label"]  # Required field
+    config = WorkflowConfig(label=label, signal_name=signal, ...)
     engine = WorkflowEngine(config)
     results = engine.execute()
-    # New output format: Signal/Strategy/Product/Data/Steps/Force
-    click.echo(f"Signal: {signal} (cdx:cdx_ig_5y)")
-    click.echo(f"Strategy: {strategy}")
+    # New output format includes Label
+    click.echo(f"Label: {label} [config]")
+    click.echo(f"Signal: {signal} [config]")
 ```
 
 #### Workflow Engine (`workflows/`)
@@ -319,7 +320,7 @@ def run(signal: str | None, strategy: str | None, force: bool) -> None:
 ```python
 class WorkflowEngine:
     def execute(self) -> dict[str, Any]:
-        self._context["output_dir"] = self._create_output_directory()
+        self._context["output_dir"] = self._create_output_directory()  # Creates {label}_{timestamp}
         
         for step in self._steps:
             if self._should_skip_step(step):
@@ -979,7 +980,7 @@ net_pnl = pnl - cost
 
 ```python
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-dirname = f"{signal_name}_{strategy_name}_{timestamp}"
+dirname = f"{self.config.label}_{timestamp}"  # Label-based naming
 output_dir = DATA_WORKFLOWS_DIR / dirname
 output_dir.mkdir(parents=True, exist_ok=True)
 ```
