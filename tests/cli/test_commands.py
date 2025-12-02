@@ -591,6 +591,110 @@ def test_list_datasets_empty(runner):
         assert result.exit_code == 0
 
 
+def test_list_products_command(runner, tmp_path):
+    """Test list products command."""
+    # Create mock bloomberg_securities.json
+    securities = {
+        "cdx_ig_5y": {
+            "description": "CDX IG 5Y",
+            "instrument_type": "cdx"
+        },
+        "lqd": {
+            "description": "LQD ETF",
+            "instrument_type": "etf"
+        }
+    }
+    
+    securities_file = tmp_path / "bloomberg_securities.json"
+    securities_file.write_text(json.dumps(securities))
+    
+    with patch("aponyx.cli.commands.list.BLOOMBERG_SECURITIES_PATH", securities_file):
+        result = runner.invoke(cli, ["list", "products"])
+        assert result.exit_code == 0
+        assert "cdx_ig_5y" in result.output
+        assert "CDX IG 5Y" in result.output
+        assert "lqd" not in result.output  # ETF should not be listed as product
+
+
+def test_list_indicators_command(runner):
+    """Test list indicators command."""
+    with patch("aponyx.cli.commands.list.IndicatorRegistry") as mock_registry_class:
+        mock_registry = MagicMock()
+        mock_registry.list_all.return_value = {
+            "cdx_etf_spread_diff": MagicMock(description="CDX-ETF spread difference"),
+            "spread_momentum_5d": MagicMock(description="5-day momentum"),
+        }
+        mock_registry_class.return_value = mock_registry
+
+        result = runner.invoke(cli, ["list", "indicators"])
+        assert result.exit_code == 0
+        assert "cdx_etf_spread_diff" in result.output
+        assert "spread_momentum_5d" in result.output
+
+
+def test_list_transformations_command(runner):
+    """Test list transformations command."""
+    with patch("aponyx.cli.commands.list.TransformationRegistry") as mock_registry_class:
+        mock_registry = MagicMock()
+        mock_registry.list_all.return_value = {
+            "z_score_20d": MagicMock(description="20-day z-score"),
+            "volatility_adjust_20d": MagicMock(description="Volatility adjustment"),
+        }
+        mock_registry_class.return_value = mock_registry
+
+        result = runner.invoke(cli, ["list", "transformations"])
+        assert result.exit_code == 0
+        assert "z_score_20d" in result.output
+        assert "volatility_adjust_20d" in result.output
+
+
+def test_list_securities_command(runner, tmp_path):
+    """Test list securities command."""
+    # Create mock bloomberg_securities.json
+    securities = {
+        "cdx_ig_5y": {
+            "description": "CDX IG 5Y",
+            "instrument_type": "cdx"
+        },
+        "lqd": {
+            "description": "LQD ETF",
+            "instrument_type": "etf"
+        },
+        "vix": {
+            "description": "VIX Index",
+            "instrument_type": "vix"
+        }
+    }
+    
+    securities_file = tmp_path / "bloomberg_securities.json"
+    securities_file.write_text(json.dumps(securities))
+    
+    with patch("aponyx.cli.commands.list.BLOOMBERG_SECURITIES_PATH", securities_file):
+        result = runner.invoke(cli, ["list", "securities"])
+        assert result.exit_code == 0
+        assert "cdx_ig_5y" in result.output
+        assert "lqd" in result.output
+        assert "vix" in result.output
+        assert "cdx" in result.output  # instrument type
+        assert "etf" in result.output  # instrument type
+
+
+def test_list_steps_command(runner):
+    """Test list steps command."""
+    with patch("aponyx.cli.commands.list.StepRegistry") as mock_registry_class:
+        mock_registry = MagicMock()
+        mock_registry.get_canonical_order.return_value = [
+            "data", "signal", "suitability", "backtest", "performance", "visualization"
+        ]
+        mock_registry_class.return_value = mock_registry
+
+        result = runner.invoke(cli, ["list", "steps"])
+        assert result.exit_code == 0
+        assert "data" in result.output
+        assert "signal" in result.output
+        assert "backtest" in result.output
+
+
 # ============================================================================
 # Clean Command Tests
 # ============================================================================

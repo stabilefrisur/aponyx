@@ -15,8 +15,9 @@ class BannerGroup(click.Group):
     
     def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> str:
         """Format help with banner at the top."""
-        # Get the no_banner flag from params
-        no_banner = ctx.params.get("no_banner", False)
+        # Check if --no-banner is in sys.argv directly
+        import sys
+        no_banner = "--no-banner" in sys.argv
         
         # Print banner before help
         if not no_banner:
