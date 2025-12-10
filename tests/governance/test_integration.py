@@ -127,14 +127,15 @@ def test_catalog_validation_prevents_invalid_state() -> None:
 
 def test_cross_layer_integration() -> None:
     """Test that governance enables clean cross-layer integration."""
-    # Signal catalog references indicators via indicator_dependencies
+    # Signal catalog references exactly one transformation from each stage
     signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
     signal_metadata = signal_registry.get_metadata("cdx_etf_basis")
 
-    # Verify signal references indicators and transformations
-    assert len(signal_metadata.indicator_dependencies) > 0
-    assert len(signal_metadata.transformations) > 0
-    assert "cdx_etf_spread_diff" in signal_metadata.indicator_dependencies
+    # Verify signal references transformations from all three stages
+    assert signal_metadata.indicator_transformation is not None
+    assert signal_metadata.score_transformation is not None
+    assert signal_metadata.signal_transformation is not None
+    assert signal_metadata.indicator_transformation == "cdx_etf_spread_diff"
 
     # Strategy catalog produces configs for backtest layer
     strategy_registry = StrategyRegistry(STRATEGY_CATALOG_PATH)

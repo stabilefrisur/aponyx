@@ -329,6 +329,8 @@ def apply_signal_transformation(
     if neutral_range is not None:
         low, high = neutral_range
         # Set values within neutral range to 0.0, keeping values outside the range
-        result = result.where((result < low) | (result > high), 0.0)
+        # Preserve NaN values by checking explicitly
+        mask = (result >= low) & (result <= high)  # Values inside neutral range
+        result = result.mask(mask, 0.0)  # Set those to 0.0, NaN values preserved
 
     return result

@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from aponyx.models.registry import IndicatorRegistry
-from aponyx.config import INDICATOR_CATALOG_PATH
+from aponyx.models.registry import IndicatorTransformationRegistry
+from aponyx.config import INDICATOR_TRANSFORMATION_PATH
 
 
 class TestLoadIndicatorCatalog:
@@ -22,7 +22,7 @@ class TestLoadIndicatorCatalog:
 
     def test_load_production_catalog(self):
         """Test loading the production indicator catalog."""
-        registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
 
         # Should load 3 pilot indicators
         assert len(registry._indicators) == 3
@@ -32,7 +32,7 @@ class TestLoadIndicatorCatalog:
 
     def test_get_metadata(self):
         """Test retrieving indicator metadata."""
-        registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
 
         metadata = registry.get_metadata("cdx_etf_spread_diff")
 
@@ -44,7 +44,7 @@ class TestLoadIndicatorCatalog:
 
     def test_get_all_indicators(self):
         """Test retrieving all indicator names."""
-        registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
 
         indicators = registry.get_all_indicators()
 
@@ -55,7 +55,7 @@ class TestLoadIndicatorCatalog:
 
     def test_get_enabled_indicators(self):
         """Test retrieving only enabled indicators."""
-        registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
 
         enabled = registry.get_enabled_indicators()
 
@@ -64,7 +64,7 @@ class TestLoadIndicatorCatalog:
 
     def test_nonexistent_indicator(self):
         """Test error when requesting nonexistent indicator."""
-        registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
 
         with pytest.raises(ValueError, match="Indicator .* not found"):
             registry.get_metadata("nonexistent_indicator")
@@ -75,7 +75,7 @@ class TestValidateComputeFunctionsExist:
 
     def test_all_functions_exist(self):
         """Test that all catalog compute functions exist in indicators module."""
-        registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
 
         # Validation happens in __init__, so if we get here, all functions exist
         assert len(registry._indicators) > 0
@@ -101,7 +101,7 @@ class TestValidateComputeFunctionsExist:
         with pytest.raises(
             ValueError, match="references non-existent compute function"
         ):
-            IndicatorRegistry(catalog_path)
+            IndicatorTransformationRegistry(catalog_path)
 
     def test_duplicate_names_raises_error(self, tmp_path: Path):
         """Test that duplicate indicator names raise error during catalog load."""
@@ -132,14 +132,14 @@ class TestValidateComputeFunctionsExist:
         catalog_path.write_text(json.dumps(duplicate_catalog, indent=2))
 
         with pytest.raises(ValueError, match="Duplicate indicator"):
-            IndicatorRegistry(catalog_path)
+            IndicatorTransformationRegistry(catalog_path)
 
     def test_missing_catalog_file(self, tmp_path: Path):
         """Test error when catalog file doesn't exist."""
         nonexistent_path = tmp_path / "nonexistent.json"
 
         with pytest.raises(FileNotFoundError):
-            IndicatorRegistry(nonexistent_path)
+            IndicatorTransformationRegistry(nonexistent_path)
 
     def test_malformed_json(self, tmp_path: Path):
         """Test error when catalog JSON is malformed."""
@@ -147,7 +147,7 @@ class TestValidateComputeFunctionsExist:
         bad_json_path.write_text("{this is not valid json")
 
         with pytest.raises(json.JSONDecodeError):
-            IndicatorRegistry(bad_json_path)
+            IndicatorTransformationRegistry(bad_json_path)
 
     def test_missing_required_fields(self, tmp_path: Path):
         """Test error when catalog entry is missing required fields."""
@@ -166,7 +166,7 @@ class TestValidateComputeFunctionsExist:
         catalog_path.write_text(json.dumps(incomplete_catalog, indent=2))
 
         with pytest.raises(ValueError, match="Invalid indicator metadata"):
-            IndicatorRegistry(catalog_path)
+            IndicatorTransformationRegistry(catalog_path)
 
 
 class TestIndicatorMetadataProperties:
@@ -174,7 +174,7 @@ class TestIndicatorMetadataProperties:
 
     def test_output_units_values(self):
         """Test that all indicators have valid output_units."""
-        registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
 
         valid_units = {"basis_points", "ratio", "percentage", "index_points"}
 
@@ -184,7 +184,7 @@ class TestIndicatorMetadataProperties:
 
     def test_data_requirements_structure(self):
         """Test that data_requirements are properly structured."""
-        registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
 
         for indicator_name in registry.get_all_indicators():
             metadata = registry.get_metadata(indicator_name)
@@ -202,7 +202,7 @@ class TestIndicatorMetadataProperties:
 
     def test_default_securities_align_with_requirements(self):
         """Test that default_securities keys match data_requirements keys."""
-        registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
 
         for indicator_name in registry.get_all_indicators():
             metadata = registry.get_metadata(indicator_name)
@@ -214,7 +214,7 @@ class TestIndicatorMetadataProperties:
 
     def test_parameters_structure(self):
         """Test that parameters are properly structured."""
-        registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
 
         for indicator_name in registry.get_all_indicators():
             metadata = registry.get_metadata(indicator_name)
@@ -237,7 +237,7 @@ class TestDependencyTracking:
         from aponyx.config import SIGNAL_CATALOG_PATH
         from aponyx.models.registry import SignalRegistry
 
-        indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
         # Build dependency index
@@ -259,7 +259,7 @@ class TestDependencyTracking:
         from aponyx.config import SIGNAL_CATALOG_PATH
         from aponyx.models.registry import SignalRegistry
 
-        indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
         # Build dependency index
@@ -285,7 +285,7 @@ class TestDependencyTracking:
         from aponyx.config import SIGNAL_CATALOG_PATH
         from aponyx.models.registry import SignalRegistry
 
-        indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
         # Build dependency index
@@ -293,22 +293,24 @@ class TestDependencyTracking:
 
         # Verify each signal's dependencies are tracked
         for signal_name, signal_meta in signal_registry.list_all().items():
-            if signal_meta.indicator_dependencies:
-                for indicator_name in signal_meta.indicator_dependencies:
-                    # This indicator should list the signal as dependent
-                    dependent_signals = indicator_registry.get_dependent_signals(
-                        indicator_name
-                    )
-                    assert signal_name in dependent_signals, (
-                        f"Signal {signal_name} should be in dependencies for {indicator_name}"
-                    )
+            # In new structure, use indicator_transformation field
+            if signal_meta.indicator_transformation:
+                # In new structure, there's a single indicator reference
+                indicator_name = signal_meta.indicator_transformation
+                # This indicator should list the signal as dependent
+                dependent_signals = indicator_registry.get_dependent_signals(
+                    indicator_name
+                )
+                assert signal_name in dependent_signals, (
+                    f"Signal {signal_name} should be in dependencies for {indicator_name}"
+                )
 
     def test_nonexistent_indicator_returns_empty_list(self):
         """Test that querying dependencies for nonexistent indicator returns empty list."""
         from aponyx.config import SIGNAL_CATALOG_PATH
         from aponyx.models.registry import SignalRegistry
 
-        indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
         # Build dependency index
@@ -346,7 +348,7 @@ class TestDependencyTracking:
         try:
             temp_path.write_text(json.dumps(temp_indicator_catalog, indent=2))
 
-            indicator_registry = IndicatorRegistry(temp_path)
+            indicator_registry = IndicatorTransformationRegistry(temp_path)
             signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
             # Build dependency index

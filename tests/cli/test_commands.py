@@ -240,7 +240,7 @@ def test_run_command_invalid_indicator_override(runner, tmp_path):
 
 
 def test_run_command_invalid_transformation_override(runner, tmp_path):
-    """Test run command validates transformation override exists in catalog."""
+    """Test run command validates score transformation override exists in catalog."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
         yaml.dump(
@@ -249,7 +249,7 @@ def test_run_command_invalid_transformation_override(runner, tmp_path):
                 "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
                 "strategy": "balanced",
-                "transformation": "nonexistent_transformation",
+                "score_transformation": "nonexistent_score_transformation",
             }
         )
     )
@@ -257,8 +257,8 @@ def test_run_command_invalid_transformation_override(runner, tmp_path):
     result = runner.invoke(cli, ["run", str(config_file)])
 
     assert result.exit_code != 0
-    assert "Transformation 'nonexistent_transformation' not found" in result.output
-    assert "Available transformations:" in result.output
+    assert "Score transformation 'nonexistent_score_transformation' not found" in result.output
+    assert "Available score transformations:" in result.output
 
 
 def test_run_command_invalid_security_not_found(runner, tmp_path):
@@ -324,10 +324,13 @@ def test_run_command_minimal_config(runner, mock_workflow_engine, tmp_path):
 
     assert result.exit_code == 0
     assert "=== Workflow Configuration ===" in result.output
-    assert "Signal:          spread_momentum [config]" in result.output
-    assert "Product:         cdx_ig_5y [config]" in result.output
-    assert "Strategy:        balanced [config]" in result.output
-    assert "Data:            synthetic [default]" in result.output
+    assert "Signal:                   spread_momentum [config]" in result.output
+    assert "Product:                  cdx_ig_5y [config]" in result.output
+    assert "Strategy:                 balanced [config]" in result.output
+    assert "Data:                     synthetic [default]" in result.output
+    assert "Indicator Transform:      spread_momentum_5d [from signal]" in result.output
+    assert "Score Transform:          volatility_adjust_20d [from signal]" in result.output
+    assert "Signal Transform:         passthrough [from signal]" in result.output
     assert "Steps:           all [default]" in result.output
     assert "Force re-run:    False [default]" in result.output
     assert "Completed 6 steps" in result.output
@@ -344,7 +347,8 @@ def test_run_command_complete_config(runner, mock_workflow_engine, tmp_path):
                 "product": "cdx_ig_5y",
                 "strategy": "balanced",
                 "indicator": "cdx_etf_spread_diff",
-                "transformation": "z_score_20d",
+                "score_transformation": "z_score_20d",
+                "signal_transformation": "bounded_2_0",
                 "securities": {"cdx": "cdx_ig_5y", "etf": "lqd"},
                 "data": "bloomberg",
                 "steps": ["data", "signal", "backtest"],
@@ -356,16 +360,17 @@ def test_run_command_complete_config(runner, mock_workflow_engine, tmp_path):
     result = runner.invoke(cli, ["run", str(config_file)])
 
     assert result.exit_code == 0
-    assert "Indicator:       cdx_etf_spread_diff [config]" in result.output
-    assert "Transformation:  z_score_20d [config]" in result.output
-    assert "Securities:      cdx:cdx_ig_5y, etf:lqd [config]" in result.output
-    assert "Data:            bloomberg [config]" in result.output
+    assert "Indicator Transform:      cdx_etf_spread_diff [config]" in result.output
+    assert "Score Transform:          z_score_20d [config]" in result.output
+    assert "Signal Transform:         bounded_2_0 [config]" in result.output
+    assert "Securities:               cdx:cdx_ig_5y, etf:lqd [config]" in result.output
+    assert "Data:                     bloomberg [config]" in result.output
     assert "Steps:           data, signal, backtest [config]" in result.output
     assert "Force re-run:    True [config]" in result.output
 
 
 def test_run_command_indicator_override_only(runner, mock_workflow_engine, tmp_path):
-    """Test run command with indicator override (keeps transformation from signal)."""
+    """Test run command with indicator override (keeps transformations from signal)."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
         yaml.dump(
@@ -382,7 +387,9 @@ def test_run_command_indicator_override_only(runner, mock_workflow_engine, tmp_p
     result = runner.invoke(cli, ["run", str(config_file)])
 
     assert result.exit_code == 0
-    assert "Indicator:       spread_momentum_5d [config]" in result.output
+    assert "Indicator Transform:      spread_momentum_5d [config]" in result.output
+    assert "Score Transform:          volatility_adjust_20d [from signal]" in result.output
+    assert "Signal Transform:         passthrough [from signal]" in result.output
     # Transformation should come from signal
     assert "[from signal]" in result.output
 
@@ -390,7 +397,7 @@ def test_run_command_indicator_override_only(runner, mock_workflow_engine, tmp_p
 def test_run_command_transformation_override_only(
     runner, mock_workflow_engine, tmp_path
 ):
-    """Test run command with transformation override (keeps indicator from signal)."""
+    """Test run command with score transformation override (keeps indicator and signal transform from signal)."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
         yaml.dump(
@@ -399,7 +406,7 @@ def test_run_command_transformation_override_only(
                 "signal": "spread_momentum",
                 "product": "cdx_ig_5y",
                 "strategy": "balanced",
-                "transformation": "z_score_60d",
+                "score_transformation": "z_score_60d",
             }
         )
     )
@@ -407,9 +414,10 @@ def test_run_command_transformation_override_only(
     result = runner.invoke(cli, ["run", str(config_file)])
 
     assert result.exit_code == 0
-    assert "Transformation:  z_score_60d [config]" in result.output
-    # Indicator should come from signal
-    assert "Indicator:" in result.output and "[from signal]" in result.output
+    assert "Score Transform:          z_score_60d [config]" in result.output
+    # Indicator and signal transform should come from signal
+    assert "Indicator Transform:" in result.output and "[from signal]" in result.output
+    assert "Signal Transform:" in result.output and "[from signal]" in result.output
 
 
 def test_run_command_securities_override(runner, mock_workflow_engine, tmp_path):
@@ -430,7 +438,7 @@ def test_run_command_securities_override(runner, mock_workflow_engine, tmp_path)
     result = runner.invoke(cli, ["run", str(config_file)])
 
     assert result.exit_code == 0
-    assert "Securities:      cdx:cdx_hy_5y, etf:hyg [config]" in result.output
+    assert "Securities:               cdx:cdx_hy_5y, etf:hyg [config]" in result.output
 
 
 def test_run_command_with_workflow_error(runner, tmp_path):
@@ -636,7 +644,7 @@ def test_list_products_command(runner, tmp_path):
 
 def test_list_indicators_command(runner):
     """Test list indicators command."""
-    with patch("aponyx.cli.commands.list.IndicatorRegistry") as mock_registry_class:
+    with patch("aponyx.cli.commands.list.IndicatorTransformationRegistry") as mock_registry_class:
         mock_registry = MagicMock()
         mock_registry.list_all.return_value = {
             "cdx_etf_spread_diff": MagicMock(description="CDX-ETF spread difference"),
@@ -651,9 +659,10 @@ def test_list_indicators_command(runner):
 
 
 def test_list_transformations_command(runner):
-    """Test list transformations command."""
+    """Test list score-transformations and signal-transformations commands."""
+    # Test score transformations
     with patch(
-        "aponyx.cli.commands.list.TransformationRegistry"
+        "aponyx.cli.commands.list.ScoreTransformationRegistry"
     ) as mock_registry_class:
         mock_registry = MagicMock()
         mock_registry.list_all.return_value = {
@@ -662,10 +671,26 @@ def test_list_transformations_command(runner):
         }
         mock_registry_class.return_value = mock_registry
 
-        result = runner.invoke(cli, ["list", "transformations"])
+        result = runner.invoke(cli, ["list", "score-transformations"])
         assert result.exit_code == 0
         assert "z_score_20d" in result.output
         assert "volatility_adjust_20d" in result.output
+
+    # Test signal transformations
+    with patch(
+        "aponyx.cli.commands.list.SignalTransformationRegistry"
+    ) as mock_registry_class:
+        mock_registry = MagicMock()
+        mock_registry.list_all.return_value = {
+            "passthrough": MagicMock(description="No transformation"),
+            "bounded_2_0": MagicMock(description="Bounded [-2, 2]"),
+        }
+        mock_registry_class.return_value = mock_registry
+
+        result = runner.invoke(cli, ["list", "signal-transformations"])
+        assert result.exit_code == 0
+        assert "passthrough" in result.output
+        assert "bounded_2_0" in result.output
 
 
 def test_list_securities_command(runner, tmp_path):

@@ -256,12 +256,11 @@ class IndicatorTransformationRegistry:
         self._dependencies.clear()
 
         for signal_name, signal_meta in signal_registry.list_all().items():
-            # Only process new-pattern signals with indicator dependencies
-            if signal_meta.indicator_dependencies:
-                for indicator_name in signal_meta.indicator_dependencies:
-                    if indicator_name not in self._dependencies:
-                        self._dependencies[indicator_name] = []
-                    self._dependencies[indicator_name].append(signal_name)
+            # Every signal references exactly one indicator transformation
+            indicator_name = signal_meta.indicator_transformation
+            if indicator_name not in self._dependencies:
+                self._dependencies[indicator_name] = []
+            self._dependencies[indicator_name].append(signal_name)
 
         logger.debug(
             "Built dependency index: %d indicators with dependencies",

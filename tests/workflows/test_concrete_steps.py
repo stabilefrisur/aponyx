@@ -632,12 +632,12 @@ class TestStepIntegration:
     @patch("aponyx.data.bloomberg_config.list_securities")
     @patch("aponyx.workflows.concrete_steps.DataRegistry")
     @patch("aponyx.workflows.concrete_steps.load_parquet")
-    @patch("aponyx.models.orchestrator._compute_signal")
+    @patch("aponyx.models.signal_composer.compose_signal")
     @patch("aponyx.workflows.concrete_steps.save_parquet")
     def test_data_to_signal_flow(
         self,
         mock_save,
-        mock_compute,
+        mock_compose_signal,
         mock_load_parquet,
         mock_data_registry_class,
         mock_list_securities,
@@ -656,8 +656,8 @@ class TestStepIntegration:
         mock_data_registry_class.return_value = mock_registry
         mock_load_parquet.return_value = sample_market_data["cdx"]
 
-        # Setup SignalStep
-        mock_compute.return_value = sample_signal
+        # Setup SignalStep - compose_signal returns a signal Series
+        mock_compose_signal.return_value = sample_signal
 
         # Execute DataStep
         data_step = DataStep(workflow_config)
@@ -672,7 +672,7 @@ class TestStepIntegration:
 
         # Verify signal was computed with data from DataStep
         assert "signal" in signal_output
-        mock_compute.assert_called_once()
+        mock_compose_signal.assert_called_once()
 
     def test_step_output_path_hierarchy(self, workflow_config):
         """Test steps create appropriate output directory hierarchy."""
