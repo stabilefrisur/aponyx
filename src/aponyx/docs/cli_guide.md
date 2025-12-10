@@ -56,8 +56,9 @@ uv run aponyx run <config_path>
 | `signal` | string | ✓ | - | Signal name from signal_catalog.json |
 | `product` | string | ✓ | - | Product identifier (e.g., "cdx_ig_5y") |
 | `strategy` | string | ✓ | - | Strategy name from strategy_catalog.json |
-| `indicator` | string | | from signal | Override indicator computation |
-| `transformation` | string | | from signal | Override transformation |
+| `indicator_transformation_override` | string | | from signal | Override indicator transformation |
+| `score_transformation_override` | string | | from signal | Override score transformation |
+| `signal_transformation_override` | string | | from signal | Override signal transformation |
 | `securities` | dict | | from indicator | Custom security mapping (e.g., `cdx: cdx_hy_5y`) |
 | `data` | string | | "synthetic" | Data source: `synthetic`, `file`, `bloomberg` |
 | `steps` | list | | all | Specific steps to execute (e.g., `[data, signal, backtest]`) |
@@ -79,8 +80,9 @@ label: complete_test
 signal: cdx_etf_basis
 product: cdx_ig_5y
 strategy: balanced
-indicator: cdx_etf_spread_diff
-transformation: z_score_20d
+indicator_transformation_override: cdx_etf_spread_diff
+score_transformation_override: z_score_60d
+signal_transformation_override: bounded_1_5
 securities:
   cdx: cdx_hy_5y
   etf: hyg
@@ -102,8 +104,9 @@ Label: minimal_test [config]
 Signal: spread_momentum [config]
 Product: cdx_ig_5y [config]
 Strategy: balanced [config]
-Indicator: spread_momentum_20d [from signal]
-Transformation: z_score [from indicator]
+Indicator Transformation: spread_momentum_5d [from signal]
+Score Transformation: volatility_adjust_20d [from signal]
+Signal Transformation: passthrough [from signal]
 Securities: {'cdx': 'cdx_ig_5y'} [from indicator]
 Data: synthetic [default]
 Steps: all [default]
@@ -322,8 +325,9 @@ label: override_test
 signal: cdx_etf_basis
 product: cdx_ig_5y
 strategy: balanced
-indicator: cdx_etf_spread_diff  # Override indicator
-transformation: z_score_60d     # Override transformation
+indicator_transformation_override: cdx_etf_spread_diff  # Override indicator transformation
+score_transformation_override: z_score_60d              # Override score transformation (e.g., 60-day instead of 20-day)
+signal_transformation_override: bounded_1_5             # Override signal transformation (apply bounds)
 ```
 
 **Usage:**
@@ -445,8 +449,9 @@ uv run aponyx list strategies
 
 # Check catalog files
 cat src/aponyx/models/signal_catalog.json
-cat src/aponyx/models/indicator_catalog.json
-cat src/aponyx/models/transformation_catalog.json
+cat src/aponyx/models/indicator_transformation.json
+cat src/aponyx/models/score_transformation.json
+cat src/aponyx/models/signal_transformation.json
 cat src/aponyx/data/bloomberg_securities.json
 cat src/aponyx/backtest/strategy_catalog.json
 ```
@@ -486,12 +491,13 @@ uv run aponyx clean --all
 - **Main Documentation:** [README.md](../../README.md)
 - **Architecture:** [governance_design.md](governance_design.md)
 - **Signal Catalog:** [../models/signal_catalog.json](../models/signal_catalog.json)
-- **Indicator Catalog:** [../models/indicator_catalog.json](../models/indicator_catalog.json)
-- **Transformation Catalog:** [../models/transformation_catalog.json](../models/transformation_catalog.json)
+- **Indicator Transformation Catalog:** [../models/indicator_transformation.json](../models/indicator_transformation.json)
+- **Score Transformation Catalog:** [../models/score_transformation.json](../models/score_transformation.json)
+- **Signal Transformation Catalog:** [../models/signal_transformation.json](../models/signal_transformation.json)
 - **Securities Catalog:** [../data/bloomberg_securities.json](../data/bloomberg_securities.json)
 - **Strategy Catalog:** [../backtest/strategy_catalog.json](../backtest/strategy_catalog.json)
 
 ---
 
 **Maintained by:** stabilefrisur  
-**Last Updated:** December 02, 2025
+**Last Updated:** December 10, 2025

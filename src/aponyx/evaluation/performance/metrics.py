@@ -10,6 +10,7 @@ Uses quantstats library for standard metric calculations.
 """
 
 import logging
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -148,30 +149,39 @@ def compute_all_metrics(
     # ==================== Quantstats Metrics ====================
     logger.debug("Computing metrics using quantstats")
 
-    # Return metrics
-    total_return = float(qs.stats.comp(returns))
-    annualized_return = float(qs.stats.cagr(returns, periods=252))
+    # Suppress quantstats RuntimeWarnings for edge cases (zero std, zero max_dd)
+    # These occur when returns have zero variance or no drawdowns, which is valid data
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message="invalid value encountered in scalar divide",
+            category=RuntimeWarning,
+        )
 
-    # Risk-adjusted metrics
-    sharpe_ratio = float(qs.stats.sharpe(returns, periods=252))
-    sortino_ratio = float(qs.stats.sortino(returns, periods=252))
-    calmar_ratio = float(qs.stats.calmar(returns, periods=252))
-    max_drawdown = float(qs.stats.max_drawdown(returns))
-    annualized_vol = float(qs.stats.volatility(returns, periods=252))
+        # Return metrics
+        total_return = float(qs.stats.comp(returns))
+        annualized_return = float(qs.stats.cagr(returns, periods=252))
 
-    # Tail and profitability metrics
-    tail_ratio = float(qs.stats.tail_ratio(returns))
-    profit_factor = float(qs.stats.profit_factor(returns))
+        # Risk-adjusted metrics
+        sharpe_ratio = float(qs.stats.sharpe(returns, periods=252))
+        sortino_ratio = float(qs.stats.sortino(returns, periods=252))
+        calmar_ratio = float(qs.stats.calmar(returns, periods=252))
+        max_drawdown = float(qs.stats.max_drawdown(returns))
+        annualized_vol = float(qs.stats.volatility(returns, periods=252))
 
-    # Rolling Sharpe statistics
-    rolling_sharpe = qs.stats.rolling_sharpe(returns, rolling_period=rolling_window)
-    rolling_sharpe_mean = float(rolling_sharpe.mean())
-    rolling_sharpe_std = float(rolling_sharpe.std())
+        # Tail and profitability metrics
+        tail_ratio = float(qs.stats.tail_ratio(returns))
+        profit_factor = float(qs.stats.profit_factor(returns))
 
-    # Drawdown count
-    dd_series = qs.stats.to_drawdown_series(returns)
-    dd_details = qs.stats.drawdown_details(dd_series)
-    n_drawdowns_qs = len(dd_details)
+        # Rolling Sharpe statistics
+        rolling_sharpe = qs.stats.rolling_sharpe(returns, rolling_period=rolling_window)
+        rolling_sharpe_mean = float(rolling_sharpe.mean())
+        rolling_sharpe_std = float(rolling_sharpe.std())
+
+        # Drawdown count
+        dd_series = qs.stats.to_drawdown_series(returns)
+        dd_details = qs.stats.drawdown_details(dd_series)
+        n_drawdowns_qs = len(dd_details)
 
     # Benchmark metrics (if provided)
     alpha = None
@@ -181,16 +191,24 @@ def compute_all_metrics(
 
     if benchmark is not None:
         try:
-            # Compute benchmark metrics using quantstats
-            greeks = qs.stats.greeks(returns, benchmark, periods=252)
-            alpha = float(greeks.iloc[0]) if len(greeks) > 0 else None
-            beta = float(greeks.iloc[1]) if len(greeks) > 1 else None
+            # Suppress quantstats RuntimeWarnings for edge cases
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message="invalid value encountered in scalar divide",
+                    category=RuntimeWarning,
+                )
 
-            # Information ratio
-            information_ratio = float(qs.stats.information_ratio(returns, benchmark))
+                # Compute benchmark metrics using quantstats
+                greeks = qs.stats.greeks(returns, benchmark, periods=252)
+                alpha = float(greeks.iloc[0]) if len(greeks) > 0 else None
+                beta = float(greeks.iloc[1]) if len(greeks) > 1 else None
 
-            # R-squared (correlation with benchmark)
-            r_squared = float(qs.stats.r_squared(returns, benchmark))
+                # Information ratio
+                information_ratio = float(qs.stats.information_ratio(returns, benchmark))
+
+                # R-squared (correlation with benchmark)
+                r_squared = float(qs.stats.r_squared(returns, benchmark))
 
             logger.debug(
                 "Computed benchmark metrics: alpha=%.4f, beta=%.2f, IR=%.2f, R²=%.2f",

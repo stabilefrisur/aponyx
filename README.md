@@ -92,38 +92,49 @@ aponyx run examples/workflow_minimal.yaml
 ```python
 from aponyx.data import fetch_cdx, fetch_etf, FileSource
 from aponyx.models import (
-    IndicatorRegistry, TransformationRegistry, SignalRegistry,
-    compute_indicator, compose_signal
+    IndicatorTransformationRegistry, ScoreTransformationRegistry,
+    SignalTransformationRegistry, SignalRegistry, compose_signal
 )
 from aponyx.backtest import run_backtest, BacktestConfig
 from aponyx.evaluation.performance import compute_all_metrics
 from aponyx.evaluation.suitability import evaluate_signal_suitability, SuitabilityConfig
-from aponyx.config import INDICATOR_CATALOG_PATH, TRANSFORMATION_CATALOG_PATH, SIGNAL_CATALOG_PATH
+from aponyx.config import (
+    INDICATOR_TRANSFORMATION_PATH, SCORE_TRANSFORMATION_PATH,
+    SIGNAL_TRANSFORMATION_PATH, SIGNAL_CATALOG_PATH
+)
 from pathlib import Path
 
 # Load validated market data
 # FileSource uses registry.json for security-to-file mapping
 source = FileSource(Path("data/raw/synthetic"))
 cdx_df = fetch_cdx(source, security="cdx_ig_5y")
-etf_df = fetch_etf(source, security="hyg")
+etf_df = fetch_etf(source, security="lqd")
 
-# SIGNAL COMPOSITION: Every signal is ALWAYS composed from indicator + transformation
-# 1. Indicator = economically interpretable metric (e.g., CDX-ETF basis in bps)
-# 2. Transformation = signal processing (e.g., z-score normalization)
-# This separation enables reuse and runtime experimentation
+# FOUR-STAGE SIGNAL COMPOSITION PIPELINE:
+#   Stage 1: Indicator Transformation - Raw metric from securities (bps, ratios)
+#   Stage 2: Score Transformation     - Normalization (z-score, volatility adjustment)
+#   Stage 3: Signal Transformation    - Trading rules (floor, cap, neutral_range)
+#   Stage 4: Position Calculation     - Handled by backtest layer
 
-market_data = {"cdx": cdx_df, "etf": etf_df}
-indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
-transformation_registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
+# Load all four registries
+indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
+score_registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
+signal_trans_registry = SignalTransformationRegistry(SIGNAL_TRANSFORMATION_PATH)
 signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
-# Compose signal: indicator (cdx_etf_spread_diff) + transformation (z_score_20d)
-signal = compose_signal(
-    signal_metadata=signal_registry.get_metadata("cdx_etf_basis"),
+# Compose signal via four-stage pipeline
+market_data = {"cdx": cdx_df, "etf": etf_df}
+result = compose_signal(
+    signal_name="cdx_etf_basis",
     market_data=market_data,
     indicator_registry=indicator_registry,
-    transformation_registry=transformation_registry
+    score_registry=score_registry,
+    signal_transformation_registry=signal_trans_registry,
+    signal_registry=signal_registry,
+    include_intermediates=True,  # Optional: inspect intermediate stages
 )
+signal = result["signal"]
+# result also contains: result["indicator"], result["score"] for debugging
 
 # Evaluate signal-product suitability (optional pre-backtest assessment)
 suitability_config = SuitabilityConfig(rolling_window=252)  # ~1 year daily data
@@ -187,9 +198,12 @@ signal: cdx_etf_basis
 product: cdx_ig_5y
 strategy: balanced
 
-# Optional overrides
+# Optional: Override any transformation stage
 indicator: cdx_etf_spread_diff
-transformation: z_score_20d
+score_transformation: z_score_20d
+signal_transformation: bounded_1_5
+
+# Optional: Override default securities
 securities:
   cdx: cdx_ig_5y
   etf: lqd
@@ -217,8 +231,9 @@ aponyx run examples/workflow_complete.yaml
 | `signal` | string | ✓ | - | Signal name from signal_catalog.json |
 | `product` | string | ✓ | - | Product identifier (e.g., "cdx_ig_5y") |
 | `strategy` | string | ✓ | - | Strategy name from strategy_catalog.json |
-| `indicator` | string | | from signal | Override indicator computation |
-| `transformation` | string | | from signal | Override transformation |
+| `indicator` | string | | from signal | Override indicator transformation |
+| `score_transformation` | string | | from signal | Override score transformation (normalization) |
+| `signal_transformation` | string | | from signal | Override signal transformation (trading rules) |
 | `securities` | dict | | from indicator | Custom security mapping |
 | `data` | string | | "synthetic" | Data source (synthetic, file, bloomberg) |
 | `steps` | list | | all | Specific steps to execute |
@@ -268,17 +283,18 @@ aponyx clean --workflows --label minimal_test --older-than 7d
 **Output format:**
 ```
 === Workflow Configuration ===
-Label:           minimal_test [config]
-Product:         cdx_ig_5y [config]
-Signal:          spread_momentum [config]
-Indicator:       spread_momentum_5d [from signal]
-Securities:      cdx:cdx_ig_5y [from indicator]
-Transformation:  volatility_adjust_20d [from signal]
-Strategy:        balanced [config]
-Data:            synthetic [default]
-Steps:           all [default]
-Force re-run:    False [default]
-==============================
+Label:                    minimal_test [config]
+Product:                  cdx_ig_5y [config]
+Signal:                   spread_momentum [config]
+Indicator Transform:      spread_momentum_5d [from signal]
+Securities:               cdx:cdx_ig_5y [from indicator]
+Score Transform:          volatility_adjust_20d [from signal]
+Signal Transform:         passthrough [from signal]
+Strategy:                 balanced [config]
+Data:                     synthetic [default]
+Steps:                    all [default]
+Force re-run:             False [default]
+===============================
 
 Completed 6 steps in 15.2s
 Skipped 0 cached steps
@@ -297,7 +313,7 @@ Aponyx follows a **layered architecture** with clean separation of concerns:
 | **Workflows** | Pipeline orchestration with dependency tracking | `WorkflowEngine`, `WorkflowConfig`, `StepRegistry`, concrete steps |
 | **Reporting** | Multi-format report generation | `generate_report`, console/markdown/HTML formatters |
 | **Data** | Load, validate, transform market data | `fetch_cdx`, `fetch_vix`, `fetch_etf`, `apply_transform`, `FileSource`, `BloombergSource` |
-| **Models** | Indicators, transformations, and signal composition | `IndicatorRegistry`, `TransformationRegistry`, `compute_indicator`, `compose_signal` |
+| **Models** | Four-stage signal composition pipeline | `IndicatorTransformationRegistry`, `ScoreTransformationRegistry`, `SignalTransformationRegistry`, `compose_signal` |
 | **Evaluation** | Pre-backtest screening (rolling window stability) and post-backtest analysis | `evaluate_signal_suitability`, `analyze_backtest_performance`, `PerformanceRegistry` |
 | **Backtest** | Simulate execution and generate P&L | `run_backtest`, `BacktestConfig`, `StrategyRegistry` |
 | **Visualization** | Interactive charts and dashboards | `plot_equity_curve`, `plot_signal`, `plot_drawdown` |
@@ -388,10 +404,16 @@ print(docs_path)  # Path to installed documentation
 
 ## What's Included
 
-**Three pilot signals for CDX overlay strategies:**
+**Three pilot signals for CDX overlay strategies (via four-stage composition):**
 1. **CDX-ETF Basis** - Flow-driven mispricing from cash-derivative basis
 2. **CDX-VIX Gap** - Cross-asset risk sentiment divergence
 3. **Spread Momentum** - Short-term continuation in credit spreads
+
+**Four-stage transformation pipeline:**
+- Stage 1: Indicator Transformation (raw metric in interpretable units)
+- Stage 2: Score Transformation (z-score, volatility adjustment)
+- Stage 3: Signal Transformation (floor, cap, neutral range)
+- Stage 4: Position Calculation (backtest layer)
 
 **Core capabilities:** Type-safe data loading • Signal registry • Pre/post-backtest evaluation • Deterministic backtesting • Interactive visualizations • Comprehensive testing (>90% coverage)
 
@@ -464,4 +486,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 **Maintained by stabilefrisur**  
-**Last Updated**: December 2, 2025
+**Last Updated**: December 10, 2025

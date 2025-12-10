@@ -226,11 +226,11 @@ def _display_workflow_config(
     else:
         steps_str = "all"
         steps_source = "[default]"
-    click.echo(f"Steps:           {steps_str} {steps_source}")
+    click.echo(f"Steps:                    {steps_str} {steps_source}")
 
     # Display force re-run
     force_source = "[config]" if "force" in config_dict else "[default]"
-    click.echo(f"Force re-run:    {config.force_rerun} {force_source}")
+    click.echo(f"Force re-run:             {config.force_rerun} {force_source}")
 
     click.echo("=" * len(header))
     click.echo()

@@ -1,7 +1,7 @@
 # Project Status — aponyx
 
-**Last Updated:** December 2, 2025  
-**Version:** 0.1.15 (Indicator-Signal Separation)
+**Last Updated:** December 10, 2025  
+**Version:** 0.1.15 (Four-Stage Transformation Pipeline)
 
 ## Quick Reference
 
@@ -14,7 +14,7 @@
 | **Maturity Level** | Early-stage research framework |
 | **Breaking Changes** | May occur without deprecation warnings |
 | **License** | MIT |
-| **Test Coverage** | 681 tests across all layers (verified Dec 2025) |
+| **Test Coverage** | 704 tests across all layers (verified Dec 2025) |
 
 **Project Management:**
 - `uv` - Package installer, environment manager, and task runner
@@ -106,7 +106,7 @@ src/aponyx/
     generator.py      # Console/markdown/HTML report generation
   
   config/             # Paths, constants, defaults
-    __init__.py       # PROJECT_ROOT, DATA_DIR, CACHE_ENABLED, SIGNAL_CATALOG_PATH, STRATEGY_CATALOG_PATH, etc.
+    __init__.py       # PROJECT_ROOT, DATA_DIR, CACHE_ENABLED, SIGNAL_CATALOG_PATH, STRATEGY_CATALOG_PATH, INDICATOR_TRANSFORMATION_PATH, SCORE_TRANSFORMATION_PATH, SIGNAL_TRANSFORMATION_PATH, etc.
   
   data/               # Load, validate, transform market data
     __init__.py       # Exports: fetch_*, *Source, validate_*, DataRegistry
@@ -125,18 +125,19 @@ src/aponyx/
       file.py         # File-based provider
       bloomberg.py    # Bloomberg Terminal provider
   
-  models/             # Indicator, transformation, and signal composition
-    __init__.py       # Exports: IndicatorRegistry, TransformationRegistry, SignalRegistry, compose_signal, etc.
+  models/             # Indicator, transformation, and signal composition (four-stage pipeline)
+    __init__.py       # Exports: compose_signal, stage functions, all registries
     indicators.py     # Indicator computation functions (3 indicators)
     transformations.py  # Transformation functions (z-score, vol adjustment, etc.)
-    signal_composer.py  # Signal composition from indicators + transformations
-    registry.py       # IndicatorRegistry, TransformationRegistry, SignalRegistry
-    metadata.py       # IndicatorMetadata, TransformationMetadata, SignalMetadata dataclasses
+    signal_composer.py  # Four-stage signal composition (indicator → score → signal → position)
+    registry.py       # IndicatorTransformationRegistry, ScoreTransformationRegistry, SignalTransformationRegistry, SignalRegistry
+    metadata.py       # Metadata dataclasses for all stages
     orchestrator.py   # compute_registered_signals batch orchestration
     config.py         # IndicatorConfig, TransformationConfig dataclasses
-    indicator_catalog.json      # Indicator metadata catalog (3 indicators)
-    transformation_catalog.json # Transformation metadata catalog (4 transformations)
-    signal_catalog.json         # Signal metadata catalog (3 signals)
+    indicator_transformation.json   # Indicator transformation catalog (3 indicators)
+    score_transformation.json       # Score transformation catalog (4 transformations)
+    signal_transformation.json      # Signal transformation catalog (floor, cap, neutral_range)
+    signal_catalog.json             # Signal definitions (references all three transformations)
   
   backtest/           # Execution simulation and P&L tracking
     __init__.py       # Exports: BacktestConfig, run_backtest, StrategyRegistry, etc.
@@ -273,12 +274,18 @@ src/aponyx/
 - Data directory structure: `data/raw/`, `data/workflows/{label}_{timestamp}/`, `data/cache/`, `data/.registries/`
 - Data registry path: `data/.registries/registry.json` (runtime-generated, from `config.REGISTRY_PATH`)
 - Signal catalog path: `src/aponyx/models/signal_catalog.json` (static, from `config.SIGNAL_CATALOG_PATH`)
+- Indicator transformation path: `src/aponyx/models/indicator_transformation.json` (static, from `config.INDICATOR_TRANSFORMATION_PATH`)
+- Score transformation path: `src/aponyx/models/score_transformation.json` (static, from `config.SCORE_TRANSFORMATION_PATH`)
+- Signal transformation path: `src/aponyx/models/signal_transformation.json` (static, from `config.SIGNAL_TRANSFORMATION_PATH`)
 - Strategy catalog path: `src/aponyx/backtest/strategy_catalog.json` (static, from `config.STRATEGY_CATALOG_PATH`)
 - Bloomberg config paths: `src/aponyx/data/bloomberg_securities.json`, `bloomberg_instruments.json` (static)
 - Suitability registry path: `data/.registries/suitability.json` (runtime-generated, from `config.SUITABILITY_REGISTRY_PATH`)
 - Performance registry path: `data/.registries/performance.json` (runtime-generated, from `config.PERFORMANCE_REGISTRY_PATH`)
 - **DataRegistry** - Data layer (`src/aponyx/data/registry.py`) - Runtime JSON at `data/.registries/registry.json`
 - **SignalRegistry** - Models layer (`src/aponyx/models/registry.py`) - Static catalog at `src/aponyx/models/signal_catalog.json`
+- **IndicatorTransformationRegistry** - Models layer (`src/aponyx/models/registry.py`) - Static catalog at `src/aponyx/models/indicator_transformation.json`
+- **ScoreTransformationRegistry** - Models layer (`src/aponyx/models/registry.py`) - Static catalog at `src/aponyx/models/score_transformation.json`
+- **SignalTransformationRegistry** - Models layer (`src/aponyx/models/registry.py`) - Static catalog at `src/aponyx/models/signal_transformation.json`
 - **StrategyRegistry** - Backtest layer (`src/aponyx/backtest/registry.py`) - Static catalog at `src/aponyx/backtest/strategy_catalog.json`
 - **SuitabilityRegistry** - Evaluation/suitability layer (`src/aponyx/evaluation/suitability/registry.py`) - Runtime JSON at `data/.registries/suitability.json` (not tracked in git)
 - **PerformanceRegistry** - Evaluation/performance layer (`src/aponyx/evaluation/performance/registry.py`) - Runtime JSON at `data/.registries/performance.json` (not tracked in git)
@@ -297,44 +304,44 @@ src/aponyx/
 ### ✅ Models Layer (`src/aponyx/models/`)
 
 **Implemented:**
-- **Indicator-Signal Separation Architecture:**
-  - **Indicators** - Reusable market metrics in economically interpretable units (bps, ratios, percentages)
-  - **Transformations** - Signal processing operations (z-score normalization, volatility adjustment, etc.)
-  - **Signals** - Trading signals composed from indicators + transformations
+- **Four-Stage Transformation Pipeline:**
+  - **Stage 1: Indicator Transformation** - Compute raw metric from securities (output in economically interpretable units: bps, ratios)
+  - **Stage 2: Score Transformation** - Normalize indicator to common scale (z-score, volatility adjustment)
+  - **Stage 3: Signal Transformation** - Apply trading rules (floor, cap, neutral_range, scaling)
+  - **Stage 4: Position Calculation** - Backtest layer converts signal to positions (out of scope for models layer)
 - **Three Pilot Indicators:**
   - `compute_cdx_etf_spread_diff` - CDX-ETF basis in raw basis points (no normalization)
   - `compute_spread_momentum` - 5-day CDX spread change in basis points
   - `compute_cdx_vix_deviation_gap` - Credit-equity stress gap from 20-day means in bps
 - **Three Pilot Signals:**
-  - `cdx_etf_basis` - Flow-driven mispricing (indicator: cdx_etf_spread_diff + transformation: z_score_20d)
-  - `spread_momentum` - Vol-adjusted momentum (indicator: spread_momentum_5d + transformation: volatility_adjust_20d)
-  - `cdx_vix_gap` - Cross-asset sentiment (indicator: cdx_vix_deviation_gap_20d + transformation: z_score_60d)
-- **Indicator Registry Pattern:**
-  - `IndicatorRegistry` class - JSON catalog management for market indicators
-  - `IndicatorMetadata` dataclass - Indicator metadata with output_units, parameters, compute function
-  - `compute_indicator` - Orchestration function with caching at `data/cache/indicators/`
-  - Catalog at `src/aponyx/models/indicator_catalog.json` (3 indicators)
+  - `cdx_etf_basis` - Flow-driven mispricing (indicator: cdx_etf_spread_diff + score: z_score_20d + signal: bounded_1_5)
+  - `spread_momentum` - Vol-adjusted momentum (indicator: spread_momentum_5d + score: volatility_adjust_20d + signal: passthrough)
+  - `cdx_vix_gap` - Cross-asset sentiment (indicator: cdx_vix_deviation_gap_20d + score: z_score_60d + signal: bounded_2_0)
+- **Indicator Transformation Registry:**
+  - `IndicatorTransformationRegistry` class - JSON catalog management for indicator transformations
+  - Catalog at `src/aponyx/models/indicator_transformation.json` (3 indicators)
   - Indicators output economically interpretable values (basis points, ratios, percentages)
-- **Transformation Registry Pattern:**
-  - `TransformationRegistry` class - JSON catalog of reusable transformations
-  - `TransformationMetadata` dataclass - Transformation metadata with transform_type and parameters
+- **Score Transformation Registry:**
+  - `ScoreTransformationRegistry` class - JSON catalog for normalization transformations
   - Four transformations: z_score_20d, z_score_60d, volatility_adjust_20d, diff_5d
-  - Catalog at `src/aponyx/models/transformation_catalog.json`
-- **Signal Registry Pattern:**
-  - `SignalRegistry` class - JSON catalog management for trading signals
-  - `SignalMetadata` dataclass - Signal metadata container (NO compute_function_name, data_requirements, or arg_mapping)
-  - Signals reference indicators via `indicator_dependencies` field (list of indicator names)
-  - Signals reference transformations via `transformations` field (list of transformation names)
-  - Schema enforcement: signals MUST have indicator_dependencies and transformations
+  - Catalog at `src/aponyx/models/score_transformation.json`
+- **Signal Transformation Registry:**
+  - `SignalTransformationRegistry` class - JSON catalog for trading rule transformations
+  - Transformations: passthrough, bounded_1_5, bounded_2_0 (floor, cap, neutral_range, scaling)
+  - Catalog at `src/aponyx/models/signal_transformation.json`
+- **Signal Registry:**
+  - `SignalRegistry` class - JSON catalog for signal definitions
+  - Each signal references exactly ONE transformation from each stage (1:1:1 relationship)
+  - Schema enforcement: signals MUST have indicator_transformation, score_transformation, signal_transformation
   - Catalog at `src/aponyx/models/signal_catalog.json` (3 signals)
 - **Signal Composition:**
-  - `compose_signal` - Orchestrates indicator computation + transformation application
-  - `apply_signal_transformation` - Applies cataloged transformations to indicator outputs
-  - Support for multi-indicator composition via optional `composition_logic` field
-  - Single-indicator signals apply transformations sequentially
+  - `compose_signal` - Orchestrates four-stage pipeline with optional intermediates inspection
+  - Stage inspection: `compute_indicator_stage`, `compute_score_stage`, `compute_signal_stage`
+  - Runtime overrides: `indicator_transformation_override`, `score_transformation_override`, `signal_transformation_override`
+  - Returns dict with signal Series (and optional indicator, score intermediates)
 - **Batch Signal Computation:**
   - `compute_registered_signals` - Orchestration of all enabled signals
-  - Uses indicator + transformation pattern exclusively (no legacy compute functions)
+  - Uses four-stage pipeline exclusively (no legacy compute functions)
   - Returns dict mapping signal names to Series
   - Comprehensive error handling and logging
 - **Configuration:**
@@ -346,30 +353,33 @@ src/aponyx/
 - **Signal Sign Convention:** All signals follow consistent sign convention
   - Positive values → Long credit risk → Buy CDX (sell protection)
   - Negative values → Short credit risk → Sell CDX (buy protection)
+- **Four-Stage Composition:** MANDATORY pattern - every signal uses compose_signal() with four-stage pipeline
 - **Indicator Reusability:** Indicators computed once, cached, and reused across multiple signals
 - **Economic Interpretability:** Indicators output values in natural units (bps, ratios, percentages) without pre-normalization
-- **Transformation Catalog:** Common transformations (z-score, volatility adjustment) cataloged for reuse across signals
-- **Clean Architecture:** Complete removal of legacy monolithic signal functions (no compute_cdx_etf_basis, etc.)
+- **Transformation Catalogs:** Three separate catalogs for indicator, score, and signal transformations
+- **Stage Inspection:** `include_intermediates=True` returns indicator and score stages for debugging
+- **Runtime Overrides:** Swap any transformation stage at runtime without modifying catalogs
+- **Clean Architecture:** No legacy monolithic signal functions
 - **No Backward Compatibility:** Breaking changes fully implemented, no deprecation warnings
 - **Comprehensive Logging:** INFO for operations, DEBUG for implementation details
 - **Type Safety:** Full type hints with modern Python syntax
 - **Default Securities:** Indicators define default securities in catalog (e.g., cdx_ig_5y, lqd, vix)
 - **Security Mapping:** Override defaults via WorkflowConfig.security_mapping
 
-**Signal Catalog Structure (New Pattern):**
+**Signal Catalog Structure (Four-Stage Pattern):**
 ```json
 {
   "name": "signal_name",
   "description": "Human-readable description",
-  "indicator_dependencies": ["indicator_name"],
-  "transformations": ["transformation_name"],
-  "composition_logic": "optional custom composition for multi-indicator signals",
+  "indicator_transformation": "indicator_name",
+  "score_transformation": "score_transformation_name",
+  "signal_transformation": "signal_transformation_name",
   "enabled": true,
   "sign_multiplier": 1
 }
 ```
 
-**Indicator Catalog Structure:**
+**Indicator Transformation Catalog Structure:**
 ```json
 {
   "name": "indicator_name",
@@ -383,23 +393,49 @@ src/aponyx/
 }
 ```
 
+**Score Transformation Catalog Structure:**
+```json
+{
+  "name": "z_score_20d",
+  "description": "Z-score normalization over 20-day rolling window",
+  "transform_type": "z_score",
+  "parameters": {"window": 20, "min_periods": 10},
+  "enabled": true
+}
+```
+
+**Signal Transformation Catalog Structure:**
+```json
+{
+  "name": "bounded_1_5",
+  "description": "Signal bounded to [-1.5, 1.5] with neutral zone",
+  "scaling": 1.0,
+  "floor": -1.5,
+  "cap": 1.5,
+  "neutral_range": [-0.25, 0.25],
+  "enabled": true
+}
+```
+
 **Key Files:**
 - `indicators.py` - Indicator computation functions (3 indicators)
 - `transformations.py` - Transformation functions (z-score, volatility adjustment, etc.)
-- `signal_composer.py` - Signal composition from indicators + transformations
-- `registry.py` - IndicatorRegistry, TransformationRegistry, SignalRegistry
-- `metadata.py` - IndicatorMetadata, TransformationMetadata, SignalMetadata dataclasses
+- `signal_composer.py` - Four-stage signal composition with stage inspection
+- `registry.py` - IndicatorTransformationRegistry, ScoreTransformationRegistry, SignalTransformationRegistry, SignalRegistry
+- `metadata.py` - Metadata dataclasses for all stages
 - `orchestrator.py` - compute_registered_signals batch orchestration
 - `config.py` - IndicatorConfig, TransformationConfig dataclasses
-- `indicator_catalog.json` - Indicator definitions (3 entries)
-- `transformation_catalog.json` - Transformation definitions (4 entries)
-- `signal_catalog.json` - Signal definitions (3 entries)
+- `indicator_transformation.json` - Indicator transformation definitions (3 entries)
+- `score_transformation.json` - Score transformation definitions (4 entries)
+- `signal_transformation.json` - Signal transformation definitions (3 entries)
+- `signal_catalog.json` - Signal definitions with 1:1:1 references (3 entries)
 
 **Validation:**
 - Data requirements checked before computation
 - Required columns validated against DataFrame schemas
 - Compute function existence verified at runtime
-- Duplicate signal names prevented in catalog
+- Duplicate names prevented in all catalogs
+- 1:1:1 reference integrity enforced for signals
 
 **Implementation Notes:**
 - Research framework only (not for real-time signal generation)
@@ -842,13 +878,13 @@ src/aponyx/
 ### ✅ Testing (`tests/`)
 
 **Implemented:**
-- Comprehensive test coverage across all layers (680 tests total):
+- Comprehensive test coverage across all layers (704 tests total):
   - `tests/backtest/` - 36 tests (engine, P&L, protocols)
   - `tests/cli/` - 83 tests (commands, error handling, integration)
   - `tests/data/` - 223 tests (validation, loading, caching, providers)
   - `tests/evaluation/` - 154 tests (suitability and performance)
   - `tests/governance/` - 19 tests (registry integration)
-  - `tests/models/` - 74 tests (signals, registry, catalog)
+  - `tests/models/` - 98 tests (four-stage pipeline, registries, composition)
   - `tests/persistence/` - 27 tests (I/O operations)
   - `tests/reporting/` - 18 tests (report generation)
   - `tests/visualization/` - 19 tests (plotting functions)
@@ -1057,13 +1093,18 @@ aponyx/
 │   │       ├── __init__.py
 │   │       ├── file.py      # File-based provider
 │   │       └── bloomberg.py # Bloomberg Terminal provider
-│   ├── models/              # Signal generation
+│   ├── models/              # Four-stage signal composition
 │   │   ├── __init__.py
-│   │   ├── signals.py       # Signal computation functions
-│   │   ├── registry.py      # Signal registry
-│   │   ├── catalog.py       # Batch computation
-│   │   ├── config.py        # SignalConfig
-│   │   └── signal_catalog.json  # Signal metadata
+│   │   ├── indicators.py    # Indicator computation functions
+│   │   ├── transformations.py # Transformation functions
+│   │   ├── signal_composer.py # Four-stage composition
+│   │   ├── registry.py      # All four registries
+│   │   ├── orchestrator.py  # Batch computation
+│   │   ├── config.py        # Config dataclasses
+│   │   ├── indicator_transformation.json  # Indicator transformations
+│   │   ├── score_transformation.json      # Score transformations
+│   │   ├── signal_transformation.json     # Signal transformations
+│   │   └── signal_catalog.json  # Signal definitions (1:1:1 refs)
 │   ├── backtest/            # Backtesting engine
 │   │   ├── __init__.py
 │   │   ├── engine.py        # Core backtest engine

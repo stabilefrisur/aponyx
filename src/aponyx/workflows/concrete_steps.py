@@ -489,10 +489,17 @@ class BacktestStep(BaseWorkflowStep):
         # Run backtest using function (not class)
         result = run_backtest(signal, spread, backtest_config)
 
+        # Compute quick Sharpe for debug logging (handle zero std)
+        pnl_std = result.pnl["net_pnl"].std()
+        quick_sharpe = (
+            result.pnl["net_pnl"].mean() / pnl_std * (252**0.5)
+            if pnl_std > 0
+            else 0.0
+        )
         logger.debug(
             "Backtest complete: %d trades, sharpe=%.2f",
             result.positions["position"].diff().abs().sum() / 2,
-            result.pnl["net_pnl"].mean() / result.pnl["net_pnl"].std() * (252**0.5),
+            quick_sharpe,
         )
 
         # Save results
