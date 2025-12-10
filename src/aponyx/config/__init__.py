@@ -39,9 +39,14 @@ REGISTRY_PATH: Final[Path] = DATA_REGISTRIES_DIR / "registry.json"
 # Catalog paths (package-relative, included in distribution)
 SIGNAL_CATALOG_PATH: Final[Path] = PACKAGE_ROOT / "models/signal_catalog.json"
 STRATEGY_CATALOG_PATH: Final[Path] = PACKAGE_ROOT / "backtest/strategy_catalog.json"
-INDICATOR_CATALOG_PATH: Final[Path] = PACKAGE_ROOT / "models/indicator_catalog.json"
-TRANSFORMATION_CATALOG_PATH: Final[Path] = (
-    PACKAGE_ROOT / "models/transformation_catalog.json"
+
+# Transformation catalog paths (three-stage pipeline)
+INDICATOR_TRANSFORMATION_PATH: Final[Path] = (
+    PACKAGE_ROOT / "models/indicator_transformation.json"
+)
+SCORE_TRANSFORMATION_PATH: Final[Path] = PACKAGE_ROOT / "models/score_transformation.json"
+SIGNAL_TRANSFORMATION_PATH: Final[Path] = (
+    PACKAGE_ROOT / "models/signal_transformation.json"
 )
 
 # Bloomberg configuration paths (package-relative, included in distribution)

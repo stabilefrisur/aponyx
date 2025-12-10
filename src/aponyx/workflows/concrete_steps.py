@@ -196,19 +196,33 @@ class SignalStep(BaseWorkflowStep):
         # Get all market data from previous step (keyed by security ID)
         raw_market_data = context["data"]["market_data"]
 
-        # Load signal registry
+        # Load all registries for four-stage pipeline
+        from aponyx.config import (
+            INDICATOR_TRANSFORMATION_PATH,
+            SCORE_TRANSFORMATION_PATH,
+            SIGNAL_CATALOG_PATH,
+            SIGNAL_TRANSFORMATION_PATH,
+        )
+        from aponyx.models.registry import (
+            IndicatorTransformationRegistry,
+            ScoreTransformationRegistry,
+            SignalRegistry,
+            SignalTransformationRegistry,
+        )
+
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
+        score_registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
+        signal_transformation_registry = SignalTransformationRegistry(
+            SIGNAL_TRANSFORMATION_PATH
+        )
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
         # Get the specific signal metadata for this workflow
         signal_metadata = signal_registry.get_metadata(self.config.signal_name)
 
-        # Load indicator registry to get default_securities from indicators
-        from aponyx.config import INDICATOR_CATALOG_PATH
-        from aponyx.models.registry import IndicatorRegistry
-
-        indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
-
-        # Build securities mapping from first indicator's default_securities
+        # Build securities mapping from indicator's default_securities
         # (or use config override if provided)
         if self.config.security_mapping:
             securities_to_use = self.config.security_mapping
@@ -218,15 +232,13 @@ class SignalStep(BaseWorkflowStep):
                 securities_to_use,
             )
         else:
-            # Get default_securities from the first indicator
-            first_indicator_name = signal_metadata.indicator_dependencies[0]
-            first_indicator_metadata = indicator_registry.get_metadata(
-                first_indicator_name
-            )
-            securities_to_use = first_indicator_metadata.default_securities
+            # Get default_securities from the indicator
+            indicator_name = signal_metadata.indicator_transformation
+            indicator_metadata = indicator_registry.get_metadata(indicator_name)
+            securities_to_use = indicator_metadata.default_securities
             logger.info(
                 "Using default securities from indicator '%s' for signal '%s': %s",
-                first_indicator_name,
+                indicator_name,
                 self.config.signal_name,
                 securities_to_use,
             )
@@ -249,10 +261,21 @@ class SignalStep(BaseWorkflowStep):
                 len(raw_market_data[security_id]),
             )
 
-        # Compute the specific signal for this workflow
-        from aponyx.models.orchestrator import _compute_signal
+        # Compute the specific signal for this workflow using four-stage pipeline
+        from aponyx.models.signal_composer import compose_signal
 
-        signal = _compute_signal(signal_metadata, market_data)
+        signal = compose_signal(
+            signal_name=self.config.signal_name,
+            market_data=market_data,
+            indicator_registry=indicator_registry,
+            score_registry=score_registry,
+            signal_transformation_registry=signal_transformation_registry,
+            signal_registry=signal_registry,
+            indicator_transformation_override=self.config.indicator_transformation_override,
+            score_transformation_override=self.config.score_transformation_override,
+            signal_transformation_override=self.config.signal_transformation_override,
+            include_intermediates=False,
+        )
 
         logger.info(
             "Computed signal '%s': %d values, %.2f%% non-null",

@@ -13,6 +13,54 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+class CatalogValidationError(ValueError):
+    """
+    Validation error with structured information for catalog entries.
+
+    Attributes
+    ----------
+    catalog : str
+        Name of the catalog file (e.g., "signal_transformation.json")
+    entry : str
+        Name of the entry being validated
+    field : str
+        Field that failed validation
+    value : Any
+        Invalid value provided
+    constraint : str
+        Description of the constraint that was violated
+    suggestion : str
+        Suggested fix for the validation error
+    """
+
+    def __init__(
+        self,
+        catalog: str,
+        entry: str,
+        field: str,
+        value: Any,
+        constraint: str,
+        suggestion: str,
+    ):
+        self.catalog = catalog
+        self.entry = entry
+        self.field = field
+        self.value = value
+        self.constraint = constraint
+        self.suggestion = suggestion
+
+        message = (
+            f"Validation failed in {catalog} entry '{entry}': "
+            f"field '{field}' has value '{value}'. "
+            f"Constraint: {constraint}. "
+            f"Suggestion: {suggestion}"
+        )
+        super().__init__(message)
+
+
+logger = logging.getLogger(__name__)
+
+
 @dataclass(frozen=True)
 class IndicatorMetadata:
     """
@@ -140,25 +188,146 @@ class TransformationMetadata:
 
 
 @dataclass(frozen=True)
+class SignalTransformationMetadata:
+    """
+    Metadata for signal transformation stage.
+
+    Applies trading rules to convert scores into bounded trading signals.
+    Operations applied in order: scale → floor/cap → neutral_range.
+
+    Attributes
+    ----------
+    name : str
+        Unique identifier (lowercase with underscores).
+        Example: "bounded_1_5", "passthrough"
+    description : str
+        Human-readable explanation of transformation behavior.
+        Minimum 10 characters.
+    scaling : float
+        Multiplier applied first to the score.
+        Must be non-zero.
+        Default: 1.0
+    floor : float | None
+        Lower bound after scaling.
+        None = no lower bound (-inf).
+        Must be <= cap (if both specified).
+        Default: None
+    cap : float | None
+        Upper bound after scaling.
+        None = no upper bound (+inf).
+        Must be >= floor (if both specified).
+        Default: None
+    neutral_range : tuple[float, float] | None
+        Values within [low, high] set to zero.
+        None = no neutral zone.
+        Must satisfy neutral_range[0] <= neutral_range[1].
+        Default: None
+    enabled : bool
+        Whether transformation is available for use.
+        Default: True
+    """
+
+    name: str
+    description: str
+    scaling: float = 1.0
+    floor: float | None = None
+    cap: float | None = None
+    neutral_range: tuple[float, float] | None = None
+    enabled: bool = True
+
+    def __post_init__(self) -> None:
+        """Validate signal transformation metadata."""
+        # Validate name format
+        if not self.name or not re.match(r"^[a-z][a-z0-9_]*$", self.name):
+            raise CatalogValidationError(
+                catalog="signal_transformation.json",
+                entry=self.name,
+                field="name",
+                value=self.name,
+                constraint="Name must be lowercase with underscores only (^[a-z][a-z0-9_]*$)",
+                suggestion="Use lowercase letters, numbers, and underscores only",
+            )
+
+        # Validate description
+        if not self.description or len(self.description) < 10:
+            raise CatalogValidationError(
+                catalog="signal_transformation.json",
+                entry=self.name,
+                field="description",
+                value=self.description,
+                constraint="Description must be at least 10 characters",
+                suggestion="Provide a clear description of the transformation behavior",
+            )
+
+        # Validate scaling is non-zero
+        if self.scaling == 0.0:
+            raise CatalogValidationError(
+                catalog="signal_transformation.json",
+                entry=self.name,
+                field="scaling",
+                value=self.scaling,
+                constraint="Scaling must be non-zero",
+                suggestion="Use scaling != 0.0 (typically 1.0 for no scaling)",
+            )
+
+        # Validate floor <= cap (if both specified)
+        if self.floor is not None and self.cap is not None and self.floor > self.cap:
+            raise CatalogValidationError(
+                catalog="signal_transformation.json",
+                entry=self.name,
+                field="floor",
+                value=self.floor,
+                constraint=f"floor must be <= cap ({self.cap})",
+                suggestion=f"Set floor <= {self.cap} or cap >= {self.floor}",
+            )
+
+        # Validate neutral_range[0] <= neutral_range[1]
+        if self.neutral_range is not None:
+            if len(self.neutral_range) != 2:
+                raise CatalogValidationError(
+                    catalog="signal_transformation.json",
+                    entry=self.name,
+                    field="neutral_range",
+                    value=self.neutral_range,
+                    constraint="neutral_range must be a tuple of exactly 2 floats",
+                    suggestion="Use [low, high] format, e.g., [-0.25, 0.25]",
+                )
+            low, high = self.neutral_range
+            if low > high:
+                raise CatalogValidationError(
+                    catalog="signal_transformation.json",
+                    entry=self.name,
+                    field="neutral_range",
+                    value=self.neutral_range,
+                    constraint=f"neutral_range[0] ({low}) must be <= neutral_range[1] ({high})",
+                    suggestion=f"Use [{high}, {low}] or swap the values",
+                )
+
+
+@dataclass(frozen=True)
 class SignalMetadata:
     """
     Metadata for a registered signal computation.
 
-    SIGNAL COMPOSITION PATTERN
-    --------------------------
-    Every signal is ALWAYS composed from two components:
-    1. Indicator(s) - Economically interpretable metrics (spread differences, momentum, etc.)
-    2. Transformation(s) - Signal processing operations (z-score, volatility adjustment, etc.)
+    FOUR-STAGE TRANSFORMATION PIPELINE
+    -----------------------------------
+    Security → Indicator → Score → Signal → Position
 
-    This separation enables:
-    - Reusing indicators across multiple signals with different transformations
-    - Swapping transformations without recomputing indicators (caching efficiency)
-    - Clear attribution of signal behavior to economic driver vs. processing
-    - Runtime experimentation via indicator_override/transformation_override
+    Each signal references exactly one transformation from each stage (1:1:1 relationship):
+    1. Indicator Transformation - Computes economic metric from securities (e.g., spread difference in bps)
+    2. Score Transformation - Normalizes indicator to common scale (e.g., z-score)
+    3. Signal Transformation - Applies trading rules (floor, cap, neutral_range, scaling)
+
+    This structure enables:
+    - Clear separation of economic logic, normalization, and trading rules
+    - Independent inspection of each transformation stage for debugging
+    - Runtime overrides at any stage without recomputing upstream stages (caching efficiency)
+    - Explicit specification of all transformation parameters in catalog
 
     EXAMPLE: cdx_etf_basis signal
     - Indicator: "cdx_etf_spread_diff" (basis in raw bps)
-    - Transformation: "z_score_20d" (normalize to trading signal)
+    - Score: "z_score_20d" (normalize to dimensionless score)
+    - Signal: "passthrough" (no additional trading rules)
     - Result: Tradeable signal with positive = long credit risk
 
     Attributes
@@ -169,21 +338,18 @@ class SignalMetadata:
     description : str
         Human-readable description of signal purpose and logic.
         Minimum 10 characters.
-    indicator_dependencies : list[str]
-        List of indicator names required for this signal (REQUIRED, cannot be empty).
-        All indicators must exist in indicator_catalog.json.
-        For single-indicator signals: ["cdx_etf_spread_diff"]
-        For multi-indicator signals: ["indicator_a", "indicator_b"]
-    transformations : list[str]
-        List of transformation names to apply to indicators (REQUIRED, cannot be empty).
-        All transformations must exist in transformation_catalog.json.
-        For single-indicator signals: ["z_score_20d"] (applied to indicator)
-        For multi-indicator signals: ["z_score_20d", "z_score_60d"] (one per indicator)
-    composition_logic : str | None
-        Optional Python expression for combining multiple indicators.
-        ONLY used for multi-indicator signals (len(indicator_dependencies) > 1).
-        Example: "(indicator_a + indicator_b) / 2"
-        Default: None (single indicator, transformation applied directly)
+    indicator_transformation : str
+        Reference to indicator_transformation.json entry (REQUIRED).
+        Must exist in IndicatorTransformationRegistry.
+        Example: "cdx_etf_spread_diff"
+    score_transformation : str
+        Reference to score_transformation.json entry (REQUIRED).
+        Must exist in ScoreTransformationRegistry.
+        Example: "z_score_20d"
+    signal_transformation : str
+        Reference to signal_transformation.json entry (REQUIRED).
+        Must exist in SignalTransformationRegistry.
+        Example: "passthrough", "bounded_1_5"
     enabled : bool
         Whether signal should be included in computation.
         Default: True
@@ -196,20 +362,21 @@ class SignalMetadata:
 
     Notes
     -----
-    The indicator + transformation pattern is MANDATORY for all signals.
-    Signals without this structure will fail validation at registry load time.
+    All three transformation references are MANDATORY (no defaults).
+    Signals must explicitly specify all stages of the transformation pipeline.
 
     Runtime overrides (via WorkflowConfig):
-    - indicator_override: Swap indicator while keeping transformation
-    - transformation_override: Swap transformation while keeping indicator
+    - indicator_transformation_override: Swap indicator while keeping score/signal transformations
+    - score_transformation_override: Swap score transformation while keeping indicator/signal
+    - signal_transformation_override: Swap signal transformation while keeping indicator/score
     - security_mapping: Override which securities to load for indicator data requirements
     """
 
     name: str
     description: str
-    indicator_dependencies: list[str]
-    transformations: list[str]
-    composition_logic: str | None = None
+    indicator_transformation: str
+    score_transformation: str
+    signal_transformation: str
     enabled: bool = True
     sign_multiplier: int = 1
 
@@ -217,29 +384,64 @@ class SignalMetadata:
         """Validate signal metadata."""
         # Validate name format
         if not self.name or not re.match(r"^[a-z][a-z0-9_]*$", self.name):
-            raise ValueError(
-                f"Signal name must be lowercase with underscores, got: {self.name}"
+            raise CatalogValidationError(
+                catalog="signal_catalog.json",
+                entry=self.name,
+                field="name",
+                value=self.name,
+                constraint="Name must be lowercase with underscores only (^[a-z][a-z0-9_]*$)",
+                suggestion="Use lowercase letters, numbers, and underscores only",
             )
 
         # Validate description
         if not self.description or len(self.description) < 10:
-            raise ValueError(
-                f"Signal description must be at least 10 characters, got: {len(self.description)}"
+            raise CatalogValidationError(
+                catalog="signal_catalog.json",
+                entry=self.name,
+                field="description",
+                value=self.description,
+                constraint="Description must be at least 10 characters",
+                suggestion="Provide a clear description of signal purpose and logic",
             )
 
-        # Enforce indicator + transformation pattern (REQUIRED)
-        if not self.indicator_dependencies:
-            raise ValueError(
-                f"Signal '{self.name}' requires indicator_dependencies (cannot be empty)"
+        # Enforce explicit transformation references (REQUIRED, no defaults)
+        if not self.indicator_transformation:
+            raise CatalogValidationError(
+                catalog="signal_catalog.json",
+                entry=self.name,
+                field="indicator_transformation",
+                value=self.indicator_transformation,
+                constraint="indicator_transformation is required (cannot be empty)",
+                suggestion="Specify an indicator from indicator_transformation.json",
             )
 
-        if not self.transformations:
-            raise ValueError(
-                f"Signal '{self.name}' requires transformations (cannot be empty)"
+        if not self.score_transformation:
+            raise CatalogValidationError(
+                catalog="signal_catalog.json",
+                entry=self.name,
+                field="score_transformation",
+                value=self.score_transformation,
+                constraint="score_transformation is required (cannot be empty)",
+                suggestion="Specify a transformation from score_transformation.json",
+            )
+
+        if not self.signal_transformation:
+            raise CatalogValidationError(
+                catalog="signal_catalog.json",
+                entry=self.name,
+                field="signal_transformation",
+                value=self.signal_transformation,
+                constraint="signal_transformation is required (cannot be empty)",
+                suggestion="Specify a transformation from signal_transformation.json (e.g., 'passthrough')",
             )
 
         # Validate sign_multiplier is ±1
         if self.sign_multiplier not in (-1, 1):
-            raise ValueError(
-                f"sign_multiplier must be -1 or 1, got {self.sign_multiplier}"
+            raise CatalogValidationError(
+                catalog="signal_catalog.json",
+                entry=self.name,
+                field="sign_multiplier",
+                value=self.sign_multiplier,
+                constraint="sign_multiplier must be -1 or 1",
+                suggestion="Use 1 (no inversion) or -1 (invert sign)",
             )

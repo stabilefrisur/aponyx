@@ -155,52 +155,59 @@ def _compute_signal(
     market_data: dict[str, pd.DataFrame],
 ) -> pd.Series:
     """
-    Compute a single signal using indicator + transformation composition.
+    Compute a single signal using four-stage transformation pipeline.
 
-    Applies sign multiplier from catalog metadata.
+    Applies sign multiplier from catalog metadata (already applied in compose_signal).
 
     Parameters
     ----------
     metadata : SignalMetadata
-        Signal metadata with indicator_dependencies and transformations.
+        Signal metadata with indicator_transformation, score_transformation, signal_transformation.
     market_data : dict[str, pd.DataFrame]
         Available market data.
 
     Returns
     -------
     pd.Series
-        Computed signal with sign multiplier applied.
+        Computed signal (sign multiplier already applied).
 
     Raises
     ------
     ValueError
         If required data is missing or lacks required columns.
     """
-    from dataclasses import asdict
-
-    from ..config import INDICATOR_CATALOG_PATH, TRANSFORMATION_CATALOG_PATH
-    from .registry import IndicatorRegistry, TransformationRegistry
+    from ..config import (
+        INDICATOR_TRANSFORMATION_PATH,
+        SCORE_TRANSFORMATION_PATH,
+        SIGNAL_CATALOG_PATH,
+        SIGNAL_TRANSFORMATION_PATH,
+    )
+    from .registry import (
+        IndicatorTransformationRegistry,
+        ScoreTransformationRegistry,
+        SignalRegistry,
+        SignalTransformationRegistry,
+    )
     from .signal_composer import compose_signal
 
     # Lazy-load registries
-    indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
-    transformation_registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
-
-    # Compose signal using indicator + transformation pattern
-    raw_signal = compose_signal(
-        indicator_registry,
-        transformation_registry,
-        asdict(metadata),
-        market_data,
+    indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
+    score_registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
+    signal_transformation_registry = SignalTransformationRegistry(
+        SIGNAL_TRANSFORMATION_PATH
     )
+    signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
-    # Apply sign multiplier from catalog
-    signal = raw_signal * metadata.sign_multiplier
-
-    if metadata.sign_multiplier == -1:
-        logger.debug(
-            "Applied sign inversion to signal '%s'",
-            metadata.name,
-        )
+    # Compose signal using four-stage pipeline
+    # (sign multiplier already applied within compose_signal)
+    signal = compose_signal(
+        signal_name=metadata.name,
+        market_data=market_data,
+        indicator_registry=indicator_registry,
+        score_registry=score_registry,
+        signal_transformation_registry=signal_transformation_registry,
+        signal_registry=signal_registry,
+        include_intermediates=False,
+    )
 
     return signal

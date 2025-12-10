@@ -1,0 +1,29 @@
+[
+  {
+    "name": "passthrough",
+    "description": "No trading rule transformation (raw score as signal)",
+    "scaling": 1.0,
+    "floor": null,
+    "cap": null,
+    "neutral_range": null,
+    "enabled": true
+  },
+  {
+    "name": "bounded_1_5",
+    "description": "Signal bounded to [-1.5, 1.5] with neutral zone [-0.25, 0.25]",
+    "scaling": 1.0,
+    "floor": -1.5,
+    "cap": 1.5,
+    "neutral_range": [-0.25, 0.25],
+    "enabled": true
+  },
+  {
+    "name": "bounded_2_0",
+    "description": "Signal bounded to [-2.0, 2.0] without neutral zone",
+    "scaling": 1.0,
+    "floor": -2.0,
+    "cap": 2.0,
+    "neutral_range": null,
+    "enabled": true
+  }
+]

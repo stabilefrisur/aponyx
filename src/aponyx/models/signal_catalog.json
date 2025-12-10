@@ -2,24 +2,27 @@
   {
     "name": "cdx_etf_basis",
     "description": "Flow-driven mispricing signal from CDX-ETF basis divergence",
-    "indicator_dependencies": ["cdx_etf_spread_diff"],
-    "transformations": ["z_score_20d"],
+    "indicator_transformation": "cdx_etf_spread_diff",
+    "score_transformation": "z_score_20d",
+    "signal_transformation": "passthrough",
     "enabled": true,
     "sign_multiplier": 1
   },
   {
     "name": "cdx_vix_gap",
     "description": "Cross-asset risk sentiment divergence between credit and equity volatility",
-    "indicator_dependencies": ["cdx_vix_deviation_gap_20d"],
-    "transformations": ["z_score_60d"],
+    "indicator_transformation": "cdx_vix_deviation_gap_20d",
+    "score_transformation": "z_score_60d",
+    "signal_transformation": "passthrough",
     "enabled": true,
     "sign_multiplier": 1
   },
   {
     "name": "spread_momentum",
     "description": "Short-term volatility-adjusted momentum in CDX spreads",
-    "indicator_dependencies": ["spread_momentum_5d"],
-    "transformations": ["volatility_adjust_20d"],
+    "indicator_transformation": "spread_momentum_5d",
+    "score_transformation": "volatility_adjust_20d",
+    "signal_transformation": "passthrough",
     "enabled": true,
     "sign_multiplier": 1
   }

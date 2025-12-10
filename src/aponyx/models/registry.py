@@ -13,28 +13,34 @@ import logging
 from dataclasses import asdict
 from pathlib import Path
 
-from .metadata import IndicatorMetadata, SignalMetadata, TransformationMetadata
+from .metadata import (
+    CatalogValidationError,
+    IndicatorMetadata,
+    SignalMetadata,
+    SignalTransformationMetadata,
+    TransformationMetadata,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class IndicatorRegistry:
+class IndicatorTransformationRegistry:
     """
-    Registry for indicator catalog with JSON persistence and fail-fast validation.
+    Registry for indicator transformation catalog with JSON persistence and fail-fast validation.
 
-    Manages indicator definitions from the catalog JSON file, validates that
+    Manages indicator transformation definitions from the catalog JSON file, validates that
     referenced compute functions exist, and provides query interfaces for
-    enabled/disabled indicators.
+    enabled/disabled indicator transformations.
 
     Parameters
     ----------
     catalog_path : str | Path
-        Path to JSON catalog file containing indicator metadata.
+        Path to JSON catalog file containing indicator transformation metadata.
 
     Examples
     --------
-    >>> from aponyx.config import INDICATOR_CATALOG_PATH
-    >>> registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+    >>> from aponyx.config import INDICATOR_TRANSFORMATION_PATH
+    >>> registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
     >>> enabled = registry.get_enabled()
     >>> metadata = registry.get_metadata("cdx_etf_spread_diff")
     """
@@ -286,22 +292,22 @@ class IndicatorRegistry:
         )
 
 
-class TransformationRegistry:
+class ScoreTransformationRegistry:
     """
-    Registry for transformation catalog with JSON persistence and validation.
+    Registry for score transformation catalog with JSON persistence and validation.
 
-    Manages transformation definitions from the catalog JSON file and provides
-    query interfaces for enabled/disabled transformations.
+    Manages score transformation definitions from the catalog JSON file and provides
+    query interfaces for enabled/disabled score transformations.
 
     Parameters
     ----------
     catalog_path : str | Path
-        Path to JSON catalog file containing transformation metadata.
+        Path to JSON catalog file containing score transformation metadata.
 
     Examples
     --------
-    >>> from aponyx.config import TRANSFORMATION_CATALOG_PATH
-    >>> registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
+    >>> from aponyx.config import SCORE_TRANSFORMATION_PATH
+    >>> registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
     >>> enabled = registry.get_enabled()
     >>> metadata = registry.get_metadata("z_score_20d")
     """
@@ -453,6 +459,188 @@ class TransformationRegistry:
         )
 
 
+class SignalTransformationRegistry:
+    """
+    Registry for signal transformation catalog with JSON persistence and fail-fast validation.
+
+    Manages signal transformation definitions (floor, cap, neutral_range, scaling) from
+    the catalog JSON file and provides query interfaces for enabled/disabled signal transformations.
+
+    Parameters
+    ----------
+    catalog_path : str | Path
+        Path to JSON catalog file containing signal transformation metadata.
+
+    Examples
+    --------
+    >>> from aponyx.config import SIGNAL_TRANSFORMATION_PATH
+    >>> registry = SignalTransformationRegistry(SIGNAL_TRANSFORMATION_PATH)
+    >>> enabled = registry.get_enabled()
+    >>> metadata = registry.get_metadata("bounded_1_5")
+    """
+
+    def __init__(self, catalog_path: str | Path) -> None:
+        """
+        Initialize registry and load catalog from JSON file.
+
+        Parameters
+        ----------
+        catalog_path : str | Path
+            Path to JSON catalog file.
+
+        Raises
+        ------
+        FileNotFoundError
+            If catalog file does not exist.
+        ValueError
+            If catalog JSON is invalid or contains duplicate transformation names.
+        CatalogValidationError
+            If any transformation violates constraints (floor > cap, etc.).
+        """
+        self._catalog_path = Path(catalog_path)
+        self._signal_transformations: dict[str, SignalTransformationMetadata] = {}
+        self._load_catalog()
+
+        logger.info(
+            "Loaded signal transformation registry: catalog=%s, transformations=%d, enabled=%d",
+            self._catalog_path,
+            len(self._signal_transformations),
+            len(self.get_enabled()),
+        )
+
+    def _load_catalog(self) -> None:
+        """Load signal transformation metadata from JSON catalog file."""
+        if not self._catalog_path.exists():
+            raise FileNotFoundError(
+                f"Signal transformation catalog not found: {self._catalog_path}"
+            )
+
+        with open(self._catalog_path, "r", encoding="utf-8") as f:
+            catalog_data = json.load(f)
+
+        if not isinstance(catalog_data, list):
+            raise ValueError("Signal transformation catalog must be a JSON array")
+
+        for entry in catalog_data:
+            try:
+                # Convert neutral_range from list to tuple for frozen dataclass
+                if "neutral_range" in entry and entry["neutral_range"] is not None:
+                    entry["neutral_range"] = tuple(entry["neutral_range"])
+                
+                metadata = SignalTransformationMetadata(**entry)
+                if metadata.name in self._signal_transformations:
+                    raise ValueError(
+                        f"Duplicate signal transformation name in catalog: {metadata.name}"
+                    )
+                self._signal_transformations[metadata.name] = metadata
+            except TypeError as e:
+                raise ValueError(
+                    f"Invalid signal transformation metadata in catalog: {entry}. Error: {e}"
+                ) from e
+
+        logger.debug(
+            "Loaded %d signal transformations from catalog",
+            len(self._signal_transformations),
+        )
+
+    def get_metadata(self, name: str) -> SignalTransformationMetadata:
+        """
+        Retrieve metadata for a specific signal transformation.
+
+        Parameters
+        ----------
+        name : str
+            Signal transformation name.
+
+        Returns
+        -------
+        SignalTransformationMetadata
+            Signal transformation metadata.
+
+        Raises
+        ------
+        KeyError
+            If signal transformation name is not registered.
+        """
+        if name not in self._signal_transformations:
+            raise KeyError(
+                f"Signal transformation '{name}' not found in registry. "
+                f"Available signal transformations: {sorted(self._signal_transformations.keys())}"
+            )
+        return self._signal_transformations[name]
+
+    def get_enabled(self) -> dict[str, SignalTransformationMetadata]:
+        """
+        Get all enabled signal transformations.
+
+        Returns
+        -------
+        dict[str, SignalTransformationMetadata]
+            Mapping from transformation name to metadata for enabled transformations only.
+        """
+        return {
+            name: meta
+            for name, meta in self._signal_transformations.items()
+            if meta.enabled
+        }
+
+    def list_all(self) -> dict[str, SignalTransformationMetadata]:
+        """
+        Get all registered signal transformations (enabled and disabled).
+
+        Returns
+        -------
+        dict[str, SignalTransformationMetadata]
+            Mapping from transformation name to metadata for all transformations.
+        """
+        return self._signal_transformations.copy()
+
+    def transformation_exists(self, name: str) -> bool:
+        """
+        Check if signal transformation is registered.
+
+        Parameters
+        ----------
+        name : str
+            Signal transformation name.
+
+        Returns
+        -------
+        bool
+            True if signal transformation exists in registry.
+        """
+        return name in self._signal_transformations
+
+    def save_catalog(self, path: str | Path | None = None) -> None:
+        """
+        Save signal transformation metadata to JSON catalog file.
+
+        Parameters
+        ----------
+        path : str | Path | None
+            Output path. If None, overwrites original catalog file.
+        """
+        output_path = Path(path) if path else self._catalog_path
+
+        # Convert tuples back to lists for JSON serialization
+        catalog_data = []
+        for meta in self._signal_transformations.values():
+            entry = asdict(meta)
+            if entry["neutral_range"] is not None:
+                entry["neutral_range"] = list(entry["neutral_range"])
+            catalog_data.append(entry)
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(catalog_data, f, indent=2)
+
+        logger.info(
+            "Saved signal transformation catalog: path=%s, transformations=%d",
+            output_path,
+            len(catalog_data),
+        )
+
+
 class SignalRegistry:
     """
     Registry for signal catalog with JSON persistence and fail-fast validation.
@@ -537,25 +725,55 @@ class SignalRegistry:
 
     def _validate_catalog(self) -> None:
         """
-        Validate that all signal indicator and transformation references exist.
+        Validate that all signal transformation references are non-empty strings.
+
+        Validates the four-stage transformation pipeline references:
+        - indicator_transformation (reference to indicator_transformation.json)
+        - score_transformation (reference to score_transformation.json)
+        - signal_transformation (reference to signal_transformation.json)
+
+        Note: This method validates structure only. Cross-registry validation
+        (checking if referenced transformations exist) is performed at compose_signal
+        time when all registries are available.
 
         Raises
         ------
-        ValueError
-            If indicator_dependencies or transformations are empty,
-            or if any referenced indicators/transformations don't exist.
+        CatalogValidationError
+            If any transformation reference is empty or missing.
         """
         for name, metadata in self._signals.items():
-            # Enforce non-empty indicator_dependencies and transformations
-            if not metadata.indicator_dependencies:
-                raise ValueError(
-                    f"Signal '{name}' requires non-empty indicator_dependencies"
+            # Enforce non-empty transformation references
+            if not metadata.indicator_transformation:
+                raise CatalogValidationError(
+                    catalog="signal_catalog.json",
+                    entry=name,
+                    field="indicator_transformation",
+                    value=metadata.indicator_transformation,
+                    constraint="indicator_transformation is required (cannot be empty)",
+                    suggestion="Specify an indicator from indicator_transformation.json",
                 )
 
-            if not metadata.transformations:
-                raise ValueError(f"Signal '{name}' requires non-empty transformations")
+            if not metadata.score_transformation:
+                raise CatalogValidationError(
+                    catalog="signal_catalog.json",
+                    entry=name,
+                    field="score_transformation",
+                    value=metadata.score_transformation,
+                    constraint="score_transformation is required (cannot be empty)",
+                    suggestion="Specify a transformation from score_transformation.json",
+                )
 
-        logger.debug("Validated signal metadata requirements")
+            if not metadata.signal_transformation:
+                raise CatalogValidationError(
+                    catalog="signal_catalog.json",
+                    entry=name,
+                    field="signal_transformation",
+                    value=metadata.signal_transformation,
+                    constraint="signal_transformation is required (cannot be empty)",
+                    suggestion="Specify a transformation from signal_transformation.json (e.g., 'passthrough')",
+                )
+
+        logger.debug("Validated signal metadata transformation references")
 
     def get_metadata(self, name: str) -> SignalMetadata:
         """
