@@ -267,8 +267,9 @@ def test_metadata_structure_consistency() -> None:
 
     # Config should be dict-like
     assert isinstance(result.metadata["config"], dict)
-    assert "entry_threshold" in result.metadata["config"]
+    assert "position_size_mm" in result.metadata["config"]
     assert "signal_lag" in result.metadata["config"]
+    assert "sizing_mode" in result.metadata["config"]
 
     # Summary should have key stats
     assert "n_trades" in result.metadata["summary"]

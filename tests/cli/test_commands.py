@@ -331,8 +331,8 @@ def test_run_command_minimal_config(runner, mock_workflow_engine, tmp_path):
     assert "Indicator Transform:      spread_momentum_5d [from signal]" in result.output
     assert "Score Transform:          volatility_adjust_20d [from signal]" in result.output
     assert "Signal Transform:         passthrough [from signal]" in result.output
-    assert "Steps:           all [default]" in result.output
-    assert "Force re-run:    False [default]" in result.output
+    assert "Steps:                    all [default]" in result.output
+    assert "Force re-run:             False [default]" in result.output
     assert "Completed 6 steps" in result.output
 
 
@@ -365,8 +365,8 @@ def test_run_command_complete_config(runner, mock_workflow_engine, tmp_path):
     assert "Signal Transform:         bounded_2_0 [config]" in result.output
     assert "Securities:               cdx:cdx_ig_5y, etf:lqd [config]" in result.output
     assert "Data:                     bloomberg [config]" in result.output
-    assert "Steps:           data, signal, backtest [config]" in result.output
-    assert "Force re-run:    True [config]" in result.output
+    assert "Steps:                    data, signal, backtest [config]" in result.output
+    assert "Force re-run:             True [config]" in result.output
 
 
 def test_run_command_indicator_override_only(runner, mock_workflow_engine, tmp_path):

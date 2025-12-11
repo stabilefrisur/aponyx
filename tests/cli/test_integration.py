@@ -324,7 +324,7 @@ def test_error_recovery_workflow(runner, tmp_path):
 
         result = runner.invoke(cli, ["run", str(config_file)])
         assert result.exit_code == 0
-        assert "Force re-run:    True [config]" in result.output
+        assert "Force re-run:             True [config]" in result.output
 
 
 def test_yaml_config_workflow(runner, tmp_path):
