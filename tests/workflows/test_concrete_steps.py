@@ -409,9 +409,11 @@ class TestSuitabilityStep:
         from pathlib import Path
 
         mock_output_dir = Path("/mock/spread_momentum_balanced_20241120_123456")
+        # Pass market_data with security_id keys (e.g., "cdx_ig_5y")
+        # The step expects the product ID as the key
         context = {
             "signal": {"signal": sample_signal},
-            "data": {"market_data": sample_market_data},
+            "data": {"market_data": {"cdx_ig_5y": sample_market_data["cdx"]}},
             "output_dir": mock_output_dir,
         }
         result = step.execute(context)
@@ -456,9 +458,10 @@ class TestBacktestStep:
         mock_run_backtest.return_value = sample_backtest_result
 
         step = BacktestStep(workflow_config)
+        # Pass market_data with security_id keys (e.g., "cdx_ig_5y")
         context = {
             "signal": {"signal": sample_signal},
-            "data": {"market_data": sample_market_data},
+            "data": {"market_data": {"cdx_ig_5y": sample_market_data["cdx"]}},
             "suitability": {"product": "cdx_ig_5y"},
         }
         result = step.execute(context)
@@ -493,9 +496,10 @@ class TestBacktestStep:
         mock_run_backtest.return_value = sample_backtest_result
 
         step = BacktestStep(workflow_config)
+        # Pass market_data with security_id keys (e.g., "cdx_ig_5y")
         context = {
             "signal": {"signal": sample_signal},
-            "data": {"market_data": sample_market_data},
+            "data": {"market_data": {"cdx_ig_5y": sample_market_data["cdx"]}},
             "suitability": {"product": "cdx_ig_5y"},
         }
         step.execute(context)

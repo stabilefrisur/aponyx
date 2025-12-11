@@ -23,7 +23,7 @@ uv run ruff check src/     # Linting
 
 # CLI workflows
 uv run aponyx run examples/workflow_minimal.yaml
-uv run aponyx report minimal_test
+uv run aponyx report --workflow minimal_test
 uv run aponyx list signals
 ```
 
@@ -481,21 +481,24 @@ signal = compose_signal(
 **Purpose**: Convert signals to positions and simulate P&L
 
 **Patterns**:
-- Threshold-based positions (entry/exit hysteresis)
-- Binary sizing (+1, 0, -1 only)
+- Signal-based position triggers (non-zero signal = enter, zero signal = exit)
+- Binary sizing mode: full position for any non-zero signal
+- PnL-based exits with cooldown (stop_loss_pct, take_profit_pct)
 - DV01-based P&L calculation
 - Transaction costs on entry/exit
 - StrategyRegistry with frozen metadata
 
 **Example**:
 ```python
-config = BacktestConfig(entry_threshold=1.5, exit_threshold=0.75, position_size=10.0)
+config = BacktestConfig(position_size_mm=10.0, sizing_mode="binary", stop_loss_pct=5.0)
 result = run_backtest(signal, spread, config)
 # Returns: BacktestResult with positions DataFrame, pnl DataFrame, metadata
 ```
 
 **Constraints**:
-- entry_threshold MUST be > exit_threshold (validated)
+- position_size_mm MUST be > 0 (validated)
+- sizing_mode must be 'binary' or 'proportional' (only 'binary' implemented)
+- stop_loss_pct/take_profit_pct must be in (0, 100] when specified
 - Single-asset only (no portfolios)
 - P&L = position * (-spread_change) * DV01 * notional / 1M
 - Deterministic execution (same inputs = same outputs)
@@ -710,9 +713,14 @@ def compute_my_indicator(
 ```json
 {
   "name": "my_strategy",
-  "description": "Custom threshold configuration",
-  "entry_threshold": 2.0,
-  "exit_threshold": 1.0,
+  "description": "Custom risk management configuration",
+  "position_size_mm": 10.0,
+  "sizing_mode": "binary",
+  "stop_loss_pct": 5.0,
+  "take_profit_pct": 10.0,
+  "max_holding_days": null,
+  "transaction_cost_bps": 1.0,
+  "dv01_per_million": 4750.0,
   "enabled": true
 }
 ```
@@ -992,15 +1000,23 @@ class ZScoreCalculator:
 @dataclass(frozen=True)
 class StrategyMetadata:
     name: str
-    entry_threshold: float
-    exit_threshold: float
+    position_size_mm: float = 10.0
+    sizing_mode: str = "binary"
+    stop_loss_pct: float | None = None
+    take_profit_pct: float | None = None
     
-    def to_config(self, **overrides) -> BacktestConfig:
+    def to_config(
+        self,
+        position_size_mm_override: float | None = None,
+        stop_loss_pct_override: float | None = None,
+        **overrides,
+    ) -> BacktestConfig:
         """Convert metadata to runtime config with overrides."""
         return BacktestConfig(
-            entry_threshold=overrides.get("entry_threshold", self.entry_threshold),
-            exit_threshold=overrides.get("exit_threshold", self.exit_threshold),
-            position_size=overrides.get("position_size", 10.0),  # Runtime default
+            position_size_mm=position_size_mm_override or self.position_size_mm,
+            sizing_mode=self.sizing_mode,
+            stop_loss_pct=stop_loss_pct_override or self.stop_loss_pct,
+            take_profit_pct=self.take_profit_pct,
         )
 ```
 

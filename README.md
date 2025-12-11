@@ -141,10 +141,12 @@ suitability_config = SuitabilityConfig(rolling_window=252)  # ~1 year daily data
 suitability = evaluate_signal_suitability(signal, cdx_df["spread"], suitability_config)
 print(f"Suitability: {suitability.composite_score:.2f} ({suitability.decision})")
 
-# Run backtest with transaction costs
+# Run backtest with transaction costs and risk management
 backtest_config = BacktestConfig(
-    entry_threshold=1.5,
-    exit_threshold=0.75,
+    position_size_mm=10.0,          # $10MM notional
+    sizing_mode="binary",           # Full position for any non-zero signal
+    stop_loss_pct=5.0,              # Exit if PnL falls 5% below entry value
+    take_profit_pct=10.0,           # Exit if PnL rises 10% above entry value
     transaction_cost_bps=1.0
 )
 results = run_backtest(signal, cdx_df["spread"], backtest_config)
@@ -243,16 +245,16 @@ aponyx run examples/workflow_complete.yaml
 
 ```bash
 # Console output with formatted tables (by label)
-aponyx report minimal_test
+aponyx report --workflow minimal_test
 
 # By numeric index (0 = most recent, ephemeral)
-aponyx report 0
+aponyx report --workflow 0
 
 # Markdown file (default location: reports/)
-aponyx report minimal_test --format markdown
+aponyx report --workflow minimal_test --format markdown
 
 # HTML file with styled formatting
-aponyx report minimal_test --format html --output custom_report.html
+aponyx report --workflow minimal_test --format html --output custom_report.html
 ```
 
 Reports aggregate suitability evaluation and performance analysis with comprehensive metrics and visualizations.

@@ -363,9 +363,9 @@ class SuitabilityStep(BaseWorkflowStep):
         # Get product from workflow config
         product = self.config.product
 
-        # Load spread data for product
-        data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
-        spread_df = self._load_spread_for_product(data_registry, product)
+        # Load spread data for product from DataStep context
+        market_data = context["data"]["market_data"]
+        spread_df = self._load_spread_for_product(market_data, product)
 
         # Compute forward returns for evaluation
         forward_returns = compute_forward_returns(spread_df["spread"], lags=[1])
@@ -423,15 +423,15 @@ class SuitabilityStep(BaseWorkflowStep):
         return {"suitability_result": None, "product": product}
 
     def _load_spread_for_product(
-        self, data_registry: DataRegistry, product: str
+        self, market_data: dict[str, pd.DataFrame], product: str
     ) -> pd.DataFrame:
         """
-        Load spread data for product from registry.
+        Load spread data for product from market data context.
 
         Parameters
         ----------
-        data_registry : DataRegistry
-            Data registry instance.
+        market_data : dict[str, pd.DataFrame]
+            Market data from DataStep context.
         product : str
             Product identifier (e.g., "cdx_ig_5y").
 
@@ -445,7 +445,13 @@ class SuitabilityStep(BaseWorkflowStep):
         ValueError
             If no dataset found for product.
         """
-        return data_registry.load_dataset_by_security(product)
+        if product not in market_data:
+            available = sorted(market_data.keys())
+            raise ValueError(
+                f"No dataset found for security '{product}'. "
+                f"Available datasets: {available}"
+            )
+        return market_data[product]
 
 
 class BacktestStep(BaseWorkflowStep):
@@ -464,9 +470,9 @@ class BacktestStep(BaseWorkflowStep):
         # Get product from config, or from suitability step if available
         product = context.get("suitability", {}).get("product") or self.config.product
 
-        # Load spread data for backtest
-        data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
-        spread_df = self._load_spread_for_product(data_registry, product)
+        # Load spread data for backtest from DataStep context
+        market_data = context["data"]["market_data"]
+        spread_df = self._load_spread_for_product(market_data, product)
         spread = spread_df["spread"]
 
         # Align signal and spread to common dates
@@ -542,15 +548,15 @@ class BacktestStep(BaseWorkflowStep):
         return {"backtest_result": result}
 
     def _load_spread_for_product(
-        self, data_registry: DataRegistry, product: str
+        self, market_data: dict[str, pd.DataFrame], product: str
     ) -> pd.DataFrame:
         """
-        Load spread data for product from registry.
+        Load spread data for product from market data context.
 
         Parameters
         ----------
-        data_registry : DataRegistry
-            Data registry instance.
+        market_data : dict[str, pd.DataFrame]
+            Market data from DataStep context.
         product : str
             Product identifier (e.g., "cdx_ig_5y").
 
@@ -564,7 +570,13 @@ class BacktestStep(BaseWorkflowStep):
         ValueError
             If no dataset found for product.
         """
-        return data_registry.load_dataset_by_security(product)
+        if product not in market_data:
+            available = sorted(market_data.keys())
+            raise ValueError(
+                f"No dataset found for security '{product}'. "
+                f"Available datasets: {available}"
+            )
+        return market_data[product]
 
 
 class PerformanceStep(BaseWorkflowStep):

@@ -768,9 +768,10 @@ src/aponyx/
   - Adapter stubs for vectorbt and quantstats integration (commented)
   - Clean separation of engine logic from external libraries
 - **Position Logic:**
-  - Long position (sell protection) when signal > entry_threshold
-  - Short position (buy protection) when signal < -entry_threshold
-  - Exit when |signal| < exit_threshold or max_holding_days reached
+  - Signal-based triggers: non-zero signal = enter, zero signal = exit
+  - Long position (sell protection) when signal > 0
+  - Short position (buy protection) when signal < 0
+  - PnL-based exits with cooldown (stop_loss_pct, take_profit_pct)
   - Position tracking with days_held counter
 - **P&L Calculation:**
   - DV01-based spread P&L calculation
@@ -780,7 +781,7 @@ src/aponyx/
 
 **Key Features:**
 - Deterministic backtest execution
-- Entry/exit threshold hysteresis prevents whipsaw
+- Signal-based triggers with PnL-based risk management
 - Transaction costs applied symmetrically
 - Metadata logged for reproducibility
 - Trade-level statistics with P&L aggregation
