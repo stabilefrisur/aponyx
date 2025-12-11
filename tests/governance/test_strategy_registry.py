@@ -18,19 +18,18 @@ def test_strategy_metadata_validation() -> None:
     metadata = StrategyMetadata(
         name="test",
         description="Test strategy",
-        entry_threshold=2.0,
-        exit_threshold=1.0,
+        position_size_mm=10.0,
+        sizing_mode="binary",
     )
     assert metadata.name == "test"
-    assert metadata.entry_threshold == 2.0
+    assert metadata.position_size_mm == 10.0
 
-    # Invalid: entry <= exit
-    with pytest.raises(ValueError, match="entry_threshold.*must be >"):
+    # Invalid: negative position size
+    with pytest.raises(ValueError, match="position_size_mm must be positive"):
         StrategyMetadata(
             name="invalid",
             description="Invalid",
-            entry_threshold=1.0,
-            exit_threshold=1.0,
+            position_size_mm=-1.0,
         )
 
     # Invalid: empty name
@@ -38,8 +37,7 @@ def test_strategy_metadata_validation() -> None:
         StrategyMetadata(
             name="",
             description="No name",
-            entry_threshold=2.0,
-            exit_threshold=1.0,
+            position_size_mm=10.0,
         )
 
 
@@ -48,27 +46,24 @@ def test_strategy_metadata_to_config() -> None:
     metadata = StrategyMetadata(
         name="aggressive",
         description="Aggressive strategy",
-        entry_threshold=1.0,
-        exit_threshold=0.5,
+        position_size_mm=15.0,
+        stop_loss_pct=10.0,
     )
 
     # Use defaults
     config = metadata.to_config()
     assert isinstance(config, BacktestConfig)
-    assert config.entry_threshold == 1.0
-    assert config.exit_threshold == 0.5
-    assert config.position_size == 10.0  # Default
+    assert config.position_size_mm == 15.0
+    assert config.stop_loss_pct == 10.0
     assert config.transaction_cost_bps == 1.0  # Default
 
     # Override defaults
     config = metadata.to_config(
-        position_size=20.0,
-        transaction_cost_bps=1.5,
-        max_holding_days=10,
+        position_size_mm_override=20.0,
+        stop_loss_pct_override=5.0,
     )
-    assert config.position_size == 20.0
-    assert config.transaction_cost_bps == 1.5
-    assert config.max_holding_days == 10
+    assert config.position_size_mm == 20.0
+    assert config.stop_loss_pct == 5.0
 
 
 def test_strategy_registry_loads_catalog() -> None:
@@ -90,8 +85,8 @@ def test_strategy_registry_get_metadata() -> None:
 
     metadata = registry.get_metadata("balanced")
     assert metadata.name == "balanced"
-    assert metadata.entry_threshold == 1.5
-    assert metadata.exit_threshold == 0.75
+    assert metadata.position_size_mm == 10.0
+    assert metadata.stop_loss_pct == 5.0
 
     # Non-existent strategy
     with pytest.raises(KeyError, match="not found"):
@@ -104,15 +99,15 @@ def test_strategy_registry_get_enabled() -> None:
         {
             "name": "enabled_strategy",
             "description": "Enabled",
-            "entry_threshold": 2.0,
-            "exit_threshold": 1.0,
+            "position_size_mm": 10.0,
+            "sizing_mode": "binary",
             "enabled": True,
         },
         {
             "name": "disabled_strategy",
             "description": "Disabled",
-            "entry_threshold": 1.5,
-            "exit_threshold": 0.75,
+            "position_size_mm": 10.0,
+            "sizing_mode": "binary",
             "enabled": False,
         },
     ]
@@ -155,14 +150,14 @@ def test_strategy_registry_duplicate_names() -> None:
         {
             "name": "duplicate",
             "description": "First",
-            "entry_threshold": 2.0,
-            "exit_threshold": 1.0,
+            "position_size_mm": 10.0,
+            "sizing_mode": "binary",
         },
         {
             "name": "duplicate",
             "description": "Second",
-            "entry_threshold": 1.5,
-            "exit_threshold": 0.75,
+            "position_size_mm": 10.0,
+            "sizing_mode": "binary",
         },
     ]
 
@@ -181,8 +176,8 @@ def test_strategy_registry_save_catalog() -> None:
         {
             "name": "test_strategy",
             "description": "Test",
-            "entry_threshold": 2.0,
-            "exit_threshold": 1.0,
+            "position_size_mm": 10.0,
+            "sizing_mode": "binary",
             "enabled": True,
         },
     ]
@@ -210,13 +205,13 @@ def test_strategy_registry_save_catalog() -> None:
 
 
 def test_strategy_registry_fail_fast_validation() -> None:
-    """Test that invalid thresholds fail at load time."""
+    """Test that invalid position size fails at load time."""
     catalog_data = [
         {
             "name": "invalid",
-            "description": "Invalid thresholds",
-            "entry_threshold": 0.5,  # Less than exit
-            "exit_threshold": 1.0,
+            "description": "Invalid position size",
+            "position_size_mm": -5.0,  # Negative
+            "sizing_mode": "binary",
             "enabled": True,
         },
     ]
@@ -227,5 +222,5 @@ def test_strategy_registry_fail_fast_validation() -> None:
             json.dump(catalog_data, f)
 
         # Should fail during registry initialization
-        with pytest.raises(ValueError, match="entry_threshold.*must be >"):
+        with pytest.raises(ValueError, match="position_size_mm must be positive"):
             StrategyRegistry(catalog_path)

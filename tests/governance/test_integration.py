@@ -48,8 +48,8 @@ def test_registries_enforce_deterministic_loading() -> None:
         {
             "name": "test_strategy",
             "description": "Test",
-            "entry_threshold": 2.0,
-            "exit_threshold": 1.0,
+            "position_size_mm": 10.0,
+            "sizing_mode": "binary",
             "enabled": True,
         },
     ]
@@ -73,8 +73,8 @@ def test_registries_enforce_deterministic_loading() -> None:
         for name in strategies1.keys():
             meta1 = strategies1[name]
             meta2 = strategies2[name]
-            assert meta1.entry_threshold == meta2.entry_threshold
-            assert meta1.exit_threshold == meta2.exit_threshold
+            assert meta1.position_size_mm == meta2.position_size_mm
+            assert meta1.sizing_mode == meta2.sizing_mode
 
 
 def test_catalog_validation_prevents_invalid_state() -> None:
@@ -101,13 +101,13 @@ def test_catalog_validation_prevents_invalid_state() -> None:
         except ValueError as e:
             assert "Invalid signal metadata" in str(e)
 
-    # Invalid strategy catalog (bad thresholds)
+    # Invalid strategy catalog (bad position size)
     strategy_catalog = [
         {
             "name": "invalid_strategy",
             "description": "Invalid",
-            "entry_threshold": 0.5,
-            "exit_threshold": 1.0,
+            "position_size_mm": -5.0,
+            "sizing_mode": "binary",
             "enabled": True,
         },
     ]
@@ -120,9 +120,9 @@ def test_catalog_validation_prevents_invalid_state() -> None:
         # Should fail at load time
         try:
             StrategyRegistry(catalog_path)
-            assert False, "Expected ValueError for invalid thresholds"
+            assert False, "Expected ValueError for invalid position size"
         except ValueError as e:
-            assert "entry_threshold" in str(e) and "must be >" in str(e)
+            assert "position_size_mm must be positive" in str(e)
 
 
 def test_cross_layer_integration() -> None:
@@ -143,8 +143,8 @@ def test_cross_layer_integration() -> None:
 
     # Verify conversion to BacktestConfig
     config = strategy_metadata.to_config()
-    assert config.entry_threshold == strategy_metadata.entry_threshold
-    assert config.exit_threshold == strategy_metadata.exit_threshold
+    assert config.position_size_mm == strategy_metadata.position_size_mm
+    assert config.stop_loss_pct == strategy_metadata.stop_loss_pct
 
 
 def test_json_persistence_roundtrip() -> None:
@@ -153,8 +153,9 @@ def test_json_persistence_roundtrip() -> None:
         {
             "name": "roundtrip_test",
             "description": "Test roundtrip",
-            "entry_threshold": 1.234,
-            "exit_threshold": 0.567,
+            "position_size_mm": 12.5,
+            "sizing_mode": "binary",
+            "stop_loss_pct": 5.0,
             "enabled": True,
         },
     ]
@@ -177,5 +178,5 @@ def test_json_persistence_roundtrip() -> None:
 
         assert len(saved_data) == len(original_data)
         assert saved_data[0]["name"] == original_data[0]["name"]
-        assert saved_data[0]["entry_threshold"] == original_data[0]["entry_threshold"]
-        assert saved_data[0]["exit_threshold"] == original_data[0]["exit_threshold"]
+        assert saved_data[0]["position_size_mm"] == original_data[0]["position_size_mm"]
+        assert saved_data[0]["stop_loss_pct"] == original_data[0]["stop_loss_pct"]
