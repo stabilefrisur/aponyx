@@ -100,20 +100,22 @@ uv run aponyx run examples/workflow_complete.yaml
 
 **Terminal Output:**
 ```
-Label: minimal_test [config]
-Signal: spread_momentum [config]
-Product: cdx_ig_5y [config]
-Strategy: balanced [config]
-Indicator Transformation: spread_momentum_5d [from signal]
-Score Transformation: volatility_adjust_20d [from signal]
-Signal Transformation: passthrough [from signal]
-Securities: {'cdx': 'cdx_ig_5y'} [from indicator]
-Data: synthetic [default]
-Steps: all [default]
-Force re-run: False [default]
+=== Workflow Configuration ===
+Label:                    minimal_test [config]
+Product:                  cdx_ig_5y [config]
+Signal:                   spread_momentum [config]
+Indicator Transform:      spread_momentum_5d [from signal]
+Securities:               cdx:cdx_ig_5y [from indicator]
+Score Transform:          volatility_adjust_20d [from signal]
+Signal Transform:         passthrough [from signal]
+Strategy:                 balanced [config]
+Data:                     synthetic [default]
+Steps:                    all [default]
+Force re-run:             False [default]
+==============================
 
-Completed 6 steps in 15.2s
-Results: data/workflows/minimal_test_20251123_143230/
+Completed 6 steps in 1.5s
+Results: data/workflows/minimal_test_20251213_205920/
 ```
 
 **Source Tags:**
@@ -274,7 +276,7 @@ Workflows execute 6 steps in order:
 1. **data** — Load market data from registry
 2. **signal** — Compute signal values (z-score normalized)
 3. **suitability** — Pre-backtest evaluation (PASS/HOLD/FAIL)
-4. **backtest** — Simulate P&L with transaction costs
+4. **backtest** — Simulate P&L with transaction costs (binary or proportional sizing)
 5. **performance** — Extended metrics (Sharpe, Sortino, attribution)
 6. **visualization** — Generate interactive charts
 
@@ -358,6 +360,14 @@ score_transformation: z_score_60d    # Override score transformation (e.g., 60-d
 signal_transformation: bounded_1_5   # Override signal transformation (apply bounds)
 ```
 
+**Proportional sizing** (position size scales with signal magnitude):
+```yaml
+label: proportional_test
+signal: cdx_etf_basis
+product: cdx_ig_5y
+strategy: balanced_proportional      # Uses proportional sizing mode
+```
+
 **Usage:**
 ```bash
 uv run aponyx run examples/workflow_minimal.yaml
@@ -368,6 +378,64 @@ uv run aponyx run examples/workflow_minimal.yaml
 2. Resolved from signal metadata (`[from signal]`)
 3. Resolved from indicator metadata (`[from indicator]`)
 4. System defaults (`[default]`)
+
+---
+
+## Position Sizing Modes
+
+Strategies support two sizing modes that determine how signal values translate to position sizes:
+
+### Binary Sizing (Default)
+
+**Mode:** `sizing_mode: "binary"`
+
+Position is full size regardless of signal magnitude:
+- Non-zero signal → Full `position_size_mm` (direction from sign)
+- Signal magnitude is ignored (only sign matters)
+- Position values recorded as ±1 (direction indicator)
+
+**Strategies:** `conservative`, `balanced`, `aggressive`, `experimental`
+
+**Use case:** When you want consistent position sizes and only care about signal direction.
+
+### Proportional Sizing
+
+**Mode:** `sizing_mode: "proportional"`
+
+Position scales with signal magnitude:
+- Position = signal × `position_size_mm`
+- Higher conviction signals → Larger positions
+- Rebalancing occurs when signal magnitude changes (with transaction costs)
+- Position values recorded as actual notional in MM (e.g., 5.0, -3.5)
+
+**Strategies:** `conservative_proportional`, `balanced_proportional`, `aggressive_proportional`, `experimental_proportional`
+
+**Use case:** When signal strength indicates conviction and you want position size to reflect that.
+
+### Risk Management Differences
+
+| Feature | Binary | Proportional |
+|---------|--------|--------------|
+| Stop loss check | vs entry notional × DV01 | vs current notional |
+| Take profit check | vs entry notional × DV01 | vs current notional |
+| Rebalancing | None (position is fixed) | On signal magnitude change |
+| Transaction costs | Entry/exit only | Entry/exit + rebalancing |
+| Cooldown release | Signal returns to zero | Signal returns to zero OR sign change |
+
+### Example Comparison
+
+```yaml
+# Binary: Full 10MM position for any non-zero signal
+label: binary_test
+signal: spread_momentum
+strategy: balanced              # sizing_mode: binary, position_size_mm: 10.0
+
+# Proportional: Position = signal × 10MM
+# Signal 0.5 → 5MM position, Signal 1.5 → 15MM position
+label: proportional_test
+signal: spread_momentum
+strategy: balanced_proportional  # sizing_mode: proportional, position_size_mm: 10.0
+```
 
 ---
 
