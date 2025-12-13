@@ -144,7 +144,7 @@ print(f"Suitability: {suitability.composite_score:.2f} ({suitability.decision})"
 # Run backtest with transaction costs and risk management
 backtest_config = BacktestConfig(
     position_size_mm=10.0,          # $10MM notional
-    sizing_mode="binary",           # Full position for any non-zero signal
+    sizing_mode="proportional",     # Position scales with signal (default)
     stop_loss_pct=5.0,              # Exit if PnL falls 5% below entry value
     take_profit_pct=10.0,           # Exit if PnL rises 10% above entry value
     transaction_cost_bps=1.0
@@ -432,7 +432,7 @@ pytest tests/models/                # Specific module
 ### Code Quality
 
 ```bash
-black src/ tests/                   # Format code
+ruff format src/ tests/             # Format code
 ruff check src/ tests/              # Lint
 mypy src/                          # Type check
 ```
@@ -488,4 +488,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 **Maintained by stabilefrisur**  
-**Last Updated**: December 10, 2025
+**Last Updated**: December 13, 2025

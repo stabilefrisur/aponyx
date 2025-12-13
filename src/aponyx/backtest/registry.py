@@ -47,7 +47,7 @@ class StrategyMetadata:
     name: str
     description: str
     position_size_mm: float = 10.0
-    sizing_mode: str = "binary"
+    sizing_mode: str = "proportional"
     stop_loss_pct: float | None = None
     take_profit_pct: float | None = None
     max_holding_days: int | None = None

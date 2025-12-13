@@ -38,14 +38,15 @@ class BacktestConfig:
     Notes
     -----
     - Signal-based triggers: non-zero signal = enter, zero signal = exit.
-    - Binary sizing: full position for any non-zero signal (proportional not yet implemented).
+    - Proportional sizing: position scaled by signal magnitude (default).
+    - Binary sizing: full position for any non-zero signal (use as runtime override).
     - PnL-based exits (stop loss, take profit) trigger cooldown before re-entry.
     - Transaction costs are applied symmetrically on entry and exit.
     - signal_lag models realistic execution timing and prevents look-ahead bias.
     """
 
     position_size_mm: float = 10.0
-    sizing_mode: str = "binary"
+    sizing_mode: str = "proportional"
     stop_loss_pct: float | None = None
     take_profit_pct: float | None = None
     max_holding_days: int | None = None

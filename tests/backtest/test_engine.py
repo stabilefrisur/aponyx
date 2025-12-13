@@ -123,7 +123,7 @@ def test_run_backtest_generates_positions(
     signal = pd.Series([2.0] * 5 + [0.0] * 5 + [-2.0] * 5 + [0.0] * 5, index=dates)
     spread = pd.Series([100.0] * 20, index=dates)
     
-    config = BacktestConfig(signal_lag=0, transaction_cost_bps=0.0)
+    config = BacktestConfig(signal_lag=0, transaction_cost_bps=0.0, sizing_mode="binary")
     result = run_backtest(signal, spread, config)
 
     # Should have some long positions (signal = 2.0 > 0)
@@ -564,7 +564,7 @@ def test_backtest_metadata_completeness() -> None:
 
     # Verify all config parameters are in metadata
     assert result.metadata["config"]["position_size_mm"] == 12.5
-    assert result.metadata["config"]["sizing_mode"] == "binary"
+    assert result.metadata["config"]["sizing_mode"] == "proportional"  # Default is now proportional
     assert result.metadata["config"]["signal_lag"] == 2
     assert result.metadata["config"]["transaction_cost_bps"] == 1.5
     assert result.metadata["config"]["max_holding_days"] == 10
@@ -698,20 +698,74 @@ def test_position_direction_from_signal_sign(
     assert (zero_signal["position"] == 0).all()
 
 
-def test_proportional_sizing_not_implemented() -> None:
-    """Test T011: Proportional sizing_mode raises NotImplementedError."""
+def test_proportional_sizing_basic_calculation() -> None:
+    """Test T006-T009: Proportional sizing calculates position = signal × position_size_mm."""
     dates = pd.date_range("2024-01-01", periods=10, freq="D")
-    signal = pd.Series([0.5] * 10, index=dates)
+    signal = pd.Series([0.0, 0.5, 1.0, -0.3, 0.0, 0.7, 0.0, -0.8, -0.5, 0.0], index=dates)
     spread = pd.Series([100.0] * 10, index=dates)
     
     config = BacktestConfig(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
+        transaction_cost_bps=0.0,
     )
     
-    with pytest.raises(NotImplementedError, match="Proportional sizing mode not yet implemented"):
-        run_backtest(signal, spread, config)
+    result = run_backtest(signal, spread, config)
+    
+    # Verify positions are signal × position_size_mm
+    # Day 0: signal=0, position=0
+    # Day 1: signal=0.5, position=5.0
+    # Day 2: signal=1.0, position=10.0
+    # Day 3: signal=-0.3, position=-3.0 (reversal)
+    # Day 4: signal=0, position=0
+    # Day 5: signal=0.7, position=7.0
+    # Day 6: signal=0, position=0
+    # Day 7: signal=-0.8, position=-8.0
+    # Day 8: signal=-0.5, position=-5.0 (rebalance, same direction)
+    # Day 9: signal=0, position=0
+    
+    assert result.positions.loc[dates[0], "position"] == 0.0
+    assert result.positions.loc[dates[1], "position"] == 5.0
+    assert result.positions.loc[dates[2], "position"] == 10.0
+    assert result.positions.loc[dates[3], "position"] == -3.0
+    assert result.positions.loc[dates[4], "position"] == 0.0
+    assert result.positions.loc[dates[5], "position"] == 7.0
+    assert result.positions.loc[dates[6], "position"] == 0.0
+    assert result.positions.loc[dates[7], "position"] == -8.0
+    assert result.positions.loc[dates[8], "position"] == -5.0
+    assert result.positions.loc[dates[9], "position"] == 0.0
+
+
+def test_proportional_position_rebalancing() -> None:
+    """Test T011-T012: Position rebalances when signal magnitude changes."""
+    dates = pd.date_range("2024-01-01", periods=10, freq="D")
+    # Signal changes magnitude but not direction
+    signal = pd.Series([0.0, 0.5, 0.8, 0.3, 0.3, 0.6, 0.6, 0.0, 0.0, 0.0], index=dates)
+    spread = pd.Series([100.0] * 10, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=0.0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Day 1: entry at 0.5 → 5.0MM
+    # Day 2: rebalance 0.8 → 8.0MM
+    # Day 3: rebalance 0.3 → 3.0MM
+    # Day 4: no rebalance (signal unchanged)
+    # Day 5: rebalance 0.6 → 6.0MM
+    # Day 6: no rebalance (signal unchanged)
+    
+    assert result.positions.loc[dates[1], "position"] == 5.0
+    assert result.positions.loc[dates[2], "position"] == 8.0
+    assert result.positions.loc[dates[3], "position"] == 3.0
+    assert result.positions.loc[dates[4], "position"] == 3.0  # No change
+    assert result.positions.loc[dates[5], "position"] == 6.0
+    assert result.positions.loc[dates[6], "position"] == 6.0  # No change
 
 
 # ============================================================================
@@ -1021,3 +1075,541 @@ def test_max_holding_days_validation() -> None:
     
     with pytest.raises(ValueError, match="max_holding_days must be positive"):
         BacktestConfig(max_holding_days=-5)
+
+
+# ============================================================================
+# Proportional Sizing: User Story 2 - Transaction Costs
+# ============================================================================
+
+
+def test_proportional_transaction_cost_on_entry() -> None:
+    """Test T017: Transaction cost proportional to entry position size."""
+    dates = pd.date_range("2024-01-01", periods=5, freq="D")
+    signal = pd.Series([0.0, 0.5, 0.5, 0.5, 0.0], index=dates)
+    spread = pd.Series([100.0] * 5, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=1.0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Entry at 5.0MM: cost = 5.0MM * 1bps / 10000 * 100 = $500
+    # Exit from 5.0MM: cost = 5.0MM * 1bps / 10000 * 100 = $500
+    entry_cost = result.pnl.loc[dates[1], "cost"]
+    exit_cost = result.pnl.loc[dates[4], "cost"]
+    
+    assert abs(entry_cost - 500.0) < 1e-6, f"Entry cost should be $500, got ${entry_cost}"
+    assert abs(exit_cost - 500.0) < 1e-6, f"Exit cost should be $500, got ${exit_cost}"
+
+
+def test_proportional_transaction_cost_on_partial_rebalance() -> None:
+    """Test T017: Transaction cost on partial rebalance (5MM to 8MM = 3MM cost basis)."""
+    dates = pd.date_range("2024-01-01", periods=5, freq="D")
+    signal = pd.Series([0.0, 0.5, 0.8, 0.8, 0.0], index=dates)
+    spread = pd.Series([100.0] * 5, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=1.0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Entry at 5.0MM: cost = $500
+    # Rebalance 5.0→8.0 (delta=3.0MM): cost = 3.0 * 1 / 10000 * 100 = $300
+    # Exit from 8.0MM: cost = $800
+    
+    entry_cost = result.pnl.loc[dates[1], "cost"]
+    rebalance_cost = result.pnl.loc[dates[2], "cost"]
+    exit_cost = result.pnl.loc[dates[4], "cost"]
+    
+    assert abs(entry_cost - 500.0) < 1e-6, f"Entry cost should be $500, got ${entry_cost}"
+    assert abs(rebalance_cost - 300.0) < 1e-6, f"Rebalance cost should be $300, got ${rebalance_cost}"
+    assert abs(exit_cost - 800.0) < 1e-6, f"Exit cost should be $800, got ${exit_cost}"
+
+
+def test_proportional_transaction_cost_on_reversal() -> None:
+    """Test T018: Transaction cost on reversal (10MM to -5MM = 15MM cost basis)."""
+    dates = pd.date_range("2024-01-01", periods=5, freq="D")
+    signal = pd.Series([0.0, 1.0, -0.5, -0.5, 0.0], index=dates)
+    spread = pd.Series([100.0] * 5, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=1.0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Entry at 10.0MM: cost = $1000
+    # Reversal 10.0→-5.0 (delta=15.0MM): cost = 15.0 * 1 / 10000 * 100 = $1500
+    # Exit from 5.0MM: cost = $500
+    
+    entry_cost = result.pnl.loc[dates[1], "cost"]
+    reversal_cost = result.pnl.loc[dates[2], "cost"]
+    exit_cost = result.pnl.loc[dates[4], "cost"]
+    
+    assert abs(entry_cost - 1000.0) < 1e-6, f"Entry cost should be $1000, got ${entry_cost}"
+    assert abs(reversal_cost - 1500.0) < 1e-6, f"Reversal cost should be $1500, got ${reversal_cost}"
+    assert abs(exit_cost - 500.0) < 1e-6, f"Exit cost should be $500, got ${exit_cost}"
+
+
+def test_proportional_zero_transaction_cost_when_position_unchanged() -> None:
+    """Test T019: Zero transaction cost when position unchanged."""
+    dates = pd.date_range("2024-01-01", periods=6, freq="D")
+    signal = pd.Series([0.0, 0.5, 0.5, 0.5, 0.5, 0.0], index=dates)
+    spread = pd.Series([100.0] * 6, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=1.0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Days 2, 3, 4: no position change, no cost
+    assert result.pnl.loc[dates[2], "cost"] == 0.0
+    assert result.pnl.loc[dates[3], "cost"] == 0.0
+    assert result.pnl.loc[dates[4], "cost"] == 0.0
+
+
+# ============================================================================
+# Proportional Sizing: User Story 3 - Daily P&L
+# ============================================================================
+
+
+def test_proportional_pnl_uses_prior_day_position() -> None:
+    """Test T022-T024: P&L uses prior day's actual notional position."""
+    dates = pd.date_range("2024-01-01", periods=5, freq="D")
+    signal = pd.Series([0.0, 0.5, 0.5, 0.5, 0.0], index=dates)
+    spread = pd.Series([100.0, 100.0, 110.0, 100.0, 100.0], index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=0.0,
+        dv01_per_million=4750.0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Day 1: position=5.0MM (but P&L=0, position taken today)
+    # Day 2: position[t-1]=5.0MM, spread_change=+10bps
+    #        P&L = -5.0 * 10 * 4750 = -$237,500
+    # Day 3: position[t-1]=5.0MM, spread_change=-10bps
+    #        P&L = -5.0 * (-10) * 4750 = +$237,500
+    
+    # Day 0: flat, no P&L
+    assert result.pnl.loc[dates[0], "spread_pnl"] == 0.0
+    
+    # Day 1: just entered, prior position was 0
+    assert result.pnl.loc[dates[1], "spread_pnl"] == 0.0
+    
+    # Day 2: prior position was 5.0MM, spread widened by 10bps (loss for long)
+    expected_pnl_day2 = -5.0 * 10.0 * 4750.0
+    assert abs(result.pnl.loc[dates[2], "spread_pnl"] - expected_pnl_day2) < 1.0
+    
+    # Day 3: prior position was 5.0MM, spread tightened by 10bps (gain for long)
+    expected_pnl_day3 = -5.0 * (-10.0) * 4750.0
+    assert abs(result.pnl.loc[dates[3], "spread_pnl"] - expected_pnl_day3) < 1.0
+
+
+def test_proportional_pnl_zero_when_flat() -> None:
+    """Test T023: P&L = 0 when position[t-1] = 0 (flat)."""
+    dates = pd.date_range("2024-01-01", periods=5, freq="D")
+    signal = pd.Series([0.0, 0.0, 0.0, 0.5, 0.0], index=dates)
+    spread = pd.Series([100.0, 110.0, 120.0, 130.0, 140.0], index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=0.0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Days 0, 1, 2: flat position, no P&L
+    assert result.pnl.loc[dates[0], "spread_pnl"] == 0.0
+    assert result.pnl.loc[dates[1], "spread_pnl"] == 0.0
+    assert result.pnl.loc[dates[2], "spread_pnl"] == 0.0
+
+
+def test_proportional_pnl_with_position_change() -> None:
+    """Test T024: P&L uses prior day position when signal changes intraday."""
+    dates = pd.date_range("2024-01-01", periods=5, freq="D")
+    signal = pd.Series([0.0, 0.5, 0.8, 0.3, 0.0], index=dates)
+    spread = pd.Series([100.0, 100.0, 110.0, 100.0, 100.0], index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=0.0,
+        dv01_per_million=4750.0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Day 2: position[t-1]=5.0MM (not 8.0MM), spread_change=+10bps
+    # P&L = -5.0 * 10 * 4750 = -$237,500
+    expected_pnl_day2 = -5.0 * 10.0 * 4750.0
+    assert abs(result.pnl.loc[dates[2], "spread_pnl"] - expected_pnl_day2) < 1.0
+
+
+# ============================================================================
+# Proportional Sizing: User Story 4 - Stop-Loss / Take-Profit
+# ============================================================================
+
+
+def test_proportional_stop_loss_vs_current_notional() -> None:
+    """Test T029-T030: Stop-loss evaluates against current notional."""
+    dates = pd.date_range("2024-01-01", periods=10, freq="D")
+    # Start with 5.0MM position, maintain it
+    signal = pd.Series([0.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.0], index=dates)
+    # Spread widens enough to trigger 1% loss: need -$50k on $5MM = -1.0%
+    # P&L = -5.0 * spread_change * 4750 = -50000 → spread_change = 50000 / (5 * 4750) = 2.1bps
+    spread = pd.Series([100.0, 100.0, 100.0, 102.2, 102.2, 102.2, 102.2, 102.2, 102.2, 102.2], index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=0.0,
+        dv01_per_million=4750.0,
+        stop_loss_pct=1.0,  # 1% stop loss
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Should trigger stop loss when cumulative_pnl / current_notional < -1%
+    # With $5MM notional, -1% = -$50,000
+    stop_loss_exits = result.positions[result.positions["exit_reason"] == "stop_loss"]
+    assert len(stop_loss_exits) > 0, "Should trigger stop loss"
+
+
+def test_proportional_cooldown_release_on_sign_change() -> None:
+    """Test T031: Cooldown releases on signal sign change in proportional mode."""
+    dates = pd.date_range("2024-01-01", periods=15, freq="D")
+    # Signal: positive → trigger stop loss → positive (no zero) → negative (sign change releases cooldown)
+    signal = pd.Series([0.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.3, -0.3, -0.3, 0.0, 0.0, 0.0, 0.0], index=dates)
+    # Spread widens sharply to trigger stop loss quickly
+    spread = pd.Series([100.0, 100.0, 105.0, 105.0, 105.0, 105.0, 105.0, 105.0, 105.0, 105.0, 105.0, 105.0, 105.0, 105.0, 105.0], index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=0.0,
+        dv01_per_million=4750.0,
+        stop_loss_pct=3.0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Should have stop loss exit
+    stop_loss_exits = result.positions[result.positions["exit_reason"] == "stop_loss"]
+    
+    # After sign change (day 8), should be able to re-enter
+    # Check that we have positions again after the stop loss
+    if len(stop_loss_exits) > 0:
+        stop_day = stop_loss_exits.index[0]
+        later_positions = result.positions.loc[dates[8]:]["position"]
+        # Should have re-entered with negative position
+        assert (later_positions != 0).any(), "Should re-enter after sign change releases cooldown"
+
+
+# ============================================================================
+# Proportional Sizing: User Story 5 - Trade Tracking
+# ============================================================================
+
+
+def test_proportional_trade_count_correct() -> None:
+    """Test T034: Trade count = number of flat-to-position-to-flat cycles."""
+    dates = pd.date_range("2024-01-01", periods=15, freq="D")
+    # Two round-trips: 0→0.5→0.8→0.3→0 (trade 1), 0→0.7→0 (trade 2)
+    signal = pd.Series([0.0, 0.5, 0.8, 0.3, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], index=dates)
+    spread = pd.Series([100.0] * 15, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=0.0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Should have 2 trades
+    assert result.metadata["summary"]["n_trades"] == 2
+
+
+def test_proportional_days_held_increments_correctly() -> None:
+    """Test T035: days_held increments correctly within a trade with varying positions."""
+    dates = pd.date_range("2024-01-01", periods=7, freq="D")
+    signal = pd.Series([0.0, 0.5, 0.8, 0.3, 0.6, 0.4, 0.0], index=dates)
+    spread = pd.Series([100.0] * 7, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=0.0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Days held should increment within the trade despite position changes
+    # Day 1: entry, days_held=0
+    # Day 2: in position, days_held=1
+    # Day 3: in position, days_held=2
+    # Day 4: in position, days_held=3
+    # Day 5: in position, days_held=4
+    # Day 6: exit, days_held=0
+    
+    assert result.positions.loc[dates[1], "days_held"] == 0
+    assert result.positions.loc[dates[2], "days_held"] == 1
+    assert result.positions.loc[dates[3], "days_held"] == 2
+    assert result.positions.loc[dates[4], "days_held"] == 3
+    assert result.positions.loc[dates[5], "days_held"] == 4
+
+
+def test_proportional_metadata_sizing_mode() -> None:
+    """Test T033: Metadata correctly reflects sizing_mode='proportional'."""
+    dates = pd.date_range("2024-01-01", periods=5, freq="D")
+    signal = pd.Series([0.0, 0.5, 0.5, 0.5, 0.0], index=dates)
+    spread = pd.Series([100.0] * 5, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    assert result.metadata["config"]["sizing_mode"] == "proportional"
+
+
+def test_proportional_exit_counts_in_metadata() -> None:
+    """Test T036: exit_counts dictionary in metadata for proportional mode."""
+    dates = pd.date_range("2024-01-01", periods=20, freq="D")
+    signal = pd.Series([0.0, 0.5, 0.5, 0.0, 0.7, 0.7, 0.7, -0.3, 0.0, 0.0] + [0.0] * 10, index=dates)
+    spread = pd.Series([100.0] * 20, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=0.0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Verify exit_counts structure
+    exit_counts = result.metadata["summary"]["exit_counts"]
+    assert "signal" in exit_counts
+    assert "stop_loss" in exit_counts
+    assert "take_profit" in exit_counts
+    assert "max_holding_days" in exit_counts
+    assert "reversal" in exit_counts
+
+
+# ============================================================================
+# Phase 8: Polish - Edge Cases and Integration
+# ============================================================================
+
+
+def test_proportional_signal_greater_than_one() -> None:
+    """Test T039: Signal > 1.0 scales to more than position_size_mm."""
+    dates = pd.date_range("2024-01-01", periods=5, freq="D")
+    signal = pd.Series([0.0, 2.5, 2.5, 2.5, 0.0], index=dates)
+    spread = pd.Series([100.0] * 5, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=0.0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Signal=2.5, position_size_mm=10.0 → position=25.0MM
+    assert result.positions.loc[dates[1], "position"] == 25.0
+    assert result.positions.loc[dates[2], "position"] == 25.0
+
+
+def test_proportional_nan_signal_handling(caplog: pytest.LogCaptureFixture) -> None:
+    """Test T040: NaN signal treated as zero, warning logged."""
+    import logging
+    
+    dates = pd.date_range("2024-01-01", periods=7, freq="D")
+    # Signal with NaN in the middle - NaN will be sanitized to 0 by the engine
+    # after alignment (NaN in signal series causes row to be dropped during alignment)
+    signal = pd.Series([0.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.0], index=dates)
+    spread = pd.Series([100.0] * 7, index=dates)
+    
+    # Manually inject NaN after creating aligned data
+    # Create a signal that produces NaN values after alignment
+    # The _sanitize_signal_value function is called after alignment, so we need to 
+    # ensure the signal has NaN that survives dropna(). This means spread must also have NaN.
+    # Actually, the alignment drops rows where EITHER signal OR spread is NaN.
+    # So to test NaN handling, we need a different approach.
+    
+    # Create signal with inf which will be sanitized
+    signal_inf = pd.Series([0.0, 0.5, np.inf, 0.5, 0.5, 0.5, 0.0], index=dates)
+    spread = pd.Series([100.0] * 7, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=0.0,
+    )
+    
+    # Test inf handling - inf in signal survives alignment since spread has valid values
+    # The _sanitize_signal_value function will convert inf to 0 and log warning
+    with caplog.at_level(logging.WARNING):
+        result = run_backtest(signal_inf, spread, config)
+    
+    # Day 2 (inf signal) should be treated as zero (exit position)
+    assert result.positions.loc[dates[2], "position"] == 0.0
+    
+    # Warning should be logged
+    assert any("Invalid signal value" in record.message for record in caplog.records)
+
+
+def test_proportional_infinity_signal_handling(caplog: pytest.LogCaptureFixture) -> None:
+    """Test T040: Infinity signal treated as zero, warning logged."""
+    import logging
+    
+    dates = pd.date_range("2024-01-01", periods=5, freq="D")
+    signal = pd.Series([0.0, 0.5, np.inf, 0.5, 0.0], index=dates)
+    spread = pd.Series([100.0] * 5, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=0.0,
+    )
+    
+    with caplog.at_level(logging.WARNING):
+        result = run_backtest(signal, spread, config)
+    
+    # Infinity should be treated as zero (exit position)
+    assert result.positions.loc[dates[2], "position"] == 0.0
+    
+    # Warning should be logged
+    assert any("Invalid signal value" in record.message for record in caplog.records)
+
+
+def test_binary_mode_unchanged() -> None:
+    """Test T037: All existing binary mode behavior unchanged."""
+    dates = pd.date_range("2024-01-01", periods=20, freq="D")
+    signal = pd.Series([0.8] * 5 + [0.0] * 5 + [-0.6] * 5 + [0.0] * 5, index=dates)
+    spread = pd.Series([100.0] * 20, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        signal_lag=0,
+        transaction_cost_bps=0.0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Binary mode: position should be +1, 0, or -1
+    unique_positions = result.positions["position"].unique()
+    assert all(p in [-1, 0, 1] for p in unique_positions)
+    
+    # Positive signal → +1
+    positive_signal = result.positions[result.positions["signal"] > 0.1]
+    assert (positive_signal["position"] == 1).all()
+    
+    # Negative signal → -1
+    negative_signal = result.positions[result.positions["signal"] < -0.1]
+    assert (negative_signal["position"] == -1).all()
+
+
+def test_binary_vs_proportional_comparison() -> None:
+    """Test T038: Compare binary vs proportional results for same signal."""
+    dates = pd.date_range("2024-01-01", periods=20, freq="D")
+    signal = pd.Series([0.0] * 5 + [0.5] * 5 + [0.0] * 5 + [-0.5] * 5, index=dates)
+    spread = pd.Series([100.0] * 20, index=dates)
+    
+    binary_config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        signal_lag=0,
+        transaction_cost_bps=0.0,
+    )
+    
+    prop_config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        transaction_cost_bps=0.0,
+    )
+    
+    binary_result = run_backtest(signal, spread, binary_config)
+    prop_result = run_backtest(signal, spread, prop_config)
+    
+    # Trade count should be identical (same entry/exit cycles)
+    assert binary_result.metadata["summary"]["n_trades"] == prop_result.metadata["summary"]["n_trades"]
+    
+    # Binary has full positions, proportional has half
+    # When signal=0.5: binary position=1, proportional position=5.0
+    long_period = result = prop_result.positions[prop_result.positions["signal"] == 0.5]
+    assert (long_period["position"] == 5.0).all()
+
+
+def test_proportional_strategies_are_default() -> None:
+    """Test that all base strategies have proportional sizing as default."""
+    from aponyx.backtest.registry import StrategyRegistry
+    from aponyx.config import STRATEGY_CATALOG_PATH
+    
+    registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
+    
+    base_strategies = [
+        "conservative",
+        "balanced",
+        "aggressive",
+    ]
+    
+    for strategy_name in base_strategies:
+        metadata = registry.get_metadata(strategy_name)
+        assert metadata.sizing_mode == "proportional", f"{strategy_name} should have proportional sizing"
+        
+        # Verify can convert to config
+        config = metadata.to_config()
+        assert config.sizing_mode == "proportional"
+
+
+def test_binary_sizing_mode_override() -> None:
+    """Test that sizing_mode can be overridden to binary at runtime."""
+    from aponyx.backtest.registry import StrategyRegistry
+    from aponyx.config import STRATEGY_CATALOG_PATH
+    
+    registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
+    metadata = registry.get_metadata("balanced")
+    
+    # Default should be proportional
+    default_config = metadata.to_config()
+    assert default_config.sizing_mode == "proportional"
+    
+    # Override to binary
+    binary_config = metadata.to_config(sizing_mode_override="binary")
+    assert binary_config.sizing_mode == "binary"

@@ -10,13 +10,38 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
+import numpy as np
 import pandas as pd
 
 from .config import BacktestConfig
 
 logger = logging.getLogger(__name__)
+
+
+def _sanitize_signal_value(signal_val: float, date: pd.Timestamp) -> float:
+    """
+    Sanitize signal value, treating NaN and infinity as zero.
+
+    Parameters
+    ----------
+    signal_val : float
+        Raw signal value to sanitize.
+    date : pd.Timestamp
+        Date of signal (for logging context).
+
+    Returns
+    -------
+    float
+        Sanitized signal value (0.0 for invalid inputs).
+    """
+    if not np.isfinite(signal_val):
+        logger.warning(
+            "Invalid signal value (NaN/inf) at %s, treating as zero", date
+        )
+        return 0.0
+    return signal_val
 
 
 class PositionState(Enum):
@@ -108,32 +133,37 @@ def run_backtest(
     - Zero signal → Exit position
     - PnL-based exits → Cooldown state (no re-entry until signal resets)
     - Sign change → Reversal (exit and enter opposite direction)
-    - Binary sizing: full position_size_mm for any non-zero signal
+    
+    Sizing Modes:
+    - Binary: full position_size_mm for any non-zero signal (position = ±1)
+    - Proportional: position = signal × position_size_mm (actual notional in MM)
 
     P&L Calculation:
     - Long position: profit when spreads tighten (P&L = -ΔSpread * DV01)
     - Short position: profit when spreads widen (P&L = ΔSpread * DV01)
-    - Transaction costs applied on entry and exit
-    - P&L expressed in dollars per $1MM notional
+    - Transaction costs applied on entry, exit, and rebalancing
+    - P&L expressed in dollars
 
     Risk Management:
-    - Stop loss: exit if cumulative_pnl < -stop_loss_pct × position_value / 100
-    - Take profit: exit if cumulative_pnl > take_profit_pct × position_value / 100
+    - Binary: stop_loss/take_profit vs entry notional × DV01
+    - Proportional: stop_loss/take_profit vs current notional (abs(position))
     - Max holding days: forced exit after specified days
-    - Cooldown after PnL exits prevents re-entry until signal returns to zero
+    - Cooldown after PnL exits prevents re-entry until signal returns to zero or sign change
 
     Examples
     --------
     >>> config = BacktestConfig(position_size_mm=10.0, stop_loss_pct=5.0)
     >>> result = run_backtest(signal, cdx_spread, config)
     >>> sharpe = result.pnl['net_pnl'].mean() / result.pnl['net_pnl'].std() * np.sqrt(252)
+    
+    >>> # Proportional mode
+    >>> config = BacktestConfig(sizing_mode="proportional", position_size_mm=10.0)
+    >>> result = run_backtest(signal, cdx_spread, config)
     """
     if config is None:
         config = BacktestConfig()
     
-    # Validate proportional sizing not yet implemented
-    if config.sizing_mode == "proportional":
-        raise NotImplementedError("Proportional sizing mode not yet implemented")
+    is_proportional = config.sizing_mode == "proportional"
 
     logger.info(
         "Starting backtest: dates=%d, sizing_mode=%s, position_size=%.1fMM, signal_lag=%d",
@@ -169,11 +199,15 @@ def run_backtest(
     # Initialize tracking
     positions = []
     pnl_records = []
-    current_position = 0
+    # For binary: current_position is direction (-1, 0, +1)
+    # For proportional: current_position is actual notional in MM (e.g., 5.0, -3.5)
+    current_position = 0.0
     days_held = 0
     prev_spread = 0.0
     state = PositionState.NO_POSITION
     cumulative_position_pnl = 0.0
+    # For binary: entry value is position_size_mm * dv01
+    # For proportional: we track against current notional, not entry value
     position_entry_value = 0.0
     exit_counts = {
         "signal": 0,
@@ -184,7 +218,8 @@ def run_backtest(
     }
 
     for date, row in aligned.iterrows():
-        signal_val = row["signal"]
+        # Sanitize signal value (NaN/inf → 0)
+        signal_val = _sanitize_signal_value(row["signal"], cast(pd.Timestamp, date))
         spread_level = row["spread"]
 
         # Initialize tracking for this iteration
@@ -199,11 +234,28 @@ def run_backtest(
         # Signal-based triggers: non-zero = enter, zero = exit
         signal_is_zero = abs(signal_val) < 1e-9
         
-        # Determine new position direction from signal sign
-        if not signal_is_zero:
-            target_position = 1 if signal_val > 0 else -1
+        # Calculate target position based on sizing mode
+        if is_proportional:
+            # Proportional: target position is actual notional in MM
+            target_position = signal_val * config.position_size_mm
         else:
-            target_position = 0
+            # Binary: target position is direction indicator
+            if not signal_is_zero:
+                target_position = 1.0 if signal_val > 0 else -1.0
+            else:
+                target_position = 0.0
+        
+        # Determine target direction for state machine logic
+        if abs(target_position) < 1e-9:
+            target_direction = 0
+        else:
+            target_direction = 1 if target_position > 0 else -1
+        
+        # Current direction for comparison
+        if abs(current_position) < 1e-9:
+            current_direction = 0
+        else:
+            current_direction = 1 if current_position > 0 else -1
 
         # State machine logic
         if state == PositionState.NO_POSITION:
@@ -213,10 +265,16 @@ def run_backtest(
                 days_held = 0
                 state = PositionState.IN_POSITION
                 cumulative_position_pnl = 0.0
-                position_entry_value = config.position_size_mm * config.dv01_per_million
-                entry_cost = config.transaction_cost_bps * config.position_size_mm * 100
+                
+                if is_proportional:
+                    # Entry cost based on actual position size
+                    entry_cost = abs(current_position) * config.transaction_cost_bps * 100
+                else:
+                    position_entry_value = config.position_size_mm * config.dv01_per_million
+                    entry_cost = config.transaction_cost_bps * config.position_size_mm * 100
+                
                 logger.debug(
-                    "Entry: date=%s, signal=%.2f, position=%d",
+                    "Entry: date=%s, signal=%.2f, position=%.2f",
                     date,
                     signal_val,
                     current_position,
@@ -226,14 +284,30 @@ def run_backtest(
             days_held += 1
             
             # Check PnL-based exits first (before signal exits)
-            check_stop_loss = (
-                config.stop_loss_pct is not None
-                and cumulative_position_pnl < -config.stop_loss_pct * position_entry_value / 100
-            )
-            check_take_profit = (
-                config.take_profit_pct is not None
-                and cumulative_position_pnl > config.take_profit_pct * position_entry_value / 100
-            )
+            if is_proportional:
+                # For proportional mode: check against current notional
+                current_notional = abs(current_position)
+                check_stop_loss = (
+                    config.stop_loss_pct is not None
+                    and current_notional > 1e-9
+                    and cumulative_position_pnl / current_notional < -config.stop_loss_pct / 100
+                )
+                check_take_profit = (
+                    config.take_profit_pct is not None
+                    and current_notional > 1e-9
+                    and cumulative_position_pnl / current_notional > config.take_profit_pct / 100
+                )
+            else:
+                # For binary mode: check against entry value
+                check_stop_loss = (
+                    config.stop_loss_pct is not None
+                    and cumulative_position_pnl < -config.stop_loss_pct * position_entry_value / 100
+                )
+                check_take_profit = (
+                    config.take_profit_pct is not None
+                    and cumulative_position_pnl > config.take_profit_pct * position_entry_value / 100
+                )
+            
             check_max_holding = (
                 config.max_holding_days is not None
                 and days_held >= config.max_holding_days
@@ -242,8 +316,11 @@ def run_backtest(
             # Take profit takes precedence over stop loss if both trigger
             if check_take_profit:
                 exit_reason = "take_profit"
-                exit_cost = config.transaction_cost_bps * config.position_size_mm * 100
-                current_position = 0
+                if is_proportional:
+                    exit_cost = abs(current_position) * config.transaction_cost_bps * 100
+                else:
+                    exit_cost = config.transaction_cost_bps * config.position_size_mm * 100
+                current_position = 0.0
                 days_held = 0
                 state = PositionState.COOLDOWN
                 exit_counts["take_profit"] += 1
@@ -254,8 +331,11 @@ def run_backtest(
                 )
             elif check_stop_loss:
                 exit_reason = "stop_loss"
-                exit_cost = config.transaction_cost_bps * config.position_size_mm * 100
-                current_position = 0
+                if is_proportional:
+                    exit_cost = abs(current_position) * config.transaction_cost_bps * 100
+                else:
+                    exit_cost = config.transaction_cost_bps * config.position_size_mm * 100
+                current_position = 0.0
                 days_held = 0
                 state = PositionState.COOLDOWN
                 exit_counts["stop_loss"] += 1
@@ -266,8 +346,11 @@ def run_backtest(
                 )
             elif check_max_holding:
                 exit_reason = "max_holding_days"
-                exit_cost = config.transaction_cost_bps * config.position_size_mm * 100
-                current_position = 0
+                if is_proportional:
+                    exit_cost = abs(current_position) * config.transaction_cost_bps * 100
+                else:
+                    exit_cost = config.transaction_cost_bps * config.position_size_mm * 100
+                current_position = 0.0
                 days_held = 0
                 state = PositionState.COOLDOWN
                 exit_counts["max_holding_days"] += 1
@@ -279,47 +362,87 @@ def run_backtest(
             # Check signal-based exits
             elif signal_is_zero:
                 exit_reason = "signal"
-                exit_cost = config.transaction_cost_bps * config.position_size_mm * 100
-                current_position = 0
+                if is_proportional:
+                    exit_cost = abs(current_position) * config.transaction_cost_bps * 100
+                else:
+                    exit_cost = config.transaction_cost_bps * config.position_size_mm * 100
+                current_position = 0.0
                 days_held = 0
                 state = PositionState.NO_POSITION
                 exit_counts["signal"] += 1
                 logger.debug("Signal exit: date=%s, signal=%.2f", date, signal_val)
-            # Check for sign reversal
-            elif target_position != current_position:
+            # Check for sign reversal (direction change)
+            elif target_direction != current_direction:
                 exit_reason = "reversal"
-                exit_cost = config.transaction_cost_bps * config.position_size_mm * 100
-                # Exit and immediately enter opposite position
-                entry_cost = config.transaction_cost_bps * config.position_size_mm * 100
+                if is_proportional:
+                    # Cost for full position change (exit old + enter new)
+                    trade_delta = abs(target_position - current_position)
+                    exit_cost = trade_delta * config.transaction_cost_bps * 100
+                else:
+                    exit_cost = config.transaction_cost_bps * config.position_size_mm * 100
+                    entry_cost = config.transaction_cost_bps * config.position_size_mm * 100
+                
                 current_position = target_position
                 days_held = 0
                 cumulative_position_pnl = 0.0
-                position_entry_value = config.position_size_mm * config.dv01_per_million
+                if not is_proportional:
+                    position_entry_value = config.position_size_mm * config.dv01_per_million
                 state = PositionState.IN_POSITION
                 exit_counts["reversal"] += 1
                 logger.debug(
-                    "Sign reversal: date=%s, signal=%.2f, new_position=%d",
+                    "Sign reversal: date=%s, signal=%.2f, new_position=%.2f",
                     date,
                     signal_val,
                     current_position,
                 )
+            # Check for rebalancing (proportional mode only - magnitude change without direction change)
+            elif is_proportional and abs(target_position - current_position) > 1e-9:
+                # Rebalance: position magnitude changed but direction stayed same
+                trade_delta = abs(target_position - current_position)
+                rebalance_cost = trade_delta * config.transaction_cost_bps * 100
+                entry_cost = rebalance_cost  # Record as entry cost (trade activity)
+                current_position = target_position
+                logger.debug(
+                    "Rebalance: date=%s, signal=%.2f, new_position=%.2f, delta=%.2f",
+                    date,
+                    signal_val,
+                    current_position,
+                    trade_delta,
+                )
         
         elif state == PositionState.COOLDOWN:
-            # Wait for signal to return to zero before allowing new entry
+            # For proportional mode: allow exit from cooldown on signal sign change
             if signal_is_zero:
                 state = PositionState.NO_POSITION
                 logger.debug("Cooldown released: date=%s", date)
+            elif is_proportional and target_direction != 0:
+                # Proportional mode: sign change (crossing zero) releases cooldown
+                # Check if this is a sign change from previous position direction
+                # Since we're in cooldown, we just need a non-zero signal to potentially re-enter
+                # But per spec: accept signal sign change as ending cooldown
+                state = PositionState.NO_POSITION
+                logger.debug("Cooldown released (sign change): date=%s", date)
             # Otherwise stay in cooldown (no action)
 
         # Calculate incremental P&L for this day
-        if position_before_update != 0:
+        if abs(position_before_update) > 1e-9:
             spread_change = spread_level - prev_spread_before_update
-            spread_pnl = (
-                -position_before_update
-                * spread_change
-                * config.dv01_per_million
-                * config.position_size_mm
-            )
+            if is_proportional:
+                # Proportional: position_before_update is actual notional in MM
+                spread_pnl = (
+                    -np.sign(position_before_update)
+                    * abs(position_before_update)
+                    * spread_change
+                    * config.dv01_per_million
+                )
+            else:
+                # Binary: position_before_update is direction indicator
+                spread_pnl = (
+                    -position_before_update
+                    * spread_change
+                    * config.dv01_per_million
+                    * config.position_size_mm
+                )
             # Update cumulative position P&L (only when in position)
             cumulative_position_pnl += spread_pnl
         else:
@@ -332,11 +455,17 @@ def run_backtest(
         prev_spread = spread_level
 
         # Record position state
+        # For binary mode, record direction indicator; for proportional, record actual notional
+        if is_proportional:
+            recorded_position = current_position
+        else:
+            recorded_position = int(current_position)
+        
         positions.append(
             {
                 "date": date,
                 "signal": signal_val,
-                "position": current_position,
+                "position": recorded_position,
                 "days_held": days_held,
                 "spread": spread_level,
                 "exit_reason": exit_reason,
@@ -359,6 +488,7 @@ def run_backtest(
     pnl_df["cumulative_pnl"] = pnl_df["net_pnl"].cumsum()
 
     # Calculate summary statistics (count round-trip trades: entries only)
+    # A trade is flat → position → flat
     prev_position = positions_df["position"].shift(1).fillna(0)
     position_entries = (prev_position == 0) & (positions_df["position"] != 0)
     n_trades = position_entries.sum()

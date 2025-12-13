@@ -1,6 +1,6 @@
 # Project Status — aponyx
 
-**Last Updated:** December 10, 2025  
+**Last Updated:** December 13, 2025  
 **Version:** 0.1.15 (Four-Stage Transformation Pipeline)
 
 ## Quick Reference
@@ -14,7 +14,7 @@
 | **Maturity Level** | Early-stage research framework |
 | **Breaking Changes** | May occur without deprecation warnings |
 | **License** | MIT |
-| **Test Coverage** | 704 tests across all layers (verified Dec 2025) |
+| **Test Coverage** | 755 tests across all layers (verified Dec 2025) |
 
 **Project Management:**
 - `uv` - Package installer, environment manager, and task runner
@@ -25,7 +25,7 @@
 **Optional Dependencies:**
 - `bloomberg`: `xbbg>=0.7.0` (Bloomberg Terminal integration)
 - `viz`: `plotly>=5.24.0`, `streamlit>=1.39.0`, `nbformat>=5.10.0`, `ipykernel>=6.29.0`, `tabulate>=0.9.0`, `jupyter>=1.0.0`, `matplotlib>=3.3.0`, `seaborn>=0.11.0` (visualization)
-- `dev`: `pytest>=8.0.0`, `pytest-cov>=5.0.0`, `ruff>=0.6.0`, `mypy>=1.11.0`, `pandas-stubs>=2.0.0` (development tools)
+- `dev`: `pytest>=8.0.0`, `pytest-cov>=5.0.0` (development tools)
 
 **Code Quality Tools (run via uv):**
 - `ruff` - Fast linter and formatter (replaces black)
@@ -314,9 +314,9 @@ src/aponyx/
   - `compute_spread_momentum` - 5-day CDX spread change in basis points
   - `compute_cdx_vix_deviation_gap` - Credit-equity stress gap from 20-day means in bps
 - **Three Pilot Signals:**
-  - `cdx_etf_basis` - Flow-driven mispricing (indicator: cdx_etf_spread_diff + score: z_score_20d + signal: bounded_1_5)
+  - `cdx_etf_basis` - Flow-driven mispricing (indicator: cdx_etf_spread_diff + score: z_score_20d + signal: passthrough)
   - `spread_momentum` - Vol-adjusted momentum (indicator: spread_momentum_5d + score: volatility_adjust_20d + signal: passthrough)
-  - `cdx_vix_gap` - Cross-asset sentiment (indicator: cdx_vix_deviation_gap_20d + score: z_score_60d + signal: bounded_2_0)
+  - `cdx_vix_gap` - Cross-asset sentiment (indicator: cdx_vix_deviation_gap_20d + score: z_score_60d + signal: passthrough)
 - **Indicator Transformation Registry:**
   - `IndicatorTransformationRegistry` class - JSON catalog management for indicator transformations
   - Catalog at `src/aponyx/models/indicator_transformation.json` (3 indicators)
@@ -879,7 +879,7 @@ src/aponyx/
 ### ✅ Testing (`tests/`)
 
 **Implemented:**
-- Comprehensive test coverage across all layers (704 tests total):
+- Comprehensive test coverage across all layers (755 tests total):
   - `tests/backtest/` - 36 tests (engine, P&L, protocols)
   - `tests/cli/` - 83 tests (commands, error handling, integration)
   - `tests/data/` - 223 tests (validation, loading, caching, providers)
