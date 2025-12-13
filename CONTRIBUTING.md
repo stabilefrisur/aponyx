@@ -156,7 +156,7 @@ Add entry to `strategy_catalog.json`:
   "name": "my_strategy",
   "description": "Custom risk management configuration",
   "position_size_mm": 10.0,
-  "sizing_mode": "binary",
+  "sizing_mode": "proportional",
   "stop_loss_pct": 5.0,
   "take_profit_pct": 10.0,
   "max_holding_days": null,

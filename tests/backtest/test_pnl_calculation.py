@@ -30,6 +30,7 @@ def test_incremental_pnl_no_double_counting() -> None:
 
     config = BacktestConfig(
         position_size_mm=10.0,  # $10MM
+        sizing_mode="binary",  # Use binary mode for this test
         dv01_per_million=100.0,  # $100 DV01 per $1MM
         transaction_cost_bps=0.0,  # Disable costs for cleaner test
         signal_lag=0,  # No lag to avoid data truncation
@@ -37,7 +38,7 @@ def test_incremental_pnl_no_double_counting() -> None:
 
     result = run_backtest(signal, spread, config)
 
-    # Verify position is held throughout
+    # Verify position is held throughout (binary mode: position = 1)
     assert (result.positions["position"] == 1).all()
 
     # Day 0: Entry, no previous spread, should have 0 P&L
@@ -84,6 +85,7 @@ def test_incremental_pnl_with_position_changes() -> None:
 
     config = BacktestConfig(
         position_size_mm=10.0,
+        sizing_mode="binary",  # Use binary mode for this test
         dv01_per_million=100.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
@@ -158,6 +160,7 @@ def test_cumulative_pnl_equals_mark_to_market() -> None:
 
     config = BacktestConfig(
         position_size_mm=10.0,
+        sizing_mode="binary",  # Use binary mode for this test
         dv01_per_million=100.0,
         transaction_cost_bps=0.0,
         signal_lag=0,

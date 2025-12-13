@@ -18,9 +18,9 @@ def test_strategy_registry_loads_new_schema() -> None:
     """Test T035: StrategyRegistry loads new schema successfully."""
     registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
     
-    # Should load all strategies
+    # Should load all strategies (4 base strategies: conservative, balanced, aggressive, experimental)
     all_strategies = registry.list_all()
-    assert len(all_strategies) >= 4  # At least the 4 base strategies
+    assert len(all_strategies) == 4  # 4 base strategies (no _proportional variants)
     
     # Check that strategies have new schema fields
     for name, metadata in all_strategies.items():
@@ -34,16 +34,16 @@ def test_strategy_registry_loads_new_schema() -> None:
 
 
 def test_all_strategies_have_position_sizing_fields() -> None:
-    """Test T036: All strategies have position_size_mm and sizing_mode fields."""
+    """Test T036: All strategies have position_size_mm and sizing_mode fields with proportional default."""
     registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
     
     for name, metadata in registry.list_all().items():
         # position_size_mm must be positive
         assert metadata.position_size_mm > 0, f"Strategy {name}: position_size_mm must be positive"
         
-        # sizing_mode must be valid
-        assert metadata.sizing_mode in {"binary", "proportional"}, (
-            f"Strategy {name}: sizing_mode must be 'binary' or 'proportional'"
+        # sizing_mode should be proportional (new default for all strategies)
+        assert metadata.sizing_mode == "proportional", (
+            f"Strategy {name}: sizing_mode should be 'proportional' (default)"
         )
 
 

@@ -490,14 +490,14 @@ signal = compose_signal(
 
 **Example**:
 ```python
-config = BacktestConfig(position_size_mm=10.0, sizing_mode="binary", stop_loss_pct=5.0)
+config = BacktestConfig(position_size_mm=10.0, stop_loss_pct=5.0)  # proportional is default
 result = run_backtest(signal, spread, config)
 # Returns: BacktestResult with positions DataFrame, pnl DataFrame, metadata
 ```
 
 **Constraints**:
 - position_size_mm MUST be > 0 (validated)
-- sizing_mode must be 'binary' or 'proportional' (only 'binary' implemented)
+- sizing_mode must be 'binary' or 'proportional', default is 'proportional'
 - stop_loss_pct/take_profit_pct must be in (0, 100] when specified
 - Single-asset only (no portfolios)
 - P&L = position * (-spread_change) * DV01 * notional / 1M
@@ -715,7 +715,7 @@ def compute_my_indicator(
   "name": "my_strategy",
   "description": "Custom risk management configuration",
   "position_size_mm": 10.0,
-  "sizing_mode": "binary",
+  "sizing_mode": "proportional",
   "stop_loss_pct": 5.0,
   "take_profit_pct": 10.0,
   "max_holding_days": null,
@@ -1001,20 +1001,21 @@ class ZScoreCalculator:
 class StrategyMetadata:
     name: str
     position_size_mm: float = 10.0
-    sizing_mode: str = "binary"
+    sizing_mode: str = "proportional"  # Default is proportional
     stop_loss_pct: float | None = None
     take_profit_pct: float | None = None
     
     def to_config(
         self,
         position_size_mm_override: float | None = None,
+        sizing_mode_override: str | None = None,  # Override to "binary" if needed
         stop_loss_pct_override: float | None = None,
         **overrides,
     ) -> BacktestConfig:
         """Convert metadata to runtime config with overrides."""
         return BacktestConfig(
             position_size_mm=position_size_mm_override or self.position_size_mm,
-            sizing_mode=self.sizing_mode,
+            sizing_mode=sizing_mode_override or self.sizing_mode,
             stop_loss_pct=stop_loss_pct_override or self.stop_loss_pct,
             take_profit_pct=self.take_profit_pct,
         )

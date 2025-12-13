@@ -360,12 +360,12 @@ score_transformation: z_score_60d    # Override score transformation (e.g., 60-d
 signal_transformation: bounded_1_5   # Override signal transformation (apply bounds)
 ```
 
-**Proportional sizing** (position size scales with signal magnitude):
+**Proportional sizing** (position size scales with signal magnitude - default):
 ```yaml
 label: proportional_test
 signal: cdx_etf_basis
 product: cdx_ig_5y
-strategy: balanced_proportional      # Uses proportional sizing mode
+strategy: balanced      # Uses proportional sizing mode by default
 ```
 
 **Usage:**
@@ -385,20 +385,7 @@ uv run aponyx run examples/workflow_minimal.yaml
 
 Strategies support two sizing modes that determine how signal values translate to position sizes:
 
-### Binary Sizing (Default)
-
-**Mode:** `sizing_mode: "binary"`
-
-Position is full size regardless of signal magnitude:
-- Non-zero signal → Full `position_size_mm` (direction from sign)
-- Signal magnitude is ignored (only sign matters)
-- Position values recorded as ±1 (direction indicator)
-
-**Strategies:** `conservative`, `balanced`, `aggressive`, `experimental`
-
-**Use case:** When you want consistent position sizes and only care about signal direction.
-
-### Proportional Sizing
+### Proportional Sizing (Default)
 
 **Mode:** `sizing_mode: "proportional"`
 
@@ -408,9 +395,25 @@ Position scales with signal magnitude:
 - Rebalancing occurs when signal magnitude changes (with transaction costs)
 - Position values recorded as actual notional in MM (e.g., 5.0, -3.5)
 
-**Strategies:** `conservative_proportional`, `balanced_proportional`, `aggressive_proportional`, `experimental_proportional`
+**Strategies:** `conservative`, `balanced`, `aggressive`, `experimental` (all default to proportional)
 
 **Use case:** When signal strength indicates conviction and you want position size to reflect that.
+
+### Binary Sizing (Runtime Override)
+
+**Mode:** `sizing_mode: "binary"` (use as runtime override)`
+
+Position is full size regardless of signal magnitude:
+- Non-zero signal → Full `position_size_mm` (direction from sign)
+- Signal magnitude is ignored (only sign matters)
+- Position values recorded as ±1 (direction indicator)
+
+**Override via workflow config or to_config():**
+```yaml
+sizing_mode_override: binary
+```
+
+**Use case:** When you want consistent position sizes and only care about signal direction.
 
 ### Risk Management Differences
 
@@ -425,16 +428,17 @@ Position scales with signal magnitude:
 ### Example Comparison
 
 ```yaml
-# Binary: Full 10MM position for any non-zero signal
-label: binary_test
-signal: spread_momentum
-strategy: balanced              # sizing_mode: binary, position_size_mm: 10.0
-
-# Proportional: Position = signal × 10MM
+# Proportional (default): Position = signal × 10MM
 # Signal 0.5 → 5MM position, Signal 1.5 → 15MM position
 label: proportional_test
 signal: spread_momentum
-strategy: balanced_proportional  # sizing_mode: proportional, position_size_mm: 10.0
+strategy: balanced              # sizing_mode: proportional (default), position_size_mm: 10.0
+
+# Binary override: Full 10MM position for any non-zero signal
+label: binary_test
+signal: spread_momentum
+strategy: balanced
+sizing_mode_override: binary    # Override to binary sizing
 ```
 
 ---

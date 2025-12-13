@@ -123,7 +123,7 @@ def test_run_backtest_generates_positions(
     signal = pd.Series([2.0] * 5 + [0.0] * 5 + [-2.0] * 5 + [0.0] * 5, index=dates)
     spread = pd.Series([100.0] * 20, index=dates)
     
-    config = BacktestConfig(signal_lag=0, transaction_cost_bps=0.0)
+    config = BacktestConfig(signal_lag=0, transaction_cost_bps=0.0, sizing_mode="binary")
     result = run_backtest(signal, spread, config)
 
     # Should have some long positions (signal = 2.0 > 0)
@@ -564,7 +564,7 @@ def test_backtest_metadata_completeness() -> None:
 
     # Verify all config parameters are in metadata
     assert result.metadata["config"]["position_size_mm"] == 12.5
-    assert result.metadata["config"]["sizing_mode"] == "binary"
+    assert result.metadata["config"]["sizing_mode"] == "proportional"  # Default is now proportional
     assert result.metadata["config"]["signal_lag"] == 2
     assert result.metadata["config"]["transaction_cost_bps"] == 1.5
     assert result.metadata["config"]["max_holding_days"] == 10
@@ -1576,24 +1576,40 @@ def test_binary_vs_proportional_comparison() -> None:
     assert (long_period["position"] == 5.0).all()
 
 
-def test_proportional_strategies_load_from_registry() -> None:
-    """Test T042: All 4 proportional strategies load correctly from registry."""
+def test_proportional_strategies_are_default() -> None:
+    """Test that all base strategies have proportional sizing as default."""
     from aponyx.backtest.registry import StrategyRegistry
     from aponyx.config import STRATEGY_CATALOG_PATH
     
     registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
     
-    proportional_strategies = [
-        "conservative_proportional",
-        "balanced_proportional",
-        "aggressive_proportional",
-        "experimental_proportional",
+    base_strategies = [
+        "conservative",
+        "balanced",
+        "aggressive",
     ]
     
-    for strategy_name in proportional_strategies:
+    for strategy_name in base_strategies:
         metadata = registry.get_metadata(strategy_name)
         assert metadata.sizing_mode == "proportional", f"{strategy_name} should have proportional sizing"
         
         # Verify can convert to config
         config = metadata.to_config()
         assert config.sizing_mode == "proportional"
+
+
+def test_binary_sizing_mode_override() -> None:
+    """Test that sizing_mode can be overridden to binary at runtime."""
+    from aponyx.backtest.registry import StrategyRegistry
+    from aponyx.config import STRATEGY_CATALOG_PATH
+    
+    registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
+    metadata = registry.get_metadata("balanced")
+    
+    # Default should be proportional
+    default_config = metadata.to_config()
+    assert default_config.sizing_mode == "proportional"
+    
+    # Override to binary
+    binary_config = metadata.to_config(sizing_mode_override="binary")
+    assert binary_config.sizing_mode == "binary"
