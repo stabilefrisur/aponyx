@@ -55,7 +55,7 @@ python_version = "3.12"
 ### Running Formatters
 ```bash
 # Format code
-black src/ tests/
+ruff format src/ tests/
 
 # Lint and fix
 ruff check --fix src/ tests/
@@ -747,7 +747,7 @@ for chunk in chunks:
 Before committing code, ensure:
 
 - [ ] **All tests pass:** `pytest`
-- [ ] **Code is formatted:** `black src/ tests/`
+- [ ] **Code is formatted:** `ruff format src/ tests/`
 - [ ] **No linting errors:** `ruff check src/ tests/`
 - [ ] **Type checks pass:** `mypy src/`
 - [ ] **Docstrings are complete** for public functions

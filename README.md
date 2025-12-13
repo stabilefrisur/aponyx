@@ -432,7 +432,7 @@ pytest tests/models/                # Specific module
 ### Code Quality
 
 ```bash
-black src/ tests/                   # Format code
+ruff format src/ tests/             # Format code
 ruff check src/ tests/              # Lint
 mypy src/                          # Type check
 ```
@@ -488,4 +488,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 **Maintained by stabilefrisur**  
-**Last Updated**: December 10, 2025
+**Last Updated**: December 13, 2025
