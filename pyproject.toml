@@ -54,10 +54,14 @@ module-root = "src"
 # Include JSON catalog files, type marker, docs, and examples in package distribution
 include-package-data = [
     "aponyx/py.typed",
+    "aponyx/models/indicator_transformation.json",
+    "aponyx/models/score_transformation.json",
+    "aponyx/models/signal_transformation.json",
     "aponyx/models/signal_catalog.json",
     "aponyx/backtest/strategy_catalog.json",
     "aponyx/data/bloomberg_securities.json",
     "aponyx/data/bloomberg_instruments.json",
+    "aponyx/data/synthetic_params.json",
     "aponyx/docs/*.md",
     "aponyx/examples/*.py",
 ]
