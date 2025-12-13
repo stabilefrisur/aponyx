@@ -30,8 +30,8 @@ uv run aponyx list workflows
 
 - **`run`** — Execute research workflow (data → signal → suitability → backtest → performance → visualization)
 - **`report`** — Generate multi-format reports from workflow results
-- **`list`** — Show available signals, strategies, datasets, or steps
-- **`clean`** — Remove cached workflow results
+- **`list`** — Show available signals, products, indicators, transformations, securities, strategies, datasets, steps, or workflows
+- **`clean`** — Remove cached workflow results and indicator cache
 
 ---
 
@@ -56,13 +56,13 @@ uv run aponyx run <config_path>
 | `signal` | string | ✓ | - | Signal name from signal_catalog.json |
 | `product` | string | ✓ | - | Product identifier (e.g., "cdx_ig_5y") |
 | `strategy` | string | ✓ | - | Strategy name from strategy_catalog.json |
-| `indicator_transformation_override` | string | | from signal | Override indicator transformation |
-| `score_transformation_override` | string | | from signal | Override score transformation |
-| `signal_transformation_override` | string | | from signal | Override signal transformation |
+| `indicator` | string | | from signal | Override indicator transformation (must exist in indicator_transformation.json) |
+| `score_transformation` | string | | from signal | Override score transformation (must exist in score_transformation.json) |
+| `signal_transformation` | string | | from signal | Override signal transformation (must exist in signal_transformation.json) |
 | `securities` | dict | | from indicator | Custom security mapping (e.g., `cdx: cdx_hy_5y`) |
 | `data` | string | | "synthetic" | Data source: `synthetic`, `file`, `bloomberg` |
 | `steps` | list | | all | Specific steps to execute (e.g., `[data, signal, backtest]`) |
-| `force` | boolean | | false | Force re-run and update current day data |
+| `force` | boolean | | false | Force re-run all steps (skip cache)
 
 **Examples:**
 
@@ -80,12 +80,12 @@ label: complete_test
 signal: cdx_etf_basis
 product: cdx_ig_5y
 strategy: balanced
-indicator_transformation_override: cdx_etf_spread_diff
-score_transformation_override: z_score_60d
-signal_transformation_override: bounded_1_5
+indicator: cdx_etf_spread_diff
+score_transformation: z_score_20d
+signal_transformation: bounded_1_5
 securities:
-  cdx: cdx_hy_5y
-  etf: hyg
+  cdx: cdx_ig_5y
+  etf: lqd
 data: synthetic
 steps: [data, signal, suitability, backtest, performance, visualization]
 force: true
@@ -139,7 +139,6 @@ uv run aponyx report [OPTIONS]
 |--------|------|---------|-------------|
 | `--workflow` | TEXT | Required | Workflow label or numeric index (0 = most recent) |
 | `--format` | CHOICE | console | Format: `console`, `markdown`, `html` |
-| `--output` | PATH | - | Custom output path |
 
 **Workflow Selection:**
 
@@ -155,14 +154,14 @@ uv run aponyx report --workflow minimal_test
 # By numeric index (0 = most recent)
 uv run aponyx report --workflow 0
 
-# Generate markdown
+# Generate markdown (saved to workflow's reports/ folder)
 uv run aponyx report --workflow minimal_test --format markdown
 
-# Custom location
-uv run aponyx report --workflow minimal_test --format html --output reports/custom.html
+# Generate HTML (saved to workflow's reports/ folder)
+uv run aponyx report --workflow minimal_test --format html
 ```
 
-**Note:** Numeric indices are ephemeral and change as new workflows are created. Use labels for stable references in scripts.
+**Note:** Numeric indices are ephemeral and change as new workflows are created. Use labels for stable references in scripts. Reports are saved to the workflow's `reports/` folder.
 
 ---
 
@@ -172,8 +171,23 @@ List available signals, strategies, datasets, or workflow results.
 
 **Usage:**
 ```bash
-uv run aponyx list {signals|strategies|datasets|workflows}
+uv run aponyx list {signals|products|indicators|score-transformations|signal-transformations|securities|datasets|strategies|steps|workflows}
 ```
+
+**Item Types:**
+
+| Item Type | Description |
+|-----------|-------------|
+| `signals` | Available signals from signal_catalog.json |
+| `products` | Available products (CDX indices) |
+| `indicators` | Indicator transformations from indicator_transformation.json |
+| `score-transformations` | Score transformations (z-score, volatility adjust, etc.) |
+| `signal-transformations` | Signal transformations (bounds, neutral zones) |
+| `securities` | Available securities for data fetching |
+| `datasets` | Cached datasets in data registry |
+| `strategies` | Available strategies from strategy_catalog.json |
+| `steps` | Workflow steps in canonical order |
+| `workflows` | Completed workflow results |
 
 **Workflow Filters (workflows only):**
 
@@ -186,8 +200,14 @@ uv run aponyx list {signals|strategies|datasets|workflows}
 **Examples:**
 ```bash
 uv run aponyx list signals
+uv run aponyx list products
+uv run aponyx list indicators
+uv run aponyx list score-transformations
+uv run aponyx list signal-transformations
+uv run aponyx list securities
 uv run aponyx list strategies
 uv run aponyx list datasets
+uv run aponyx list steps
 uv run aponyx list workflows                      # All workflows (up to 50 most recent)
 uv run aponyx list workflows --signal spread_momentum
 uv run aponyx list workflows --product cdx_ig_5y --strategy balanced
@@ -213,6 +233,7 @@ uv run aponyx clean [OPTIONS]
 | Option | Type | Description |
 |--------|------|-------------|
 | `--workflows` | FLAG | Enable workflow pruning mode |
+| `--indicators` | FLAG | Clean indicator cache |
 | `--signal` | TEXT | Filter by signal name (workflows only) |
 | `--older-than` | TEXT | Age threshold (e.g., "30d", minimum 1 day) |
 | `--all` | FLAG | Clean all matching items |
@@ -232,6 +253,9 @@ uv run aponyx clean --workflows --signal spread_momentum --older-than 7d
 
 # Clean all workflows (no preview)
 uv run aponyx clean --workflows --all
+
+# Clean indicator cache
+uv run aponyx clean --indicators
 ```
 
 **Validation:**
@@ -263,12 +287,16 @@ Workflows execute 6 steps in order:
 Results saved to: `data/workflows/{label}_{timestamp}/`
 
 ```
-├── metadata.json                          # Run parameters (label, signal, strategy, product, securities used)
-├── signal.parquet                         # Signal time series
-├── suitability_evaluation_{timestamp}.md  # Pre-backtest analysis
-├── backtest_result.parquet               # P&L and positions
-├── performance_analysis_{timestamp}.md    # Post-backtest metrics
-└── visualizations/                        # Plotly charts (HTML)
+├── metadata.json              # Run parameters (label, signal, strategy, product, securities_used, status, timestamp)
+├── signals/
+│   └── signal.parquet         # Signal time series
+├── reports/
+│   ├── suitability_evaluation_{timestamp}.md  # Pre-backtest analysis
+│   └── performance_analysis_{timestamp}.md    # Post-backtest metrics
+├── backtest/
+│   ├── pnl.parquet            # P&L time series
+│   └── positions.parquet      # Position time series
+└── visualizations/            # Plotly charts (HTML)
     ├── equity_curve.html
     ├── drawdown.html
     └── signal.html
@@ -325,9 +353,9 @@ label: override_test
 signal: cdx_etf_basis
 product: cdx_ig_5y
 strategy: balanced
-indicator_transformation_override: cdx_etf_spread_diff  # Override indicator transformation
-score_transformation_override: z_score_60d              # Override score transformation (e.g., 60-day instead of 20-day)
-signal_transformation_override: bounded_1_5             # Override signal transformation (apply bounds)
+indicator: cdx_etf_spread_diff       # Override indicator transformation
+score_transformation: z_score_60d    # Override score transformation (e.g., 60-day instead of 20-day)
+signal_transformation: bounded_1_5   # Override signal transformation (apply bounds)
 ```
 
 **Usage:**
@@ -445,9 +473,14 @@ EOF
 # Solution: List available items
 
 uv run aponyx list signals
+uv run aponyx list indicators
+uv run aponyx list score-transformations
+uv run aponyx list signal-transformations
+uv run aponyx list securities
+uv run aponyx list products
 uv run aponyx list strategies
 
-# Check catalog files
+# Check catalog files directly
 cat src/aponyx/models/signal_catalog.json
 cat src/aponyx/models/indicator_transformation.json
 cat src/aponyx/models/score_transformation.json
@@ -480,8 +513,11 @@ tail -f logs/aponyx_*.log
 
 **Cache issues:**
 ```bash
-# Clear cache and re-run
-uv run aponyx clean --all
+# Clear workflow cache and re-run
+uv run aponyx clean --workflows --all
+
+# Clear indicator cache
+uv run aponyx clean --indicators
 ```
 
 ---
@@ -500,4 +536,4 @@ uv run aponyx clean --all
 ---
 
 **Maintained by:** stabilefrisur  
-**Last Updated:** December 10, 2025
+**Last Updated:** December 13, 2025

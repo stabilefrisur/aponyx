@@ -11,8 +11,6 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 
-from aponyx.config import DATA_WORKFLOWS_DIR
-
 logger = logging.getLogger(__name__)
 
 
@@ -59,8 +57,7 @@ class ReportData:
 def generate_report(
     workflow_dir: Path,
     format: ReportFormat | str = ReportFormat.CONSOLE,
-    output_path: Path | None = None,
-) -> str:
+) -> dict[str, str | Path | None]:
     """
     Generate comprehensive research report from workflow results.
 
@@ -73,14 +70,12 @@ def generate_report(
         Workflow output directory containing metadata.json and reports.
     format : ReportFormat or str
         Output format (console, markdown, or html).
-    output_path : Path, optional
-        Custom output file path. If None and format is not console,
-        saves to default location in reports directory.
 
     Returns
     -------
-    str
-        Generated report content.
+    dict
+        Dictionary with 'content' (str) and 'output_path' (Path or None).
+        output_path is None for console format.
 
     Raises
     ------
@@ -92,15 +87,12 @@ def generate_report(
     Generate console report:
         >>> from pathlib import Path
         >>> workflow_dir = Path("data/workflows/my_test_20241202_120000")
-        >>> report = generate_report(workflow_dir)
-        >>> print(report)
+        >>> result = generate_report(workflow_dir)
+        >>> print(result["content"])
 
     Generate markdown file:
-        >>> report = generate_report(
-        ...     workflow_dir,
-        ...     format="markdown",
-        ...     output_path=Path("my_report.md"),
-        ... )
+        >>> result = generate_report(workflow_dir, format="markdown")
+        >>> print(f"Saved to: {result['output_path']}")
     """
     # Convert string to enum if needed
     if isinstance(format, str):
@@ -146,18 +138,18 @@ def generate_report(
         content = _generate_html_report(data)
 
     # Save to file if not console
+    output_path: Path | None = None
     if format != ReportFormat.CONSOLE:
-        if output_path is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{label}_{timestamp}.{_get_extension(format)}"
-            # Save aggregated reports to .reports subdirectory in workflows
-            output_path = DATA_WORKFLOWS_DIR / ".reports" / filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"report_{timestamp}.{_get_extension(format)}"
+        # Save to workflow's reports folder
+        output_path = workflow_dir / "reports" / filename
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(content, encoding="utf-8")
         logger.info("Report saved: %s", output_path)
 
-    return content
+    return {"content": content, "output_path": output_path}
 
 
 def _collect_report_data(
