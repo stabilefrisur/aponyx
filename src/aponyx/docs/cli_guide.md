@@ -276,7 +276,7 @@ Workflows execute 6 steps in order:
 1. **data** — Load market data from registry
 2. **signal** — Compute signal values (z-score normalized)
 3. **suitability** — Pre-backtest evaluation (PASS/HOLD/FAIL)
-4. **backtest** — Simulate P&L with transaction costs (binary or proportional sizing)
+4. **backtest** — Simulate P&L with transaction costs (proportional sizing by default)
 5. **performance** — Extended metrics (Sharpe, Sortino, attribution)
 6. **visualization** — Generate interactive charts
 
@@ -399,31 +399,30 @@ Position scales with signal magnitude:
 
 **Use case:** When signal strength indicates conviction and you want position size to reflect that.
 
-### Binary Sizing (Runtime Override)
+### Binary Sizing (Strategy Configuration)
 
-**Mode:** `sizing_mode: "binary"` (use as runtime override)`
+**Mode:** `sizing_mode: "binary"` (set in strategy_catalog.json)
 
 Position is full size regardless of signal magnitude:
 - Non-zero signal → Full `position_size_mm` (direction from sign)
 - Signal magnitude is ignored (only sign matters)
 - Position values recorded as ±1 (direction indicator)
 
-**Override via workflow config or to_config():**
-```yaml
-sizing_mode_override: binary
-```
+**Configuration:** Set `sizing_mode: "binary"` in strategy_catalog.json for the strategy.
 
 **Use case:** When you want consistent position sizes and only care about signal direction.
 
 ### Risk Management Differences
 
-| Feature | Binary | Proportional |
-|---------|--------|--------------|
+| Feature | Binary | Proportional (Default) |
+|---------|--------|------------------------|
 | Stop loss check | vs entry notional × DV01 | vs current notional |
 | Take profit check | vs entry notional × DV01 | vs current notional |
 | Rebalancing | None (position is fixed) | On signal magnitude change |
 | Transaction costs | Entry/exit only | Entry/exit + rebalancing |
 | Cooldown release | Signal returns to zero | Signal returns to zero OR sign change |
+
+**Note:** All default strategies use proportional sizing. To use binary sizing, modify the strategy's `sizing_mode` in `strategy_catalog.json`.
 
 ### Example Comparison
 
@@ -434,11 +433,8 @@ label: proportional_test
 signal: spread_momentum
 strategy: balanced              # sizing_mode: proportional (default), position_size_mm: 10.0
 
-# Binary override: Full 10MM position for any non-zero signal
-label: binary_test
-signal: spread_momentum
-strategy: balanced
-sizing_mode_override: binary    # Override to binary sizing
+# Binary sizing requires a strategy with sizing_mode: "binary" in strategy_catalog.json
+# All default strategies use proportional sizing
 ```
 
 ---
@@ -461,8 +457,8 @@ EOF
 # 1. Run workflow with Bloomberg data
 uv run aponyx run workflow_bloomberg.yaml
 
-# 2. Generate HTML report
-uv run aponyx report --workflow bloomberg_run --format html --output reports/latest.html
+# 2. Generate HTML report (saved to workflow's reports/ folder)
+uv run aponyx report --workflow bloomberg_run --format html
 ```
 
 ### Batch Processing
