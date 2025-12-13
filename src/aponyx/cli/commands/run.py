@@ -83,7 +83,9 @@ def _validate_config_references(
 
     # Validate indicator override (if provided)
     if indicator_override:
-        indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
         if not indicator_registry.indicator_exists(indicator_override):
             available = ", ".join(sorted(indicator_registry.list_all().keys()))
             raise click.ClickException(
@@ -104,7 +106,9 @@ def _validate_config_references(
     # Validate signal transformation override (if provided)
     if signal_transformation_override:
         signal_trans_registry = SignalTransformationRegistry(SIGNAL_TRANSFORMATION_PATH)
-        if not signal_trans_registry.transformation_exists(signal_transformation_override):
+        if not signal_trans_registry.transformation_exists(
+            signal_transformation_override
+        ):
             available = ", ".join(sorted(signal_trans_registry.list_all().keys()))
             raise click.ClickException(
                 f"Signal transformation '{signal_transformation_override}' not found in signal_transformation.json.\n"
@@ -213,7 +217,9 @@ def _display_workflow_config(
     click.echo(f"Indicator Transform:      {indicator_name} {indicator_source}")
     click.echo(f"Securities:               {securities_str} {securities_source}")
     click.echo(f"Score Transform:          {score_transformation_name} {score_source}")
-    click.echo(f"Signal Transform:         {signal_transformation_name} {signal_source}")
+    click.echo(
+        f"Signal Transform:         {signal_transformation_name} {signal_source}"
+    )
     click.echo(f"Strategy:                 {config.strategy_name} [config]")
     click.echo(
         f"Data:                     {config.data_source} {'[config]' if 'data' in config_dict else '[default]'}"

@@ -257,7 +257,10 @@ def test_run_command_invalid_transformation_override(runner, tmp_path):
     result = runner.invoke(cli, ["run", str(config_file)])
 
     assert result.exit_code != 0
-    assert "Score transformation 'nonexistent_score_transformation' not found" in result.output
+    assert (
+        "Score transformation 'nonexistent_score_transformation' not found"
+        in result.output
+    )
     assert "Available score transformations:" in result.output
 
 
@@ -329,7 +332,9 @@ def test_run_command_minimal_config(runner, mock_workflow_engine, tmp_path):
     assert "Strategy:                 balanced [config]" in result.output
     assert "Data:                     synthetic [default]" in result.output
     assert "Indicator Transform:      spread_momentum_5d [from signal]" in result.output
-    assert "Score Transform:          volatility_adjust_20d [from signal]" in result.output
+    assert (
+        "Score Transform:          volatility_adjust_20d [from signal]" in result.output
+    )
     assert "Signal Transform:         passthrough [from signal]" in result.output
     assert "Steps:                    all [default]" in result.output
     assert "Force re-run:             False [default]" in result.output
@@ -388,7 +393,9 @@ def test_run_command_indicator_override_only(runner, mock_workflow_engine, tmp_p
 
     assert result.exit_code == 0
     assert "Indicator Transform:      spread_momentum_5d [config]" in result.output
-    assert "Score Transform:          volatility_adjust_20d [from signal]" in result.output
+    assert (
+        "Score Transform:          volatility_adjust_20d [from signal]" in result.output
+    )
     assert "Signal Transform:         passthrough [from signal]" in result.output
     # Transformation should come from signal
     assert "[from signal]" in result.output
@@ -644,7 +651,9 @@ def test_list_products_command(runner, tmp_path):
 
 def test_list_indicators_command(runner):
     """Test list indicators command."""
-    with patch("aponyx.cli.commands.list.IndicatorTransformationRegistry") as mock_registry_class:
+    with patch(
+        "aponyx.cli.commands.list.IndicatorTransformationRegistry"
+    ) as mock_registry_class:
         mock_registry = MagicMock()
         mock_registry.list_all.return_value = {
             "cdx_etf_spread_diff": MagicMock(description="CDX-ETF spread difference"),

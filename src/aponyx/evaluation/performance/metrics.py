@@ -205,7 +205,9 @@ def compute_all_metrics(
                 beta = float(greeks.iloc[1]) if len(greeks) > 1 else None
 
                 # Information ratio
-                information_ratio = float(qs.stats.information_ratio(returns, benchmark))
+                information_ratio = float(
+                    qs.stats.information_ratio(returns, benchmark)
+                )
 
                 # R-squared (correlation with benchmark)
                 r_squared = float(qs.stats.r_squared(returns, benchmark))

@@ -387,6 +387,7 @@ class TestComposeSignal:
         monkeypatch,
     ):
         """Test four-stage pipeline: indicator → score → signal → sign."""
+
         # Mock compute_indicator to return deterministic data
         def mock_compute_indicator(indicator_name, market_data, indicator_metadata):
             # Return simple spread difference
@@ -430,7 +431,9 @@ class TestComposeSignal:
         def mock_compute_indicator(indicator_name, market_data, indicator_metadata):
             # Return positive values
             return pd.Series(
-                np.ones(100) * 10, index=sample_market_data["cdx"].index, name="indicator"
+                np.ones(100) * 10,
+                index=sample_market_data["cdx"].index,
+                name="indicator",
             )
 
         monkeypatch.setattr(
@@ -543,7 +546,9 @@ class TestComposeSignal:
     ):
         """Test error when override doesn't exist in registry."""
 
-        with pytest.raises(ValueError, match="score_transformation_override.*not found"):
+        with pytest.raises(
+            ValueError, match="score_transformation_override.*not found"
+        ):
             compose_signal(
                 signal_name="cdx_etf_basis",
                 market_data=sample_market_data,
@@ -780,7 +785,7 @@ class TestEdgeCases:
     def test_nan_propagation_through_stages(self):
         """Test that NaN values propagate correctly through all transformation stages."""
         dates = pd.date_range("2024-01-01", periods=50, freq="D")
-        
+
         # Create indicator with some NaN values
         values = np.random.randn(50) * 10 + 100
         values[10:15] = np.nan  # Inject NaN values
@@ -812,7 +817,7 @@ class TestEdgeCases:
     def test_zero_variance_score_handling(self):
         """Test handling of constant (zero-variance) indicator for z-score."""
         dates = pd.date_range("2024-01-01", periods=50, freq="D")
-        
+
         # Create constant indicator (zero variance)
         indicator = pd.Series(np.ones(50) * 100.0, index=dates, name="constant")
 
@@ -1178,7 +1183,9 @@ class TestRuntimeOverrides:
     ):
         """Test that invalid indicator override raises clear error."""
 
-        with pytest.raises(ValueError, match="indicator_transformation_override.*not found"):
+        with pytest.raises(
+            ValueError, match="indicator_transformation_override.*not found"
+        ):
             compose_signal(
                 signal_name="cdx_etf_basis",
                 market_data=sample_market_data,
@@ -1199,7 +1206,9 @@ class TestRuntimeOverrides:
     ):
         """Test that invalid score override raises clear error."""
 
-        with pytest.raises(ValueError, match="score_transformation_override.*not found"):
+        with pytest.raises(
+            ValueError, match="score_transformation_override.*not found"
+        ):
             compose_signal(
                 signal_name="cdx_etf_basis",
                 market_data=sample_market_data,
@@ -1220,7 +1229,9 @@ class TestRuntimeOverrides:
     ):
         """Test that invalid signal transformation override raises clear error."""
 
-        with pytest.raises(ValueError, match="signal_transformation_override.*not found"):
+        with pytest.raises(
+            ValueError, match="signal_transformation_override.*not found"
+        ):
             compose_signal(
                 signal_name="cdx_etf_basis",
                 market_data=sample_market_data,

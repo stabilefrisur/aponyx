@@ -20,7 +20,7 @@ def sample_data_dir(tmp_path: Path) -> Path:
     """Create sample data directory with Parquet/CSV files and registry."""
     data_dir = tmp_path / "data"
     data_dir.mkdir()
-    
+
     # Create sample Parquet file
     dates = pd.date_range("2024-01-01", periods=10, freq="D")
     df_parquet = pd.DataFrame(
@@ -29,7 +29,7 @@ def sample_data_dir(tmp_path: Path) -> Path:
     )
     parquet_file = data_dir / "sample_abc123.parquet"
     df_parquet.to_parquet(parquet_file)
-    
+
     # Create sample CSV file
     df_csv = pd.DataFrame(
         {
@@ -39,7 +39,7 @@ def sample_data_dir(tmp_path: Path) -> Path:
     )
     csv_file = data_dir / "sample_csv_def456.csv"
     df_csv.to_csv(csv_file, index=False)
-    
+
     # Create registry mapping
     registry = {
         "test_security": "sample_abc123.parquet",
@@ -48,7 +48,7 @@ def sample_data_dir(tmp_path: Path) -> Path:
     registry_path = data_dir / "registry.json"
     with open(registry_path, "w", encoding="utf-8") as f:
         json.dump(registry, f, indent=2)
-    
+
     return data_dir
 
 
@@ -93,7 +93,7 @@ class TestFetchFromFile:
         """Test CSV parsing with date column."""
         data_dir = tmp_path / "data"
         data_dir.mkdir()
-        
+
         dates = pd.date_range("2024-01-01", periods=10, freq="D")
         df = pd.DataFrame(
             {
@@ -104,7 +104,7 @@ class TestFetchFromFile:
 
         csv_file = data_dir / "with_dates.csv"
         df.to_csv(csv_file, index=False)
-        
+
         # Create registry
         registry = {"test_csv": "with_dates.csv"}
         with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
@@ -125,7 +125,7 @@ class TestFetchFromFile:
         """Test error when security not in registry."""
         data_dir = tmp_path / "data"
         data_dir.mkdir()
-        
+
         # Create empty registry
         registry = {"existing": "existing.parquet"}
         with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
@@ -145,11 +145,11 @@ class TestFetchFromFile:
         """Test error for unsupported file format."""
         data_dir = tmp_path / "data"
         data_dir.mkdir()
-        
+
         # Create unsupported file
         unsupported_file = data_dir / "data.xlsx"
         unsupported_file.write_text("dummy")
-        
+
         # Create registry
         registry = {"test": "data.xlsx"}
         with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
@@ -217,7 +217,7 @@ class TestFetchFromFile:
         """Test all columns are preserved."""
         data_dir = tmp_path / "data"
         data_dir.mkdir()
-        
+
         dates = pd.date_range("2024-01-01", periods=5, freq="D")
         df = pd.DataFrame(
             {
@@ -230,7 +230,7 @@ class TestFetchFromFile:
 
         file_path = data_dir / "multi_column.parquet"
         df.to_parquet(file_path)
-        
+
         # Create registry
         registry = {"test": "multi_column.parquet"}
         with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
@@ -254,11 +254,11 @@ class TestFetchFromFile:
         """Test handling empty Parquet file."""
         data_dir = tmp_path / "data"
         data_dir.mkdir()
-        
+
         empty_df = pd.DataFrame()
         file_path = data_dir / "empty.parquet"
         empty_df.to_parquet(file_path)
-        
+
         # Create registry
         registry = {"test": "empty.parquet"}
         with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
@@ -278,7 +278,7 @@ class TestFetchFromFile:
         """Test CSV with explicit index column."""
         data_dir = tmp_path / "data"
         data_dir.mkdir()
-        
+
         dates = pd.date_range("2024-01-01", periods=5, freq="D")
         df = pd.DataFrame(
             {"spread": [100.0] * 5},
@@ -288,7 +288,7 @@ class TestFetchFromFile:
 
         file_path = data_dir / "indexed.csv"
         df.to_csv(file_path)
-        
+
         # Create registry
         registry = {"test": "indexed.csv"}
         with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
@@ -313,10 +313,10 @@ class TestEdgeCases:
         """Test that pandas-parseable CSV succeeds even if irregular."""
         data_dir = tmp_path / "data"
         data_dir.mkdir()
-        
+
         file_path = data_dir / "malformed.csv"
         file_path.write_text("not,valid,csv\ndata")
-        
+
         # Create registry
         registry = {"test": "malformed.csv"}
         with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
@@ -357,13 +357,13 @@ class TestEdgeCases:
         """Test FileSource accepts string path for base_dir."""
         data_dir = tmp_path / "data"
         data_dir.mkdir()
-        
+
         dates = pd.date_range("2024-01-01", periods=5, freq="D")
         df = pd.DataFrame({"spread": [100.0] * 5}, index=dates)
-        
+
         file_path = data_dir / "test.parquet"
         df.to_parquet(file_path)
-        
+
         # Create registry
         registry = {"test": "test.parquet"}
         with open(data_dir / "registry.json", "w", encoding="utf-8") as f:

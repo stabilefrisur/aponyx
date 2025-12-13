@@ -525,7 +525,7 @@ class SignalTransformationRegistry:
                 # Convert neutral_range from list to tuple for frozen dataclass
                 if "neutral_range" in entry and entry["neutral_range"] is not None:
                     entry["neutral_range"] = tuple(entry["neutral_range"])
-                
+
                 metadata = SignalTransformationMetadata(**entry)
                 if metadata.name in self._signal_transformations:
                     raise ValueError(

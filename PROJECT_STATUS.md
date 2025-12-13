@@ -1,7 +1,7 @@
 # Project Status — aponyx
 
 **Last Updated:** December 13, 2025  
-**Version:** 0.1.15 (Four-Stage Transformation Pipeline)
+**Version:** 0.1.16 (Four-Stage Transformation Pipeline)
 
 ## Quick Reference
 

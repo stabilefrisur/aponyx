@@ -237,7 +237,9 @@ class TestDependencyTracking:
         from aponyx.config import SIGNAL_CATALOG_PATH
         from aponyx.models.registry import SignalRegistry
 
-        indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
         # Build dependency index
@@ -259,7 +261,9 @@ class TestDependencyTracking:
         from aponyx.config import SIGNAL_CATALOG_PATH
         from aponyx.models.registry import SignalRegistry
 
-        indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
         # Build dependency index
@@ -285,7 +289,9 @@ class TestDependencyTracking:
         from aponyx.config import SIGNAL_CATALOG_PATH
         from aponyx.models.registry import SignalRegistry
 
-        indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
         # Build dependency index
@@ -310,7 +316,9 @@ class TestDependencyTracking:
         from aponyx.config import SIGNAL_CATALOG_PATH
         from aponyx.models.registry import SignalRegistry
 
-        indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
         # Build dependency index

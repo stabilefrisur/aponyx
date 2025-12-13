@@ -36,24 +36,32 @@ class FileSource:
     def __post_init__(self) -> None:
         """Load security mapping from registry file."""
         import json
-        
+
         # Convert base_dir to Path if string
         if isinstance(self.base_dir, str):
             object.__setattr__(self, "base_dir", Path(self.base_dir))
-        
+
         # Determine registry path
         if self.registry_path is None:
             registry_path = self.base_dir / "registry.json"
         else:
-            registry_path = self.registry_path if isinstance(self.registry_path, Path) else Path(self.registry_path)
-        
+            registry_path = (
+                self.registry_path
+                if isinstance(self.registry_path, Path)
+                else Path(self.registry_path)
+            )
+
         # Load security mapping from registry if not provided
         if self.security_mapping is None:
             if registry_path.exists():
                 with open(registry_path, encoding="utf-8") as f:
                     mapping = json.load(f)
                 object.__setattr__(self, "security_mapping", mapping)
-                logger.debug("Loaded security mapping from %s: %d securities", registry_path, len(mapping))
+                logger.debug(
+                    "Loaded security mapping from %s: %d securities",
+                    registry_path,
+                    len(mapping),
+                )
             else:
                 raise FileNotFoundError(
                     f"Registry file not found: {registry_path}. "

@@ -191,12 +191,13 @@ class TestGetProviderFetchFunction:
     def test_get_provider_fetch_function_file(self, tmp_path):
         """Test resolves file provider fetch function."""
         import json
+
         data_dir = tmp_path / "data"
         data_dir.mkdir()
         registry = {"test": "test.parquet"}
         with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
             json.dump(registry, f)
-        
+
         source = FileSource(data_dir)
 
         fetch_fn = _get_provider_fetch_function(source)

@@ -178,7 +178,9 @@ def test_cumulative_pnl_equals_mark_to_market() -> None:
 
         # Long position: profit when spreads tighten (negative change)
         expected_mtm = (
-            -spread_change_from_entry * config.dv01_per_million * config.position_size_mm
+            -spread_change_from_entry
+            * config.dv01_per_million
+            * config.position_size_mm
         )
         actual_cumulative = result.pnl.iloc[i]["cumulative_pnl"]
 
@@ -195,14 +197,14 @@ def test_cumulative_pnl_equals_mark_to_market() -> None:
 def test_stop_loss_triggers_on_cumulative_pnl_threshold() -> None:
     """Test T016: Stop loss triggers when cumulative PnL falls below -stop_loss_pct * position_value."""
     dates = pd.date_range("2024-01-01", periods=20, freq="D")
-    
+
     # Signal: constant long position
     signal = pd.Series([0.8] * 20, index=dates)
-    
+
     # Spread: widens significantly (bad for long position)
     # Start at 100, increase by 0.5 per day
     spread = pd.Series([100.0 + i * 0.5 for i in range(20)], index=dates)
-    
+
     # Position value: position_size_mm * dv01_per_million = 10.0 * 4750.0 = $47,500
     # Stop loss at 5%: -0.05 * 47,500 = -$2,375
     config = BacktestConfig(
@@ -213,13 +215,13 @@ def test_stop_loss_triggers_on_cumulative_pnl_threshold() -> None:
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
-    
+
     result = run_backtest(signal, spread, config)
-    
+
     # Find stop loss exit
     stop_loss_exits = result.positions[result.positions["exit_reason"] == "stop_loss"]
     assert len(stop_loss_exits) > 0, "Stop loss should have triggered"
-    
+
     # Verify exit_counts in metadata
     assert result.metadata["summary"]["exit_counts"]["stop_loss"] > 0
 
@@ -227,13 +229,13 @@ def test_stop_loss_triggers_on_cumulative_pnl_threshold() -> None:
 def test_stop_loss_disabled_when_none() -> None:
     """Test T017: stop_loss_pct=None disables stop loss (position held until signal exit)."""
     dates = pd.date_range("2024-01-01", periods=20, freq="D")
-    
+
     # Signal: long then exit
     signal = pd.Series([0.8] * 15 + [0.0] * 5, index=dates)
-    
+
     # Spread: widens significantly (would trigger stop loss if enabled)
     spread = pd.Series([100.0 + i * 2.0 for i in range(20)], index=dates)
-    
+
     config = BacktestConfig(
         position_size_mm=10.0,
         sizing_mode="binary",
@@ -242,13 +244,13 @@ def test_stop_loss_disabled_when_none() -> None:
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
-    
+
     result = run_backtest(signal, spread, config)
-    
+
     # Should not have stop loss exits
     stop_loss_exits = result.positions[result.positions["exit_reason"] == "stop_loss"]
     assert len(stop_loss_exits) == 0, "Stop loss should not trigger when disabled"
-    
+
     # Should exit only on signal
     signal_exits = result.positions[result.positions["exit_reason"] == "signal"]
     assert len(signal_exits) > 0, "Should exit on signal"
@@ -262,14 +264,14 @@ def test_stop_loss_disabled_when_none() -> None:
 def test_take_profit_triggers_on_cumulative_pnl_threshold() -> None:
     """Test T026: Take profit triggers when cumulative PnL exceeds +take_profit_pct * position_value."""
     dates = pd.date_range("2024-01-01", periods=20, freq="D")
-    
+
     # Signal: constant long position
     signal = pd.Series([0.8] * 20, index=dates)
-    
+
     # Spread: tightens significantly (good for long position)
     # Start at 100, decrease by 0.3 per day
     spread = pd.Series([100.0 - i * 0.3 for i in range(20)], index=dates)
-    
+
     # Position value: 10.0 * 4750.0 = $47,500
     # Take profit at 10%: +0.10 * 47,500 = +$4,750
     config = BacktestConfig(
@@ -280,13 +282,15 @@ def test_take_profit_triggers_on_cumulative_pnl_threshold() -> None:
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
-    
+
     result = run_backtest(signal, spread, config)
-    
+
     # Find take profit exit
-    take_profit_exits = result.positions[result.positions["exit_reason"] == "take_profit"]
+    take_profit_exits = result.positions[
+        result.positions["exit_reason"] == "take_profit"
+    ]
     assert len(take_profit_exits) > 0, "Take profit should have triggered"
-    
+
     # Verify exit_counts in metadata
     assert result.metadata["summary"]["exit_counts"]["take_profit"] > 0
 
@@ -294,13 +298,13 @@ def test_take_profit_triggers_on_cumulative_pnl_threshold() -> None:
 def test_take_profit_disabled_when_none() -> None:
     """Test T027: take_profit_pct=None disables take profit (position held until signal exit)."""
     dates = pd.date_range("2024-01-01", periods=20, freq="D")
-    
+
     # Signal: long then exit
     signal = pd.Series([0.8] * 15 + [0.0] * 5, index=dates)
-    
+
     # Spread: tightens significantly (would trigger take profit if enabled)
     spread = pd.Series([100.0 - i * 1.0 for i in range(20)], index=dates)
-    
+
     config = BacktestConfig(
         position_size_mm=10.0,
         sizing_mode="binary",
@@ -309,13 +313,15 @@ def test_take_profit_disabled_when_none() -> None:
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
-    
+
     result = run_backtest(signal, spread, config)
-    
+
     # Should not have take profit exits
-    take_profit_exits = result.positions[result.positions["exit_reason"] == "take_profit"]
+    take_profit_exits = result.positions[
+        result.positions["exit_reason"] == "take_profit"
+    ]
     assert len(take_profit_exits) == 0, "Take profit should not trigger when disabled"
-    
+
     # Should exit only on signal
     signal_exits = result.positions[result.positions["exit_reason"] == "signal"]
     assert len(signal_exits) > 0, "Should exit on signal"
@@ -324,14 +330,16 @@ def test_take_profit_disabled_when_none() -> None:
 def test_take_profit_precedence_over_stop_loss() -> None:
     """Test T029: Take profit takes precedence over stop loss if both trigger simultaneously."""
     dates = pd.date_range("2024-01-01", periods=10, freq="D")
-    
+
     # Signal: constant position
     signal = pd.Series([0.8] * 10, index=dates)
-    
+
     # Spread: engineered to trigger both conditions on same day
     # This is contrived but tests the precedence logic
-    spread = pd.Series([100.0, 100.0, 100.0, 100.0, 100.0, 94.0, 94.0, 94.0, 94.0, 94.0], index=dates)
-    
+    spread = pd.Series(
+        [100.0, 100.0, 100.0, 100.0, 100.0, 94.0, 94.0, 94.0, 94.0, 94.0], index=dates
+    )
+
     config = BacktestConfig(
         position_size_mm=10.0,
         sizing_mode="binary",
@@ -341,11 +349,13 @@ def test_take_profit_precedence_over_stop_loss() -> None:
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
-    
+
     result = run_backtest(signal, spread, config)
-    
+
     # The large spread tightening (6 bps) should trigger take profit
     # Position value: 10.0 * 4750.0 = $47,500
     # Spread change: -6 bps → P&L ≈ +6 * 4750.0 * 10.0 = +$285,000 (way above 5%)
-    take_profit_exits = result.positions[result.positions["exit_reason"] == "take_profit"]
+    take_profit_exits = result.positions[
+        result.positions["exit_reason"] == "take_profit"
+    ]
     assert len(take_profit_exits) > 0, "Take profit should trigger first"

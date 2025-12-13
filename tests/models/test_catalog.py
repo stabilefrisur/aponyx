@@ -120,7 +120,10 @@ class TestCatalogValidationErrors:
 
     def test_signal_transformation_invalid_name(self):
         """Test validation error for invalid signal transformation name."""
-        from aponyx.models.metadata import SignalTransformationMetadata, CatalogValidationError
+        from aponyx.models.metadata import (
+            SignalTransformationMetadata,
+            CatalogValidationError,
+        )
 
         with pytest.raises(CatalogValidationError) as exc_info:
             SignalTransformationMetadata(
@@ -139,7 +142,10 @@ class TestCatalogValidationErrors:
 
     def test_signal_transformation_short_description(self):
         """Test validation error for too-short description."""
-        from aponyx.models.metadata import SignalTransformationMetadata, CatalogValidationError
+        from aponyx.models.metadata import (
+            SignalTransformationMetadata,
+            CatalogValidationError,
+        )
 
         with pytest.raises(CatalogValidationError) as exc_info:
             SignalTransformationMetadata(
@@ -154,7 +160,10 @@ class TestCatalogValidationErrors:
 
     def test_signal_transformation_zero_scaling(self):
         """Test validation error for zero scaling."""
-        from aponyx.models.metadata import SignalTransformationMetadata, CatalogValidationError
+        from aponyx.models.metadata import (
+            SignalTransformationMetadata,
+            CatalogValidationError,
+        )
 
         with pytest.raises(CatalogValidationError) as exc_info:
             SignalTransformationMetadata(
@@ -170,7 +179,10 @@ class TestCatalogValidationErrors:
 
     def test_signal_transformation_floor_greater_than_cap(self):
         """Test validation error for floor > cap."""
-        from aponyx.models.metadata import SignalTransformationMetadata, CatalogValidationError
+        from aponyx.models.metadata import (
+            SignalTransformationMetadata,
+            CatalogValidationError,
+        )
 
         with pytest.raises(CatalogValidationError) as exc_info:
             SignalTransformationMetadata(
@@ -187,7 +199,10 @@ class TestCatalogValidationErrors:
 
     def test_signal_transformation_invalid_neutral_range_order(self):
         """Test validation error for neutral_range[0] > neutral_range[1]."""
-        from aponyx.models.metadata import SignalTransformationMetadata, CatalogValidationError
+        from aponyx.models.metadata import (
+            SignalTransformationMetadata,
+            CatalogValidationError,
+        )
 
         with pytest.raises(CatalogValidationError) as exc_info:
             SignalTransformationMetadata(

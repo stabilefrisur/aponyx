@@ -56,10 +56,10 @@ def main() -> dict[str, pd.DataFrame]:
         Dictionary mapping security IDs to validated DataFrames.
     """
     synthetic_dir = RAW_DIR / "synthetic"
-    
+
     # Initialize FileSource with registry (auto-loads registry.json)
     source = FileSource(synthetic_dir)
-    
+
     data = {}
 
     # Load CDX instruments

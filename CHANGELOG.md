@@ -5,6 +5,111 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.16] - 2025-12-13
+
+### Added
+- **Four-Stage Transformation Pipeline** (004-four-stage-transform)
+  - New `signal_transformation.json` catalog for trading rules (floor, cap, neutral_range, scaling)
+  - `SignalTransformationRegistry` for signal transformation metadata management
+  - `apply_signal_transformation()` function for trading rule application
+  - Stage inspection functions: `compute_indicator_stage()`, `compute_score_stage()`, `compute_signal_stage()`
+  - Runtime overrides: `indicator_transformation_override`, `score_transformation_override`, `signal_transformation_override`
+  - `include_intermediates` parameter in `compose_signal()` for debugging intermediate stages
+  - CLI list support for `score-transformations` and `signal-transformations` categories
+  - `CatalogValidationError` for structured error messages across all registries
+- **Proportional Position Sizing Mode** (006-proportional-position-sizing)
+  - Signal-proportional position sizing: `position = signal × position_size_mm`
+  - Linear position scaling with signal magnitude for nuanced risk exposure
+  - Transaction costs proportional to position change delta
+  - Daily P&L calculation using prior day's actual notional
+  - Risk management (stop-loss/take-profit) evaluated against current notional
+  - Correct trade tracking and metadata for variable position sizes
+  - NaN/Infinity handling with warning logs for invalid signals
+  - Proportional sizing now the default mode (binary available via override)
+- **Package Distribution Enhancements**
+  - Included all transformation JSON files in package distribution
+  - Added `synthetic_params.json` to package data
+  - Complete four-stage pipeline fully accessible in installed package
+
+### Changed
+- **Signal Composition Architecture** (Breaking)
+  - Refactored `compose_signal()` for explicit 4-stage pipeline: Security → Indicator → Score → Signal
+  - Signal catalog structure changed: `indicator_dependencies/transformations` → `indicator_transformation/score_transformation/signal_transformation`
+  - All 3 signals migrated to new structure (cdx_etf_basis, cdx_vix_gap, spread_momentum)
+  - Renamed `indicator_catalog.json` → `indicator_transformation.json`
+  - Renamed `transformation_catalog.json` → `score_transformation.json`
+  - Split `TransformationRegistry` into `ScoreTransformationRegistry` and `SignalTransformationRegistry`
+- **Backtest Strategy System** (Breaking) (005-backtest-strategy-cleanup)
+  - Removed threshold-based position entry/exit in favor of signal-based triggers
+  - Non-zero signal = enter position, zero signal = exit position
+  - Removed `entry_threshold`, `exit_threshold`, `position_size` from `BacktestConfig`
+  - Added `position_size_mm`, `sizing_mode`, `stop_loss_pct`, `take_profit_pct`, `max_holding_days`
+  - Implemented `PositionState` enum (NO_POSITION, IN_POSITION, COOLDOWN) for state management
+  - Added `exit_reason` tracking (signal, stop_loss, take_profit, max_holding_days, reversal)
+  - Cumulative P&L tracking per position for risk threshold calculation
+  - Cooldown state after PnL-based exits (prevents re-entry until signal resets)
+  - Signal sign reversal without cooldown enables responsive trading
+  - Migrated all 4 strategies to new schema (conservative, balanced, aggressive, experimental)
+  - **Proportional sizing is now the default** (changed from binary)
+  - Removed 4 `_proportional` strategy variants (8 → 4 strategies)
+  - Binary sizing available via `sizing_mode_override='binary'`
+- **Data Provider Interface** (Breaking)
+  - Unified `FileSource` and `BloombergSource` interfaces for interchangeability
+  - `FileSource` now uses `base_dir + registry.json` instead of single file path
+  - Auto-load `security_mapping` from registry.json in `FileSource.__post_init__`
+  - File provider signature unified: `(source, ticker, instrument, security, ...)`
+  - Security column enrichment for multi-security instruments
+  - Removed `bloomberg_ticker` parameter from `fetch_cdx()` and `fetch_etf()`
+  - All Bloomberg ticker resolution via `get_bloomberg_ticker(security)`
+  - Removed obsolete `find_raw_file()` and `concat_multi_security()` functions
+- **CLI Improvements**
+  - Removed `--output` flag from `report` command (always saves to workflow's reports/ folder)
+  - `generate_report()` now returns dict with content and output_path
+  - Split CLI list `transformations` into `score-transformations` and `signal-transformations`
+  - YAML config `transformation` field replaced with `score_transformation` and `signal_transformation`
+  - Updated workflow config display format for better alignment
+- **Documentation Overhaul**
+  - Streamlined `CONTRIBUTING.md` from 725 to 280 lines (61% reduction)
+  - Comprehensive Position Sizing Modes section in CLI guide
+  - Updated all examples with new backtest schema and 4-stage pipeline
+  - Updated test count from 681 to 755 across all documentation
+  - Fixed signal transformation references (all signals use passthrough)
+  - Corrected dev dependencies list (pytest only, not ruff/mypy/pandas-stubs)
+  - Changed black references to ruff format throughout
+  - Updated dates to December 13, 2025
+
+### Fixed
+- **Type Safety**
+  - Fixed type cast for `iterrows()` date parameter in backtest engine (mypy compliance)
+  - Added `Any` import to backtest protocols for proper type hints
+  - Enhanced date handling in position tracking logic
+- **Error Handling**
+  - Suppress division by zero warnings in Sharpe ratio calculation (zero std edge case)
+  - Wrap quantstats metric calls to suppress expected RuntimeWarnings
+- **Data Flow**
+  - Fixed `SuitabilityStep` and `BacktestStep` to get spread data from workflow context
+  - Resolved fresh registry data flow issue (no longer reloads from DataRegistry)
+  - Removed dead code in loaders.py (unreachable block after return)
+
+### Breaking Changes
+- Signal catalog schema changed - signals now require `indicator_transformation`, `score_transformation`, and `signal_transformation` fields
+- `compose_signal()` signature updated with renamed registries and three override parameters
+- Backtest config schema changed - removed thresholds, added position sizing and risk management fields
+- Strategy catalog schema changed - all strategies migrated to signal-based triggers
+- `FileSource` now requires `base_dir` with `registry.json` instead of single file path
+- `fetch_cdx()` and `fetch_etf()` require `security` parameter (removed `bloomberg_ticker`)
+- CLI list `transformations` split into `score-transformations` and `signal-transformations`
+- YAML workflow config requires `score_transformation` and `signal_transformation` instead of `transformation`
+- Proportional position sizing is now the default (binary available via override)
+- Report command no longer accepts `--output` flag
+
+### Test Coverage
+- 755 total tests passing (increased from 681)
+- 30+ new backtest tests for signal-based triggers and PnL risk management
+- 59 backtest engine tests (20+ new proportional sizing tests)
+- All governance tests updated for new schema
+- Complete test coverage for four-stage transformation pipeline
+
 ## [0.1.15] - 2024-12-02
 
 ### Added
@@ -759,6 +864,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.16]: https://github.com/stabilefrisur/aponyx/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.15
 [0.1.14]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.14
 [0.1.13]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.13

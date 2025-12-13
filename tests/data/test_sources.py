@@ -25,13 +25,13 @@ class TestFileSource:
         """Test creating FileSource instance with registry."""
         data_dir = tmp_path / "data"
         data_dir.mkdir()
-        
+
         # Create registry.json
         registry = {"cdx_ig_5y": "cdx_ig_5y_abc123.parquet"}
         registry_path = data_dir / "registry.json"
         with open(registry_path, "w", encoding="utf-8") as f:
             json.dump(registry, f)
-        
+
         source = FileSource(data_dir)
 
         assert source.base_dir == data_dir
@@ -42,13 +42,13 @@ class TestFileSource:
         """Test FileSource accepts string path."""
         data_dir = tmp_path / "data"
         data_dir.mkdir()
-        
+
         # Create registry.json
         registry = {"vix": "vix_abc123.parquet"}
         registry_path = data_dir / "registry.json"
         with open(registry_path, "w", encoding="utf-8") as f:
             json.dump(registry, f)
-        
+
         source = FileSource(str(data_dir))
 
         assert isinstance(source.base_dir, Path)
@@ -59,13 +59,13 @@ class TestFileSource:
         """Test FileSource is frozen (immutable)."""
         data_dir = tmp_path / "data"
         data_dir.mkdir()
-        
+
         # Create registry.json
         registry = {"vix": "vix_abc123.parquet"}
         registry_path = data_dir / "registry.json"
         with open(registry_path, "w", encoding="utf-8") as f:
             json.dump(registry, f)
-        
+
         source = FileSource(data_dir)
 
         with pytest.raises(AttributeError):
@@ -79,12 +79,12 @@ class TestFileSource:
         registry = {"vix": "vix_abc123.parquet"}
         with open(data_dir1 / "registry.json", "w", encoding="utf-8") as f:
             json.dump(registry, f)
-        
+
         data_dir2 = tmp_path / "data2"
         data_dir2.mkdir()
         with open(data_dir2 / "registry.json", "w", encoding="utf-8") as f:
             json.dump(registry, f)
-        
+
         source1 = FileSource(data_dir1)
         source2 = FileSource(data_dir1)
         source3 = FileSource(data_dir2)
@@ -169,12 +169,12 @@ class TestResolveProvider:
         """Test resolving FileSource provider."""
         data_dir = tmp_path / "data"
         data_dir.mkdir()
-        
+
         # Create registry.json
         registry = {"vix": "vix_abc123.parquet"}
         with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
             json.dump(registry, f)
-        
+
         source = FileSource(data_dir)
 
         provider = resolve_provider(source)
@@ -219,12 +219,12 @@ class TestDataSourceUnion:
 
         data_dir = tmp_path / "data"
         data_dir.mkdir()
-        
+
         # Create registry.json
         registry = {"vix": "vix_abc123.parquet"}
         with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
             json.dump(registry, f)
-        
+
         source: DataSource = FileSource(data_dir)
         assert isinstance(source, FileSource)
 
@@ -250,7 +250,7 @@ class TestEdgeCases:
         """Test FileSource with relative path can fail if registry missing."""
         # This test validates that relative paths work when registry exists
         # In practice, relative paths should be avoided in favor of absolute paths
-        
+
         # FileSource requires registry.json to exist
         # Without registry, it should raise FileNotFoundError
         with pytest.raises(FileNotFoundError, match="Registry file not found"):
@@ -260,12 +260,12 @@ class TestEdgeCases:
         """Test FileSource with absolute path."""
         data_dir = tmp_path / "data"
         data_dir.mkdir()
-        
+
         # Create registry.json
         registry = {"vix": "vix_abc123.parquet"}
         with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
             json.dump(registry, f)
-        
+
         source = FileSource(data_dir)
 
         assert source.base_dir == data_dir

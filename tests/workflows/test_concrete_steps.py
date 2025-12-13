@@ -197,6 +197,7 @@ class TestDataStep:
             mock_fetch.side_effect = RuntimeError("Bloomberg returned empty data")
             with pytest.raises(RuntimeError, match="Bloomberg returned empty data"):
                 step.execute({})
+
     @patch("aponyx.data.bloomberg_config.list_securities")
     @patch("aponyx.workflows.concrete_steps.DataRegistry")
     @patch("aponyx.data.fetch_cdx")
@@ -255,6 +256,7 @@ class TestDataStep:
         assert "market_data" in result
         assert "cdx_ig_5y" in result["market_data"]
         assert "vix" in result["market_data"]
+
 
 class TestSignalStep:
     """Test SignalStep implementation."""

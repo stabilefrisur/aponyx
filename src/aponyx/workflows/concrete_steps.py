@@ -81,7 +81,9 @@ class DataStep(BaseWorkflowStep):
                     info = data_registry.get_dataset_info(dataset_name)
                     df = load_parquet(info["file_path"])
                     market_data[security_id] = df
-                    logger.debug("Loaded %s from registry: %d rows", security_id, len(df))
+                    logger.debug(
+                        "Loaded %s from registry: %d rows", security_id, len(df)
+                    )
                     continue
 
             # Registry empty or force_rerun enabled - handle bloomberg vs file/synthetic sources
@@ -498,9 +500,7 @@ class BacktestStep(BaseWorkflowStep):
         # Compute quick Sharpe for debug logging (handle zero std)
         pnl_std = result.pnl["net_pnl"].std()
         quick_sharpe = (
-            result.pnl["net_pnl"].mean() / pnl_std * (252**0.5)
-            if pnl_std > 0
-            else 0.0
+            result.pnl["net_pnl"].mean() / pnl_std * (252**0.5) if pnl_std > 0 else 0.0
         )
         logger.debug(
             "Backtest complete: %d trades, sharpe=%.2f",

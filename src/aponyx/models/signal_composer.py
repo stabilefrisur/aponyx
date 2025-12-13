@@ -18,7 +18,11 @@ from typing import Any
 
 import pandas as pd
 
-from ..data.transforms import TransformType, apply_signal_transformation, apply_transform
+from ..data.transforms import (
+    TransformType,
+    apply_signal_transformation,
+    apply_transform,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -270,7 +274,9 @@ def compose_signal(
         score_transformation_name
     )
 
-    logger.debug("Stage 2: Applying score transformation: %s", score_transformation_name)
+    logger.debug(
+        "Stage 2: Applying score transformation: %s", score_transformation_name
+    )
     score_series = apply_score_transformation(
         indicator_series,
         vars(score_transformation_metadata),
@@ -362,7 +368,11 @@ def compute_indicator_stage(
     indicator_name = signal_metadata.indicator_transformation
     indicator_metadata = indicator_registry.get_metadata(indicator_name)
 
-    logger.info("Computing indicator stage only: signal=%s, indicator=%s", signal_name, indicator_name)
+    logger.info(
+        "Computing indicator stage only: signal=%s, indicator=%s",
+        signal_name,
+        indicator_name,
+    )
 
     return compute_indicator(
         indicator_name=indicator_name,
@@ -427,7 +437,9 @@ def compute_score_stage(
 
     # Stage 2: Score
     score_transformation_name = signal_metadata.score_transformation
-    score_transformation_metadata = score_registry.get_metadata(score_transformation_name)
+    score_transformation_metadata = score_registry.get_metadata(
+        score_transformation_name
+    )
 
     logger.info(
         "Computing score stage: signal=%s, indicator=%s, score=%s",

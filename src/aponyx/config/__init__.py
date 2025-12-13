@@ -44,7 +44,9 @@ STRATEGY_CATALOG_PATH: Final[Path] = PACKAGE_ROOT / "backtest/strategy_catalog.j
 INDICATOR_TRANSFORMATION_PATH: Final[Path] = (
     PACKAGE_ROOT / "models/indicator_transformation.json"
 )
-SCORE_TRANSFORMATION_PATH: Final[Path] = PACKAGE_ROOT / "models/score_transformation.json"
+SCORE_TRANSFORMATION_PATH: Final[Path] = (
+    PACKAGE_ROOT / "models/score_transformation.json"
+)
 SIGNAL_TRANSFORMATION_PATH: Final[Path] = (
     PACKAGE_ROOT / "models/signal_transformation.json"
 )

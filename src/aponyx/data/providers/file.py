@@ -69,11 +69,13 @@ def fetch_from_file(
         raise ValueError(
             f"Security '{security}' not found in registry. Available: {available}"
         )
-    
+
     filename = source.security_mapping[security]
     file_path = source.base_dir / filename
-    
-    logger.info("Fetching %s (security=%s) from file: %s", instrument, security, file_path)
+
+    logger.info(
+        "Fetching %s (security=%s) from file: %s", instrument, security, file_path
+    )
 
     if not file_path.exists():
         raise FileNotFoundError(f"Data file not found: {file_path}")
@@ -93,7 +95,7 @@ def fetch_from_file(
 
     # Add security column if instrument requires it
     from ..bloomberg_config import get_instrument_spec
-    
+
     try:
         inst_spec = get_instrument_spec(instrument)
         if inst_spec.requires_security_metadata and "security" not in df.columns:
@@ -101,7 +103,9 @@ def fetch_from_file(
             logger.debug("Added security column: %s", security)
     except ValueError:
         # Unknown instrument type, skip metadata enrichment
-        logger.debug("Unknown instrument type '%s', skipping metadata enrichment", instrument)
+        logger.debug(
+            "Unknown instrument type '%s', skipping metadata enrichment", instrument
+        )
 
     logger.info("Loaded %d rows from file", len(df))
     return df

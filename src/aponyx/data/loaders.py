@@ -110,7 +110,7 @@ def load_instrument_from_raw(
 
     # Concatenate all securities
     df = pd.concat(dfs, axis=0).sort_index()
-    
+
     # Remove duplicates if present (can occur when combining securities)
     if df.index.duplicated().any():
         n_dups = df.index.duplicated().sum()

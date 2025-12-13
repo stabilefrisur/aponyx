@@ -407,7 +407,9 @@ def generate_for_fetch_interface(
     }
     registry_path = output_path / "registry.json"
     save_json(registry, registry_path)
-    logger.info("Saved security registry: %s (%d securities)", registry_path, len(registry))
+    logger.info(
+        "Saved security registry: %s (%d securities)", registry_path, len(registry)
+    )
 
     logger.info("Synthetic data generation complete: %d files", len(file_paths))
     return file_paths

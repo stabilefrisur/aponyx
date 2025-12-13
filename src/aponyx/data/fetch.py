@@ -191,9 +191,11 @@ def fetch_cdx(
     """
     if source is None:
         raise ValueError("Data source must be specified for CDX fetch")
-    
+
     if security is None:
-        raise ValueError("Security must be specified for CDX fetch (e.g., 'cdx_ig_5y', 'cdx_hy_5y')")
+        raise ValueError(
+            "Security must be specified for CDX fetch (e.g., 'cdx_ig_5y', 'cdx_hy_5y')"
+        )
 
     instrument = "cdx"
     cache_dir = DATA_DIR / "cache"
@@ -269,12 +271,10 @@ def fetch_cdx(
     # Get ticker (Bloomberg ticker for Bloomberg, security ID for file)
     if isinstance(source, BloombergSource):
         ticker = get_bloomberg_ticker(security)
-        logger.debug(
-            "Resolved security '%s' to Bloomberg ticker: %s", security, ticker
-        )
+        logger.debug("Resolved security '%s' to Bloomberg ticker: %s", security, ticker)
     else:
         ticker = security  # File source uses security ID directly
-    
+
     # Fetch with unified interface
     df = fetch_fn(
         source=source,
@@ -419,12 +419,10 @@ def fetch_vix(
     # Get ticker (Bloomberg ticker for Bloomberg, security ID for file)
     if isinstance(source, BloombergSource):
         ticker = get_bloomberg_ticker(security)
-        logger.debug(
-            "Resolved security '%s' to Bloomberg ticker: %s", security, ticker
-        )
+        logger.debug("Resolved security '%s' to Bloomberg ticker: %s", security, ticker)
     else:
         ticker = security  # File source uses security ID directly
-    
+
     # Fetch with unified interface
     df = fetch_fn(
         source=source,
@@ -509,9 +507,11 @@ def fetch_etf(
     """
     if source is None:
         raise ValueError("Data source must be specified for ETF fetch")
-    
+
     if security is None:
-        raise ValueError("Security must be specified for ETF fetch (e.g., 'hyg', 'lqd')")
+        raise ValueError(
+            "Security must be specified for ETF fetch (e.g., 'hyg', 'lqd')"
+        )
 
     instrument = "etf"
     cache_dir = DATA_DIR / "cache"
@@ -587,12 +587,10 @@ def fetch_etf(
     # Get ticker (Bloomberg ticker for Bloomberg, security ID for file)
     if isinstance(source, BloombergSource):
         ticker = get_bloomberg_ticker(security)
-        logger.debug(
-            "Resolved security '%s' to Bloomberg ticker: %s", security, ticker
-        )
+        logger.debug("Resolved security '%s' to Bloomberg ticker: %s", security, ticker)
     else:
         ticker = security  # File source uses security ID directly
-    
+
     # Fetch with unified interface
     df = fetch_fn(
         source=source,
