@@ -6,7 +6,7 @@ allowing easy integration of external libraries (vectorbt, backtrader, etc.)
 while maintaining our domain-specific API.
 """
 
-from typing import Protocol
+from typing import Any, Protocol
 
 import pandas as pd
 
@@ -82,7 +82,7 @@ class PerformanceCalculator(Protocol):
         self,
         pnl_df: pd.DataFrame,
         positions_df: pd.DataFrame,
-    ) -> pd.DataFrame | dict:
+    ) -> pd.DataFrame | dict[str, Any]:
         """
         Compute performance metrics from backtest results.
 

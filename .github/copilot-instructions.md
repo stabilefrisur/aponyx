@@ -23,7 +23,7 @@ uv run ruff check src/     # Linting
 
 # CLI workflows
 uv run aponyx run examples/workflow_minimal.yaml
-uv run aponyx report minimal_test
+uv run aponyx report --workflow minimal_test
 uv run aponyx list signals
 ```
 
@@ -174,13 +174,14 @@ src/aponyx/
 ├── models/                # Indicator, transformation, and signal composition
 │   ├── indicators.py      # Indicator compute functions
 │   ├── transformations.py # Transformation functions
-│   ├── signal_composer.py # Signal composition logic
-│   ├── registry.py        # IndicatorRegistry, TransformationRegistry, SignalRegistry
+│   ├── signal_composer.py # Four-stage signal composition logic
+│   ├── registry.py        # IndicatorTransformationRegistry, ScoreTransformationRegistry, SignalTransformationRegistry, SignalRegistry
 │   ├── metadata.py        # Metadata dataclasses
 │   ├── orchestrator.py    # Batch computation
-│   ├── indicator_catalog.json # Indicator metadata
-│   ├── transformation_catalog.json # Transformation metadata
-│   └── signal_catalog.json # Signal metadata
+│   ├── indicator_transformation.json # Indicator transformation metadata
+│   ├── score_transformation.json # Score transformation metadata
+│   ├── signal_transformation.json # Signal transformation metadata (floor, cap, neutral_range)
+│   └── signal_catalog.json # Signal definitions (references all three transformations)
 ├── backtest/              # P&L simulation
 │   ├── engine.py          # run_backtest()
 │   ├── config.py          # BacktestConfig
@@ -250,8 +251,9 @@ data/
 
 | File | Location | Type | Purpose |
 |------|----------|------|---------|
-| `indicator_catalog.json` | `src/aponyx/models/` | Static | Indicator definitions (3 indicators) |
-| `transformation_catalog.json` | `src/aponyx/models/` | Static | Transformation definitions (4 transformations) |
+| `indicator_transformation.json` | `src/aponyx/models/` | Static | Indicator transformations (3 indicators) |
+| `score_transformation.json` | `src/aponyx/models/` | Static | Score transformations (4 transformations) |
+| `signal_transformation.json` | `src/aponyx/models/` | Static | Signal transformations (floor, cap, neutral_range) |
 | `signal_catalog.json` | `src/aponyx/models/` | Static | Signal definitions (3 signals) |
 | `strategy_catalog.json` | `src/aponyx/backtest/` | Static | Strategy configs (4 strategies) |
 | `bloomberg_securities.json` | `src/aponyx/data/` | Static | Security-to-ticker mapping |
@@ -389,87 +391,114 @@ name = registry.find_dataset_by_security("cdx_ig_5y")     # Returns dataset name
 
 **Purpose**: Compute reusable market indicators, apply transformations, and compose trading signals
 
-**CRITICAL: Signal Composition Pattern**:
-Every signal is ALWAYS composed from exactly two components:
-1. **Indicator** - Economically interpretable metric (spread difference, momentum, gap) in natural units (bps, ratios, percentages)
-2. **Transformation** - Signal processing operation (z-score, volatility adjustment, differencing)
+**CRITICAL: Four-Stage Transformation Pipeline**:
+Every signal is composed via a four-stage pipeline:
+1. **Indicator Transformation** - Compute economic metric from raw securities (e.g., spread difference in bps)
+2. **Score Transformation** - Normalize indicator to common scale (e.g., z-score)
+3. **Signal Transformation** - Apply trading rules (floor, cap, neutral_range, scaling)
+4. **Position Calculation** - Backtest layer converts signal to positions (out of scope for this module)
 
 This pattern is MANDATORY. There is no direct signal computation. All signals go through compose_signal().
 
 **Patterns**:
-- **Indicators**: Output raw economic values WITHOUT pre-normalization (e.g., basis in bps, not z-score)
-- **Transformations**: Convert indicators to trading signals (z-score, volatility-adjusted returns)
-- **Signals**: Reference indicators + transformations in catalog (no embedded computation logic)
-- Registry-based computation from three separate JSON catalogs
-- Indicator caching for reuse across multiple signals with different transformations
-- Runtime overrides: indicator_override, transformation_override, security_mapping
+- **Indicator Transformations**: Output raw economic values in natural units (bps, ratios, percentages)
+- **Score Transformations**: Normalize to common scale (z-score, volatility-adjusted returns)
+- **Signal Transformations**: Apply trading rules (floor, cap, neutral_range, scaling)
+- **Signals**: Reference exactly one transformation from each stage (1:1:1 relationship)
+- Registry-based computation from four separate JSON catalogs
+- Runtime overrides: indicator_transformation_override, score_transformation_override, signal_transformation_override
 
 **Example**:
 ```python
+from aponyx.models.registry import (
+    IndicatorTransformationRegistry,
+    ScoreTransformationRegistry,
+    SignalTransformationRegistry,
+    SignalRegistry,
+)
+from aponyx.models.signal_composer import compose_signal
+from aponyx.config import (
+    INDICATOR_TRANSFORMATION_PATH,
+    SCORE_TRANSFORMATION_PATH,
+    SIGNAL_TRANSFORMATION_PATH,
+    SIGNAL_CATALOG_PATH,
+)
+
 # Load registries
-indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
-transformation_registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
-signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+indicator_reg = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
+score_reg = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
+signal_trans_reg = SignalTransformationRegistry(SIGNAL_TRANSFORMATION_PATH)
+signal_reg = SignalRegistry(SIGNAL_CATALOG_PATH)
 
-# Compute indicator (cached for reuse)
-indicator = compute_indicator(
-    indicator_metadata=indicator_registry.get_metadata("cdx_etf_spread_diff"),
-    market_data={"cdx": cdx_df, "etf": etf_df},
-    use_cache=True
-)
-
-# Compose signal from indicator + transformation
+# Compose signal (full pipeline)
 signal = compose_signal(
-    signal_metadata=signal_registry.get_metadata("cdx_etf_basis"),
+    signal_name="cdx_etf_basis",
     market_data={"cdx": cdx_df, "etf": etf_df},
-    indicator_registry=indicator_registry,
-    transformation_registry=transformation_registry
+    indicator_registry=indicator_reg,
+    score_registry=score_reg,
+    signal_transformation_registry=signal_trans_reg,
+    signal_registry=signal_reg,
 )
 
-# Batch computation of all enabled signals
-signals = compute_registered_signals(signal_registry, market_data, indicator_registry, transformation_registry)
-# Returns: dict[str, pd.Series] with trading signals
+# With intermediate stage inspection
+result = compose_signal(
+    signal_name="cdx_etf_basis",
+    market_data={"cdx": cdx_df, "etf": etf_df},
+    indicator_registry=indicator_reg,
+    score_registry=score_reg,
+    signal_transformation_registry=signal_trans_reg,
+    signal_registry=signal_reg,
+    include_intermediates=True,
+)
+print(result["indicator"].tail())  # Raw indicator (bps)
+print(result["score"].tail())      # Normalized score (z-score)
+print(result["signal"].tail())     # Final signal (bounded)
 
-# Indicators define default_securities in catalog
-indicator_metadata = indicator_registry.get_metadata("cdx_etf_spread_diff")
-print(indicator_metadata.default_securities)  # {"cdx": "cdx_ig_5y", "etf": "lqd"}
-
-# Override defaults via WorkflowConfig.security_mapping
-# In YAML: use 'securities' key which maps to security_mapping parameter
-config = WorkflowConfig(security_mapping={"cdx": "cdx_hy_5y", "etf": "hyg"})
+# Runtime overrides
+signal = compose_signal(
+    signal_name="cdx_etf_basis",
+    market_data={"cdx": cdx_df, "etf": etf_df},
+    indicator_registry=indicator_reg,
+    score_registry=score_reg,
+    signal_transformation_registry=signal_trans_reg,
+    signal_registry=signal_reg,
+    score_transformation_override="z_score_60d",  # Override default 20-day
+)
 ```
 
 **Constraints**:
-- **MANDATORY PATTERN**: All signals use compose_signal() with indicator + transformation (no exceptions)
-- Indicators output economically interpretable values (bps, ratios, percentages) - NOT pre-normalized
-- Transformations are pure functions cataloged in transformation_catalog.json
-- Signals reference indicators via indicator_dependencies field (no embedded computation)
-- Signals reference transformations via transformations field (applied sequentially)
-- Positive signal = long credit risk (buy CDX) after all transformations applied
-- Catalog schema enforced: signals MUST have indicator_dependencies and transformations (both non-empty)
-- Each indicator defines default_securities that can be overridden via WorkflowConfig.security_mapping
-- Runtime overrides available: indicator_override, transformation_override, security_mapping
+- **MANDATORY PATTERN**: All signals use compose_signal() with four-stage pipeline (no exceptions)
+- Indicator transformations output economically interpretable values (bps, ratios, percentages)
+- Score transformations are pure functions cataloged in score_transformation.json
+- Signal transformations apply trading rules cataloged in signal_transformation.json
+- Signals reference exactly one transformation from each stage (1:1:1)
+- Positive signal = long credit risk (buy CDX) after sign_multiplier applied
+- Catalog schema enforced: signals MUST have indicator_transformation, score_transformation, and signal_transformation
+- Runtime overrides available: indicator_transformation_override, score_transformation_override, signal_transformation_override
 
 #### Backtest Execution (`backtest/`)
 
 **Purpose**: Convert signals to positions and simulate P&L
 
 **Patterns**:
-- Threshold-based positions (entry/exit hysteresis)
-- Binary sizing (+1, 0, -1 only)
+- Signal-based position triggers (non-zero signal = enter, zero signal = exit)
+- Binary sizing mode: full position for any non-zero signal
+- PnL-based exits with cooldown (stop_loss_pct, take_profit_pct)
 - DV01-based P&L calculation
 - Transaction costs on entry/exit
 - StrategyRegistry with frozen metadata
 
 **Example**:
 ```python
-config = BacktestConfig(entry_threshold=1.5, exit_threshold=0.75, position_size=10.0)
+config = BacktestConfig(position_size_mm=10.0, sizing_mode="binary", stop_loss_pct=5.0)
 result = run_backtest(signal, spread, config)
 # Returns: BacktestResult with positions DataFrame, pnl DataFrame, metadata
 ```
 
 **Constraints**:
-- entry_threshold MUST be > exit_threshold (validated)
+- position_size_mm MUST be > 0 (validated)
+- sizing_mode must be 'binary' or 'proportional' (only 'binary' implemented)
+- stop_loss_pct/take_profit_pct must be in (0, 100] when specified
 - Single-asset only (no portfolios)
 - P&L = position * (-spread_change) * DV01 * notional / 1M
 - Deterministic execution (same inputs = same outputs)
@@ -560,14 +589,15 @@ report = generate_report(signal_name="spread_momentum", strategy_name="balanced"
 
 ## Feature Scaffold Guide
 
-### Adding a New Signal
+### Adding a New Signal (Four-Stage Transformation Pipeline)
 
 **Files to create/modify**:
 1. Add indicator function to `src/aponyx/models/indicators.py` (if needed)
-2. Add indicator entry to `src/aponyx/models/indicator_catalog.json` (if needed)
-3. Add transformation entry to `src/aponyx/models/transformation_catalog.json` (if needed)
-4. Add signal entry to `src/aponyx/models/signal_catalog.json`
-5. Add tests to `tests/models/test_indicators.py` and `tests/models/test_signal_composer.py`
+2. Add indicator entry to `src/aponyx/models/indicator_transformation.json` (if needed)
+3. Add score transformation entry to `src/aponyx/models/score_transformation.json` (if needed)
+4. Add signal transformation entry to `src/aponyx/models/signal_transformation.json` (if needed)
+5. Add signal entry to `src/aponyx/models/signal_catalog.json`
+6. Add tests to `tests/models/test_indicators.py` and `tests/models/test_signal_composer.py`
 
 **Indicator function template** (if creating new indicator):
 ```python
@@ -579,7 +609,7 @@ def compute_my_indicator(
     Compute my indicator in economically interpretable units.
     
     Indicator outputs raw values in basis points (bps) without normalization.
-    Transformations (z-score, etc.) are applied at signal composition layer.
+    Score transformations (z-score, etc.) are applied at signal composition layer.
     
     Parameters
     ----------
@@ -601,7 +631,7 @@ def compute_my_indicator(
     return cdx_deviation - vix_deviation
 ```
 
-**Indicator catalog entry template**:
+**Indicator transformation entry template** (`indicator_transformation.json`):
 ```json
 {
   "name": "my_indicator",
@@ -621,26 +651,54 @@ def compute_my_indicator(
 }
 ```
 
-**Signal catalog entry template** (composing from indicator + transformation):
+**Score transformation entry template** (`score_transformation.json`):
+```json
+{
+  "name": "z_score_20d",
+  "description": "Z-score normalization over 20-day rolling window",
+  "transform_type": "z_score",
+  "parameters": {
+    "window": 20,
+    "min_periods": 10
+  },
+  "enabled": true
+}
+```
+
+**Signal transformation entry template** (`signal_transformation.json`):
+```json
+{
+  "name": "bounded_1_5",
+  "description": "Signal bounded to [-1.5, 1.5] with neutral zone [-0.25, 0.25]",
+  "scaling": 1.0,
+  "floor": -1.5,
+  "cap": 1.5,
+  "neutral_range": [-0.25, 0.25],
+  "enabled": true
+}
+```
+
+**Signal catalog entry template** (`signal_catalog.json` - references all three transformations):
 ```json
 {
   "name": "my_signal",
-  "description": "CDX-VIX divergence signal with z-score normalization",
-  "indicator_dependencies": ["my_indicator"],
-  "transformations": ["z_score_20d"],
+  "description": "CDX-VIX divergence signal with z-score normalization and bounds",
+  "indicator_transformation": "my_indicator",
+  "score_transformation": "z_score_20d",
+  "signal_transformation": "bounded_1_5",
   "enabled": true,
   "sign_multiplier": 1
 }
 ```
 
-**For multi-indicator signals**, add composition_logic:
+**For passthrough (no trading rules)**, use the passthrough signal transformation:
 ```json
 {
-  "name": "combined_signal",
-  "description": "Combination of multiple indicators",
-  "indicator_dependencies": ["indicator_a", "indicator_b"],
-  "transformations": ["z_score_20d"],
-  "composition_logic": "(indicator_a + indicator_b) / 2",
+  "name": "my_signal_unbounded",
+  "description": "CDX-VIX divergence signal without bounds",
+  "indicator_transformation": "my_indicator",
+  "score_transformation": "z_score_20d",
+  "signal_transformation": "passthrough",
   "enabled": true,
   "sign_multiplier": 1
 }
@@ -655,9 +713,14 @@ def compute_my_indicator(
 ```json
 {
   "name": "my_strategy",
-  "description": "Custom threshold configuration",
-  "entry_threshold": 2.0,
-  "exit_threshold": 1.0,
+  "description": "Custom risk management configuration",
+  "position_size_mm": 10.0,
+  "sizing_mode": "binary",
+  "stop_loss_pct": 5.0,
+  "take_profit_pct": 10.0,
+  "max_holding_days": null,
+  "transaction_cost_bps": 1.0,
+  "dv01_per_million": 4750.0,
   "enabled": true
 }
 ```
@@ -937,15 +1000,23 @@ class ZScoreCalculator:
 @dataclass(frozen=True)
 class StrategyMetadata:
     name: str
-    entry_threshold: float
-    exit_threshold: float
+    position_size_mm: float = 10.0
+    sizing_mode: str = "binary"
+    stop_loss_pct: float | None = None
+    take_profit_pct: float | None = None
     
-    def to_config(self, **overrides) -> BacktestConfig:
+    def to_config(
+        self,
+        position_size_mm_override: float | None = None,
+        stop_loss_pct_override: float | None = None,
+        **overrides,
+    ) -> BacktestConfig:
         """Convert metadata to runtime config with overrides."""
         return BacktestConfig(
-            entry_threshold=overrides.get("entry_threshold", self.entry_threshold),
-            exit_threshold=overrides.get("exit_threshold", self.exit_threshold),
-            position_size=overrides.get("position_size", 10.0),  # Runtime default
+            position_size_mm=position_size_mm_override or self.position_size_mm,
+            sizing_mode=self.sizing_mode,
+            stop_loss_pct=stop_loss_pct_override or self.stop_loss_pct,
+            take_profit_pct=self.take_profit_pct,
         )
 ```
 
@@ -1110,18 +1181,21 @@ def fetch_cdx(
 
 **Expected AI Response**:
 
-1. Add compute function to `src/aponyx/models/signals.py`:
+1. Add compute function to `src/aponyx/models/indicators.py`:
 ```python
 def compute_cdx_vix_percentile_gap(
     cdx_df: pd.DataFrame,
     vix_df: pd.DataFrame,
-    config: SignalConfig,
 ) -> pd.Series:
     """
     Compute gap between CDX and VIX percentile ranks.
     
+    Indicator outputs raw percentile gap (0-1 range) before normalization.
+    Score transformation (z-score, etc.) is applied at signal composition layer.
+    
     Signal Convention
     -----------------
+    After sign_multiplier is applied:
     Positive values → Long credit risk (CDX relatively cheap)
     Negative values → Short credit risk (CDX relatively expensive)
     """
@@ -1135,52 +1209,67 @@ def compute_cdx_vix_percentile_gap(
         lambda x: pd.Series(x).rank(pct=True).iloc[-1]
     )
     
-    # Gap: CDX high percentile + VIX low percentile = positive signal
-    gap = cdx_pct - vix_pct
-    
-    # Z-score normalize
-    gap_mean = gap.rolling(config.lookback, min_periods=config.min_periods).mean()
-    gap_std = gap.rolling(config.lookback, min_periods=config.min_periods).std()
-    
-    return (gap - gap_mean) / gap_std
+    # Gap: CDX high percentile + VIX low percentile = positive
+    # Raw indicator value (NOT z-score normalized - that's done in score stage)
+    return cdx_pct - vix_pct
 ```
 
-2. Add catalog entry to `src/aponyx/models/signal_catalog.json`:
+2. Add indicator transformation entry to `src/aponyx/models/indicator_transformation.json`:
 ```json
 {
-  "name": "cdx_vix_percentile_gap",
-  "description": "Gap between CDX and VIX percentile ranks",
+  "name": "cdx_vix_percentile_gap_60d",
+  "description": "Gap between CDX and VIX percentile ranks over 60-day window",
   "compute_function_name": "compute_cdx_vix_percentile_gap",
   "data_requirements": {
     "cdx": "spread",
     "vix": "level"
   },
-  "arg_mapping": ["cdx", "vix"],
+  "default_securities": {
+    "cdx": "cdx_ig_5y",
+    "vix": "vix"
+  },
+  "output_units": "ratio",
+  "parameters": {},
   "enabled": true
 }
 ```
 
-3. Add test to `tests/models/test_signals.py`:
+3. Add signal entry to `src/aponyx/models/signal_catalog.json`:
+```json
+{
+  "name": "cdx_vix_percentile_gap",
+  "description": "Gap between CDX and VIX percentile ranks with z-score normalization",
+  "indicator_transformation": "cdx_vix_percentile_gap_60d",
+  "score_transformation": "z_score_20d",
+  "signal_transformation": "passthrough",
+  "enabled": true,
+  "sign_multiplier": 1
+}
+```
+
+4. Add test to `tests/models/test_signal_composer.py`:
 ```python
-def test_compute_cdx_vix_percentile_gap():
-    """Test CDX-VIX percentile gap signal computation."""
+def test_cdx_vix_percentile_gap_signal():
+    """Test CDX-VIX percentile gap signal via four-stage pipeline."""
     cdx_df = generate_sample_cdx(n_obs=252)
     vix_df = generate_sample_vix(n_obs=252)
-    config = SignalConfig(lookback=20, min_periods=10)
     
-    signal = compute_cdx_vix_percentile_gap(cdx_df, vix_df, config)
+    signal = compose_signal(
+        signal_name="cdx_vix_percentile_gap",
+        market_data={"cdx": cdx_df, "vix": vix_df},
+        indicator_registry=indicator_reg,
+        score_registry=score_reg,
+        signal_transformation_registry=signal_trans_reg,
+        signal_registry=signal_reg,
+    )
     
     # Validate
     assert isinstance(signal, pd.Series)
     assert len(signal) == len(cdx_df)
-    assert signal.name is not None
     
     # Check for NaN handling
     valid_signal = signal.dropna()
     assert len(valid_signal) > 0
-    
-    # Check sign convention (spot check)
-    assert signal.dtype == np.float64
 ```
 
 ### Example 2: Override Signal Components at Runtime
@@ -1197,7 +1286,7 @@ label: custom_transform_test
 signal: cdx_etf_basis
 product: cdx_ig_5y
 strategy: balanced
-transformation: z_score_60d  # Override default z_score_20d
+score_transformation_override: z_score_60d  # Override default z_score_20d
 EOF
 
 # Run workflow
@@ -1476,11 +1565,14 @@ from aponyx.models import compute_signal
 - `DATA_WORKFLOWS_DIR`: `data/workflows/`
 - `SIGNAL_CATALOG_PATH`: `src/aponyx/models/signal_catalog.json`
 - `STRATEGY_CATALOG_PATH`: `src/aponyx/backtest/strategy_catalog.json`
+- `INDICATOR_TRANSFORMATION_PATH`: `src/aponyx/models/indicator_transformation.json`
+- `SCORE_TRANSFORMATION_PATH`: `src/aponyx/models/score_transformation.json`
+- `SIGNAL_TRANSFORMATION_PATH`: `src/aponyx/models/signal_transformation.json`
 
 ---
 
 *This instruction file is auto-generated from codebase analysis. All patterns are based on actual implementation, not invented best practices.*
 
-**Last Updated**: December 2, 2025  
-**Version**: 0.1.14  
+**Last Updated**: December 10, 2025  
+**Version**: 0.1.15  
 **Maintainer**: stabilefrisur

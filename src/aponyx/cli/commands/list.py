@@ -12,16 +12,18 @@ import click
 
 from aponyx.models.registry import (
     SignalRegistry,
-    IndicatorRegistry,
-    TransformationRegistry,
+    IndicatorTransformationRegistry,
+    ScoreTransformationRegistry,
+    SignalTransformationRegistry,
 )
 from aponyx.backtest.registry import StrategyRegistry
 from aponyx.data.registry import DataRegistry
 from aponyx.workflows.registry import StepRegistry
 from aponyx.config import (
     SIGNAL_CATALOG_PATH,
-    INDICATOR_CATALOG_PATH,
-    TRANSFORMATION_CATALOG_PATH,
+    INDICATOR_TRANSFORMATION_PATH,
+    SCORE_TRANSFORMATION_PATH,
+    SIGNAL_TRANSFORMATION_PATH,
     STRATEGY_CATALOG_PATH,
     BLOOMBERG_SECURITIES_PATH,
     REGISTRY_PATH,
@@ -40,7 +42,8 @@ logger = logging.getLogger(__name__)
             "signals",
             "products",
             "indicators",
-            "transformations",
+            "score-transformations",
+            "signal-transformations",
             "securities",
             "datasets",
             "strategies",
@@ -74,12 +77,15 @@ def list_items(
     """
     List available catalog items or workflow results.
 
-    ITEM_TYPE can be: signals, products, indicators, transformations,
-    securities, datasets, strategies, steps, or workflows
+    ITEM_TYPE can be: signals, products, indicators, score-transformations,
+    signal-transformations, securities, datasets, strategies, steps, or workflows
 
     \b
     Examples:
         aponyx list signals
+        aponyx list indicators
+        aponyx list score-transformations
+        aponyx list signal-transformations
         aponyx list products
         aponyx list workflows
         aponyx list workflows --signal spread_momentum
@@ -116,14 +122,21 @@ def list_items(
             click.echo(f"{product_name:<20} {desc}")
 
     elif item_type == "indicators":
-        registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
         indicators = registry.list_all()
 
         for indicator_name, metadata in indicators.items():
             click.echo(f"{indicator_name:<30} {metadata.description}")
 
-    elif item_type == "transformations":
-        registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
+    elif item_type == "score-transformations":
+        registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
+        transformations = registry.list_all()
+
+        for transform_name, metadata in transformations.items():
+            click.echo(f"{transform_name:<25} {metadata.description}")
+
+    elif item_type == "signal-transformations":
+        registry = SignalTransformationRegistry(SIGNAL_TRANSFORMATION_PATH)
         transformations = registry.list_all()
 
         for transform_name, metadata in transformations.items():

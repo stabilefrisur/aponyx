@@ -15,14 +15,16 @@ import yaml
 from aponyx.workflows import WorkflowEngine, WorkflowConfig
 from aponyx.models.registry import (
     SignalRegistry,
-    IndicatorRegistry,
-    TransformationRegistry,
+    IndicatorTransformationRegistry,
+    ScoreTransformationRegistry,
+    SignalTransformationRegistry,
 )
 from aponyx.backtest.registry import StrategyRegistry
 from aponyx.config import (
     SIGNAL_CATALOG_PATH,
-    INDICATOR_CATALOG_PATH,
-    TRANSFORMATION_CATALOG_PATH,
+    INDICATOR_TRANSFORMATION_PATH,
+    SCORE_TRANSFORMATION_PATH,
+    SIGNAL_TRANSFORMATION_PATH,
     STRATEGY_CATALOG_PATH,
     BLOOMBERG_SECURITIES_PATH,
 )
@@ -34,7 +36,8 @@ def _validate_config_references(
     signal_name: str,
     strategy_name: str,
     indicator_override: str | None,
-    transformation_override: str | None,
+    score_transformation_override: str | None,
+    signal_transformation_override: str | None,
     securities: dict[str, str] | None,
 ) -> None:
     """
@@ -47,9 +50,11 @@ def _validate_config_references(
     strategy_name : str
         Strategy name to validate.
     indicator_override : str | None
-        Indicator override to validate (if provided).
-    transformation_override : str | None
-        Transformation override to validate (if provided).
+        Indicator transformation override to validate (if provided).
+    score_transformation_override : str | None
+        Score transformation override to validate (if provided).
+    signal_transformation_override : str | None
+        Signal transformation override to validate (if provided).
     securities : dict[str, str] | None
         Security mapping to validate (if provided).
 
@@ -78,7 +83,7 @@ def _validate_config_references(
 
     # Validate indicator override (if provided)
     if indicator_override:
-        indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+        indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
         if not indicator_registry.indicator_exists(indicator_override):
             available = ", ".join(sorted(indicator_registry.list_all().keys()))
             raise click.ClickException(
@@ -86,14 +91,24 @@ def _validate_config_references(
                 f"Available indicators: {available}"
             )
 
-    # Validate transformation override (if provided)
-    if transformation_override:
-        transformation_registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
-        if not transformation_registry.transformation_exists(transformation_override):
-            available = ", ".join(sorted(transformation_registry.list_all().keys()))
+    # Validate score transformation override (if provided)
+    if score_transformation_override:
+        score_registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
+        if not score_registry.transformation_exists(score_transformation_override):
+            available = ", ".join(sorted(score_registry.list_all().keys()))
             raise click.ClickException(
-                f"Transformation '{transformation_override}' not found in catalog.\n"
-                f"Available transformations: {available}"
+                f"Score transformation '{score_transformation_override}' not found in score_transformation.json.\n"
+                f"Available score transformations: {available}"
+            )
+
+    # Validate signal transformation override (if provided)
+    if signal_transformation_override:
+        signal_trans_registry = SignalTransformationRegistry(SIGNAL_TRANSFORMATION_PATH)
+        if not signal_trans_registry.transformation_exists(signal_transformation_override):
+            available = ", ".join(sorted(signal_trans_registry.list_all().keys()))
+            raise click.ClickException(
+                f"Signal transformation '{signal_transformation_override}' not found in signal_transformation.json.\n"
+                f"Available signal transformations: {available}"
             )
 
     # Validate securities mapping (if provided)
@@ -149,25 +164,33 @@ def _display_workflow_config(
     signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
     signal_metadata = signal_registry.get_metadata(config.signal_name)
 
-    indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+    indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
 
-    # Resolve actual indicator (override or from signal)
-    if config.indicator_override:
-        indicator_name = config.indicator_override
+    # Resolve actual indicator transformation (override or from signal)
+    if config.indicator_transformation_override:
+        indicator_name = config.indicator_transformation_override
         indicator_source = "[config]"
     else:
-        indicator_name = signal_metadata.indicator_dependencies[0]
+        indicator_name = signal_metadata.indicator_transformation
         indicator_source = "[from signal]"
 
     indicator_metadata = indicator_registry.get_metadata(indicator_name)
 
-    # Resolve actual transformation (override or from signal)
-    if config.transformation_override:
-        transformation_name = config.transformation_override
-        transformation_source = "[config]"
+    # Resolve actual score transformation (override or from signal)
+    if config.score_transformation_override:
+        score_transformation_name = config.score_transformation_override
+        score_source = "[config]"
     else:
-        transformation_name = signal_metadata.transformations[0]
-        transformation_source = "[from signal]"
+        score_transformation_name = signal_metadata.score_transformation
+        score_source = "[from signal]"
+
+    # Resolve actual signal transformation (override or from signal)
+    if config.signal_transformation_override:
+        signal_transformation_name = config.signal_transformation_override
+        signal_source = "[config]"
+    else:
+        signal_transformation_name = signal_metadata.signal_transformation
+        signal_source = "[from signal]"
 
     # Resolve actual securities (mapping or from indicator defaults)
     if config.security_mapping:
@@ -182,17 +205,18 @@ def _display_workflow_config(
         securities_source = "[from indicator]"
 
     # Display all fields with proper alignment
-    click.echo(f"Label:           {config.label} [config]")
+    click.echo(f"Label:                    {config.label} [config]")
     click.echo(
-        f"Product:         {config.product} {'[config]' if 'product' in config_dict else '[default]'}"
+        f"Product:                  {config.product} {'[config]' if 'product' in config_dict else '[default]'}"
     )
-    click.echo(f"Signal:          {config.signal_name} [config]")
-    click.echo(f"Indicator:       {indicator_name} {indicator_source}")
-    click.echo(f"Securities:      {securities_str} {securities_source}")
-    click.echo(f"Transformation:  {transformation_name} {transformation_source}")
-    click.echo(f"Strategy:        {config.strategy_name} [config]")
+    click.echo(f"Signal:                   {config.signal_name} [config]")
+    click.echo(f"Indicator Transform:      {indicator_name} {indicator_source}")
+    click.echo(f"Securities:               {securities_str} {securities_source}")
+    click.echo(f"Score Transform:          {score_transformation_name} {score_source}")
+    click.echo(f"Signal Transform:         {signal_transformation_name} {signal_source}")
+    click.echo(f"Strategy:                 {config.strategy_name} [config]")
     click.echo(
-        f"Data:            {config.data_source} {'[config]' if 'data' in config_dict else '[default]'}"
+        f"Data:                     {config.data_source} {'[config]' if 'data' in config_dict else '[default]'}"
     )
 
     # Display steps
@@ -202,11 +226,11 @@ def _display_workflow_config(
     else:
         steps_str = "all"
         steps_source = "[default]"
-    click.echo(f"Steps:           {steps_str} {steps_source}")
+    click.echo(f"Steps:                    {steps_str} {steps_source}")
 
     # Display force re-run
     force_source = "[config]" if "force" in config_dict else "[default]"
-    click.echo(f"Force re-run:    {config.force_rerun} {force_source}")
+    click.echo(f"Force re-run:             {config.force_rerun} {force_source}")
 
     click.echo("=" * len(header))
     click.echo()
@@ -232,8 +256,9 @@ def run(config_path: Path) -> None:
     - strategy: Strategy name (must exist in strategy_catalog.json)
 
     Optional YAML fields:
-    - indicator: Indicator override (default: from signal)
-    - transformation: Transformation override (default: from signal)
+    - indicator: Indicator transformation override (default: from signal)
+    - score_transformation: Score transformation override (default: from signal)
+    - signal_transformation: Signal transformation override (default: from signal)
     - securities: Security mapping dict (default: from indicator)
     - data: Data source (default: "synthetic")
     - steps: List of steps to execute (default: all)
@@ -250,8 +275,9 @@ def run(config_path: Path) -> None:
         signal: cdx_etf_basis
         product: cdx_ig_5y
         strategy: balanced
-        indicator: cdx_etf_spread_diff
-        transformation: z_score_20d
+        indicator: cdx_etf_spread_diff_60d
+        score_transformation: z_score_60d
+        signal_transformation: bounded_2_0
         securities:
           cdx: cdx_hy_5y
           etf: hyg
@@ -286,7 +312,8 @@ def run(config_path: Path) -> None:
     product_id = config_dict["product"]
     strategy_name = config_dict["strategy"]
     indicator_override = config_dict.get("indicator")
-    transformation_override = config_dict.get("transformation")
+    score_transformation_override = config_dict.get("score_transformation")
+    signal_transformation_override = config_dict.get("signal_transformation")
     securities = config_dict.get("securities")
     data_source = config_dict.get("data", "synthetic")
     step_list = config_dict.get("steps")
@@ -297,7 +324,8 @@ def run(config_path: Path) -> None:
         signal_name=signal_name,
         strategy_name=strategy_name,
         indicator_override=indicator_override,
-        transformation_override=transformation_override,
+        score_transformation_override=score_transformation_override,
+        signal_transformation_override=signal_transformation_override,
         securities=securities,
     )
 
@@ -310,8 +338,9 @@ def run(config_path: Path) -> None:
             product=product_id,
             data_source=data_source,  # type: ignore
             security_mapping=securities,
-            indicator_override=indicator_override,
-            transformation_override=transformation_override,
+            indicator_transformation_override=indicator_override,
+            score_transformation_override=score_transformation_override,
+            signal_transformation_override=signal_transformation_override,
             steps=step_list,  # type: ignore
             force_rerun=force_rerun,
         )

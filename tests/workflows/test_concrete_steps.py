@@ -409,9 +409,11 @@ class TestSuitabilityStep:
         from pathlib import Path
 
         mock_output_dir = Path("/mock/spread_momentum_balanced_20241120_123456")
+        # Pass market_data with security_id keys (e.g., "cdx_ig_5y")
+        # The step expects the product ID as the key
         context = {
             "signal": {"signal": sample_signal},
-            "data": {"market_data": sample_market_data},
+            "data": {"market_data": {"cdx_ig_5y": sample_market_data["cdx"]}},
             "output_dir": mock_output_dir,
         }
         result = step.execute(context)
@@ -456,9 +458,10 @@ class TestBacktestStep:
         mock_run_backtest.return_value = sample_backtest_result
 
         step = BacktestStep(workflow_config)
+        # Pass market_data with security_id keys (e.g., "cdx_ig_5y")
         context = {
             "signal": {"signal": sample_signal},
-            "data": {"market_data": sample_market_data},
+            "data": {"market_data": {"cdx_ig_5y": sample_market_data["cdx"]}},
             "suitability": {"product": "cdx_ig_5y"},
         }
         result = step.execute(context)
@@ -493,9 +496,10 @@ class TestBacktestStep:
         mock_run_backtest.return_value = sample_backtest_result
 
         step = BacktestStep(workflow_config)
+        # Pass market_data with security_id keys (e.g., "cdx_ig_5y")
         context = {
             "signal": {"signal": sample_signal},
-            "data": {"market_data": sample_market_data},
+            "data": {"market_data": {"cdx_ig_5y": sample_market_data["cdx"]}},
             "suitability": {"product": "cdx_ig_5y"},
         }
         step.execute(context)
@@ -632,12 +636,12 @@ class TestStepIntegration:
     @patch("aponyx.data.bloomberg_config.list_securities")
     @patch("aponyx.workflows.concrete_steps.DataRegistry")
     @patch("aponyx.workflows.concrete_steps.load_parquet")
-    @patch("aponyx.models.orchestrator._compute_signal")
+    @patch("aponyx.models.signal_composer.compose_signal")
     @patch("aponyx.workflows.concrete_steps.save_parquet")
     def test_data_to_signal_flow(
         self,
         mock_save,
-        mock_compute,
+        mock_compose_signal,
         mock_load_parquet,
         mock_data_registry_class,
         mock_list_securities,
@@ -656,8 +660,8 @@ class TestStepIntegration:
         mock_data_registry_class.return_value = mock_registry
         mock_load_parquet.return_value = sample_market_data["cdx"]
 
-        # Setup SignalStep
-        mock_compute.return_value = sample_signal
+        # Setup SignalStep - compose_signal returns a signal Series
+        mock_compose_signal.return_value = sample_signal
 
         # Execute DataStep
         data_step = DataStep(workflow_config)
@@ -672,7 +676,7 @@ class TestStepIntegration:
 
         # Verify signal was computed with data from DataStep
         assert "signal" in signal_output
-        mock_compute.assert_called_once()
+        mock_compose_signal.assert_called_once()
 
     def test_step_output_path_hierarchy(self, workflow_config):
         """Test steps create appropriate output directory hierarchy."""

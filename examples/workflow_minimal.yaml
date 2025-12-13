@@ -1,5 +1,12 @@
 # Minimal workflow configuration
 # Only required fields specified - all others use defaults
+#
+# Four-Stage Transformation Pipeline (defaults from signal_catalog.json):
+#   Signal defines: indicator_transformation, score_transformation, signal_transformation
+#   These are automatically resolved when not overridden
+#
+# Available signals: cdx_etf_basis, spread_momentum, cdx_vix_gap
+# Available strategies: aggressive, balanced, conservative, experimental
 
 label: minimal_test
 signal: spread_momentum

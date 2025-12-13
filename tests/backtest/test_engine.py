@@ -45,15 +45,30 @@ def sample_signal_and_spread() -> tuple[pd.Series, pd.Series]:
 def test_backtest_config_validation() -> None:
     """Test that config validation catches invalid parameters."""
     # Valid config should work
-    BacktestConfig(entry_threshold=1.5, exit_threshold=0.5)
-
-    # Entry <= exit should raise
-    with pytest.raises(ValueError, match="entry_threshold.*must be >"):
-        BacktestConfig(entry_threshold=1.0, exit_threshold=1.0)
+    BacktestConfig(position_size_mm=10.0, sizing_mode="binary")
 
     # Negative position size should raise
-    with pytest.raises(ValueError, match="position_size must be positive"):
-        BacktestConfig(position_size=-10.0)
+    with pytest.raises(ValueError, match="position_size_mm must be positive"):
+        BacktestConfig(position_size_mm=-10.0)
+
+    # Invalid sizing mode should raise
+    with pytest.raises(ValueError, match="sizing_mode must be"):
+        BacktestConfig(sizing_mode="invalid")
+
+    # Invalid stop_loss_pct should raise
+    with pytest.raises(ValueError, match="stop_loss_pct must be in"):
+        BacktestConfig(stop_loss_pct=0.0)
+    
+    with pytest.raises(ValueError, match="stop_loss_pct must be in"):
+        BacktestConfig(stop_loss_pct=150.0)
+
+    # Invalid take_profit_pct should raise
+    with pytest.raises(ValueError, match="take_profit_pct must be in"):
+        BacktestConfig(take_profit_pct=-5.0)
+
+    # Invalid max_holding_days should raise
+    with pytest.raises(ValueError, match="max_holding_days must be positive"):
+        BacktestConfig(max_holding_days=0)
 
     # Negative transaction cost should raise
     with pytest.raises(ValueError, match="transaction_cost_bps must be non-negative"):
@@ -102,18 +117,22 @@ def test_run_backtest_returns_result(
 def test_run_backtest_generates_positions(
     sample_signal_and_spread: tuple[pd.Series, pd.Series],
 ) -> None:
-    """Test that backtest generates positions based on thresholds."""
-    signal, spread = sample_signal_and_spread
-    config = BacktestConfig(entry_threshold=1.5, exit_threshold=0.5)
+    """Test that backtest generates positions based on signal values."""
+    # Use signal_based_test_data fixture which has varied signal values
+    dates = pd.date_range("2024-01-01", periods=20, freq="D")
+    signal = pd.Series([2.0] * 5 + [0.0] * 5 + [-2.0] * 5 + [0.0] * 5, index=dates)
+    spread = pd.Series([100.0] * 20, index=dates)
+    
+    config = BacktestConfig(signal_lag=0, transaction_cost_bps=0.0)
     result = run_backtest(signal, spread, config)
 
-    # Should have some long positions (signal = 2.0)
+    # Should have some long positions (signal = 2.0 > 0)
     assert (result.positions["position"] == 1).any()
 
-    # Should have some short positions (signal = -2.0)
+    # Should have some short positions (signal = -2.0 < 0)
     assert (result.positions["position"] == -1).any()
 
-    # Should have neutral periods (signal below threshold)
+    # Should have neutral periods (signal = 0)
     assert (result.positions["position"] == 0).any()
 
 
@@ -140,18 +159,22 @@ def test_run_backtest_applies_transaction_costs(
 ) -> None:
     """Test that transaction costs are applied on trades."""
     signal, spread = sample_signal_and_spread
-    config = BacktestConfig(transaction_cost_bps=2.0, position_size=10.0)
+    config = BacktestConfig(transaction_cost_bps=2.0, position_size_mm=10.0, signal_lag=0)
     result = run_backtest(signal, spread, config)
 
     # Total costs should be positive (costs incurred)
     total_costs = result.pnl["cost"].sum()
     assert total_costs > 0
 
-    # Costs should only occur on trade entry/exit
-    trades = result.positions["position"].diff().fillna(0) != 0
-    n_trades = trades.sum()
-    if n_trades > 0:
-        assert result.pnl["cost"].gt(0).sum() <= n_trades
+    # Costs should occur on position changes (entry, exit, reversal)
+    # Sign reversals create 2 cost entries (exit old + enter new) but count as 1 position change
+    position_changes = result.positions["position"].diff().fillna(0) != 0
+    n_position_changes = position_changes.sum()
+    cost_events = result.pnl["cost"].gt(0).sum()
+    if n_position_changes > 0:
+        # Each position change can have 1-2 cost events (reversal has 2)
+        assert cost_events >= n_position_changes
+        assert cost_events <= n_position_changes * 2
 
 
 def test_run_backtest_calculates_pnl(
@@ -238,12 +261,12 @@ def test_backtest_metadata_logging(
 ) -> None:
     """Test that backtest logs complete metadata."""
     signal, spread = sample_signal_and_spread
-    config = BacktestConfig(entry_threshold=2.0, position_size=15.0)
+    config = BacktestConfig(position_size_mm=15.0, signal_lag=0, transaction_cost_bps=0.0)
     result = run_backtest(signal, spread, config)
 
     # Check config is logged
-    assert result.metadata["config"]["entry_threshold"] == 2.0
-    assert result.metadata["config"]["position_size"] == 15.0
+    assert result.metadata["config"]["position_size_mm"] == 15.0
+    assert result.metadata["config"]["signal_lag"] == 0
 
     # Check summary statistics exist
     assert "n_trades" in result.metadata["summary"]
@@ -257,7 +280,7 @@ def test_backtest_with_max_holding_days(
 ) -> None:
     """Test that max holding days constraint is enforced."""
     signal, spread = sample_signal_and_spread
-    config = BacktestConfig(entry_threshold=1.5, max_holding_days=5)
+    config = BacktestConfig(max_holding_days=5, signal_lag=0, transaction_cost_bps=0.0)
     result = run_backtest(signal, spread, config)
 
     # No position should be held longer than max_holding_days
@@ -310,11 +333,11 @@ def test_signal_lag_shifts_execution() -> None:
     spread = pd.Series([100.0] * 10, index=dates)
 
     # Test with no lag (default behavior)
-    config_no_lag = BacktestConfig(entry_threshold=2.0, signal_lag=0)
+    config_no_lag = BacktestConfig(signal_lag=0, transaction_cost_bps=0.0)
     result_no_lag = run_backtest(signal, spread, config_no_lag)
 
     # Test with 1-day lag
-    config_lag = BacktestConfig(entry_threshold=2.0, signal_lag=1)
+    config_lag = BacktestConfig(signal_lag=1, transaction_cost_bps=0.0)
     result_lag = run_backtest(signal, spread, config_lag)
 
     # With no lag, position should be taken on day 3 (when signal appears)
@@ -362,7 +385,7 @@ def test_signal_lag_prevents_look_ahead_bias() -> None:
     signal = pd.Series([0.0] * 10 + [3.0] * 10, index=dates)
     spread = pd.Series([100.0] * 20, index=dates)
 
-    config = BacktestConfig(entry_threshold=2.0, signal_lag=1)
+    config = BacktestConfig(signal_lag=1, transaction_cost_bps=0.0)
     result = run_backtest(signal, spread, config)
 
     # With 1-day lag, signal data is shifted, reducing available dates
@@ -413,10 +436,9 @@ def test_signal_lag_interaction_with_max_holding_days() -> None:
     spread = pd.Series([100.0] * 30, index=dates)
 
     config = BacktestConfig(
-        entry_threshold=2.0,
-        exit_threshold=0.5,
         max_holding_days=5,
         signal_lag=1,
+        transaction_cost_bps=0.0,
     )
     result = run_backtest(signal, spread, config)
 
@@ -445,9 +467,8 @@ def test_backtest_with_sparse_signals() -> None:
     spread = pd.Series(100 + np.random.randn(100) * 0.5, index=dates)
 
     config = BacktestConfig(
-        entry_threshold=2.0,
-        exit_threshold=0.5,
         signal_lag=0,  # No lag for precise testing
+        transaction_cost_bps=0.0,
     )
     result = run_backtest(signal, spread, config)
 
@@ -467,18 +488,19 @@ def test_backtest_with_rapid_signal_changes() -> None:
     spread = pd.Series([100.0] * 50, index=dates)
 
     config = BacktestConfig(
-        entry_threshold=2.0,
-        exit_threshold=0.5,
         signal_lag=0,
+        transaction_cost_bps=1.0,  # Enable costs to test
     )
     result = run_backtest(signal, spread, config)
 
     # With alternating signals, should take positions
-    # Entry threshold of 2.0 means signal of 2.5/-2.5 will trigger
     assert (result.positions["position"] != 0).any()
 
-    # Verify transaction costs are incurred
+    # Verify transaction costs are incurred (many sign reversals)
     assert result.pnl["cost"].sum() > 0
+    
+    # With rapid reversals, should have many cost events
+    assert result.pnl["cost"].gt(0).sum() > 10
 
 
 def test_backtest_alignment_with_mismatched_dates() -> None:
@@ -532,9 +554,7 @@ def test_backtest_metadata_completeness() -> None:
     spread = pd.Series(100 + np.random.randn(50), index=dates)
 
     config = BacktestConfig(
-        entry_threshold=1.8,
-        exit_threshold=0.6,
-        position_size=12.5,
+        position_size_mm=12.5,
         transaction_cost_bps=1.5,
         max_holding_days=10,
         dv01_per_million=5000.0,
@@ -543,9 +563,9 @@ def test_backtest_metadata_completeness() -> None:
     result = run_backtest(signal, spread, config)
 
     # Verify all config parameters are in metadata
-    assert result.metadata["config"]["entry_threshold"] == 1.8
-    assert result.metadata["config"]["exit_threshold"] == 0.6
-    assert result.metadata["config"]["position_size"] == 12.5
+    assert result.metadata["config"]["position_size_mm"] == 12.5
+    assert result.metadata["config"]["sizing_mode"] == "binary"
+    assert result.metadata["config"]["signal_lag"] == 2
     assert result.metadata["config"]["transaction_cost_bps"] == 1.5
     assert result.metadata["config"]["max_holding_days"] == 10
     assert result.metadata["config"]["dv01_per_million"] == 5000.0
@@ -574,7 +594,7 @@ def test_backtest_determinism() -> None:
     signal = pd.Series(np.random.randn(50), index=dates)
     spread = pd.Series(100 + np.random.randn(50), index=dates)
 
-    config = BacktestConfig(entry_threshold=1.5)
+    config = BacktestConfig(signal_lag=0, transaction_cost_bps=0.0)
 
     # Run twice
     result1 = run_backtest(signal, spread, config)
@@ -601,9 +621,8 @@ def test_backtest_with_zero_threshold() -> None:
     spread = pd.Series([100.0] * 30, index=dates)
 
     config = BacktestConfig(
-        entry_threshold=1.5,
-        exit_threshold=0.0,  # Never exit on signal decay
         signal_lag=0,
+        transaction_cost_bps=0.0,
     )
     result = run_backtest(signal, spread, config)
 
@@ -613,3 +632,392 @@ def test_backtest_with_zero_threshold() -> None:
         positions_after_entry = result.positions.loc[first_entry_idx:]
         # Should maintain position (only changes if max_holding_days hits, which is None)
         assert (positions_after_entry["position"] != 0).all()
+
+
+# ============================================================================
+# Phase 3: User Story 1 - Position Sizing Tests
+# ============================================================================
+
+
+@pytest.fixture
+def signal_based_test_data() -> tuple[pd.Series, pd.Series]:
+    """Generate test data for signal-based position triggers."""
+    dates = pd.date_range("2024-01-01", periods=50, freq="D")
+    
+    # Signal pattern: zero → positive → zero → negative → zero
+    signal = pd.Series(
+        [0.0] * 5 + [0.8] * 10 + [0.0] * 10 + [-0.6] * 10 + [0.0] * 15,
+        index=dates,
+    )
+    
+    # Flat spread for simplicity
+    spread = pd.Series([100.0] * 50, index=dates)
+    
+    return signal, spread
+
+
+def test_binary_sizing_deploys_full_position(
+    signal_based_test_data: tuple[pd.Series, pd.Series],
+) -> None:
+    """Test T009: Binary sizing deploys full position_size_mm for non-zero signal."""
+    signal, spread = signal_based_test_data
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        signal_lag=0,
+    )
+    result = run_backtest(signal, spread, config)
+    
+    # When signal is non-zero, position should be full size (+1 or -1)
+    non_zero_signal = result.positions[result.positions["signal"].abs() > 1e-9]
+    assert (non_zero_signal["position"].abs() == 1).all()
+
+
+def test_position_direction_from_signal_sign(
+    signal_based_test_data: tuple[pd.Series, pd.Series],
+) -> None:
+    """Test T010: Position direction determined by signal sign (+1 for positive, -1 for negative)."""
+    signal, spread = signal_based_test_data
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        signal_lag=0,
+    )
+    result = run_backtest(signal, spread, config)
+    
+    # Positive signal → long position (+1)
+    positive_signal = result.positions[result.positions["signal"] > 1e-9]
+    assert (positive_signal["position"] == 1).all()
+    
+    # Negative signal → short position (-1)
+    negative_signal = result.positions[result.positions["signal"] < -1e-9]
+    assert (negative_signal["position"] == -1).all()
+    
+    # Zero signal → no position (0)
+    zero_signal = result.positions[result.positions["signal"].abs() < 1e-9]
+    assert (zero_signal["position"] == 0).all()
+
+
+def test_proportional_sizing_not_implemented() -> None:
+    """Test T011: Proportional sizing_mode raises NotImplementedError."""
+    dates = pd.date_range("2024-01-01", periods=10, freq="D")
+    signal = pd.Series([0.5] * 10, index=dates)
+    spread = pd.Series([100.0] * 10, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+    )
+    
+    with pytest.raises(NotImplementedError, match="Proportional sizing mode not yet implemented"):
+        run_backtest(signal, spread, config)
+
+
+# ============================================================================
+# Phase 4: User Story 2 - Stop Loss Cooldown Tests
+# ============================================================================
+
+
+def test_stop_loss_exit_reason_recorded() -> None:
+    """Test T018: exit_reason is 'stop_loss' when stop loss triggers."""
+    dates = pd.date_range("2024-01-01", periods=20, freq="D")
+    signal = pd.Series([0.8] * 20, index=dates)
+    spread = pd.Series([100.0 + i * 0.5 for i in range(20)], index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        stop_loss_pct=5.0,
+        dv01_per_million=4750.0,
+        transaction_cost_bps=0.0,
+        signal_lag=0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Verify exit_reason is "stop_loss"
+    stop_loss_exits = result.positions[result.positions["exit_reason"] == "stop_loss"]
+    assert len(stop_loss_exits) > 0
+    assert (stop_loss_exits["exit_reason"] == "stop_loss").all()
+
+
+def test_cooldown_prevents_reentry_with_non_zero_signal() -> None:
+    """Test T019: Cooldown prevents re-entry while signal remains non-zero."""
+    dates = pd.date_range("2024-01-01", periods=30, freq="D")
+    
+    # Signal: constant non-zero (stays at 0.8)
+    signal = pd.Series([0.8] * 30, index=dates)
+    
+    # Spread: widen to trigger stop loss, then stabilize
+    spread_values = [100.0 + i * 0.5 for i in range(10)] + [105.0] * 20
+    spread = pd.Series(spread_values, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        stop_loss_pct=5.0,
+        dv01_per_million=4750.0,
+        transaction_cost_bps=0.0,
+        signal_lag=0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Find stop loss exit
+    stop_loss_day = result.positions[result.positions["exit_reason"] == "stop_loss"].index[0]
+    
+    # After stop loss, position should remain 0 (cooldown active)
+    positions_after_stop = result.positions.loc[stop_loss_day:]["position"]
+    assert (positions_after_stop == 0).all(), "Should stay in cooldown with non-zero signal"
+
+
+def test_cooldown_deactivates_when_signal_returns_to_zero() -> None:
+    """Test T020: Cooldown deactivates when signal returns to zero."""
+    dates = pd.date_range("2024-01-01", periods=30, freq="D")
+    
+    # Signal: non-zero → trigger stop loss → return to zero → non-zero again
+    signal = pd.Series([0.8] * 10 + [0.0] * 5 + [0.7] * 15, index=dates)
+    
+    # Spread: widen to trigger stop loss, then stabilize
+    spread_values = [100.0 + i * 0.6 for i in range(10)] + [106.0] * 20
+    spread = pd.Series(spread_values, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        stop_loss_pct=5.0,
+        dv01_per_million=4750.0,
+        transaction_cost_bps=0.0,
+        signal_lag=0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Should have stop loss exit
+    stop_loss_exits = result.positions[result.positions["exit_reason"] == "stop_loss"]
+    assert len(stop_loss_exits) > 0
+    
+    # After signal returns to zero and then goes positive again, should re-enter
+    # Check positions after day 15 (signal is 0.7)
+    later_positions = result.positions.iloc[15:]["position"]
+    assert (later_positions == 1).any(), "Should re-enter after cooldown released"
+
+
+# ============================================================================
+# Phase 5: User Story 3 - Take Profit Cooldown Tests
+# ============================================================================
+
+
+def test_take_profit_exit_reason_recorded() -> None:
+    """Test T028: exit_reason is 'take_profit' when take profit triggers."""
+    dates = pd.date_range("2024-01-01", periods=20, freq="D")
+    signal = pd.Series([0.8] * 20, index=dates)
+    spread = pd.Series([100.0 - i * 0.3 for i in range(20)], index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        take_profit_pct=10.0,
+        dv01_per_million=4750.0,
+        transaction_cost_bps=0.0,
+        signal_lag=0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Verify exit_reason is "take_profit"
+    take_profit_exits = result.positions[result.positions["exit_reason"] == "take_profit"]
+    assert len(take_profit_exits) > 0
+    assert (take_profit_exits["exit_reason"] == "take_profit").all()
+
+
+def test_cooldown_after_take_profit_exit() -> None:
+    """Test T030: Cooldown activates after take profit exit."""
+    dates = pd.date_range("2024-01-01", periods=30, freq="D")
+    
+    # Signal: constant non-zero
+    signal = pd.Series([0.8] * 30, index=dates)
+    
+    # Spread: tighten to trigger take profit, then stabilize
+    spread_values = [100.0 - i * 0.4 for i in range(10)] + [96.0] * 20
+    spread = pd.Series(spread_values, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        take_profit_pct=5.0,
+        dv01_per_million=4750.0,
+        transaction_cost_bps=0.0,
+        signal_lag=0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Find take profit exit
+    take_profit_day = result.positions[result.positions["exit_reason"] == "take_profit"].index[0]
+    
+    # After take profit, position should remain 0 (cooldown active)
+    positions_after_tp = result.positions.loc[take_profit_day:]["position"]
+    assert (positions_after_tp == 0).all(), "Should stay in cooldown with non-zero signal"
+
+
+# ============================================================================
+# Phase 7: User Story 5 - Runtime Override Tests
+# ============================================================================
+
+
+def test_position_size_mm_override() -> None:
+    """Test T044: position_size_mm_override substitutes catalog value."""
+    from aponyx.backtest.registry import StrategyRegistry
+    from aponyx.config import STRATEGY_CATALOG_PATH
+    
+    registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
+    metadata = registry.get_metadata("balanced")
+    
+    # Default config
+    default_config = metadata.to_config()
+    assert default_config.position_size_mm == metadata.position_size_mm
+    
+    # Overridden config
+    override_config = metadata.to_config(position_size_mm_override=20.0)
+    assert override_config.position_size_mm == 20.0
+
+
+def test_stop_loss_pct_override() -> None:
+    """Test T045: stop_loss_pct_override substitutes catalog value."""
+    from aponyx.backtest.registry import StrategyRegistry
+    from aponyx.config import STRATEGY_CATALOG_PATH
+    
+    registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
+    metadata = registry.get_metadata("balanced")
+    
+    # Default config
+    default_config = metadata.to_config()
+    assert default_config.stop_loss_pct == metadata.stop_loss_pct
+    
+    # Overridden config
+    override_config = metadata.to_config(stop_loss_pct_override=3.0)
+    assert override_config.stop_loss_pct == 3.0
+
+
+def test_take_profit_pct_override_enables_when_catalog_has_null() -> None:
+    """Test T046: take_profit_pct_override enables take profit when catalog has null."""
+    from aponyx.backtest.registry import StrategyRegistry
+    from aponyx.config import STRATEGY_CATALOG_PATH
+    
+    registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
+    metadata = registry.get_metadata("aggressive")
+    
+    # Aggressive strategy has null take_profit_pct by default
+    default_config = metadata.to_config()
+    assert default_config.take_profit_pct is None
+    
+    # Override to enable
+    override_config = metadata.to_config(take_profit_pct_override=15.0)
+    assert override_config.take_profit_pct == 15.0
+
+
+def test_runtime_overrides_validated() -> None:
+    """Test T047: Runtime overrides are validated with same fail-fast rules."""
+    from aponyx.backtest.registry import StrategyRegistry
+    from aponyx.config import STRATEGY_CATALOG_PATH
+    
+    registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
+    metadata = registry.get_metadata("balanced")
+    
+    # Invalid override should raise when creating BacktestConfig
+    with pytest.raises(ValueError, match="position_size_mm must be positive"):
+        metadata.to_config(position_size_mm_override=-5.0)
+    
+    with pytest.raises(ValueError, match="sizing_mode must be"):
+        metadata.to_config(sizing_mode_override="invalid")
+    
+    with pytest.raises(ValueError, match="stop_loss_pct must be in"):
+        metadata.to_config(stop_loss_pct_override=0.0)
+    
+    with pytest.raises(ValueError, match="take_profit_pct must be in"):
+        metadata.to_config(take_profit_pct_override=150.0)
+
+# ============================================================================
+# Phase 8: Polish & Integration - Edge Case Tests
+# ============================================================================
+
+
+def test_signal_sign_change_reversal() -> None:
+    """Test T053: Signal sign change reversal (positive to negative without zero)."""
+    dates = pd.date_range("2024-01-01", periods=30, freq="D")
+    
+    # Signal: positive → negative without passing through zero
+    signal = pd.Series([0.8] * 10 + [-0.6] * 20, index=dates)
+    
+    # Flat spread
+    spread = pd.Series([100.0] * 30, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        transaction_cost_bps=0.0,
+        signal_lag=0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Should have a reversal exit
+    reversal_exits = result.positions[result.positions["exit_reason"] == "reversal"]
+    assert len(reversal_exits) > 0, "Should have reversal exit"
+    
+    # After reversal, position should be opposite
+    reversal_idx = reversal_exits.index[0]
+    position_before = result.positions.loc[:reversal_idx]["position"].iloc[-2]
+    position_after = result.positions.loc[reversal_idx:]["position"].iloc[0]
+    assert position_before == 1, "Should be long before reversal"
+    assert position_after == -1, "Should be short after reversal"
+
+
+def test_max_holding_days_exit_triggers_cooldown() -> None:
+    """Test T054: max_holding_days exit triggers cooldown."""
+    dates = pd.date_range("2024-01-01", periods=30, freq="D")
+    
+    # Signal: constant non-zero
+    signal = pd.Series([0.8] * 30, index=dates)
+    
+    # Flat spread (no P&L exits)
+    spread = pd.Series([100.0] * 30, index=dates)
+    
+    config = BacktestConfig(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        max_holding_days=5,
+        transaction_cost_bps=0.0,
+        signal_lag=0,
+    )
+    
+    result = run_backtest(signal, spread, config)
+    
+    # Should have max_holding_days exit
+    max_days_exits = result.positions[result.positions["exit_reason"] == "max_holding_days"]
+    assert len(max_days_exits) > 0, "Should have max_holding_days exit"
+    
+    # After max_holding_days exit, should be in cooldown (no re-entry with non-zero signal)
+    exit_idx = max_days_exits.index[0]
+    positions_after_exit = result.positions.loc[exit_idx:]["position"]
+    assert (positions_after_exit == 0).all(), "Should stay in cooldown"
+
+
+def test_max_holding_days_validation() -> None:
+    """Test T055: max_holding_days validation (positive when specified)."""
+    # Valid config with max_holding_days
+    config = BacktestConfig(max_holding_days=10)
+    assert config.max_holding_days == 10
+    
+    # Valid config with max_holding_days=None
+    config_none = BacktestConfig(max_holding_days=None)
+    assert config_none.max_holding_days is None
+    
+    # Invalid: zero or negative
+    with pytest.raises(ValueError, match="max_holding_days must be positive"):
+        BacktestConfig(max_holding_days=0)
+    
+    with pytest.raises(ValueError, match="max_holding_days must be positive"):
+        BacktestConfig(max_holding_days=-5)

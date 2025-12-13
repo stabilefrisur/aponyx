@@ -1,23 +1,37 @@
 # Complete workflow configuration
 # All fields explicitly specified (no defaults used)
+#
+# Four-Stage Transformation Pipeline:
+#   Security → Indicator Transform → Score Transform → Signal Transform → Position
+#
+# Each signal composes:
+#   1. indicator (transformation)  - Raw metric in interpretable units (bps, ratios)
+#   2. score_transformation        - Normalization (z-score, volatility adjustment)
+#   3. signal_transformation       - Trading rules (floor, cap, neutral_range)
 
 label: complete_test
 signal: cdx_etf_basis
 product: cdx_ig_5y
 strategy: balanced
 
-# Optional signal overrides
+# Optional: Override transformations from signal defaults
+# - indicator: Override raw indicator computation
+# - score_transformation: Override normalization method
+# - signal_transformation: Override trading rule bounds
 indicator: cdx_etf_spread_diff
-transformation: z_score_20d
+score_transformation: z_score_20d
+signal_transformation: bounded_1_5
+
+# Optional: Override default securities for the indicator
 securities:
   cdx: cdx_ig_5y
   etf: lqd
 
-# Data source
+# Data source (synthetic, file, bloomberg)
 data: synthetic
 
 # Execute specific steps only
 steps: [data, signal, suitability, backtest, performance, visualization]
 
-# Force re-run all steps
+# Force re-run all steps (skip cache)
 force: true

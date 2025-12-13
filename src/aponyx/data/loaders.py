@@ -124,11 +124,6 @@ def load_instrument_from_raw(
     logger.info("Loaded %s from raw files: %d rows", instrument.upper(), len(df))
     return df
 
-    # Concatenate all securities
-    df = concat_multi_security(dfs, instrument.upper())
-    logger.info("Loaded %s from raw files: %d rows", instrument.upper(), len(df))
-    return df
-
 
 def load_signal_required_data(
     signal_registry: "SignalRegistry",

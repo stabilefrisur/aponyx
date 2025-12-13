@@ -364,8 +364,8 @@ def test_workflow_with_indicator_caching():
     import numpy as np
     from aponyx.models.indicators import compute_indicator
     from aponyx.persistence.parquet_io import invalidate_indicator_cache
-    from aponyx.config import INDICATOR_CACHE_DIR, INDICATOR_CATALOG_PATH
-    from aponyx.models.registry import IndicatorRegistry
+    from aponyx.config import INDICATOR_CACHE_DIR, INDICATOR_TRANSFORMATION_PATH
+    from aponyx.models.registry import IndicatorTransformationRegistry
 
     # Clean indicator cache before test
     invalidate_indicator_cache()
@@ -377,7 +377,7 @@ def test_workflow_with_indicator_caching():
     market_data = {"cdx": cdx_df, "etf": etf_df}
 
     # Load indicator registry
-    registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+    registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
     indicator_metadata = registry.get_metadata("cdx_etf_spread_diff")
 
     # Verify cache is empty

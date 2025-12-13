@@ -114,15 +114,9 @@ def _resolve_workflow_dir(workflow: str) -> Path:
     default="console",
     help="Report output format (default: console)",
 )
-@click.option(
-    "--output",
-    type=click.Path(path_type=Path),
-    help="Custom output path",
-)
 def report(
     workflow: str,
     format: str,
-    output: Path | None,
 ) -> None:
     """
     Generate comprehensive research report from workflow results.
@@ -134,13 +128,15 @@ def report(
     - Label (e.g., "my_test_run")
     - Index from 'aponyx list workflows' (e.g., "0" for most recent)
 
+    Reports are saved to the workflow's reports/ folder.
+
     \b
     Examples:
         aponyx list workflows
         aponyx report --workflow my_test_run
         aponyx report --workflow 0
         aponyx report --workflow my_test_run --format markdown
-        aponyx report --workflow 0 --format html --output report.html
+        aponyx report --workflow 0 --format html
 
     Note: Indices are ephemeral and change as new workflows are added.
     Use workflow labels for stable references.
@@ -150,17 +146,15 @@ def report(
         workflow_dir = _resolve_workflow_dir(workflow)
 
         # Generate report
-        content = generate_report(
+        result = generate_report(
             workflow_dir=workflow_dir,
             format=format,
-            output_path=output,
         )
 
         if format == "console":
-            click.echo(content)
+            click.echo(result["content"])
         else:
-            output_path_str = str(output) if output else "default location"
-            click.echo(f"Report saved: {output_path_str}")
+            click.echo(f"Report saved: {result['output_path']}")
 
     except FileNotFoundError as e:
         click.echo(str(e), err=True)

@@ -91,9 +91,9 @@ def test_full_workflow_integration(runner, mock_all_registries, tmp_path):
 
         result = runner.invoke(cli, ["run", str(config_file)])
         assert result.exit_code == 0
-        assert "Signal:          spread_momentum [config]" in result.output
-        assert "Strategy:        balanced [config]" in result.output
-        assert "Product:         cdx_ig_5y [config]" in result.output
+        assert "Signal:                   spread_momentum [config]" in result.output
+        assert "Strategy:                 balanced [config]" in result.output
+        assert "Product:                  cdx_ig_5y [config]" in result.output
 
     # Step 4: Generate report
     # Create mock workflow directory for report command
@@ -164,7 +164,7 @@ def test_workflow_with_all_data_sources(runner, tmp_path):
             result = runner.invoke(cli, ["run", str(config_file)])
 
             assert result.exit_code == 0
-            assert f"Data:            {source} [config]" in result.output
+            assert f"Data:                     {source} [config]" in result.output
 
 
 def test_workflow_with_partial_steps(runner, tmp_path):
@@ -324,7 +324,7 @@ def test_error_recovery_workflow(runner, tmp_path):
 
         result = runner.invoke(cli, ["run", str(config_file)])
         assert result.exit_code == 0
-        assert "Force re-run:    True [config]" in result.output
+        assert "Force re-run:             True [config]" in result.output
 
 
 def test_yaml_config_workflow(runner, tmp_path):
@@ -359,7 +359,7 @@ def test_yaml_config_workflow(runner, tmp_path):
 
         result = runner.invoke(cli, ["run", str(config_file)])
         assert result.exit_code == 0
-        assert "Signal:          spread_momentum [config]" in result.output
+        assert "Signal:                   spread_momentum [config]" in result.output
 
 
 def test_concurrent_command_safety(runner, tmp_path):

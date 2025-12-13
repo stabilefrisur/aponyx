@@ -1,5 +1,5 @@
 """
-Tests for TransformationRegistry.
+Tests for ScoreTransformationRegistry.
 
 Validates:
 - Catalog loading and validation
@@ -14,7 +14,7 @@ import json
 import pytest
 
 from aponyx.models.metadata import TransformationMetadata
-from aponyx.models.registry import TransformationRegistry
+from aponyx.models.registry import ScoreTransformationRegistry
 
 
 @pytest.fixture
@@ -50,12 +50,12 @@ def temp_catalog(tmp_path):
     return catalog_path
 
 
-class TestTransformationRegistryLoading:
+class TestScoreTransformationRegistryLoading:
     """Test catalog loading and validation."""
 
     def test_load_valid_catalog(self, temp_catalog):
         """Test loading valid transformation catalog."""
-        registry = TransformationRegistry(temp_catalog)
+        registry = ScoreTransformationRegistry(temp_catalog)
 
         # Validate all transformations loaded
         assert registry.transformation_exists("z_score_20d")
@@ -71,7 +71,7 @@ class TestTransformationRegistryLoading:
 
     def test_get_metadata(self, temp_catalog):
         """Test retrieving transformation metadata."""
-        registry = TransformationRegistry(temp_catalog)
+        registry = ScoreTransformationRegistry(temp_catalog)
 
         # Get z_score metadata
         metadata = registry.get_metadata("z_score_20d")
@@ -89,7 +89,7 @@ class TestTransformationRegistryLoading:
 
     def test_get_nonexistent_transformation(self, temp_catalog):
         """Test error when requesting nonexistent transformation."""
-        registry = TransformationRegistry(temp_catalog)
+        registry = ScoreTransformationRegistry(temp_catalog)
 
         with pytest.raises(KeyError, match="Transformation.*not found in registry"):
             registry.get_metadata("nonexistent_transform")
@@ -115,7 +115,7 @@ class TestTransformationRegistryLoading:
         ]
         catalog_path.write_text(json.dumps(catalog_data, indent=2))
 
-        registry = TransformationRegistry(catalog_path)
+        registry = ScoreTransformationRegistry(catalog_path)
 
         # Both should exist
         assert registry.transformation_exists("enabled_transform")
@@ -128,7 +128,7 @@ class TestTransformationRegistryLoading:
         assert "disabled_transform" not in enabled
 
 
-class TestTransformationRegistryValidation:
+class TestScoreTransformationRegistryValidation:
     """Test catalog validation rules."""
 
     def test_invalid_transform_type(self, tmp_path):
@@ -146,7 +146,7 @@ class TestTransformationRegistryValidation:
         catalog_path.write_text(json.dumps(catalog_data, indent=2))
 
         with pytest.raises(ValueError, match="Invalid transform_type"):
-            TransformationRegistry(catalog_path)
+            ScoreTransformationRegistry(catalog_path)
 
     def test_z_score_missing_window(self, tmp_path):
         """Test error when z_score lacks window parameter."""
@@ -163,7 +163,7 @@ class TestTransformationRegistryValidation:
         catalog_path.write_text(json.dumps(catalog_data, indent=2))
 
         with pytest.raises(ValueError, match="requires 'window' parameter"):
-            TransformationRegistry(catalog_path)
+            ScoreTransformationRegistry(catalog_path)
 
     def test_normalized_change_missing_window(self, tmp_path):
         """Test error when normalized_change lacks window parameter."""
@@ -180,7 +180,7 @@ class TestTransformationRegistryValidation:
         catalog_path.write_text(json.dumps(catalog_data, indent=2))
 
         with pytest.raises(ValueError, match="requires 'window' parameter"):
-            TransformationRegistry(catalog_path)
+            ScoreTransformationRegistry(catalog_path)
 
     def test_duplicate_transformation_names(self, tmp_path):
         """Test error on duplicate transformation names."""
@@ -204,7 +204,7 @@ class TestTransformationRegistryValidation:
         catalog_path.write_text(json.dumps(catalog_data, indent=2))
 
         with pytest.raises(ValueError, match="Duplicate transformation name"):
-            TransformationRegistry(catalog_path)
+            ScoreTransformationRegistry(catalog_path)
 
     def test_invalid_transformation_name(self, tmp_path):
         """Test error on invalid transformation name (uppercase, spaces)."""
@@ -221,14 +221,14 @@ class TestTransformationRegistryValidation:
         catalog_path.write_text(json.dumps(catalog_data, indent=2))
 
         with pytest.raises(ValueError, match="Transformation name must be lowercase"):
-            TransformationRegistry(catalog_path)
+            ScoreTransformationRegistry(catalog_path)
 
     def test_empty_catalog(self, tmp_path):
         """Test handling of empty catalog."""
         catalog_path = tmp_path / "catalog.json"
         catalog_path.write_text("[]")
 
-        registry = TransformationRegistry(catalog_path)
+        registry = ScoreTransformationRegistry(catalog_path)
 
         # Should work but have no transformations
         enabled = registry.get_enabled()
@@ -239,7 +239,7 @@ class TestTransformationRegistryValidation:
         nonexistent_path = tmp_path / "nonexistent.json"
 
         with pytest.raises(FileNotFoundError):
-            TransformationRegistry(nonexistent_path)
+            ScoreTransformationRegistry(nonexistent_path)
 
 
 class TestTransformationMetadata:

@@ -25,79 +25,147 @@ class StrategyMetadata:
         Unique strategy identifier (e.g., "conservative", "balanced").
     description : str
         Human-readable description of strategy characteristics.
-    entry_threshold : float
-        Signal threshold for entering positions.
-    exit_threshold : float
-        Signal threshold for exiting positions.
+    position_size_mm : float
+        Baseline notional position size in millions.
+    sizing_mode : str
+        Position sizing mode: 'binary' (full position for any non-zero signal)
+        or 'proportional' (scaled by signal magnitude).
+    stop_loss_pct : float | None
+        Stop loss as percentage of initial position value. None to disable.
+    take_profit_pct : float | None
+        Take profit as percentage of initial position value. None to disable.
+    max_holding_days : int | None
+        Maximum days to hold a position before forced exit. None for no limit.
+    transaction_cost_bps : float
+        Round-trip transaction cost in basis points.
+    dv01_per_million : float
+        DV01 per $1MM notional for risk calculations.
     enabled : bool
         Whether strategy should be included in evaluation.
     """
 
     name: str
     description: str
-    entry_threshold: float
-    exit_threshold: float
+    position_size_mm: float = 10.0
+    sizing_mode: str = "binary"
+    stop_loss_pct: float | None = None
+    take_profit_pct: float | None = None
+    max_holding_days: int | None = None
+    transaction_cost_bps: float = 1.0
+    dv01_per_million: float = 4750.0
     enabled: bool = True
 
     def __post_init__(self) -> None:
         """Validate strategy metadata."""
         if not self.name:
             raise ValueError("Strategy name cannot be empty")
-        if self.entry_threshold <= self.exit_threshold:
+        if self.position_size_mm <= 0:
             raise ValueError(
-                f"Strategy '{self.name}': entry_threshold ({self.entry_threshold}) "
-                f"must be > exit_threshold ({self.exit_threshold})"
+                f"Strategy '{self.name}': position_size_mm must be positive, "
+                f"got {self.position_size_mm}"
+            )
+        if self.sizing_mode not in {"binary", "proportional"}:
+            raise ValueError(
+                f"Strategy '{self.name}': sizing_mode must be 'binary' or 'proportional', "
+                f"got '{self.sizing_mode}'"
+            )
+        if self.stop_loss_pct is not None and not (0 < self.stop_loss_pct <= 100):
+            raise ValueError(
+                f"Strategy '{self.name}': stop_loss_pct must be in (0, 100], "
+                f"got {self.stop_loss_pct}"
+            )
+        if self.take_profit_pct is not None and not (0 < self.take_profit_pct <= 100):
+            raise ValueError(
+                f"Strategy '{self.name}': take_profit_pct must be in (0, 100], "
+                f"got {self.take_profit_pct}"
+            )
+        if self.max_holding_days is not None and self.max_holding_days <= 0:
+            raise ValueError(
+                f"Strategy '{self.name}': max_holding_days must be positive, "
+                f"got {self.max_holding_days}"
+            )
+        if self.transaction_cost_bps < 0:
+            raise ValueError(
+                f"Strategy '{self.name}': transaction_cost_bps must be non-negative, "
+                f"got {self.transaction_cost_bps}"
+            )
+        if self.dv01_per_million <= 0:
+            raise ValueError(
+                f"Strategy '{self.name}': dv01_per_million must be positive, "
+                f"got {self.dv01_per_million}"
             )
 
     def to_config(
         self,
-        position_size: float = 10.0,
-        transaction_cost_bps: float = 1.0,
-        max_holding_days: int | None = None,
-        dv01_per_million: float = 4750.0,
+        position_size_mm_override: float | None = None,
+        sizing_mode_override: str | None = None,
+        stop_loss_pct_override: float | None = None,
+        take_profit_pct_override: float | None = None,
+        max_holding_days_override: int | None = None,
     ) -> BacktestConfig:
         """
         Convert strategy metadata to BacktestConfig.
 
-        Uses strategy thresholds with provided defaults for other parameters.
+        Supports runtime parameter overrides for rapid experimentation.
 
         Parameters
         ----------
-        position_size : float, default 10.0
-            Notional position size in millions.
-        transaction_cost_bps : float, default 1.0
-            Round-trip transaction cost in basis points.
-        max_holding_days : int | None, default None
-            Maximum days to hold a position before forced exit.
-        dv01_per_million : float, default 4750.0
-            DV01 per $1MM notional for risk calculations.
+        position_size_mm_override : float | None, default None
+            Override catalog position_size_mm value.
+        sizing_mode_override : str | None, default None
+            Override catalog sizing_mode value.
+        stop_loss_pct_override : float | None, default None
+            Override catalog stop_loss_pct value (use False to explicitly disable).
+        take_profit_pct_override : float | None, default None
+            Override catalog take_profit_pct value (use False to explicitly disable).
+        max_holding_days_override : int | None, default None
+            Override catalog max_holding_days value (use False to explicitly disable).
 
         Returns
         -------
         BacktestConfig
-            Full backtest configuration with strategy thresholds.
+            Full backtest configuration with strategy parameters.
 
         Examples
         --------
         >>> metadata = StrategyMetadata(
         ...     name="aggressive",
-        ...     description="High turnover",
-        ...     entry_threshold=1.0,
-        ...     exit_threshold=0.5
+        ...     description="High risk tolerance",
+        ...     position_size_mm=15.0,
+        ...     sizing_mode="binary"
         ... )
-        >>> config = metadata.to_config(position_size=20.0)
-        >>> config.entry_threshold
-        1.0
-        >>> config.position_size
+        >>> config = metadata.to_config(position_size_mm_override=20.0)
+        >>> config.position_size_mm
         20.0
         """
         return BacktestConfig(
-            entry_threshold=self.entry_threshold,
-            exit_threshold=self.exit_threshold,
-            position_size=position_size,
-            transaction_cost_bps=transaction_cost_bps,
-            max_holding_days=max_holding_days,
-            dv01_per_million=dv01_per_million,
+            position_size_mm=(
+                position_size_mm_override
+                if position_size_mm_override is not None
+                else self.position_size_mm
+            ),
+            sizing_mode=(
+                sizing_mode_override
+                if sizing_mode_override is not None
+                else self.sizing_mode
+            ),
+            stop_loss_pct=(
+                stop_loss_pct_override
+                if stop_loss_pct_override is not None
+                else self.stop_loss_pct
+            ),
+            take_profit_pct=(
+                take_profit_pct_override
+                if take_profit_pct_override is not None
+                else self.take_profit_pct
+            ),
+            max_holding_days=(
+                max_holding_days_override
+                if max_holding_days_override is not None
+                else self.max_holding_days
+            ),
+            transaction_cost_bps=self.transaction_cost_bps,
+            dv01_per_million=self.dv01_per_million,
         )
 
 

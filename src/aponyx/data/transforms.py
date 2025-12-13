@@ -265,3 +265,72 @@ def _normalized_change(
     rolling_std = series.rolling(window=window, min_periods=min_periods).std()
 
     return change / rolling_std
+
+
+def apply_signal_transformation(
+    series: pd.Series,
+    *,
+    scaling: float = 1.0,
+    floor: float | None = None,
+    cap: float | None = None,
+    neutral_range: tuple[float, float] | None = None,
+) -> pd.Series:
+    """
+    Apply trading rule transformation to score series.
+
+    Applies transformations in order: scale → floor/cap → neutral_range.
+    This converts normalized scores into bounded trading signals.
+
+    Parameters
+    ----------
+    series : pd.Series
+        Input score series (typically z-scores or normalized values).
+    scaling : float, default 1.0
+        Multiplier applied first to scale the signal.
+        Must be non-zero.
+    floor : float or None, optional
+        Lower bound after scaling. None = no lower bound (-inf).
+    cap : float or None, optional
+        Upper bound after scaling. None = no upper bound (+inf).
+    neutral_range : tuple[float, float] or None, optional
+        Values within [low, high] set to zero (no position signal).
+        None = no neutral zone.
+
+    Returns
+    -------
+    pd.Series
+        Transformed signal with same DatetimeIndex.
+        NaN values are preserved from input.
+
+    Examples
+    --------
+    >>> scores = pd.Series([2.5, -1.8, 0.3, -0.1], index=pd.date_range('2024-01-01', periods=4))
+    >>> apply_signal_transformation(scores, floor=-1.5, cap=1.5)
+    >>> apply_signal_transformation(scores, scaling=2.0, floor=-2.0, cap=2.0)
+    >>> apply_signal_transformation(scores, floor=-1.5, cap=1.5, neutral_range=(-0.25, 0.25))
+
+    Notes
+    -----
+    - Transformation order is fixed: scale → floor/cap → neutral_range
+    - NaN values propagate through all operations
+    - Neutral range is applied AFTER floor/cap bounds
+    - Use scaling=1.0 for no scaling (passthrough scaling factor)
+    """
+    # Apply scaling first
+    result = series * scaling
+
+    # Apply floor/cap bounds
+    if floor is not None:
+        result = result.clip(lower=floor)
+    if cap is not None:
+        result = result.clip(upper=cap)
+
+    # Apply neutral range (zero out values within range)
+    if neutral_range is not None:
+        low, high = neutral_range
+        # Set values within neutral range to 0.0, keeping values outside the range
+        # Preserve NaN values by checking explicitly
+        mask = (result >= low) & (result <= high)  # Values inside neutral range
+        result = result.mask(mask, 0.0)  # Set those to 0.0, NaN values preserved
+
+    return result

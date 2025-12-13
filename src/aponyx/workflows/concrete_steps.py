@@ -196,19 +196,33 @@ class SignalStep(BaseWorkflowStep):
         # Get all market data from previous step (keyed by security ID)
         raw_market_data = context["data"]["market_data"]
 
-        # Load signal registry
+        # Load all registries for four-stage pipeline
+        from aponyx.config import (
+            INDICATOR_TRANSFORMATION_PATH,
+            SCORE_TRANSFORMATION_PATH,
+            SIGNAL_CATALOG_PATH,
+            SIGNAL_TRANSFORMATION_PATH,
+        )
+        from aponyx.models.registry import (
+            IndicatorTransformationRegistry,
+            ScoreTransformationRegistry,
+            SignalRegistry,
+            SignalTransformationRegistry,
+        )
+
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
+        score_registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
+        signal_transformation_registry = SignalTransformationRegistry(
+            SIGNAL_TRANSFORMATION_PATH
+        )
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
         # Get the specific signal metadata for this workflow
         signal_metadata = signal_registry.get_metadata(self.config.signal_name)
 
-        # Load indicator registry to get default_securities from indicators
-        from aponyx.config import INDICATOR_CATALOG_PATH
-        from aponyx.models.registry import IndicatorRegistry
-
-        indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
-
-        # Build securities mapping from first indicator's default_securities
+        # Build securities mapping from indicator's default_securities
         # (or use config override if provided)
         if self.config.security_mapping:
             securities_to_use = self.config.security_mapping
@@ -218,15 +232,13 @@ class SignalStep(BaseWorkflowStep):
                 securities_to_use,
             )
         else:
-            # Get default_securities from the first indicator
-            first_indicator_name = signal_metadata.indicator_dependencies[0]
-            first_indicator_metadata = indicator_registry.get_metadata(
-                first_indicator_name
-            )
-            securities_to_use = first_indicator_metadata.default_securities
+            # Get default_securities from the indicator
+            indicator_name = signal_metadata.indicator_transformation
+            indicator_metadata = indicator_registry.get_metadata(indicator_name)
+            securities_to_use = indicator_metadata.default_securities
             logger.info(
                 "Using default securities from indicator '%s' for signal '%s': %s",
-                first_indicator_name,
+                indicator_name,
                 self.config.signal_name,
                 securities_to_use,
             )
@@ -249,10 +261,21 @@ class SignalStep(BaseWorkflowStep):
                 len(raw_market_data[security_id]),
             )
 
-        # Compute the specific signal for this workflow
-        from aponyx.models.orchestrator import _compute_signal
+        # Compute the specific signal for this workflow using four-stage pipeline
+        from aponyx.models.signal_composer import compose_signal
 
-        signal = _compute_signal(signal_metadata, market_data)
+        signal = compose_signal(
+            signal_name=self.config.signal_name,
+            market_data=market_data,
+            indicator_registry=indicator_registry,
+            score_registry=score_registry,
+            signal_transformation_registry=signal_transformation_registry,
+            signal_registry=signal_registry,
+            indicator_transformation_override=self.config.indicator_transformation_override,
+            score_transformation_override=self.config.score_transformation_override,
+            signal_transformation_override=self.config.signal_transformation_override,
+            include_intermediates=False,
+        )
 
         logger.info(
             "Computed signal '%s': %d values, %.2f%% non-null",
@@ -340,9 +363,9 @@ class SuitabilityStep(BaseWorkflowStep):
         # Get product from workflow config
         product = self.config.product
 
-        # Load spread data for product
-        data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
-        spread_df = self._load_spread_for_product(data_registry, product)
+        # Load spread data for product from DataStep context
+        market_data = context["data"]["market_data"]
+        spread_df = self._load_spread_for_product(market_data, product)
 
         # Compute forward returns for evaluation
         forward_returns = compute_forward_returns(spread_df["spread"], lags=[1])
@@ -400,15 +423,15 @@ class SuitabilityStep(BaseWorkflowStep):
         return {"suitability_result": None, "product": product}
 
     def _load_spread_for_product(
-        self, data_registry: DataRegistry, product: str
+        self, market_data: dict[str, pd.DataFrame], product: str
     ) -> pd.DataFrame:
         """
-        Load spread data for product from registry.
+        Load spread data for product from market data context.
 
         Parameters
         ----------
-        data_registry : DataRegistry
-            Data registry instance.
+        market_data : dict[str, pd.DataFrame]
+            Market data from DataStep context.
         product : str
             Product identifier (e.g., "cdx_ig_5y").
 
@@ -422,7 +445,13 @@ class SuitabilityStep(BaseWorkflowStep):
         ValueError
             If no dataset found for product.
         """
-        return data_registry.load_dataset_by_security(product)
+        if product not in market_data:
+            available = sorted(market_data.keys())
+            raise ValueError(
+                f"No dataset found for security '{product}'. "
+                f"Available datasets: {available}"
+            )
+        return market_data[product]
 
 
 class BacktestStep(BaseWorkflowStep):
@@ -441,9 +470,9 @@ class BacktestStep(BaseWorkflowStep):
         # Get product from config, or from suitability step if available
         product = context.get("suitability", {}).get("product") or self.config.product
 
-        # Load spread data for backtest
-        data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
-        spread_df = self._load_spread_for_product(data_registry, product)
+        # Load spread data for backtest from DataStep context
+        market_data = context["data"]["market_data"]
+        spread_df = self._load_spread_for_product(market_data, product)
         spread = spread_df["spread"]
 
         # Align signal and spread to common dates
@@ -466,10 +495,17 @@ class BacktestStep(BaseWorkflowStep):
         # Run backtest using function (not class)
         result = run_backtest(signal, spread, backtest_config)
 
+        # Compute quick Sharpe for debug logging (handle zero std)
+        pnl_std = result.pnl["net_pnl"].std()
+        quick_sharpe = (
+            result.pnl["net_pnl"].mean() / pnl_std * (252**0.5)
+            if pnl_std > 0
+            else 0.0
+        )
         logger.debug(
             "Backtest complete: %d trades, sharpe=%.2f",
             result.positions["position"].diff().abs().sum() / 2,
-            result.pnl["net_pnl"].mean() / result.pnl["net_pnl"].std() * (252**0.5),
+            quick_sharpe,
         )
 
         # Save results
@@ -512,15 +548,15 @@ class BacktestStep(BaseWorkflowStep):
         return {"backtest_result": result}
 
     def _load_spread_for_product(
-        self, data_registry: DataRegistry, product: str
+        self, market_data: dict[str, pd.DataFrame], product: str
     ) -> pd.DataFrame:
         """
-        Load spread data for product from registry.
+        Load spread data for product from market data context.
 
         Parameters
         ----------
-        data_registry : DataRegistry
-            Data registry instance.
+        market_data : dict[str, pd.DataFrame]
+            Market data from DataStep context.
         product : str
             Product identifier (e.g., "cdx_ig_5y").
 
@@ -534,7 +570,13 @@ class BacktestStep(BaseWorkflowStep):
         ValueError
             If no dataset found for product.
         """
-        return data_registry.load_dataset_by_security(product)
+        if product not in market_data:
+            available = sorted(market_data.keys())
+            raise ValueError(
+                f"No dataset found for security '{product}'. "
+                f"Available datasets: {available}"
+            )
+        return market_data[product]
 
 
 class PerformanceStep(BaseWorkflowStep):

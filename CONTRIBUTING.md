@@ -154,8 +154,14 @@ Add entry to `strategy_catalog.json`:
 ```json
 {
   "name": "my_strategy",
-  "entry_threshold": 2.0,
-  "exit_threshold": 1.0,
+  "description": "Custom risk management configuration",
+  "position_size_mm": 10.0,
+  "sizing_mode": "binary",
+  "stop_loss_pct": 5.0,
+  "take_profit_pct": 10.0,
+  "max_holding_days": null,
+  "transaction_cost_bps": 1.0,
+  "dv01_per_million": 4750.0,
   "enabled": true
 }
 ```
