@@ -10,7 +10,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -219,7 +219,7 @@ def run_backtest(
 
     for date, row in aligned.iterrows():
         # Sanitize signal value (NaN/inf → 0)
-        signal_val = _sanitize_signal_value(row["signal"], date)
+        signal_val = _sanitize_signal_value(row["signal"], cast(pd.Timestamp, date))
         spread_level = row["spread"]
 
         # Initialize tracking for this iteration
