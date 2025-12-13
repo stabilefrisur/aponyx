@@ -12,10 +12,34 @@
     "enabled": true
   },
   {
+    "name": "conservative_proportional",
+    "description": "Conservative sizing with tight risk management, proportional positions",
+    "position_size_mm": 5.0,
+    "sizing_mode": "proportional",
+    "stop_loss_pct": 3.0,
+    "take_profit_pct": 8.0,
+    "max_holding_days": 20,
+    "transaction_cost_bps": 1.0,
+    "dv01_per_million": 4750.0,
+    "enabled": true
+  },
+  {
     "name": "balanced",
     "description": "Balanced position sizing with moderate risk management",
     "position_size_mm": 10.0,
     "sizing_mode": "binary",
+    "stop_loss_pct": 5.0,
+    "take_profit_pct": 10.0,
+    "max_holding_days": null,
+    "transaction_cost_bps": 1.0,
+    "dv01_per_million": 4750.0,
+    "enabled": true
+  },
+  {
+    "name": "balanced_proportional",
+    "description": "Balanced position sizing with moderate risk management, proportional positions",
+    "position_size_mm": 10.0,
+    "sizing_mode": "proportional",
     "stop_loss_pct": 5.0,
     "take_profit_pct": 10.0,
     "max_holding_days": null,
@@ -36,10 +60,34 @@
     "enabled": true
   },
   {
+    "name": "aggressive_proportional",
+    "description": "Aggressive sizing with wide risk bands, proportional positions",
+    "position_size_mm": 15.0,
+    "sizing_mode": "proportional",
+    "stop_loss_pct": 10.0,
+    "take_profit_pct": null,
+    "max_holding_days": null,
+    "transaction_cost_bps": 1.0,
+    "dv01_per_million": 4750.0,
+    "enabled": true
+  },
+  {
     "name": "experimental",
     "description": "Experimental configuration for research and testing",
     "position_size_mm": 10.0,
     "sizing_mode": "binary",
+    "stop_loss_pct": null,
+    "take_profit_pct": null,
+    "max_holding_days": null,
+    "transaction_cost_bps": 1.0,
+    "dv01_per_million": 4750.0,
+    "enabled": false
+  },
+  {
+    "name": "experimental_proportional",
+    "description": "Experimental proportional configuration for research and testing",
+    "position_size_mm": 10.0,
+    "sizing_mode": "proportional",
     "stop_loss_pct": null,
     "take_profit_pct": null,
     "max_holding_days": null,
