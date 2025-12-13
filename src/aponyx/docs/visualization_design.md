@@ -274,4 +274,4 @@ fig.add_vrect(x0="2024-01-01", x1="2024-03-01", fillcolor="red", opacity=0.1)
 ---
 
 **Maintained by:** stabilefrisur  
-**Last Updated:** November 22, 2025
+**Last Updated:** December 13, 2025

@@ -117,8 +117,8 @@ CACHE_TTL_DAYS: Final[int] = 1
 CACHE_DIR: Final[Path] = DATA_DIR / "cache"
 
 # Catalog paths
-INDICATOR_CATALOG_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/models/indicator_catalog.json"
-TRANSFORMATION_CATALOG_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/models/transformation_catalog.json"
+INDICATOR_TRANSFORMATION_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/models/indicator_transformation.json"
+SCORE_TRANSFORMATION_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/models/score_transformation.json"
 SIGNAL_CATALOG_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/models/signal_catalog.json"
 STRATEGY_CATALOG_PATH: Final[Path] = PROJECT_ROOT / "src/aponyx/backtest/strategy_catalog.json"
 
@@ -174,21 +174,21 @@ registry.register_dataset(
 
 ---
 
-### 6.3 IndicatorRegistry — Class-Based Catalog for Market Indicators
+### 6.3 IndicatorTransformationRegistry — Class-Based Catalog for Market Indicators
 
 **Files:**
 - `src/aponyx/models/metadata.py` — IndicatorMetadata dataclass  
-- `src/aponyx/models/registry.py` — IndicatorRegistry class
+- `src/aponyx/models/registry.py` — IndicatorTransformationRegistry class
 - `src/aponyx/models/indicators.py` — Indicator compute functions
 
 **Lifecycle:**
 
 ```python
-from aponyx.config import INDICATOR_CATALOG_PATH
-from aponyx.models import IndicatorRegistry, compute_indicator
+from aponyx.config import INDICATOR_TRANSFORMATION_PATH
+from aponyx.models import IndicatorTransformationRegistry, compute_indicator
 
 # 1. LOAD: Instantiate registry (loads + validates JSON)
-registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
+registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
 # Validation happens automatically in __init__:
 # - Checks all compute functions exist in indicators module
 # - Validates output_units and data_requirements
@@ -219,21 +219,21 @@ dependent_signals = registry.get_dependent_signals("cdx_etf_spread_diff")
 
 ---
 
-### 6.4 TransformationRegistry — Class-Based Catalog for Signal Transformations
+### 6.4 ScoreTransformationRegistry — Class-Based Catalog for Signal Transformations
 
 **Files:**
 - `src/aponyx/models/metadata.py` — TransformationMetadata dataclass
-- `src/aponyx/models/registry.py` — TransformationRegistry class  
+- `src/aponyx/models/registry.py` — ScoreTransformationRegistry class  
 - `src/aponyx/models/transformations.py` — Transformation functions
 
 **Lifecycle:**
 
 ```python
-from aponyx.config import TRANSFORMATION_CATALOG_PATH
-from aponyx.models import TransformationRegistry, apply_signal_transformation
+from aponyx.config import SCORE_TRANSFORMATION_PATH
+from aponyx.models import ScoreTransformationRegistry, apply_signal_transformation
 
 # 1. LOAD: Instantiate registry (loads + validates JSON)
-registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
+registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
 
 # 2. INSPECT: Query transformation metadata
 all_transforms = registry.list_all()
@@ -265,14 +265,14 @@ transformed = apply_signal_transformation(
 **Lifecycle:**
 
 ```python
-from aponyx.config import SIGNAL_CATALOG_PATH, INDICATOR_CATALOG_PATH, TRANSFORMATION_CATALOG_PATH
-from aponyx.models import SignalRegistry, IndicatorRegistry, TransformationRegistry
+from aponyx.config import SIGNAL_CATALOG_PATH, INDICATOR_TRANSFORMATION_PATH, SCORE_TRANSFORMATION_PATH
+from aponyx.models import SignalRegistry, IndicatorTransformationRegistry, ScoreTransformationRegistry
 from aponyx.models import compose_signal, compute_registered_signals
 
 # 1. LOAD: Instantiate registries (loads + validates JSON)
 signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
-indicator_registry = IndicatorRegistry(INDICATOR_CATALOG_PATH)
-transformation_registry = TransformationRegistry(TRANSFORMATION_CATALOG_PATH)
+indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
+transformation_registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
 # Validation happens automatically in __init__:
 # - Signals MUST have indicator_dependencies and transformations fields
 # - No compute_function_name, data_requirements, or arg_mapping allowed
@@ -312,7 +312,7 @@ signals = compute_registered_signals(
 ```
 models/
   metadata.py          # IndicatorMetadata, TransformationMetadata, SignalMetadata
-  registry.py          # IndicatorRegistry, TransformationRegistry, SignalRegistry
+  registry.py          # IndicatorTransformationRegistry, ScoreTransformationRegistry, SignalRegistry
   indicators.py        # Indicator compute functions
   transformations.py   # Transformation functions
   signal_composer.py   # compose_signal() - combines indicators + transformations
@@ -367,7 +367,7 @@ registry.save_catalog()
 
 ---
 
-### 6.5 StrategyRegistry — Class-Based Catalog for Backtest Strategies
+### 6.7 StrategyRegistry — Class-Based Catalog for Backtest Strategies
 
 **File:** `src/aponyx/backtest/registry.py`
 
@@ -380,7 +380,9 @@ from aponyx.backtest import StrategyRegistry, run_backtest
 # 1. LOAD: Instantiate registry (loads + validates JSON)
 registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
 # Validation happens automatically in __init__:
-# - Checks entry_threshold > exit_threshold for all strategies
+# - Validates position_size_mm > 0
+# - Validates sizing_mode is 'binary' or 'proportional'
+# - Validates stop_loss_pct/take_profit_pct in (0, 100] if set
 
 # 2. INSPECT: Query strategy metadata
 enabled = registry.get_enabled()  # Only enabled strategies
@@ -388,8 +390,7 @@ metadata = registry.get_metadata("balanced")
 
 # 3. USE: Convert strategy to BacktestConfig
 config = metadata.to_config(
-    position_size=20.0,  # Override default
-    transaction_cost_bps=1.5,
+    position_size_mm_override=20.0,  # Override default
 )
 
 # Run backtest with strategy config
@@ -441,8 +442,8 @@ ticker = get_bloomberg_ticker("CDX.NA.IG", "5Y")
 |--------|---------------|-------|------------|--------------|
 | **Config** | Import-time constants | None | N/A | No |
 | **DataRegistry** | Class-based | Mutable (`self._catalog`) | On save | Yes |
-| **IndicatorRegistry** | Class-based | Immutable (frozen dataclass) | Fail-fast (load time) | Yes |
-| **TransformationRegistry** | Class-based | Immutable (frozen dataclass) | Fail-fast (load time) | Yes |
+| **IndicatorTransformationRegistry** | Class-based | Immutable (frozen dataclass) | Fail-fast (load time) | Yes |
+| **ScoreTransformationRegistry** | Class-based | Immutable (frozen dataclass) | Fail-fast (load time) | Yes |
 | **SignalRegistry** | Class-based | Immutable (frozen dataclass) | Fail-fast (load time) | Yes |
 | **StrategyRegistry** | Class-based | Immutable (frozen dataclass) | Fail-fast (load time) | Yes |
 | **SuitabilityRegistry** | Class-based | Mutable (`self._evaluations`) | On register | Yes |
@@ -453,7 +454,7 @@ ticker = get_bloomberg_ticker("CDX.NA.IG", "5Y")
 
 - **Import-time constants:** Static configuration that never changes (paths, flags)
 - **Class-based registry:** Needs CRUD operations or mutable state (DataRegistry)
-- **Class-based catalog:** Needs validation + orchestration (IndicatorRegistry, TransformationRegistry, SignalRegistry, StrategyRegistry)
+- **Class-based catalog:** Needs validation + orchestration (IndicatorTransformationRegistry, ScoreTransformationRegistry, SignalRegistry, StrategyRegistry)
 - **Functional pattern:** Read-only lookup with lazy loading (Bloomberg config)
 
 **Key insight:** Both class-based and functional patterns satisfy the governance spine. Choose based on:
@@ -465,7 +466,7 @@ ticker = get_bloomberg_ticker("CDX.NA.IG", "5Y")
 
 ## 7. Fail-Fast Validation
 
-### IndicatorRegistry Validation
+### IndicatorTransformationRegistry Validation
 
 ```python
 def _validate_catalog(self) -> None:
@@ -525,17 +526,22 @@ class StrategyMetadata:
     
     def __post_init__(self) -> None:
         """Validate strategy metadata."""
-        if self.entry_threshold <= self.exit_threshold:
+        if self.position_size_mm <= 0:
             raise ValueError(
-                f"Strategy '{self.name}': entry_threshold ({self.entry_threshold}) "
-                f"must be > exit_threshold ({self.exit_threshold})"
+                f"Strategy '{self.name}': position_size_mm must be positive, "
+                f"got {self.position_size_mm}"
+            )
+        if self.sizing_mode not in {"binary", "proportional"}:
+            raise ValueError(
+                f"Strategy '{self.name}': sizing_mode must be 'binary' or 'proportional', "
+                f"got '{self.sizing_mode}'"
             )
 ```
 
 **Timing:** Runs during dataclass instantiation (in `_load_catalog()`).
 
 **Benefits:**
-- Enforces business rule (hysteresis prevents whipsaw)
+- Enforces valid position sizing parameters
 - Prevents invalid BacktestConfig creation
 - No need for separate validation step
 

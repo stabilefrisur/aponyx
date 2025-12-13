@@ -775,7 +775,7 @@ When adding new features:
 2. **Add tests first** (TDD approach recommended)
 3. **Document all public APIs** with NumPy-style docstrings
 4. **Log at appropriate levels** (INFO for user operations, DEBUG for details)
-5. **Use type hints** with Python 3.13 syntax
+5. **Use type hints** with Python 3.12 syntax
 6. **Make operations deterministic** with fixed random seeds
 7. **Include metadata** in all outputs (timestamps, versions, parameters)
 
@@ -783,4 +783,4 @@ When adding new features:
 
 **Maintained by:** stabilefrisur  
 **Version:** 1.0  
-**Last Updated:** October 31, 2025
+**Last Updated:** December 13, 2025

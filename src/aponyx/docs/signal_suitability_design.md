@@ -1,7 +1,7 @@
 # Signal–Product Suitability Evaluation Layer
 
 **Version:** 2.0  
-**Date:** November 2025  
+**Date:** December 2025  
 **Module Path:** `src/aponyx/evaluation/suitability/`  
 **Purpose:** Pre-backtest screening of signal-product pairs for statistical credibility, economic relevance, and temporal stability.
 
@@ -553,6 +553,6 @@ for signal_name, signal_series in signals.items():
 ---
 
 **Document Status:** Active design specification for `aponyx.evaluation.suitability` layer.  
-**Last Updated:** November 2025  
+**Last Updated:** December 2025  
 **Maintainer:** stabilefrisur
 
