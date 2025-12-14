@@ -1,7 +1,7 @@
 # Project Status — aponyx
 
-**Last Updated:** December 13, 2025  
-**Version:** 0.1.16 (Four-Stage Transformation Pipeline)
+**Last Updated:** December 14, 2025  
+**Version:** 0.1.17 (Catalog-Driven Configuration Enforcement)
 
 ## Quick Reference
 

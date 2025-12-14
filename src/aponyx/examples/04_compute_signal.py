@@ -98,7 +98,9 @@ def load_all_required_data() -> dict[str, pd.DataFrame]:
     # by collecting default_securities from indicators used by enabled signals
     instrument_to_security: dict[str, str] = {}
     for signal_name, signal_meta in signal_registry.get_enabled().items():
-        indicator_meta = indicator_registry.get_metadata(signal_meta.indicator_transformation)
+        indicator_meta = indicator_registry.get_metadata(
+            signal_meta.indicator_transformation
+        )
         for inst_type, security_id in indicator_meta.default_securities.items():
             instrument_to_security[inst_type] = security_id
 

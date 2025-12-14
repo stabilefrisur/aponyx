@@ -288,7 +288,9 @@ def test_backtest_with_max_holding_days(
 ) -> None:
     """Test that max holding days constraint is enforced."""
     signal, spread = sample_signal_and_spread
-    config = make_test_config(max_holding_days=5, signal_lag=0, transaction_cost_bps=0.0)
+    config = make_test_config(
+        max_holding_days=5, signal_lag=0, transaction_cost_bps=0.0
+    )
     result = run_backtest(signal, spread, config)
 
     # No position should be held longer than max_holding_days

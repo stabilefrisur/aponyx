@@ -17,7 +17,7 @@ from ..persistence import save_json, save_parquet
 from .bloomberg_config import get_bloomberg_ticker
 from .registry import DataRegistry
 from .cache import get_cached_data, save_to_cache
-from .sources import DataSource, FileSource, BloombergSource, resolve_provider
+from .sources import DataSource, BloombergSource, resolve_provider
 from .providers.file import fetch_from_file
 from .providers.bloomberg import fetch_from_bloomberg
 from .validation import validate_cdx_schema, validate_vix_schema, validate_etf_schema

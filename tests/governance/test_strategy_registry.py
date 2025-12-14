@@ -34,40 +34,48 @@ def _make_test_metadata(**overrides) -> dict:
 def test_strategy_metadata_validation() -> None:
     """Test StrategyMetadata validation in __post_init__."""
     # Valid metadata
-    metadata = StrategyMetadata(**_make_test_metadata(
-        name="test",
-        description="Test strategy",
-        position_size_mm=10.0,
-        sizing_mode="binary",
-    ))
+    metadata = StrategyMetadata(
+        **_make_test_metadata(
+            name="test",
+            description="Test strategy",
+            position_size_mm=10.0,
+            sizing_mode="binary",
+        )
+    )
     assert metadata.name == "test"
     assert metadata.position_size_mm == 10.0
 
     # Invalid: negative position size
     with pytest.raises(ValueError, match="position_size_mm must be positive"):
-        StrategyMetadata(**_make_test_metadata(
-            name="invalid",
-            description="Invalid",
-            position_size_mm=-1.0,
-        ))
+        StrategyMetadata(
+            **_make_test_metadata(
+                name="invalid",
+                description="Invalid",
+                position_size_mm=-1.0,
+            )
+        )
 
     # Invalid: empty name
     with pytest.raises(ValueError, match="name cannot be empty"):
-        StrategyMetadata(**_make_test_metadata(
-            name="",
-            description="No name",
-            position_size_mm=10.0,
-        ))
+        StrategyMetadata(
+            **_make_test_metadata(
+                name="",
+                description="No name",
+                position_size_mm=10.0,
+            )
+        )
 
 
 def test_strategy_metadata_to_config() -> None:
     """Test converting StrategyMetadata to BacktestConfig."""
-    metadata = StrategyMetadata(**_make_test_metadata(
-        name="aggressive",
-        description="Aggressive strategy",
-        position_size_mm=15.0,
-        stop_loss_pct=10.0,
-    ))
+    metadata = StrategyMetadata(
+        **_make_test_metadata(
+            name="aggressive",
+            description="Aggressive strategy",
+            position_size_mm=15.0,
+            stop_loss_pct=10.0,
+        )
+    )
 
     # Use defaults
     config = metadata.to_config()

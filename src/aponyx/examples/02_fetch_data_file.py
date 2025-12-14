@@ -33,7 +33,6 @@ Run from project root:
 Expected output: Eight validated DataFrames with ~1260 rows each.
 """
 
-
 import pandas as pd
 
 from aponyx.config import RAW_DIR

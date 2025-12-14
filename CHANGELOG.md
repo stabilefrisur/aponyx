@@ -5,6 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.17] - 2025-12-14
+
+### Added
+- **CDX Knowledge Base Reference** - Comprehensive documentation for CDX trading mechanics
+  - CDX index family overview (IG, HY, XO) with maturity tenors
+  - DV01 and risk metrics explanation with calculation examples
+  - P&L calculation formulas for both binary and proportional sizing modes
+  - Transaction cost calculations and spread P&L mechanics
+  - Signal interpretation conventions aligned with backtest engine
+  - Project implementation details and portfolio construction guidance
+
+### Changed
+- **Catalog-Driven Configuration Enforcement**
+  - Removed fallback defaults from indicator functions (fail-fast behavior)
+  - `compute_spread_momentum`: Now requires `parameters['lookback']` (was `.get(lookback, 5)`)
+  - `compute_cdx_vix_deviation_gap`: Now requires `parameters['lookback']` (was `.get(lookback, 20)`)
+  - Added `Raises` section to docstrings documenting KeyError on missing parameters
+  - Catalog misconfiguration now caught at test time instead of silently using code defaults
+- **Test Fixture Improvements**
+  - Renamed `make_test_config` → `make_minimal_test_config` with explicit deviation docs
+  - Renamed `make_test_strategy_metadata` → `make_minimal_test_metadata`
+  - Added `make_catalog_test_config()` for catalog-accurate testing
+  - Added `make_catalog_test_metadata()` for catalog-based fixtures
+  - Backwards compatibility aliases retained for existing code
+- **Documentation Updates**
+  - Updated all example scripts to reflect four-stage transformation pipeline
+  - Fixed paths in examples (data/processed → data/workflows)
+  - Simplified data loading using `DataRegistry.load_dataset_by_security()`
+  - Updated version and date references across all documentation
+  - Corrected registry names in design documents
+  - Fixed BacktestConfig documentation (removed obsolete threshold fields)
+  - Complete rewrite of signal_registry_usage.md with current patterns
+
+### Fixed
+- **DV01 Calibration** - Corrected default from 4750.0 to 475.0 per $1MM notional
+  - CDX IG 5Y with ~4.75 year duration has $475 DV01 per $1MM, not $4,750
+  - Previous value incorrectly represented total DV01 for $10MM position
+  - Updated in BacktestConfig, StrategyMetadata, all 4 strategy catalog entries
+  - Fixed 16 test cases with P&L calculations and position values
+  - Updated documentation examples in copilot-instructions.md and CONTRIBUTING.md
+- **Test Suite Alignment**
+  - Fixed tests to align with `generate_report()` API returning dict format
+  - Removed tests for deprecated `--output` CLI option
+  - Fixed `TestCollectReportData` to avoid mocking non-existent attributes
+  - Removed unused imports in test files
+
+### Removed
+- **Cleanup**
+  - Deleted `scripts/validate_backtest_cleanup.py` (validation script no longer needed)
+  - Removed duplicate default values from BacktestConfig and StrategyMetadata
+  - Removed entry_threshold/exit_threshold from strategy system (replaced with signal-based triggers)
+
+### Test Coverage
+- **Catalog Completeness Validation** (4 new tests in `tests/models/test_catalog.py`)
+  - `test_indicator_transformations_have_required_parameters` - Validates all indicators define required params
+  - `test_score_transformations_have_required_parameters` - Validates all score transformations have params
+  - `test_all_signals_reference_valid_transformations` - Validates 1:1:1 reference integrity
+  - `test_strategy_catalog_completeness` - Validates all strategies have required fields
+- All 755 tests passing (verified December 2025)
+
+### Breaking Changes
+- Indicator functions now raise `KeyError` if catalog is missing required parameters (was silent fallback to code defaults)
+
 ## [0.1.16] - 2025-12-13
 
 ### Added
@@ -864,6 +927,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.17]: https://github.com/stabilefrisur/aponyx/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/stabilefrisur/aponyx/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.15
 [0.1.14]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.14
