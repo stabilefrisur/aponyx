@@ -119,7 +119,7 @@ Aponyx is a **Python 3.12 systematic fixed-income research framework** for devel
 
 - **uv**: Package installer, environment manager, and task runner
 - **pyproject.toml**: Modern project metadata (PEP 621)
-- **uv_build**: Build backend for distribution
+- **hatchling**: Build backend for distribution
 
 ### Code Quality Tools (via uv)
 

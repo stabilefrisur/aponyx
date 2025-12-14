@@ -68,6 +68,5 @@ TODO.md
 # Specification and planning folders (internal use only)
 .specify/
 specs/
-# GitHub internal files (keep only copilot-instructions.md)
-.github/*
-!.github/copilot-instructions.md
+# GitHub internal files (only ignore speckit-generated .md files)
+.github/**/speckit*.md
