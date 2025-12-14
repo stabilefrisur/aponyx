@@ -205,12 +205,14 @@ class TestGetProviderFetchFunction:
         assert fetch_fn is fetch_from_file
 
     def test_get_provider_fetch_function_bloomberg(self):
-        """Test resolves Bloomberg provider fetch function."""
+        """Test resolves Bloomberg provider fetch function (returns adapter)."""
         source = BloombergSource()
 
         fetch_fn = _get_provider_fetch_function(source)
 
-        assert fetch_fn is fetch_from_bloomberg
+        # Returns an adapter with unified interface, not the raw function
+        assert callable(fetch_fn)
+        assert fetch_fn.__name__ == "_bloomberg_adapter"
 
     def test_get_provider_fetch_function_unsupported(self):
         """Test error for unsupported provider."""

@@ -123,7 +123,7 @@ def save_to_raw(
 
 def _get_provider_fetch_function(source: DataSource):
     """
-    Get fetch function for data source.
+    Get fetch function for data source with unified interface.
 
     Parameters
     ----------
@@ -133,14 +133,43 @@ def _get_provider_fetch_function(source: DataSource):
     Returns
     -------
     Callable
-        Provider fetch function.
+        Provider fetch function with unified signature:
+        (source, ticker, instrument, security, start_date, end_date, **params)
+
+    Notes
+    -----
+    Returns adapters that normalize provider-specific signatures to a unified
+    interface. This allows callers to use the same call pattern regardless of
+    provider type.
     """
+    from typing import Any
+
     provider_type = resolve_provider(source)
 
     if provider_type == "file":
         return fetch_from_file
     elif provider_type == "bloomberg":
-        return fetch_from_bloomberg
+        # Adapter: accepts source for unified interface but doesn't use it
+        def _bloomberg_adapter(
+            source: DataSource,
+            ticker: str,
+            instrument: str,
+            security: str,
+            start_date: str | None = None,
+            end_date: str | None = None,
+            **params: Any,
+        ) -> pd.DataFrame:
+            # Bloomberg provider doesn't need source - it's stateless
+            return fetch_from_bloomberg(
+                ticker=ticker,
+                instrument=instrument,
+                security=security,
+                start_date=start_date,
+                end_date=end_date,
+                **params,
+            )
+
+        return _bloomberg_adapter
     else:
         raise ValueError(f"Unsupported provider: {provider_type}")
 
