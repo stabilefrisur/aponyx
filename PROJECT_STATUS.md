@@ -1,7 +1,7 @@
 # Project Status — aponyx
 
 **Last Updated:** December 14, 2025  
-**Version:** 0.1.17 (Catalog-Driven Configuration Enforcement)
+**Version:** 0.1.18 (Build System Migration and Provider Adapter Pattern)
 
 ## Quick Reference
 

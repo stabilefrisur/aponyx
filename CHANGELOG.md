@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.18] - 2025-12-14
+
+### Added
+- **GitHub Automation Tooling**
+  - PyPI release agent (`.github/agents/pypi-release.agent.md`) for automated package publishing
+  - CLI workflow testing agent (`.github/agents/test-cli-workflows.agent.md`) for validation
+  - Upstream tarball agent (`.github/agents/upstream-tarball.agent.md`) for dependency tracking
+  - Reset dev environment prompt (`.github/prompts/reset-dev-environment.prompt.md`)
+  - Corresponding prompt files for agent invocation
+
+### Changed
+- **Build System Migration**
+  - Switched build backend from `uv_build` to `hatchling` for improved compatibility
+  - Updated `pyproject.toml` with hatchling configuration
+  - Package builds now use standard hatchling wheel builder
+- **Unified Provider Interface**
+  - Refactored Bloomberg provider with adapter pattern in `_get_provider_fetch_function()`
+  - Added `_bloomberg_adapter` to normalize Bloomberg provider to unified signature
+  - Removed source parameter filtering from `fetch_from_bloomberg()` and `fetch_current_from_bloomberg()`
+  - Restored unified `fetch_fn()` calls in `fetch_cdx`, `fetch_vix`, `fetch_etf`
+  - Adapter pattern isolates provider-specific parameter handling in factory function
+- **Environment Cache Cleanup Script**
+  - Renamed `scripts/clean_pycache.py` → `scripts/clean_env_cache.py`
+  - Added support for `.pytest_cache`, `.mypy_cache`, `.ruff_cache` cleanup
+  - Virtual environments (`.venv`, `venv`, `.env`, `env`) now excluded from cleaning
+  - Updated function name: `clean_pycache()` → `clean_env_cache()`
+  - Updated all documentation references
+
+### Fixed
+- **Dependency Resolution**
+  - Added `ipython` as explicit dependency to resolve quantstats import failures
+  - quantstats has undeclared dependency on ipython (required by quantstats.reports module)
+  - While only quantstats.stats is used, Python's import system loads entire package
+
+### Test Coverage
+- Updated test to check for adapter instead of identity comparison in provider tests
+- All 755 tests passing
+
 ## [0.1.17] - 2025-12-14
 
 ### Added
@@ -927,6 +965,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.18]: https://github.com/stabilefrisur/aponyx/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/stabilefrisur/aponyx/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/stabilefrisur/aponyx/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/stabilefrisur/aponyx/releases/tag/v0.1.15
