@@ -11,13 +11,22 @@ Workflow
 --------
 1. Determine required data keys from ALL enabled signals
 2. Load all required market data once from registry
-3. Compute all enabled signals in batch
+3. Compute all enabled signals via four-stage transformation pipeline
 4. Individual signals then used separately for evaluation/backtesting
+
+Four-Stage Transformation Pipeline
+----------------------------------
+Security → Indicator → Score → Signal → Position
+
+1. Indicator Transformation: Compute economic metric (e.g., spread difference in bps)
+2. Score Transformation: Normalize indicator (e.g., z-score)
+3. Signal Transformation: Apply trading rules (floor, cap, neutral_range)
+4. Position Calculation: Backtest layer (out of scope for this script)
 
 Outputs
 -------
 Dict of computed signals (one pd.Series per enabled signal).
-Saved to data/processed/signals/{signal_name}.parquet for next steps.
+Saved to data/workflows/signals/{signal_name}.parquet for next steps.
 
 Examples
 --------
@@ -35,9 +44,18 @@ from aponyx.config import (
     DATA_DIR,
     SIGNAL_CATALOG_PATH,
     DATA_WORKFLOWS_DIR,
+    INDICATOR_TRANSFORMATION_PATH,
+    SCORE_TRANSFORMATION_PATH,
+    SIGNAL_TRANSFORMATION_PATH,
 )
-from aponyx.data import DataRegistry, load_signal_required_data
-from aponyx.models import SignalConfig, SignalRegistry, compute_registered_signals
+from aponyx.data import DataRegistry
+from aponyx.models import SignalRegistry, compute_registered_signals
+from aponyx.models.registry import (
+    IndicatorTransformationRegistry,
+    ScoreTransformationRegistry,
+    SignalTransformationRegistry,
+)
+from aponyx.models.signal_composer import compose_signal
 from aponyx.persistence import save_parquet
 
 
@@ -46,40 +64,24 @@ def main() -> dict[str, pd.Series]:
     Execute batch signal computation workflow.
 
     Loads all required market data from registry, then computes
-    all enabled signals in a single pass.
+    all enabled signals via the four-stage transformation pipeline.
 
     Returns
     -------
     dict[str, pd.Series]
         Mapping from signal name to computed signal series.
     """
-    config = define_signal_config()
     market_data = load_all_required_data()
-    signals = compute_all_signals(market_data, config)
+    signals = compute_all_signals(market_data)
     save_all_signals(signals)
     return signals
-
-
-def define_signal_config() -> SignalConfig:
-    """
-    Define signal computation configuration.
-
-    Returns
-    -------
-    SignalConfig
-        Signal configuration with lookback and normalization parameters.
-    """
-    return SignalConfig(
-        lookback=20,
-        min_periods=10,
-    )
 
 
 def load_all_required_data() -> dict[str, pd.DataFrame]:
     """
     Load all market data required by enabled signals.
 
-    Uses default_securities from each enabled signal to determine
+    Uses default_securities from each indicator's metadata to determine
     which specific securities to load for each instrument type.
 
     Returns
@@ -90,31 +92,40 @@ def load_all_required_data() -> dict[str, pd.DataFrame]:
 
     Notes
     -----
-    Delegates to data layer helper for loading signal-required data.
-    Can optionally pass security_mapping to override default securities.
+    Collects data requirements from indicator_transformation.json
+    based on which indicators are referenced by enabled signals.
     """
     data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
     signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+    indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
 
-    # Load data using data layer helper
-    # To override defaults, pass security_mapping parameter:
-    # security_mapping={"cdx": "cdx_hy_5y", "etf": "hyg"}
-    return load_signal_required_data(signal_registry, data_registry)
+    # Build mapping from instrument type to security ID
+    # by collecting default_securities from indicators used by enabled signals
+    instrument_to_security: dict[str, str] = {}
+    for signal_name, signal_meta in signal_registry.get_enabled().items():
+        indicator_meta = indicator_registry.get_metadata(signal_meta.indicator_transformation)
+        for inst_type, security_id in indicator_meta.default_securities.items():
+            instrument_to_security[inst_type] = security_id
+
+    # Load data for each instrument type using the mapped security
+    market_data: dict[str, pd.DataFrame] = {}
+    for inst_type, security_id in sorted(instrument_to_security.items()):
+        df = data_registry.load_dataset_by_security(security_id)
+        market_data[inst_type] = df
+
+    return market_data
 
 
 def compute_all_signals(
     market_data: dict[str, pd.DataFrame],
-    config: SignalConfig,
 ) -> dict[str, pd.Series]:
     """
-    Compute all enabled signals using complete market data.
+    Compute all enabled signals using four-stage transformation pipeline.
 
     Parameters
     ----------
     market_data : dict[str, pd.DataFrame]
         Complete market data with all required instruments.
-    config : SignalConfig
-        Signal computation configuration.
 
     Returns
     -------
@@ -123,16 +134,16 @@ def compute_all_signals(
 
     Notes
     -----
-    Orchestrator computes ALL enabled signals in one pass.
+    Orchestrator computes ALL enabled signals in one pass via compose_signal().
     Individual signals are then selected for evaluation/backtesting.
     """
     signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
-    return compute_registered_signals(signal_registry, market_data, config)
+    return compute_registered_signals(signal_registry, market_data)
 
 
 def save_all_signals(signals: dict[str, pd.Series]) -> None:
     """
-    Save computed signals to processed directory.
+    Save computed signals to workflows directory.
 
     Parameters
     ----------
@@ -141,7 +152,7 @@ def save_all_signals(signals: dict[str, pd.Series]) -> None:
 
     Notes
     -----
-    Saves each signal as data/processed/signals/{signal_name}.parquet.
+    Saves each signal as data/workflows/signals/{signal_name}.parquet.
     """
     signals_dir = DATA_WORKFLOWS_DIR / "signals"
     signals_dir.mkdir(parents=True, exist_ok=True)

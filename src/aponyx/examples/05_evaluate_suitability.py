@@ -4,7 +4,7 @@ Evaluate signal-product suitability before backtesting.
 Prerequisites
 -------------
 Signals saved from previous step (04_compute_signal.py):
-- Signal files exist in data/processed/signals/{signal_name}.parquet
+- Signal files exist in data/workflows/signals/{signal_name}.parquet
 - CDX spread data available from registry
 
 Outputs
@@ -12,7 +12,7 @@ Outputs
 SuitabilityResult with decision and component scores:
 - Decision: PASS, HOLD, or FAIL
 - Component scores: data_health, predictive, economic, stability
-- Suitability report saved to reports/suitability/{signal_name}_{product}.md
+- Suitability report saved to data/workflows/reports/{signal_name}_{product}.md
 - Evaluation registered in suitability_registry.json
 
 Examples
@@ -21,7 +21,7 @@ Run from project root:
     python -m aponyx.examples.05_evaluate_suitability
 
 Expected output: SuitabilityResult with PASS/HOLD/FAIL decision.
-Report saved to reports/suitability/spread_momentum_cdx_ig_5y.md.
+Report saved to data/workflows/reports/spread_momentum_cdx_ig_5y.md.
 """
 
 import pandas as pd
@@ -120,7 +120,7 @@ def prepare_evaluation_data(
 
 def load_signal(signal_name: str) -> pd.Series:
     """
-    Load signal from processed directory.
+    Load signal from workflows directory.
 
     Parameters
     ----------
@@ -153,21 +153,10 @@ def load_spread_data(product: str) -> pd.DataFrame:
 
     Notes
     -----
-    Searches registry for datasets with matching security in metadata.
+    Uses DataRegistry.load_dataset_by_security() for efficient lookup.
     """
     data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
-
-    all_datasets = data_registry.list_datasets()
-
-    for dataset_name in all_datasets:
-        info = data_registry.get_dataset_info(dataset_name)
-        metadata = info.get("metadata", {})
-        params = metadata.get("params", {})
-
-        if params.get("security") == product:
-            return load_parquet(info["file_path"])
-
-    raise ValueError(f"No dataset found for product: {product}")
+    return data_registry.load_dataset_by_security(product)
 
 
 def define_evaluation_config() -> SuitabilityConfig:

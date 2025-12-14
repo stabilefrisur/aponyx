@@ -4,7 +4,7 @@ Execute backtest for signal using strategy from catalog.
 Prerequisites
 -------------
 Signals saved from signal computation (04_compute_signal.py):
-- Signal files exist in data/processed/signals/{signal_name}.parquet
+- Signal files exist in data/workflows/signals/{signal_name}.parquet
 CDX spread data available from registry.
 Strategy catalog configured in backtest/strategy_catalog.json.
 
@@ -14,7 +14,7 @@ BacktestResult with positions and P&L:
 - positions: DataFrame with signal, position, days_held, spread
 - pnl: DataFrame with spread_pnl, cost, net_pnl, cumulative_pnl
 - metadata: Config and execution details
-Backtest results saved to data/processed/backtests/{signal_name}_{strategy}.parquet.
+Backtest results saved to data/workflows/backtests/{signal_name}_{strategy}_*.parquet.
 
 Examples
 --------
@@ -22,7 +22,7 @@ Run from project root:
     python -m aponyx.examples.06_run_backtest
 
 Expected output: BacktestResult with positions and P&L history.
-Results saved to data/processed/backtests/spread_momentum_balanced.parquet.
+Results saved to data/workflows/backtests/spread_momentum_balanced_*.parquet.
 """
 
 import pandas as pd
