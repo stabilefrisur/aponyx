@@ -720,7 +720,7 @@ def compute_my_indicator(
   "take_profit_pct": 10.0,
   "max_holding_days": null,
   "transaction_cost_bps": 1.0,
-  "dv01_per_million": 4750.0,
+  "dv01_per_million": 475.0,
   "enabled": true
 }
 ```

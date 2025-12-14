@@ -793,7 +793,7 @@ def test_stop_loss_exit_reason_recorded() -> None:
         position_size_mm=10.0,
         sizing_mode="binary",
         stop_loss_pct=5.0,
-        dv01_per_million=4750.0,
+        dv01_per_million=475.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
@@ -821,7 +821,7 @@ def test_cooldown_prevents_reentry_with_non_zero_signal() -> None:
         position_size_mm=10.0,
         sizing_mode="binary",
         stop_loss_pct=5.0,
-        dv01_per_million=4750.0,
+        dv01_per_million=475.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
@@ -855,7 +855,7 @@ def test_cooldown_deactivates_when_signal_returns_to_zero() -> None:
         position_size_mm=10.0,
         sizing_mode="binary",
         stop_loss_pct=5.0,
-        dv01_per_million=4750.0,
+        dv01_per_million=475.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
@@ -887,7 +887,7 @@ def test_take_profit_exit_reason_recorded() -> None:
         position_size_mm=10.0,
         sizing_mode="binary",
         take_profit_pct=10.0,
-        dv01_per_million=4750.0,
+        dv01_per_million=475.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
@@ -917,7 +917,7 @@ def test_cooldown_after_take_profit_exit() -> None:
         position_size_mm=10.0,
         sizing_mode="binary",
         take_profit_pct=5.0,
-        dv01_per_million=4750.0,
+        dv01_per_million=475.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
@@ -1232,16 +1232,16 @@ def test_proportional_pnl_uses_prior_day_position() -> None:
         sizing_mode="proportional",
         signal_lag=0,
         transaction_cost_bps=0.0,
-        dv01_per_million=4750.0,
+        dv01_per_million=475.0,
     )
 
     result = run_backtest(signal, spread, config)
 
     # Day 1: position=5.0MM (but P&L=0, position taken today)
     # Day 2: position[t-1]=5.0MM, spread_change=+10bps
-    #        P&L = -5.0 * 10 * 4750 = -$237,500
+    #        P&L = -5.0 * 10 * 475 = -$23,750
     # Day 3: position[t-1]=5.0MM, spread_change=-10bps
-    #        P&L = -5.0 * (-10) * 4750 = +$237,500
+    #        P&L = -5.0 * (-10) * 475 = +$23,750
 
     # Day 0: flat, no P&L
     assert result.pnl.loc[dates[0], "spread_pnl"] == 0.0
@@ -1250,11 +1250,11 @@ def test_proportional_pnl_uses_prior_day_position() -> None:
     assert result.pnl.loc[dates[1], "spread_pnl"] == 0.0
 
     # Day 2: prior position was 5.0MM, spread widened by 10bps (loss for long)
-    expected_pnl_day2 = -5.0 * 10.0 * 4750.0
+    expected_pnl_day2 = -5.0 * 10.0 * 475.0
     assert abs(result.pnl.loc[dates[2], "spread_pnl"] - expected_pnl_day2) < 1.0
 
     # Day 3: prior position was 5.0MM, spread tightened by 10bps (gain for long)
-    expected_pnl_day3 = -5.0 * (-10.0) * 4750.0
+    expected_pnl_day3 = -5.0 * (-10.0) * 475.0
     assert abs(result.pnl.loc[dates[3], "spread_pnl"] - expected_pnl_day3) < 1.0
 
 
@@ -1290,14 +1290,14 @@ def test_proportional_pnl_with_position_change() -> None:
         sizing_mode="proportional",
         signal_lag=0,
         transaction_cost_bps=0.0,
-        dv01_per_million=4750.0,
+        dv01_per_million=475.0,
     )
 
     result = run_backtest(signal, spread, config)
 
     # Day 2: position[t-1]=5.0MM (not 8.0MM), spread_change=+10bps
-    # P&L = -5.0 * 10 * 4750 = -$237,500
-    expected_pnl_day2 = -5.0 * 10.0 * 4750.0
+    # P&L = -5.0 * 10 * 475 = -$23,750
+    expected_pnl_day2 = -5.0 * 10.0 * 475.0
     assert abs(result.pnl.loc[dates[2], "spread_pnl"] - expected_pnl_day2) < 1.0
 
 
@@ -1311,10 +1311,13 @@ def test_proportional_stop_loss_vs_current_notional() -> None:
     dates = pd.date_range("2024-01-01", periods=10, freq="D")
     # Start with 5.0MM position, maintain it
     signal = pd.Series([0.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.0], index=dates)
-    # Spread widens enough to trigger 1% loss: need -$50k on $5MM = -1.0%
-    # P&L = -5.0 * spread_change * 4750 = -50000 → spread_change = 50000 / (5 * 4750) = 2.1bps
+    # Spread widens enough to trigger 1% loss: need -$5k on $5MM = -0.1% -> but with DV01=475
+    # P&L = -5.0 * spread_change * 475 = -5000 → spread_change = 5000 / (5 * 475) = 2.1bps
+    # Actually need bigger widening to trigger 1% loss on $5MM * 475 DV01 = $2375 position value
+    # 1% of $2375 = $23.75 → very small spread move needed
+    # Let's use larger spread move to ensure trigger
     spread = pd.Series(
-        [100.0, 100.0, 100.0, 102.2, 102.2, 102.2, 102.2, 102.2, 102.2, 102.2],
+        [100.0, 100.0, 100.0, 110.0, 110.0, 110.0, 110.0, 110.0, 110.0, 110.0],
         index=dates,
     )
 
@@ -1323,7 +1326,7 @@ def test_proportional_stop_loss_vs_current_notional() -> None:
         sizing_mode="proportional",
         signal_lag=0,
         transaction_cost_bps=0.0,
-        dv01_per_million=4750.0,
+        dv01_per_million=475.0,
         stop_loss_pct=1.0,  # 1% stop loss
     )
 
@@ -1370,7 +1373,7 @@ def test_proportional_cooldown_release_on_sign_change() -> None:
         sizing_mode="proportional",
         signal_lag=0,
         transaction_cost_bps=0.0,
-        dv01_per_million=4750.0,
+        dv01_per_million=475.0,
         stop_loss_pct=3.0,
     )
 

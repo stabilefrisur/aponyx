@@ -205,13 +205,13 @@ def test_stop_loss_triggers_on_cumulative_pnl_threshold() -> None:
     # Start at 100, increase by 0.5 per day
     spread = pd.Series([100.0 + i * 0.5 for i in range(20)], index=dates)
 
-    # Position value: position_size_mm * dv01_per_million = 10.0 * 4750.0 = $47,500
-    # Stop loss at 5%: -0.05 * 47,500 = -$2,375
+    # Position value: position_size_mm * dv01_per_million = 10.0 * 475.0 = $4,750
+    # Stop loss at 5%: -0.05 * 4,750 = -$237.50
     config = BacktestConfig(
         position_size_mm=10.0,
         sizing_mode="binary",
         stop_loss_pct=5.0,
-        dv01_per_million=4750.0,
+        dv01_per_million=475.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
@@ -240,7 +240,7 @@ def test_stop_loss_disabled_when_none() -> None:
         position_size_mm=10.0,
         sizing_mode="binary",
         stop_loss_pct=None,  # Disabled
-        dv01_per_million=4750.0,
+        dv01_per_million=475.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
@@ -272,13 +272,13 @@ def test_take_profit_triggers_on_cumulative_pnl_threshold() -> None:
     # Start at 100, decrease by 0.3 per day
     spread = pd.Series([100.0 - i * 0.3 for i in range(20)], index=dates)
 
-    # Position value: 10.0 * 4750.0 = $47,500
-    # Take profit at 10%: +0.10 * 47,500 = +$4,750
+    # Position value: 10.0 * 475.0 = $4,750
+    # Take profit at 10%: +0.10 * 4,750 = +$475
     config = BacktestConfig(
         position_size_mm=10.0,
         sizing_mode="binary",
         take_profit_pct=10.0,
-        dv01_per_million=4750.0,
+        dv01_per_million=475.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
@@ -309,7 +309,7 @@ def test_take_profit_disabled_when_none() -> None:
         position_size_mm=10.0,
         sizing_mode="binary",
         take_profit_pct=None,  # Disabled
-        dv01_per_million=4750.0,
+        dv01_per_million=475.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
@@ -345,7 +345,7 @@ def test_take_profit_precedence_over_stop_loss() -> None:
         sizing_mode="binary",
         stop_loss_pct=3.0,
         take_profit_pct=5.0,
-        dv01_per_million=4750.0,
+        dv01_per_million=475.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
@@ -353,8 +353,8 @@ def test_take_profit_precedence_over_stop_loss() -> None:
     result = run_backtest(signal, spread, config)
 
     # The large spread tightening (6 bps) should trigger take profit
-    # Position value: 10.0 * 4750.0 = $47,500
-    # Spread change: -6 bps → P&L ≈ +6 * 4750.0 * 10.0 = +$285,000 (way above 5%)
+    # Position value: 10.0 * 475.0 = $4,750
+    # Spread change: -6 bps → P&L ≈ +6 * 475.0 * 10.0 = +$28,500 (way above 5%)
     take_profit_exits = result.positions[
         result.positions["exit_reason"] == "take_profit"
     ]

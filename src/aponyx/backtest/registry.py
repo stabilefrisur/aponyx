@@ -52,7 +52,7 @@ class StrategyMetadata:
     take_profit_pct: float | None = None
     max_holding_days: int | None = None
     transaction_cost_bps: float = 1.0
-    dv01_per_million: float = 4750.0
+    dv01_per_million: float = 475.0
     enabled: bool = True
 
     def __post_init__(self) -> None:

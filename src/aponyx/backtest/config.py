@@ -28,7 +28,7 @@ class BacktestConfig:
         Typical CDX costs: 0.5-2.0 bps depending on liquidity.
     dv01_per_million : float
         DV01 per $1MM notional for risk calculations.
-        Typical CDX IG 5Y: ~4500-5000.
+        CDX IG 5Y with ~4.75 year duration: ~475.
     signal_lag : int
         Number of days to lag the signal before execution.
         0 = same-day execution (idealized), 1 = next-day execution (realistic).
@@ -51,7 +51,7 @@ class BacktestConfig:
     take_profit_pct: float | None = None
     max_holding_days: int | None = None
     transaction_cost_bps: float = 1.0
-    dv01_per_million: float = 4750.0
+    dv01_per_million: float = 475.0
     signal_lag: int = 1
 
     def __post_init__(self) -> None:

@@ -222,7 +222,7 @@ config = BacktestConfig(
     take_profit_pct=10.0,            # Optional: take profit at 10%
     max_holding_days=None,           # Optional: max holding period
     transaction_cost_bps=1.0,        # Round-trip cost in bps
-    dv01_per_million=4750.0,         # DV01 for risk calculations
+    dv01_per_million=475.0,          # DV01 for risk calculations ($475 per $1MM)
     signal_lag=1,                    # Days to lag signal (prevent look-ahead)
 )
 

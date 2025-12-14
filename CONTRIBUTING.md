@@ -84,7 +84,7 @@ Add to `strategy_catalog.json`:
   "stop_loss_pct": 5.0,
   "take_profit_pct": 10.0,
   "transaction_cost_bps": 1.0,
-  "dv01_per_million": 4750.0,
+  "dv01_per_million": 475.0,
   "enabled": true
 }
 ```
