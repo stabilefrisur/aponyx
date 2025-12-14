@@ -12,6 +12,8 @@ from aponyx.backtest import (
 )
 from aponyx.evaluation.performance import compute_all_metrics
 
+from . import make_test_config
+
 
 @pytest.fixture
 def sample_signal_and_spread() -> tuple[pd.Series, pd.Series]:
@@ -45,41 +47,41 @@ def sample_signal_and_spread() -> tuple[pd.Series, pd.Series]:
 def test_backtest_config_validation() -> None:
     """Test that config validation catches invalid parameters."""
     # Valid config should work
-    BacktestConfig(position_size_mm=10.0, sizing_mode="binary")
+    make_test_config(position_size_mm=10.0, sizing_mode="binary")
 
     # Negative position size should raise
     with pytest.raises(ValueError, match="position_size_mm must be positive"):
-        BacktestConfig(position_size_mm=-10.0)
+        make_test_config(position_size_mm=-10.0)
 
     # Invalid sizing mode should raise
     with pytest.raises(ValueError, match="sizing_mode must be"):
-        BacktestConfig(sizing_mode="invalid")
+        make_test_config(sizing_mode="invalid")
 
     # Invalid stop_loss_pct should raise
     with pytest.raises(ValueError, match="stop_loss_pct must be in"):
-        BacktestConfig(stop_loss_pct=0.0)
+        make_test_config(stop_loss_pct=0.0)
 
     with pytest.raises(ValueError, match="stop_loss_pct must be in"):
-        BacktestConfig(stop_loss_pct=150.0)
+        make_test_config(stop_loss_pct=150.0)
 
     # Invalid take_profit_pct should raise
     with pytest.raises(ValueError, match="take_profit_pct must be in"):
-        BacktestConfig(take_profit_pct=-5.0)
+        make_test_config(take_profit_pct=-5.0)
 
     # Invalid max_holding_days should raise
     with pytest.raises(ValueError, match="max_holding_days must be positive"):
-        BacktestConfig(max_holding_days=0)
+        make_test_config(max_holding_days=0)
 
     # Negative transaction cost should raise
     with pytest.raises(ValueError, match="transaction_cost_bps must be non-negative"):
-        BacktestConfig(transaction_cost_bps=-1.0)
+        make_test_config(transaction_cost_bps=-1.0)
 
     # Negative signal lag should raise
     with pytest.raises(ValueError, match="signal_lag must be non-negative"):
-        BacktestConfig(signal_lag=-1)
+        make_test_config(signal_lag=-1)
 
     # Test default signal_lag value
-    config = BacktestConfig()
+    config = make_test_config()
     assert config.signal_lag == 1  # Default should be 1 for realistic execution
 
 
@@ -88,7 +90,7 @@ def test_run_backtest_returns_result(
 ) -> None:
     """Test that backtest returns properly structured result."""
     signal, spread = sample_signal_and_spread
-    result = run_backtest(signal, spread)
+    result = run_backtest(signal, spread, make_test_config())
 
     # Check structure
     assert hasattr(result, "positions")
@@ -123,7 +125,7 @@ def test_run_backtest_generates_positions(
     signal = pd.Series([2.0] * 5 + [0.0] * 5 + [-2.0] * 5 + [0.0] * 5, index=dates)
     spread = pd.Series([100.0] * 20, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         signal_lag=0, transaction_cost_bps=0.0, sizing_mode="binary"
     )
     result = run_backtest(signal, spread, config)
@@ -143,7 +145,7 @@ def test_run_backtest_tracks_holding_period(
 ) -> None:
     """Test that backtest correctly tracks days held."""
     signal, spread = sample_signal_and_spread
-    result = run_backtest(signal, spread)
+    result = run_backtest(signal, spread, make_test_config())
 
     # When in position, days_held should increment
     in_position = result.positions[result.positions["position"] != 0]
@@ -161,7 +163,7 @@ def test_run_backtest_applies_transaction_costs(
 ) -> None:
     """Test that transaction costs are applied on trades."""
     signal, spread = sample_signal_and_spread
-    config = BacktestConfig(
+    config = make_test_config(
         transaction_cost_bps=2.0, position_size_mm=10.0, signal_lag=0
     )
     result = run_backtest(signal, spread, config)
@@ -186,7 +188,7 @@ def test_run_backtest_calculates_pnl(
 ) -> None:
     """Test that P&L calculation is reasonable."""
     signal, spread = sample_signal_and_spread
-    result = run_backtest(signal, spread)
+    result = run_backtest(signal, spread, make_test_config())
 
     # Net P&L should be spread P&L minus costs
     expected_net = result.pnl["spread_pnl"] - result.pnl["cost"]
@@ -243,7 +245,7 @@ def test_compute_all_metrics_values(
 ) -> None:
     """Test that performance metrics have reasonable values."""
     signal, spread = sample_signal_and_spread
-    result = run_backtest(signal, spread)
+    result = run_backtest(signal, spread, make_test_config())
     metrics = compute_all_metrics(result.pnl, result.positions)
 
     # Hit rate should be between 0 and 1
@@ -265,7 +267,7 @@ def test_backtest_metadata_logging(
 ) -> None:
     """Test that backtest logs complete metadata."""
     signal, spread = sample_signal_and_spread
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=15.0, signal_lag=0, transaction_cost_bps=0.0
     )
     result = run_backtest(signal, spread, config)
@@ -286,7 +288,7 @@ def test_backtest_with_max_holding_days(
 ) -> None:
     """Test that max holding days constraint is enforced."""
     signal, spread = sample_signal_and_spread
-    config = BacktestConfig(max_holding_days=5, signal_lag=0, transaction_cost_bps=0.0)
+    config = make_test_config(max_holding_days=5, signal_lag=0, transaction_cost_bps=0.0)
     result = run_backtest(signal, spread, config)
 
     # No position should be held longer than max_holding_days
@@ -303,14 +305,14 @@ def test_run_backtest_validates_index_types() -> None:
 
     # Should raise ValueError for non-DatetimeIndex
     with pytest.raises(ValueError, match="signal must have DatetimeIndex"):
-        run_backtest(signal, spread)
+        run_backtest(signal, spread, make_test_config())
 
     # Test with valid signal but invalid spread
     dates = pd.date_range("2024-01-01", periods=3, freq="D")
     signal_valid = pd.Series([1.0, 2.0, 3.0], index=dates)
 
     with pytest.raises(ValueError, match="spread must have DatetimeIndex"):
-        run_backtest(signal_valid, spread)
+        run_backtest(signal_valid, spread, make_test_config())
 
 
 def test_run_backtest_validates_empty_data_after_alignment() -> None:
@@ -323,7 +325,7 @@ def test_run_backtest_validates_empty_data_after_alignment() -> None:
     spread = pd.Series([100.0, 101.0, 102.0, 101.0, 100.0], index=dates2)
 
     with pytest.raises(ValueError, match="No valid data after alignment"):
-        run_backtest(signal, spread, BacktestConfig(signal_lag=0))
+        run_backtest(signal, spread, make_test_config(signal_lag=0))
 
 
 def test_signal_lag_shifts_execution() -> None:
@@ -339,11 +341,11 @@ def test_signal_lag_shifts_execution() -> None:
     spread = pd.Series([100.0] * 10, index=dates)
 
     # Test with no lag (default behavior)
-    config_no_lag = BacktestConfig(signal_lag=0, transaction_cost_bps=0.0)
+    config_no_lag = make_test_config(signal_lag=0, transaction_cost_bps=0.0)
     result_no_lag = run_backtest(signal, spread, config_no_lag)
 
     # Test with 1-day lag
-    config_lag = BacktestConfig(signal_lag=1, transaction_cost_bps=0.0)
+    config_lag = make_test_config(signal_lag=1, transaction_cost_bps=0.0)
     result_lag = run_backtest(signal, spread, config_lag)
 
     # With no lag, position should be taken on day 3 (when signal appears)
@@ -374,7 +376,7 @@ def test_signal_lag_metadata_logging() -> None:
     signal = pd.Series(np.random.randn(50), index=dates)
     spread = pd.Series(100 + np.random.randn(50), index=dates)
 
-    config = BacktestConfig(signal_lag=2)
+    config = make_test_config(signal_lag=2)
     result = run_backtest(signal, spread, config)
 
     # Verify signal_lag is in metadata
@@ -391,7 +393,7 @@ def test_signal_lag_prevents_look_ahead_bias() -> None:
     signal = pd.Series([0.0] * 10 + [3.0] * 10, index=dates)
     spread = pd.Series([100.0] * 20, index=dates)
 
-    config = BacktestConfig(signal_lag=1, transaction_cost_bps=0.0)
+    config = make_test_config(signal_lag=1, transaction_cost_bps=0.0)
     result = run_backtest(signal, spread, config)
 
     # With 1-day lag, signal data is shifted, reducing available dates
@@ -420,7 +422,7 @@ def test_signal_lag_with_various_lags() -> None:
 
     # Test different lag values
     for lag in [0, 1, 2, 5]:
-        config = BacktestConfig(signal_lag=lag)
+        config = make_test_config(signal_lag=lag)
         result = run_backtest(signal, spread, config)
 
         # Result length should be original length minus lag
@@ -441,7 +443,7 @@ def test_signal_lag_interaction_with_max_holding_days() -> None:
     signal = pd.Series([3.0] * 20 + [0.0] * 10, index=dates)
     spread = pd.Series([100.0] * 30, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         max_holding_days=5,
         signal_lag=1,
         transaction_cost_bps=0.0,
@@ -472,7 +474,7 @@ def test_backtest_with_sparse_signals() -> None:
 
     spread = pd.Series(100 + np.random.randn(100) * 0.5, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         signal_lag=0,  # No lag for precise testing
         transaction_cost_bps=0.0,
     )
@@ -493,7 +495,7 @@ def test_backtest_with_rapid_signal_changes() -> None:
 
     spread = pd.Series([100.0] * 50, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         signal_lag=0,
         transaction_cost_bps=1.0,  # Enable costs to test
     )
@@ -519,7 +521,7 @@ def test_backtest_alignment_with_mismatched_dates() -> None:
     signal = pd.Series(np.random.randn(100), index=signal_dates)
     spread = pd.Series(100 + np.random.randn(50), index=spread_dates)
 
-    config = BacktestConfig(signal_lag=0)
+    config = make_test_config(signal_lag=0)
     result = run_backtest(signal, spread, config)
 
     # Result should only include overlapping dates
@@ -537,7 +539,7 @@ def test_backtest_with_signal_lag_and_alignment() -> None:
     spread = pd.Series(100 + np.random.randn(90), index=spread_dates)
 
     # 2-day lag
-    config = BacktestConfig(signal_lag=2)
+    config = make_test_config(signal_lag=2)
     result = run_backtest(signal, spread, config)
 
     # After lag and alignment, check that we got valid data
@@ -559,7 +561,7 @@ def test_backtest_metadata_completeness() -> None:
     signal = pd.Series(np.random.randn(50), index=dates)
     spread = pd.Series(100 + np.random.randn(50), index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=12.5,
         transaction_cost_bps=1.5,
         max_holding_days=10,
@@ -602,7 +604,7 @@ def test_backtest_determinism() -> None:
     signal = pd.Series(np.random.randn(50), index=dates)
     spread = pd.Series(100 + np.random.randn(50), index=dates)
 
-    config = BacktestConfig(signal_lag=0, transaction_cost_bps=0.0)
+    config = make_test_config(signal_lag=0, transaction_cost_bps=0.0)
 
     # Run twice
     result1 = run_backtest(signal, spread, config)
@@ -628,7 +630,7 @@ def test_backtest_with_zero_threshold() -> None:
     )
     spread = pd.Series([100.0] * 30, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         signal_lag=0,
         transaction_cost_bps=0.0,
     )
@@ -669,7 +671,7 @@ def test_binary_sizing_deploys_full_position(
 ) -> None:
     """Test T009: Binary sizing deploys full position_size_mm for non-zero signal."""
     signal, spread = signal_based_test_data
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         signal_lag=0,
@@ -686,7 +688,7 @@ def test_position_direction_from_signal_sign(
 ) -> None:
     """Test T010: Position direction determined by signal sign (+1 for positive, -1 for negative)."""
     signal, spread = signal_based_test_data
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         signal_lag=0,
@@ -714,7 +716,7 @@ def test_proportional_sizing_basic_calculation() -> None:
     )
     spread = pd.Series([100.0] * 10, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -754,7 +756,7 @@ def test_proportional_position_rebalancing() -> None:
     signal = pd.Series([0.0, 0.5, 0.8, 0.3, 0.3, 0.6, 0.6, 0.0, 0.0, 0.0], index=dates)
     spread = pd.Series([100.0] * 10, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -789,7 +791,7 @@ def test_stop_loss_exit_reason_recorded() -> None:
     signal = pd.Series([0.8] * 20, index=dates)
     spread = pd.Series([100.0 + i * 0.5 for i in range(20)], index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         stop_loss_pct=5.0,
@@ -817,7 +819,7 @@ def test_cooldown_prevents_reentry_with_non_zero_signal() -> None:
     spread_values = [100.0 + i * 0.5 for i in range(10)] + [105.0] * 20
     spread = pd.Series(spread_values, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         stop_loss_pct=5.0,
@@ -851,7 +853,7 @@ def test_cooldown_deactivates_when_signal_returns_to_zero() -> None:
     spread_values = [100.0 + i * 0.6 for i in range(10)] + [106.0] * 20
     spread = pd.Series(spread_values, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         stop_loss_pct=5.0,
@@ -883,7 +885,7 @@ def test_take_profit_exit_reason_recorded() -> None:
     signal = pd.Series([0.8] * 20, index=dates)
     spread = pd.Series([100.0 - i * 0.3 for i in range(20)], index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         take_profit_pct=10.0,
@@ -913,7 +915,7 @@ def test_cooldown_after_take_profit_exit() -> None:
     spread_values = [100.0 - i * 0.4 for i in range(10)] + [96.0] * 20
     spread = pd.Series(spread_values, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         take_profit_pct=5.0,
@@ -1029,7 +1031,7 @@ def test_signal_sign_change_reversal() -> None:
     # Flat spread
     spread = pd.Series([100.0] * 30, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         transaction_cost_bps=0.0,
@@ -1060,7 +1062,7 @@ def test_max_holding_days_exit_triggers_cooldown() -> None:
     # Flat spread (no P&L exits)
     spread = pd.Series([100.0] * 30, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         max_holding_days=5,
@@ -1085,19 +1087,19 @@ def test_max_holding_days_exit_triggers_cooldown() -> None:
 def test_max_holding_days_validation() -> None:
     """Test T055: max_holding_days validation (positive when specified)."""
     # Valid config with max_holding_days
-    config = BacktestConfig(max_holding_days=10)
+    config = make_test_config(max_holding_days=10)
     assert config.max_holding_days == 10
 
     # Valid config with max_holding_days=None
-    config_none = BacktestConfig(max_holding_days=None)
+    config_none = make_test_config(max_holding_days=None)
     assert config_none.max_holding_days is None
 
     # Invalid: zero or negative
     with pytest.raises(ValueError, match="max_holding_days must be positive"):
-        BacktestConfig(max_holding_days=0)
+        make_test_config(max_holding_days=0)
 
     with pytest.raises(ValueError, match="max_holding_days must be positive"):
-        BacktestConfig(max_holding_days=-5)
+        make_test_config(max_holding_days=-5)
 
 
 # ============================================================================
@@ -1111,7 +1113,7 @@ def test_proportional_transaction_cost_on_entry() -> None:
     signal = pd.Series([0.0, 0.5, 0.5, 0.5, 0.0], index=dates)
     spread = pd.Series([100.0] * 5, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1137,7 +1139,7 @@ def test_proportional_transaction_cost_on_partial_rebalance() -> None:
     signal = pd.Series([0.0, 0.5, 0.8, 0.8, 0.0], index=dates)
     spread = pd.Series([100.0] * 5, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1169,7 +1171,7 @@ def test_proportional_transaction_cost_on_reversal() -> None:
     signal = pd.Series([0.0, 1.0, -0.5, -0.5, 0.0], index=dates)
     spread = pd.Series([100.0] * 5, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1201,7 +1203,7 @@ def test_proportional_zero_transaction_cost_when_position_unchanged() -> None:
     signal = pd.Series([0.0, 0.5, 0.5, 0.5, 0.5, 0.0], index=dates)
     spread = pd.Series([100.0] * 6, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1227,7 +1229,7 @@ def test_proportional_pnl_uses_prior_day_position() -> None:
     signal = pd.Series([0.0, 0.5, 0.5, 0.5, 0.0], index=dates)
     spread = pd.Series([100.0, 100.0, 110.0, 100.0, 100.0], index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1264,7 +1266,7 @@ def test_proportional_pnl_zero_when_flat() -> None:
     signal = pd.Series([0.0, 0.0, 0.0, 0.5, 0.0], index=dates)
     spread = pd.Series([100.0, 110.0, 120.0, 130.0, 140.0], index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1285,7 +1287,7 @@ def test_proportional_pnl_with_position_change() -> None:
     signal = pd.Series([0.0, 0.5, 0.8, 0.3, 0.0], index=dates)
     spread = pd.Series([100.0, 100.0, 110.0, 100.0, 100.0], index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1321,7 +1323,7 @@ def test_proportional_stop_loss_vs_current_notional() -> None:
         index=dates,
     )
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1368,7 +1370,7 @@ def test_proportional_cooldown_release_on_sign_change() -> None:
         index=dates,
     )
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1408,7 +1410,7 @@ def test_proportional_trade_count_correct() -> None:
     )
     spread = pd.Series([100.0] * 15, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1427,7 +1429,7 @@ def test_proportional_days_held_increments_correctly() -> None:
     signal = pd.Series([0.0, 0.5, 0.8, 0.3, 0.6, 0.4, 0.0], index=dates)
     spread = pd.Series([100.0] * 7, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1457,7 +1459,7 @@ def test_proportional_metadata_sizing_mode() -> None:
     signal = pd.Series([0.0, 0.5, 0.5, 0.5, 0.0], index=dates)
     spread = pd.Series([100.0] * 5, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1476,7 +1478,7 @@ def test_proportional_exit_counts_in_metadata() -> None:
     )
     spread = pd.Series([100.0] * 20, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1505,7 +1507,7 @@ def test_proportional_signal_greater_than_one() -> None:
     signal = pd.Series([0.0, 2.5, 2.5, 2.5, 0.0], index=dates)
     spread = pd.Series([100.0] * 5, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1540,7 +1542,7 @@ def test_proportional_nan_signal_handling(caplog: pytest.LogCaptureFixture) -> N
     signal_inf = pd.Series([0.0, 0.5, np.inf, 0.5, 0.5, 0.5, 0.0], index=dates)
     spread = pd.Series([100.0] * 7, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1569,7 +1571,7 @@ def test_proportional_infinity_signal_handling(
     signal = pd.Series([0.0, 0.5, np.inf, 0.5, 0.0], index=dates)
     spread = pd.Series([100.0] * 5, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,
@@ -1592,7 +1594,7 @@ def test_binary_mode_unchanged() -> None:
     signal = pd.Series([0.8] * 5 + [0.0] * 5 + [-0.6] * 5 + [0.0] * 5, index=dates)
     spread = pd.Series([100.0] * 20, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         signal_lag=0,
@@ -1620,14 +1622,14 @@ def test_binary_vs_proportional_comparison() -> None:
     signal = pd.Series([0.0] * 5 + [0.5] * 5 + [0.0] * 5 + [-0.5] * 5, index=dates)
     spread = pd.Series([100.0] * 20, index=dates)
 
-    binary_config = BacktestConfig(
+    binary_config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         signal_lag=0,
         transaction_cost_bps=0.0,
     )
 
-    prop_config = BacktestConfig(
+    prop_config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="proportional",
         signal_lag=0,

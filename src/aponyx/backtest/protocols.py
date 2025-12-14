@@ -37,7 +37,7 @@ class BacktestEngine(Protocol):
         self,
         signal: pd.Series,
         spread: pd.Series,
-        config: BacktestConfig | None = None,
+        config: BacktestConfig,
     ) -> BacktestResult:
         """
         Execute backtest on signal and price data.
@@ -48,8 +48,8 @@ class BacktestEngine(Protocol):
             Daily positioning scores from signal computation.
         spread : pd.Series
             CDX spread levels aligned to signal dates.
-        config : BacktestConfig | None
-            Backtest parameters. Uses defaults if None.
+        config : BacktestConfig
+            Backtest parameters. Required - use StrategyRegistry.to_config() in production.
 
         Returns
         -------

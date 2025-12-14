@@ -8,6 +8,8 @@ from aponyx.backtest import BacktestConfig
 from aponyx.backtest.registry import StrategyMetadata, StrategyRegistry
 from aponyx.config import STRATEGY_CATALOG_PATH
 
+from . import make_test_strategy_metadata
+
 
 # ============================================================================
 # Phase 6: User Story 4 - Strategy Migration Tests
@@ -138,7 +140,7 @@ def test_experimental_strategy_disabled() -> None:
 def test_strategy_metadata_validation() -> None:
     """Test that StrategyMetadata validates parameters correctly."""
     # Valid metadata should work
-    metadata = StrategyMetadata(
+    metadata = make_test_strategy_metadata(
         name="test",
         description="Test strategy",
         position_size_mm=10.0,
@@ -148,7 +150,7 @@ def test_strategy_metadata_validation() -> None:
 
     # Invalid position_size_mm should raise
     with pytest.raises(ValueError, match="position_size_mm must be positive"):
-        StrategyMetadata(
+        make_test_strategy_metadata(
             name="test",
             description="Test",
             position_size_mm=-5.0,
@@ -156,7 +158,7 @@ def test_strategy_metadata_validation() -> None:
 
     # Invalid sizing_mode should raise
     with pytest.raises(ValueError, match="sizing_mode must be"):
-        StrategyMetadata(
+        make_test_strategy_metadata(
             name="test",
             description="Test",
             sizing_mode="invalid",
@@ -164,14 +166,14 @@ def test_strategy_metadata_validation() -> None:
 
     # Invalid stop_loss_pct should raise
     with pytest.raises(ValueError, match="stop_loss_pct must be in"):
-        StrategyMetadata(
+        make_test_strategy_metadata(
             name="test",
             description="Test",
             stop_loss_pct=0.0,
         )
 
     with pytest.raises(ValueError, match="stop_loss_pct must be in"):
-        StrategyMetadata(
+        make_test_strategy_metadata(
             name="test",
             description="Test",
             stop_loss_pct=150.0,

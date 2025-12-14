@@ -104,7 +104,7 @@ class BacktestResult:
 def run_backtest(
     signal: pd.Series,
     spread: pd.Series,
-    config: BacktestConfig | None = None,
+    config: BacktestConfig,
 ) -> BacktestResult:
     """
     Run backtest converting signals to positions and computing P&L.
@@ -117,8 +117,8 @@ def run_backtest(
     spread : pd.Series
         CDX spread levels aligned to signal dates.
         Used for P&L calculation.
-    config : BacktestConfig | None
-        Backtest parameters. Uses defaults if None.
+    config : BacktestConfig
+        Backtest parameters. Required - use StrategyRegistry.to_config() in production.
 
     Returns
     -------
@@ -159,9 +159,6 @@ def run_backtest(
     >>> config = BacktestConfig(sizing_mode="proportional", position_size_mm=10.0)
     >>> result = run_backtest(signal, cdx_spread, config)
     """
-    if config is None:
-        config = BacktestConfig()
-
     is_proportional = config.sizing_mode == "proportional"
 
     logger.info(

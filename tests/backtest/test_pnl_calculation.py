@@ -9,6 +9,8 @@ import pandas as pd
 
 from aponyx.backtest import BacktestConfig, run_backtest
 
+from . import make_test_config
+
 
 def test_incremental_pnl_no_double_counting() -> None:
     """
@@ -28,7 +30,7 @@ def test_incremental_pnl_no_double_counting() -> None:
     # For long position, widening spreads = losses
     spread = pd.Series([100.0 + i for i in range(10)], index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,  # $10MM
         sizing_mode="binary",  # Use binary mode for this test
         dv01_per_million=100.0,  # $100 DV01 per $1MM
@@ -83,7 +85,7 @@ def test_incremental_pnl_with_position_changes() -> None:
     # Spread: increases steadily by 1 spread point per day
     spread = pd.Series([100.0 + i for i in range(20)], index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",  # Use binary mode for this test
         dv01_per_million=100.0,
@@ -120,7 +122,7 @@ def test_incremental_pnl_long_vs_short() -> None:
     # Spread: widens by 1 spread point per day
     spread = pd.Series([100.0 + i for i in range(6)], index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         dv01_per_million=100.0,
         transaction_cost_bps=0.0,
@@ -158,7 +160,7 @@ def test_cumulative_pnl_equals_mark_to_market() -> None:
     spread_values = [100.0, 100.5, 99.8, 101.2, 100.0, 99.5, 100.3, 99.9, 100.8, 99.2]
     spread = pd.Series(spread_values, index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",  # Use binary mode for this test
         dv01_per_million=100.0,
@@ -207,7 +209,7 @@ def test_stop_loss_triggers_on_cumulative_pnl_threshold() -> None:
 
     # Position value: position_size_mm * dv01_per_million = 10.0 * 475.0 = $4,750
     # Stop loss at 5%: -0.05 * 4,750 = -$237.50
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         stop_loss_pct=5.0,
@@ -236,7 +238,7 @@ def test_stop_loss_disabled_when_none() -> None:
     # Spread: widens significantly (would trigger stop loss if enabled)
     spread = pd.Series([100.0 + i * 2.0 for i in range(20)], index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         stop_loss_pct=None,  # Disabled
@@ -274,7 +276,7 @@ def test_take_profit_triggers_on_cumulative_pnl_threshold() -> None:
 
     # Position value: 10.0 * 475.0 = $4,750
     # Take profit at 10%: +0.10 * 4,750 = +$475
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         take_profit_pct=10.0,
@@ -305,7 +307,7 @@ def test_take_profit_disabled_when_none() -> None:
     # Spread: tightens significantly (would trigger take profit if enabled)
     spread = pd.Series([100.0 - i * 1.0 for i in range(20)], index=dates)
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         take_profit_pct=None,  # Disabled
@@ -340,7 +342,7 @@ def test_take_profit_precedence_over_stop_loss() -> None:
         [100.0, 100.0, 100.0, 100.0, 100.0, 94.0, 94.0, 94.0, 94.0, 94.0], index=dates
     )
 
-    config = BacktestConfig(
+    config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",
         stop_loss_pct=3.0,

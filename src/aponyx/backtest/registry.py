@@ -46,13 +46,13 @@ class StrategyMetadata:
 
     name: str
     description: str
-    position_size_mm: float = 10.0
-    sizing_mode: str = "proportional"
-    stop_loss_pct: float | None = None
-    take_profit_pct: float | None = None
-    max_holding_days: int | None = None
-    transaction_cost_bps: float = 1.0
-    dv01_per_million: float = 475.0
+    position_size_mm: float
+    sizing_mode: str
+    stop_loss_pct: float | None
+    take_profit_pct: float | None
+    max_holding_days: int | None
+    transaction_cost_bps: float
+    dv01_per_million: float
     enabled: bool = True
 
     def __post_init__(self) -> None:

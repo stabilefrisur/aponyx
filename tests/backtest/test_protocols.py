@@ -13,6 +13,8 @@ from aponyx.backtest.engine import BacktestResult
 from aponyx.backtest.protocols import BacktestEngine
 from aponyx.evaluation.performance import compute_all_metrics
 
+from . import make_test_config
+
 
 class SimpleBacktestEngine:
     """
@@ -26,16 +28,13 @@ class SimpleBacktestEngine:
         self,
         signal: pd.Series,
         spread: pd.Series,
-        config: BacktestConfig | None = None,
+        config: BacktestConfig,
     ) -> BacktestResult:
         """
         Simple backtest that just tracks signals without P&L calculation.
 
         Used to test protocol conformance only.
         """
-        if config is None:
-            config = BacktestConfig()
-
         # Minimal implementation - just create result structure
         dates = signal.index
         positions_df = pd.DataFrame(
@@ -96,7 +95,7 @@ def test_backtest_engine_protocol_conformance() -> None:
     dates = pd.date_range("2024-01-01", periods=50, freq="D")
     signal = pd.Series(np.random.randn(50), index=dates)
     spread = pd.Series(100 + np.random.randn(50), index=dates)
-    config = BacktestConfig()
+    config = make_test_config()
 
     # Our function should work as protocol implementation
     # (functions with compatible signatures satisfy Protocol)
@@ -116,7 +115,7 @@ def test_simple_engine_protocol_conformance() -> None:
     spread = pd.Series(100 + np.random.randn(50), index=dates)
 
     engine = SimpleBacktestEngine()
-    result = engine.run(signal, spread)
+    result = engine.run(signal, spread, make_test_config())
 
     # Should return BacktestResult
     assert isinstance(result, BacktestResult)
@@ -188,7 +187,7 @@ def test_protocol_allows_swapping_implementations() -> None:
     dates = pd.date_range("2024-01-01", periods=30, freq="D")
     signal = pd.Series(np.random.randn(30), index=dates)
     spread = pd.Series(100 + np.random.randn(30), index=dates)
-    config = BacktestConfig()
+    config = make_test_config()
 
     # Different engines that satisfy protocol
     engines: list[BacktestEngine] = [
@@ -217,7 +216,7 @@ def test_backtest_result_immutability_expectation() -> None:
     signal = pd.Series([1.0] * 30, index=dates)
     spread = pd.Series([100.0] * 30, index=dates)
 
-    result = run_backtest(signal, spread, BacktestConfig(signal_lag=0))
+    result = run_backtest(signal, spread, make_test_config(signal_lag=0))
 
     # Modify result
     result.positions.iloc[0, 0] = 999.0
@@ -243,8 +242,8 @@ def test_protocol_type_annotations() -> None:
     assert "spread" in params
     assert "config" in params
 
-    # Config should have default None
-    assert params["config"].default is None
+    # Config is now required (no default) - verify it exists and is required
+    assert params["config"].default is inspect.Parameter.empty
 
 
 def test_metadata_structure_consistency() -> None:
@@ -258,7 +257,7 @@ def test_metadata_structure_consistency() -> None:
     spread = pd.Series(100 + np.random.randn(50), index=dates)
 
     # Test with our main engine
-    result = run_backtest(signal, spread, BacktestConfig(signal_lag=0))
+    result = run_backtest(signal, spread, make_test_config(signal_lag=0))
 
     # Verify expected metadata structure
     assert "config" in result.metadata

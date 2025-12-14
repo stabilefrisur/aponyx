@@ -12,50 +12,69 @@ from aponyx.backtest.config import BacktestConfig
 from aponyx.config import STRATEGY_CATALOG_PATH
 
 
+# Test helper for creating complete strategy metadata
+def _make_test_metadata(**overrides) -> dict:
+    """Create a complete strategy metadata dict for testing."""
+    defaults = {
+        "name": "test_strategy",
+        "description": "Test strategy",
+        "position_size_mm": 10.0,
+        "sizing_mode": "proportional",
+        "stop_loss_pct": None,
+        "take_profit_pct": None,
+        "max_holding_days": None,
+        "transaction_cost_bps": 1.0,
+        "dv01_per_million": 475.0,
+        "enabled": True,
+    }
+    defaults.update(overrides)
+    return defaults
+
+
 def test_strategy_metadata_validation() -> None:
     """Test StrategyMetadata validation in __post_init__."""
     # Valid metadata
-    metadata = StrategyMetadata(
+    metadata = StrategyMetadata(**_make_test_metadata(
         name="test",
         description="Test strategy",
         position_size_mm=10.0,
         sizing_mode="binary",
-    )
+    ))
     assert metadata.name == "test"
     assert metadata.position_size_mm == 10.0
 
     # Invalid: negative position size
     with pytest.raises(ValueError, match="position_size_mm must be positive"):
-        StrategyMetadata(
+        StrategyMetadata(**_make_test_metadata(
             name="invalid",
             description="Invalid",
             position_size_mm=-1.0,
-        )
+        ))
 
     # Invalid: empty name
     with pytest.raises(ValueError, match="name cannot be empty"):
-        StrategyMetadata(
+        StrategyMetadata(**_make_test_metadata(
             name="",
             description="No name",
             position_size_mm=10.0,
-        )
+        ))
 
 
 def test_strategy_metadata_to_config() -> None:
     """Test converting StrategyMetadata to BacktestConfig."""
-    metadata = StrategyMetadata(
+    metadata = StrategyMetadata(**_make_test_metadata(
         name="aggressive",
         description="Aggressive strategy",
         position_size_mm=15.0,
         stop_loss_pct=10.0,
-    )
+    ))
 
     # Use defaults
     config = metadata.to_config()
     assert isinstance(config, BacktestConfig)
     assert config.position_size_mm == 15.0
     assert config.stop_loss_pct == 10.0
-    assert config.transaction_cost_bps == 1.0  # Default
+    assert config.transaction_cost_bps == 1.0  # From metadata
 
     # Override defaults
     config = metadata.to_config(
@@ -96,20 +115,18 @@ def test_strategy_registry_get_metadata() -> None:
 def test_strategy_registry_get_enabled() -> None:
     """Test filtering enabled strategies."""
     catalog_data = [
-        {
-            "name": "enabled_strategy",
-            "description": "Enabled",
-            "position_size_mm": 10.0,
-            "sizing_mode": "binary",
-            "enabled": True,
-        },
-        {
-            "name": "disabled_strategy",
-            "description": "Disabled",
-            "position_size_mm": 10.0,
-            "sizing_mode": "binary",
-            "enabled": False,
-        },
+        _make_test_metadata(
+            name="enabled_strategy",
+            description="Enabled",
+            sizing_mode="binary",
+            enabled=True,
+        ),
+        _make_test_metadata(
+            name="disabled_strategy",
+            description="Disabled",
+            sizing_mode="binary",
+            enabled=False,
+        ),
     ]
 
     with TemporaryDirectory() as tmpdir:
@@ -147,18 +164,16 @@ def test_strategy_registry_invalid_json() -> None:
 def test_strategy_registry_duplicate_names() -> None:
     """Test that duplicate strategy names raise error."""
     catalog_data = [
-        {
-            "name": "duplicate",
-            "description": "First",
-            "position_size_mm": 10.0,
-            "sizing_mode": "binary",
-        },
-        {
-            "name": "duplicate",
-            "description": "Second",
-            "position_size_mm": 10.0,
-            "sizing_mode": "binary",
-        },
+        _make_test_metadata(
+            name="duplicate",
+            description="First",
+            sizing_mode="binary",
+        ),
+        _make_test_metadata(
+            name="duplicate",
+            description="Second",
+            sizing_mode="binary",
+        ),
     ]
 
     with TemporaryDirectory() as tmpdir:
@@ -173,13 +188,12 @@ def test_strategy_registry_duplicate_names() -> None:
 def test_strategy_registry_save_catalog() -> None:
     """Test saving strategy catalog to file."""
     catalog_data = [
-        {
-            "name": "test_strategy",
-            "description": "Test",
-            "position_size_mm": 10.0,
-            "sizing_mode": "binary",
-            "enabled": True,
-        },
+        _make_test_metadata(
+            name="test_strategy",
+            description="Test",
+            sizing_mode="binary",
+            enabled=True,
+        ),
     ]
 
     with TemporaryDirectory() as tmpdir:
@@ -207,13 +221,13 @@ def test_strategy_registry_save_catalog() -> None:
 def test_strategy_registry_fail_fast_validation() -> None:
     """Test that invalid position size fails at load time."""
     catalog_data = [
-        {
-            "name": "invalid",
-            "description": "Invalid position size",
-            "position_size_mm": -5.0,  # Negative
-            "sizing_mode": "binary",
-            "enabled": True,
-        },
+        _make_test_metadata(
+            name="invalid",
+            description="Invalid position size",
+            position_size_mm=-5.0,  # Negative
+            sizing_mode="binary",
+            enabled=True,
+        ),
     ]
 
     with TemporaryDirectory() as tmpdir:

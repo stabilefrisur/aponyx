@@ -17,6 +17,25 @@ from aponyx.models.registry import SignalRegistry
 from aponyx.backtest.registry import StrategyRegistry
 
 
+# Test helper for creating complete strategy metadata
+def _make_test_metadata(**overrides) -> dict:
+    """Create a complete strategy metadata dict for testing."""
+    defaults = {
+        "name": "test_strategy",
+        "description": "Test strategy",
+        "position_size_mm": 10.0,
+        "sizing_mode": "proportional",
+        "stop_loss_pct": None,
+        "take_profit_pct": None,
+        "max_holding_days": None,
+        "transaction_cost_bps": 1.0,
+        "dv01_per_million": 475.0,
+        "enabled": True,
+    }
+    defaults.update(overrides)
+    return defaults
+
+
 def test_all_registries_follow_governance_spine() -> None:
     """
     Test that all registries follow the governance spine lifecycle:
@@ -43,15 +62,14 @@ def test_all_registries_follow_governance_spine() -> None:
 
 def test_registries_enforce_deterministic_loading() -> None:
     """Test that loading same JSON twice yields identical structures."""
-    # Create test catalog
+    # Create test catalog with complete metadata
     catalog_data = [
-        {
-            "name": "test_strategy",
-            "description": "Test",
-            "position_size_mm": 10.0,
-            "sizing_mode": "binary",
-            "enabled": True,
-        },
+        _make_test_metadata(
+            name="test_strategy",
+            description="Test",
+            sizing_mode="binary",
+            enabled=True,
+        ),
     ]
 
     with TemporaryDirectory() as tmpdir:
@@ -103,13 +121,13 @@ def test_catalog_validation_prevents_invalid_state() -> None:
 
     # Invalid strategy catalog (bad position size)
     strategy_catalog = [
-        {
-            "name": "invalid_strategy",
-            "description": "Invalid",
-            "position_size_mm": -5.0,
-            "sizing_mode": "binary",
-            "enabled": True,
-        },
+        _make_test_metadata(
+            name="invalid_strategy",
+            description="Invalid",
+            position_size_mm=-5.0,
+            sizing_mode="binary",
+            enabled=True,
+        ),
     ]
 
     with TemporaryDirectory() as tmpdir:
@@ -150,14 +168,14 @@ def test_cross_layer_integration() -> None:
 def test_json_persistence_roundtrip() -> None:
     """Test that save/load roundtrip preserves data exactly."""
     original_data = [
-        {
-            "name": "roundtrip_test",
-            "description": "Test roundtrip",
-            "position_size_mm": 12.5,
-            "sizing_mode": "binary",
-            "stop_loss_pct": 5.0,
-            "enabled": True,
-        },
+        _make_test_metadata(
+            name="roundtrip_test",
+            description="Test roundtrip",
+            position_size_mm=12.5,
+            sizing_mode="binary",
+            stop_loss_pct=5.0,
+            enabled=True,
+        ),
     ]
 
     with TemporaryDirectory() as tmpdir:
