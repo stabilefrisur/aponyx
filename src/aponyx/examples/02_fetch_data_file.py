@@ -33,7 +33,6 @@ Run from project root:
 Expected output: Eight validated DataFrames with ~1260 rows each.
 """
 
-from pathlib import Path
 
 import pandas as pd
 

@@ -148,22 +148,11 @@ def load_spread_data(product: str) -> pd.Series:
 
     Notes
     -----
-    Searches registry for datasets with matching security in metadata.
+    Uses DataRegistry.load_dataset_by_security() for efficient lookup.
     """
     data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
-
-    all_datasets = data_registry.list_datasets()
-
-    for dataset_name in all_datasets:
-        info = data_registry.get_dataset_info(dataset_name)
-        metadata = info.get("metadata", {})
-        params = metadata.get("params", {})
-
-        if params.get("security") == product:
-            spread_df = load_parquet(info["file_path"])
-            return spread_df["spread"]
-
-    raise ValueError(f"No dataset found for product: {product}")
+    spread_df = data_registry.load_dataset_by_security(product)
+    return spread_df["spread"]
 
 
 def load_strategy_config(strategy_name: str):

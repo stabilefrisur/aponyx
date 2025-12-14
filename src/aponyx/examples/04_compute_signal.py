@@ -45,17 +45,12 @@ from aponyx.config import (
     SIGNAL_CATALOG_PATH,
     DATA_WORKFLOWS_DIR,
     INDICATOR_TRANSFORMATION_PATH,
-    SCORE_TRANSFORMATION_PATH,
-    SIGNAL_TRANSFORMATION_PATH,
 )
 from aponyx.data import DataRegistry
 from aponyx.models import SignalRegistry, compute_registered_signals
 from aponyx.models.registry import (
     IndicatorTransformationRegistry,
-    ScoreTransformationRegistry,
-    SignalTransformationRegistry,
 )
-from aponyx.models.signal_composer import compose_signal
 from aponyx.persistence import save_parquet
 
 

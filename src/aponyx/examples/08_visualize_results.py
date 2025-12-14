@@ -4,8 +4,8 @@ Generate visualization charts for backtest results.
 Prerequisites
 -------------
 Backtest results saved from backtest execution (06_run_backtest.py):
-- P&L file: data/processed/backtests/{signal}_{strategy}_pnl.parquet
-- Positions file: data/processed/backtests/{signal}_{strategy}_positions.parquet
+- P&L file: data/workflows/backtests/{signal}_{strategy}_pnl.parquet
+- Positions file: data/workflows/backtests/{signal}_{strategy}_positions.parquet
 
 Outputs
 -------
