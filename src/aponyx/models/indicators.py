@@ -99,6 +99,11 @@ def compute_spread_momentum(
     pd.Series
         Spread change in basis points.
 
+    Raises
+    ------
+    KeyError
+        If 'lookback' is not present in parameters. Catalog must define this.
+
     Notes
     -----
     Output units: basis_points
@@ -107,7 +112,7 @@ def compute_spread_momentum(
     Economic interpretation: Rate of spread change over lookback period
     Sign convention: Negative change (tightening) is favorable for credit
     """
-    lookback = parameters.get("lookback", 5)
+    lookback = parameters["lookback"]
 
     logger.info(
         "Computing spread momentum: cdx_rows=%d, lookback=%d",
@@ -151,6 +156,11 @@ def compute_cdx_vix_deviation_gap(
     pd.Series
         Deviation gap in basis points.
 
+    Raises
+    ------
+    KeyError
+        If 'lookback' is not present in parameters. Catalog must define this.
+
     Notes
     -----
     Output units: basis_points (approximate, combining CDX bps and VIX points)
@@ -158,7 +168,7 @@ def compute_cdx_vix_deviation_gap(
     Negative values: Equity stress > credit stress (VIX elevated relative to CDX)
     Economic interpretation: Cross-asset risk sentiment divergence
     """
-    lookback = parameters.get("lookback", 20)
+    lookback = parameters["lookback"]
 
     logger.info(
         "Computing CDX-VIX deviation gap: cdx_rows=%d, vix_rows=%d, lookback=%d",

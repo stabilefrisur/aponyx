@@ -12,6 +12,175 @@ from aponyx.data.requirements import get_required_data_keys
 from aponyx.models.registry import SignalRegistry
 
 
+# ============================================================================
+# Catalog Completeness Validation Tests
+# ============================================================================
+
+
+class TestCatalogCompletenessValidation:
+    """
+    Tests to verify catalog entries have all required parameters.
+
+    These tests catch catalog misconfiguration at test time rather than
+    runtime, ensuring fail-fast behavior when indicator functions require
+    parameters that are missing from the catalog.
+    """
+
+    def test_indicator_transformations_have_required_parameters(self) -> None:
+        """
+        Verify all indicator transformations have required 'lookback' parameter.
+
+        Indicator functions use parameters['lookback'] directly (fail-fast),
+        so catalog entries that require lookback must define it.
+        """
+        from aponyx.config import INDICATOR_TRANSFORMATION_PATH
+        from aponyx.models.registry import IndicatorTransformationRegistry
+
+        registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
+        all_indicators = registry.list_all()
+
+        # Indicators that require lookback parameter
+        indicators_requiring_lookback = {
+            "spread_momentum_5d",
+            "cdx_vix_deviation_gap_20d",
+        }
+
+        for name, metadata in all_indicators.items():
+            if name in indicators_requiring_lookback:
+                assert "lookback" in metadata.parameters, (
+                    f"Indicator '{name}' requires 'lookback' parameter but catalog "
+                    f"entry has parameters: {metadata.parameters}. "
+                    f"Add 'lookback' to the parameters dict in indicator_transformation.json"
+                )
+                assert isinstance(metadata.parameters["lookback"], int), (
+                    f"Indicator '{name}' has non-integer lookback: "
+                    f"{metadata.parameters['lookback']}"
+                )
+                assert metadata.parameters["lookback"] > 0, (
+                    f"Indicator '{name}' has non-positive lookback: "
+                    f"{metadata.parameters['lookback']}"
+                )
+
+    def test_score_transformations_have_required_parameters(self) -> None:
+        """
+        Verify all score transformations have required parameters for their type.
+
+        z_score and volatility_adjust types require 'window' parameter.
+        """
+        from aponyx.config import SCORE_TRANSFORMATION_PATH
+        from aponyx.models.registry import ScoreTransformationRegistry
+
+        registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
+        all_transforms = registry.list_all()
+
+        # Transform types that require window parameter
+        types_requiring_window = {"z_score", "volatility_adjust", "normalized_change"}
+
+        for name, metadata in all_transforms.items():
+            if metadata.transform_type in types_requiring_window:
+                assert "window" in metadata.parameters, (
+                    f"Score transformation '{name}' (type={metadata.transform_type}) "
+                    f"requires 'window' parameter but has: {metadata.parameters}. "
+                    f"Add 'window' to the parameters dict in score_transformation.json"
+                )
+                assert isinstance(metadata.parameters["window"], int), (
+                    f"Score transformation '{name}' has non-integer window"
+                )
+                assert metadata.parameters["window"] > 0, (
+                    f"Score transformation '{name}' has non-positive window"
+                )
+
+    def test_all_signals_reference_valid_transformations(self) -> None:
+        """
+        Verify all signal entries reference existing transformation entries.
+
+        This catches typos or missing transformation references.
+        """
+        from aponyx.config import (
+            SIGNAL_CATALOG_PATH,
+            INDICATOR_TRANSFORMATION_PATH,
+            SCORE_TRANSFORMATION_PATH,
+            SIGNAL_TRANSFORMATION_PATH,
+        )
+        from aponyx.models.registry import (
+            SignalRegistry,
+            IndicatorTransformationRegistry,
+            ScoreTransformationRegistry,
+            SignalTransformationRegistry,
+        )
+
+        signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
+        score_registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
+        signal_trans_registry = SignalTransformationRegistry(SIGNAL_TRANSFORMATION_PATH)
+
+        for name, signal_metadata in signal_registry.list_all().items():
+            # Check indicator transformation exists
+            indicator_name = signal_metadata.indicator_transformation
+            try:
+                indicator_registry.get_metadata(indicator_name)
+            except KeyError:
+                pytest.fail(
+                    f"Signal '{name}' references non-existent indicator "
+                    f"transformation '{indicator_name}'"
+                )
+
+            # Check score transformation exists
+            score_name = signal_metadata.score_transformation
+            try:
+                score_registry.get_metadata(score_name)
+            except KeyError:
+                pytest.fail(
+                    f"Signal '{name}' references non-existent score "
+                    f"transformation '{score_name}'"
+                )
+
+            # Check signal transformation exists
+            signal_trans_name = signal_metadata.signal_transformation
+            try:
+                signal_trans_registry.get_metadata(signal_trans_name)
+            except KeyError:
+                pytest.fail(
+                    f"Signal '{name}' references non-existent signal "
+                    f"transformation '{signal_trans_name}'"
+                )
+
+    def test_strategy_catalog_completeness(self) -> None:
+        """
+        Verify all strategy entries have required fields with valid values.
+
+        StrategyMetadata.to_config() requires these fields to create BacktestConfig.
+        """
+        from aponyx.config import STRATEGY_CATALOG_PATH
+        from aponyx.backtest.registry import StrategyRegistry
+
+        registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
+
+        required_fields = {
+            "position_size_mm",
+            "sizing_mode",
+            "transaction_cost_bps",
+            "dv01_per_million",
+        }
+
+        for name, metadata in registry.list_all().items():
+            for field in required_fields:
+                assert hasattr(metadata, field), (
+                    f"Strategy '{name}' missing required field '{field}'"
+                )
+                value = getattr(metadata, field)
+                assert value is not None, (
+                    f"Strategy '{name}' has None for required field '{field}'"
+                )
+
+
+# ============================================================================
+# Original Tests
+# ============================================================================
+
+
 @pytest.fixture
 def mock_market_data() -> dict[str, pd.DataFrame]:
     """Create mock market data for testing."""

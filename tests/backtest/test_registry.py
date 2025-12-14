@@ -8,7 +8,7 @@ from aponyx.backtest import BacktestConfig
 from aponyx.backtest.registry import StrategyMetadata, StrategyRegistry
 from aponyx.config import STRATEGY_CATALOG_PATH
 
-from . import make_test_strategy_metadata
+from . import make_minimal_test_metadata, make_test_strategy_metadata
 
 
 # ============================================================================
