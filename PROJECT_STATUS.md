@@ -1201,7 +1201,7 @@ aponyx/
 │   └── performance/         # Post-backtest analyses
 │
 ├── scripts/                 # Utility scripts (not in git)
-│   ├── clean_pycache.py
+│   ├── clean_env_cache.py
 │   ├── clean_runtime_data.py
 │   └── README.md
 │

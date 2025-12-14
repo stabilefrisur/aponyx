@@ -357,7 +357,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Utility Scripts** for build and maintenance workflows
-  - `scripts/clean_pycache.py` - Remove Python bytecode and `__pycache__` directories
+  - `scripts/clean_env_cache.py` - Remove Python and tool cache directories (excludes virtual environments)
   - `scripts/clean_runtime_data.py` - Clean runtime data (cache, registries, workflows)
   - `scripts/README.md` - Comprehensive documentation for utility scripts
 - **CLI Enhancements**

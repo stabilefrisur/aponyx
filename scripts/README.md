@@ -97,37 +97,45 @@ SUCCESS: All securities loaded with unified interface!
 
 ---
 
-## clean_pycache.py
+## clean_env_cache.py
 
-Deletes all `__pycache__` directories and `.pyc` files from the project.
+Deletes Python and tool cache directories from the project (excludes virtual environments).
 
 ### Usage
 
 ```bash
 # Preview what would be deleted
-python scripts/clean_pycache.py --dry-run
+python scripts/clean_env_cache.py --dry-run
 
 # Delete with verbose output
-python scripts/clean_pycache.py --verbose
+python scripts/clean_env_cache.py --verbose
 
 # Just delete without details
-python scripts/clean_pycache.py
+python scripts/clean_env_cache.py
 
 # Specify custom root directory
-python scripts/clean_pycache.py --root /path/to/directory
+python scripts/clean_env_cache.py --root /path/to/directory
 ```
 
 ### What Gets Deleted
 
-- All `__pycache__` directories (recursively)
-- All `.pyc` files
+- `__pycache__` directories (recursively, excluding `.venv`)
+- `.pytest_cache` directories
+- `.mypy_cache` directories
+- `.ruff_cache` directories
+- `.pyc` files (excluding `.venv`)
+
+### What Gets Excluded
+
+- `.venv/`, `venv/`, `.env/`, `env/` directories (virtual environments)
 
 ### Use Cases
 
 - Clean up before committing
 - Resolve import caching issues
 - Free up disk space
-- Reset Python bytecode after refactoring
+- Reset Python bytecode and tool caches after refactoring
+- Clear test/lint caches for fresh runs
 
 ---
 
