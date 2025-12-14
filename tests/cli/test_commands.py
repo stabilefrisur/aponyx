@@ -877,7 +877,11 @@ def test_report_command_generates_output(runner, tmp_path):
 
     with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
         with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
-            mock_generate.return_value = "Mock report content"
+            # generate_report now returns a dict
+            mock_generate.return_value = {
+                "content": "Mock report content",
+                "output_path": None,
+            }
 
             result = runner.invoke(cli, ["report", "--workflow", "test_label"])
 
@@ -899,7 +903,11 @@ def test_report_command_markdown_format(runner, tmp_path):
 
     with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
         with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
-            mock_generate.return_value = "# Mock Report"
+            # generate_report now returns a dict
+            mock_generate.return_value = {
+                "content": "# Mock Report",
+                "output_path": workflow_dir / "reports" / "report.md",
+            }
 
             result = runner.invoke(
                 cli,
@@ -924,7 +932,11 @@ def test_report_command_html_format(runner, tmp_path):
 
     with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
         with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
-            mock_generate.return_value = "<html>Mock Report</html>"
+            # generate_report now returns a dict
+            mock_generate.return_value = {
+                "content": "<html>Mock Report</html>",
+                "output_path": workflow_dir / "reports" / "report.html",
+            }
 
             result = runner.invoke(
                 cli,
@@ -933,40 +945,6 @@ def test_report_command_html_format(runner, tmp_path):
 
             assert result.exit_code == 0
             assert "Report saved" in result.output
-
-
-def test_report_command_with_output_path(runner, tmp_path):
-    """Test report command saves to custom output path."""
-    # Create mock workflow directory
-    workflow_dir = tmp_path / "test_label_20241202_120000"
-    workflow_dir.mkdir()
-    (workflow_dir / "metadata.json").write_text(
-        '{"label": "test_label", "signal": "spread_momentum", "strategy": "balanced"}'
-    )
-    reports_dir = workflow_dir / "reports"
-    reports_dir.mkdir()
-    (reports_dir / "suitability_evaluation_20241202.md").write_text("Test content")
-
-    output_file = tmp_path / "custom_report.md"
-
-    with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
-        with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
-            mock_generate.return_value = "Mock report"
-
-            result = runner.invoke(
-                cli,
-                [
-                    "report",
-                    "--workflow",
-                    "test_label",
-                    "--format",
-                    "markdown",
-                    "--output",
-                    str(output_file),
-                ],
-            )
-
-            assert result.exit_code == 0
 
 
 def test_report_command_no_workflow_results(runner, tmp_path):
@@ -1066,4 +1044,3 @@ def test_report_help_text(runner):
     assert result.exit_code == 0
     assert "--workflow" in result.output
     assert "--format" in result.output
-    assert "--output" in result.output

@@ -6,7 +6,6 @@ and error handling.
 """
 
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -99,49 +98,46 @@ class TestReportData:
 class TestCollectReportData:
     """Test report data collection."""
 
-    @patch("aponyx.reporting.generator.DATA_WORKFLOWS_DIR")
     def test_collect_report_data_success(
         self,
-        mock_workflows_dir,
         tmp_path,
         sample_suitability_report,
         sample_performance_report,
     ):
         """Test collecting report data from workflow outputs."""
         # Create mock workflow directory
-        workflows_dir = tmp_path / "workflows"
-        workflows_dir.mkdir()
-
-        workflow_dir = workflows_dir / "spread_momentum_balanced_20241120_123456"
+        workflow_dir = tmp_path / "spread_momentum_balanced_20241120_123456"
         workflow_dir.mkdir()
         reports_dir = workflow_dir / "reports"
         reports_dir.mkdir()
-
-        # Set up glob to find this directory
-        mock_workflows_dir.glob.return_value = [workflow_dir]
 
         # Create test reports with new timestamped naming
         suitability_file = reports_dir / "suitability_evaluation_20241120_123456.md"
         suitability_file.write_text(sample_suitability_report)
 
         performance_file = reports_dir / "performance_analysis_20241120_123456.md"
+        performance_file.write_text(sample_performance_report)
 
-    @patch("aponyx.reporting.generator.DATA_WORKFLOWS_DIR")
+        # Call _collect_report_data directly
+        data = _collect_report_data(
+            workflow_dir,
+            "test_label",
+            "spread_momentum",
+            "balanced",
+        )
+
+        assert data.signal_name == "spread_momentum"
+        assert data.strategy_name == "balanced"
+        assert data.suitability_report is not None
+        assert data.performance_report is not None
+
     def test_collect_report_data_no_results(
         self,
-        mock_workflows_dir,
         tmp_path,
     ):
         """Test error when no workflow results exist."""
-        workflows_dir = tmp_path / "workflows"
-        workflows_dir.mkdir()
-
-        # Empty glob result
-        mock_workflows_dir.glob.return_value = []
-
-        # _collect_report_data now requires workflow_dir as first parameter
         # Create a fake workflow dir for the test
-        fake_workflow_dir = workflows_dir / "nonexistent_20241120_123456"
+        fake_workflow_dir = tmp_path / "nonexistent_20241120_123456"
         fake_workflow_dir.mkdir()
 
         with pytest.raises(FileNotFoundError, match="No reports found"):
@@ -329,13 +325,17 @@ class TestGenerateReport:
         reports_dir.mkdir()
         (reports_dir / "suitability_evaluation_20241120.md").write_text("Test content")
 
-        report = generate_report(
+        result = generate_report(
             workflow_dir=workflow_dir,
             format=ReportFormat.CONSOLE,
         )
 
-        assert isinstance(report, str)
-        assert "test_workflow" in report
+        # generate_report returns a dict with 'content' and 'output_path'
+        assert isinstance(result, dict)
+        assert "content" in result
+        assert isinstance(result["content"], str)
+        assert "test_workflow" in result["content"]
+        assert result["output_path"] is None  # Console format doesn't save to file
 
     def test_generate_report_markdown_with_file(self, tmp_path):
         """Test generating markdown report saves to file."""
@@ -360,16 +360,16 @@ class TestGenerateReport:
         reports_dir.mkdir()
         (reports_dir / "performance_analysis_20241120.md").write_text("Test content")
 
-        output_path = tmp_path / "report.md"
-
-        report = generate_report(
+        result = generate_report(
             workflow_dir=workflow_dir,
             format=ReportFormat.MARKDOWN,
-            output_path=output_path,
         )
 
-        assert output_path.exists()
-        assert "test_signal" in report
+        # generate_report saves to workflow's reports folder for non-console formats
+        assert isinstance(result, dict)
+        assert result["output_path"] is not None
+        assert result["output_path"].exists()
+        assert "test_signal" in result["content"]
 
     def test_generate_report_html_with_file(self, tmp_path):
         """Test generating HTML report saves to file."""
@@ -394,16 +394,16 @@ class TestGenerateReport:
         reports_dir.mkdir()
         (reports_dir / "suitability_evaluation_20241120.md").write_text("Test content")
 
-        output_path = tmp_path / "report.html"
-
-        report = generate_report(
+        result = generate_report(
             workflow_dir=workflow_dir,
             format=ReportFormat.HTML,
-            output_path=output_path,
         )
 
-        assert output_path.exists()
-        assert "<!DOCTYPE html>" in report
+        # generate_report saves to workflow's reports folder for non-console formats
+        assert isinstance(result, dict)
+        assert result["output_path"] is not None
+        assert result["output_path"].exists()
+        assert "<!DOCTYPE html>" in result["content"]
 
     def test_generate_report_string_format(self, tmp_path):
         """Test generate_report accepts string format."""
@@ -428,12 +428,14 @@ class TestGenerateReport:
         reports_dir.mkdir()
         (reports_dir / "performance_analysis_20241120.md").write_text("Test content")
 
-        report = generate_report(
+        result = generate_report(
             workflow_dir=workflow_dir,
             format="markdown",
         )
 
-        assert isinstance(report, str)
+        # generate_report returns a dict with 'content' and 'output_path'
+        assert isinstance(result, dict)
+        assert isinstance(result["content"], str)
 
 
 class TestEdgeCases:

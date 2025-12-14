@@ -387,8 +387,8 @@ strategy: balanced
             os.chdir(original_cwd)
 
 
-def test_report_command_output_with_absolute_path(runner, tmp_path):
-    """Test report command handles absolute output paths."""
+def test_report_command_with_absolute_workflow_path(runner, tmp_path):
+    """Test report command handles workflows with absolute paths in output."""
     # Create mock workflow directory
     workflow_dir = tmp_path / "test_label_20241202_120000"
     workflow_dir.mkdir()
@@ -399,11 +399,13 @@ def test_report_command_output_with_absolute_path(runner, tmp_path):
     reports_dir.mkdir()
     (reports_dir / "suitability_evaluation_20241202.md").write_text("Test content")
 
-    output_file = tmp_path / "reports" / "test_report.md"
-
     with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
         with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
-            mock_generate.return_value = "Mock report"
+            # generate_report now returns a dict
+            mock_generate.return_value = {
+                "content": "Mock report",
+                "output_path": workflow_dir / "reports" / "report.md",
+            }
 
             result = runner.invoke(
                 cli,
@@ -413,8 +415,6 @@ def test_report_command_output_with_absolute_path(runner, tmp_path):
                     "test_label",
                     "--format",
                     "markdown",
-                    "--output",
-                    str(output_file.resolve()),
                 ],
             )
 

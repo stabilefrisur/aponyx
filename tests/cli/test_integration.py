@@ -108,7 +108,11 @@ def test_full_workflow_integration(runner, mock_all_registries, tmp_path):
 
     with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
         with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
-            mock_generate.return_value = "Mock report content"
+            # generate_report now returns a dict
+            mock_generate.return_value = {
+                "content": "Mock report content",
+                "output_path": None,
+            }
 
             result = runner.invoke(cli, ["report", "--workflow", "test_label"])
             assert result.exit_code == 0
@@ -225,7 +229,12 @@ def test_report_all_formats(runner, tmp_path):
 
         with patch("aponyx.cli.commands.report.DATA_WORKFLOWS_DIR", tmp_path):
             with patch("aponyx.cli.commands.report.generate_report") as mock_generate:
-                mock_generate.return_value = f"Mock {format_type} report"
+                # generate_report now returns a dict
+                output_path = None if format_type == "console" else workflow_dir / "reports" / f"report.{format_type}"
+                mock_generate.return_value = {
+                    "content": f"Mock {format_type} report",
+                    "output_path": output_path,
+                }
 
                 result = runner.invoke(
                     cli,
