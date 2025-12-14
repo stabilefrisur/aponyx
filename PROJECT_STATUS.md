@@ -14,7 +14,7 @@
 | **Maturity Level** | Early-stage research framework |
 | **Breaking Changes** | May occur without deprecation warnings |
 | **License** | MIT |
-| **Test Coverage** | 755 tests across all layers (verified Dec 2025) |
+| **Test Coverage** | 276 tests across all layers (verified Dec 2025) |
 
 **Project Management:**
 - `uv` - Package installer, environment manager, and task runner
@@ -24,7 +24,7 @@
 
 **Optional Dependencies:**
 - `bloomberg`: `xbbg>=0.7.0` (Bloomberg Terminal integration)
-- `viz`: `plotly>=5.24.0`, `streamlit>=1.39.0`, `nbformat>=5.10.0`, `ipykernel>=6.29.0`, `tabulate>=0.9.0`, `jupyter>=1.0.0`, `matplotlib>=3.3.0`, `seaborn>=0.11.0` (visualization)
+- `viz`: `plotly>=5.24.0` (visualization)
 - `dev`: `pytest>=8.0.0`, `pytest-cov>=5.0.0` (development tools)
 
 **Code Quality Tools (run via uv):**

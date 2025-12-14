@@ -33,7 +33,7 @@ pip install aponyx
 **Optional dependencies:**
 
 ```bash
-# Visualization (Plotly, Streamlit)
+# Visualization (Plotly)
 pip install aponyx[viz]
 
 # Bloomberg Terminal support (requires manual blpapi install)
@@ -417,7 +417,7 @@ print(docs_path)  # Path to installed documentation
 - Stage 3: Signal Transformation (floor, cap, neutral range)
 - Stage 4: Position Calculation (backtest layer)
 
-**Core capabilities:** Type-safe data loading • Signal registry • Pre/post-backtest evaluation • Deterministic backtesting • Interactive visualizations • Comprehensive testing (>90% coverage)
+**Core capabilities:** Type-safe data loading • Signal registry • Pre/post-backtest evaluation • Deterministic backtesting • Interactive visualizations
 
 ## Development
 

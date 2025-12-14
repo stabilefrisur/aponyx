@@ -16,7 +16,7 @@ uv sync --extra viz        # Include visualization tools
 uv sync --extra dev        # Include development tools
 
 # Testing & Quality
-uv run pytest              # Run all tests (755 tests)
+uv run pytest              # Run all tests (276 tests)
 uv run pytest tests/models/ # Run specific module
 uv run mypy src/           # Type checking
 uv run ruff check src/     # Linting
@@ -1574,6 +1574,6 @@ from aponyx.models import compute_signal
 
 *This instruction file is auto-generated from codebase analysis. All patterns are based on actual implementation, not invented best practices.*
 
-**Last Updated**: December 13, 2025  
-**Version**: 0.1.15  
+**Last Updated**: December 14, 2025  
+**Version**: 0.1.16  
 **Maintainer**: stabilefrisur
