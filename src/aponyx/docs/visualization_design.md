@@ -28,7 +28,7 @@ visualization/
 - Caller controls rendering context (Jupyter, Streamlit, HTML export)
 
 **3. Function-First Design**
-- Pure functions as primary interface (`plot_equity_curve`, `plot_signal`, `plot_drawdown`)
+- Pure functions as primary interface (`plot_equity_curve`, `plot_signal`, `plot_drawdown`, `plot_research_dashboard`)
 - `Visualizer` class exists only for: theme management, batch operations, export utilities
 - Avoids class bloat for simple plotting tasks
 
@@ -84,11 +84,17 @@ The class is **optional**—all functionality accessible via pure functions.
 **Constraint:** Avoid premature feature creep.
 
 **Rationale:**
-- Start with high-value charts (P&L, signals, drawdown)
+- Start with high-value charts (P&L, signals, drawdown, research dashboard)
 - Add complexity only when usage patterns emerge
 - Placeholders (`plot_attribution`, `plot_exposures`) signal intent without commitment
 
-**Future expansion criteria:**
+**Implemented:**
+- `plot_equity_curve` - Cumulative P&L visualization
+- `plot_signal` - Signal values with threshold markers
+- `plot_drawdown` - Underwater chart
+- `plot_research_dashboard` - 5-panel signal pipeline visualization (indicator → score → signal + product)
+
+**Future expansion criteria:
 1. Chart type used in >3 different contexts
 2. Clear separation from computation logic
 3. Non-trivial implementation (not just `px.line` wrapper)

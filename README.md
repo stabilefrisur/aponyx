@@ -318,7 +318,7 @@ Aponyx follows a **layered architecture** with clean separation of concerns:
 | **Models** | Four-stage signal composition pipeline | `IndicatorTransformationRegistry`, `ScoreTransformationRegistry`, `SignalTransformationRegistry`, `compose_signal` |
 | **Evaluation** | Pre-backtest screening (rolling window stability) and post-backtest analysis | `evaluate_signal_suitability`, `analyze_backtest_performance`, `PerformanceRegistry` |
 | **Backtest** | Simulate execution and generate P&L | `run_backtest`, `BacktestConfig`, `StrategyRegistry` |
-| **Visualization** | Interactive charts and dashboards | `plot_equity_curve`, `plot_signal`, `plot_drawdown` |
+| **Visualization** | Interactive charts and dashboards | `plot_equity_curve`, `plot_signal`, `plot_drawdown`, `plot_research_dashboard` |
 | **Persistence** | Save/load data with metadata registry | `save_parquet`, `load_parquet`, `DataRegistry` |
 
 ### Data Storage
