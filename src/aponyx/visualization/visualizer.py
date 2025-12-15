@@ -17,6 +17,7 @@ from .plots import (
     plot_drawdown,
     plot_equity_curve,
     plot_exposures,
+    plot_research_dashboard,
     plot_signal,
 )
 
@@ -221,6 +222,56 @@ class Visualizer:
             Feature not yet implemented.
         """
         return plot_dashboard(backtest_results)
+
+    def research_dashboard(
+        self,
+        traded_product: pd.Series,
+        indicator: pd.Series,
+        score: pd.Series,
+        signal: pd.Series,
+        positions: pd.Series,
+        pnl: pd.Series,
+        title: str | None = None,
+    ) -> go.Figure:
+        """
+        Generate research dashboard with instance theme applied.
+
+        Delegates to plot_research_dashboard with Visualizer configuration.
+
+        Parameters
+        ----------
+        traded_product : pd.Series
+            Traded instrument price/spread with DatetimeIndex.
+        indicator : pd.Series
+            Raw indicator output (Stage 1) with DatetimeIndex.
+        score : pd.Series
+            Normalized score (Stage 2) with DatetimeIndex.
+        signal : pd.Series
+            Trading signal (Stage 3) with DatetimeIndex.
+        positions : pd.Series
+            Position series from backtest with DatetimeIndex.
+        pnl : pd.Series
+            Daily P&L series from backtest with DatetimeIndex.
+        title : str or None, optional
+            Dashboard title.
+
+        Returns
+        -------
+        go.Figure
+            Plotly figure with instance theme applied.
+        """
+        fig = plot_research_dashboard(
+            traded_product=traded_product,
+            indicator=indicator,
+            score=score,
+            signal=signal,
+            positions=positions,
+            pnl=pnl,
+            title=title,
+        )
+        fig.update_layout(template=self.theme)
+        self._maybe_export(fig, "research_dashboard")
+        return fig
 
     def _maybe_export(self, fig: go.Figure, name: str) -> None:
         """
