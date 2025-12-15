@@ -269,9 +269,7 @@ def sample_dashboard_series() -> dict[str, pd.Series]:
     )
 
     # Indicator (bps) - some derived metric
-    indicator = pd.Series(
-        np.random.normal(0, 20, 252), index=dates, name="indicator"
-    )
+    indicator = pd.Series(np.random.normal(0, 20, 252), index=dates, name="indicator")
 
     # Score (z-score normalized)
     score = pd.Series(np.random.normal(0, 1, 252), index=dates, name="score")

@@ -312,21 +312,25 @@ def load_backtest_results(workflow_dir: Path) -> tuple[pd.Series, pd.Series]:
         workflow_dir,
         workflow_dir / "backtest",
     ]
-    
+
     positions_df = None
     pnl_df = None
-    
+
     for backtest_dir in possible_backtest_dirs:
         positions_path = backtest_dir / "positions.parquet"
         pnl_path = backtest_dir / "pnl.parquet"
-        
+
         if positions_path.exists() and pnl_path.exists():
             positions_df = load_parquet(positions_path)
             pnl_df = load_parquet(pnl_path)
             break
-    
+
     if positions_df is not None and pnl_df is not None:
-        positions = positions_df["position"] if "position" in positions_df.columns else positions_df.iloc[:, 0]
+        positions = (
+            positions_df["position"]
+            if "position" in positions_df.columns
+            else positions_df.iloc[:, 0]
+        )
         pnl = pnl_df["net_pnl"] if "net_pnl" in pnl_df.columns else pnl_df.iloc[:, 0]
         return positions, pnl
 
@@ -335,7 +339,7 @@ def load_backtest_results(workflow_dir: Path) -> tuple[pd.Series, pd.Series]:
         workflow_dir,
         workflow_dir / "signals",
     ]
-    
+
     for signal_dir in possible_signal_dirs:
         signal_path = signal_dir / "signal.parquet"
         if signal_path.exists():
@@ -477,4 +481,3 @@ if __name__ == "__main__":
     result = main()
     if result is not None:
         print("Dashboard generated successfully!")
-

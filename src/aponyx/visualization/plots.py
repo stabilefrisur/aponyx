@@ -149,9 +149,7 @@ def plot_research_dashboard(
     _validate_dashboard_series(positions, "positions")
     _validate_dashboard_series(pnl, "pnl")
 
-    logger.info(
-        "Generating research dashboard: %d observations", len(traded_product)
-    )
+    logger.info("Generating research dashboard: %d observations", len(traded_product))
 
     # Create figure with 5 subplots, each with secondary y-axis
     fig = make_subplots(

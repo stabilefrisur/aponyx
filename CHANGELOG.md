@@ -7,14 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.19] - 2025-12-15
+
 ### Added
 - **Interactive Research Dashboard** for signal pipeline analysis
   - `plot_research_dashboard()` function generating 5-panel Plotly visualization
-  - Displays four-stage transformation pipeline (indicator → score → signal)
-  - Shows traded product alongside signal for correlation analysis
-  - Supports runtime transformation overrides via dashboard configuration
+  - Displays four-stage transformation pipeline (indicator → score → signal → positions → P&L)
+  - Shows traded product (CDX spread) alongside signal for correlation analysis
+  - Supports runtime transformation overrides via workflow metadata
   - Example script `09_research_dashboard.py` demonstrating standalone usage
-  - Comprehensive test coverage in `tests/visualization/test_plots.py`
+  - Dashboard height: 1440px with dual y-axes and synchronized time axis
+  - Interactive features: shared x-axis, range slider, unified hover mode
+  - 14 new tests for dashboard functionality in `tests/visualization/test_plots.py`
+
+### Fixed
+- **Transformation Override Passthrough** in research dashboard
+  - Dashboard now correctly uses transformation overrides from workflow metadata
+  - Added transformation override fields to workflow `metadata.json`
+  - `recompute_signal_with_intermediates()` now accepts override parameters
+  - Fixes issue where signal equaled score when signal_transformation override was specified
+
+### Documentation
+- Updated README.md architecture table with `plot_research_dashboard` function
+- Added research dashboard section to `visualization_design.md`
+- Updated CHANGELOG with unreleased research dashboard feature
+
+### Test Coverage
+- 769 total tests passing (increased from 755)
+- 14 new visualization tests for research dashboard functionality
 
 ## [0.1.18] - 2025-12-14
 
@@ -976,6 +996,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.19]: https://github.com/stabilefrisur/aponyx/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/stabilefrisur/aponyx/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/stabilefrisur/aponyx/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/stabilefrisur/aponyx/compare/v0.1.15...v0.1.16
