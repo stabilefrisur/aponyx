@@ -235,6 +235,10 @@ def recompute_signal_with_intermediates(
     score_registry: ScoreTransformationRegistry,
     signal_transformation_registry: SignalTransformationRegistry,
     signal_registry: SignalRegistry,
+    *,
+    indicator_transformation_override: str | None = None,
+    score_transformation_override: str | None = None,
+    signal_transformation_override: str | None = None,
 ) -> dict[str, pd.Series]:
     """
     Recompute signal with intermediate stage outputs.
@@ -253,6 +257,12 @@ def recompute_signal_with_intermediates(
         Registry for signal transformation metadata.
     signal_registry : SignalRegistry
         Registry for signal metadata.
+    indicator_transformation_override : str or None, optional
+        Override indicator transformation from catalog.
+    score_transformation_override : str or None, optional
+        Override score transformation from catalog.
+    signal_transformation_override : str or None, optional
+        Override signal transformation from catalog.
 
     Returns
     -------
@@ -270,6 +280,9 @@ def recompute_signal_with_intermediates(
         score_registry=score_registry,
         signal_transformation_registry=signal_transformation_registry,
         signal_registry=signal_registry,
+        indicator_transformation_override=indicator_transformation_override,
+        score_transformation_override=score_transformation_override,
+        signal_transformation_override=signal_transformation_override,
         include_intermediates=True,
     )
     return result
@@ -373,7 +386,18 @@ def generate_and_save_dashboard(workflow_dir: Path) -> go.Figure:
     signal_name = metadata["signal"]
     product = metadata["product"]
 
+    # Extract transformation overrides from metadata (if present)
+    indicator_override = metadata.get("indicator_transformation_override")
+    score_override = metadata.get("score_transformation_override")
+    signal_trans_override = metadata.get("signal_transformation_override")
+
     print(f"Signal: {signal_name}, Product: {product}")
+    if indicator_override:
+        print(f"  Indicator override: {indicator_override}")
+    if score_override:
+        print(f"  Score transformation override: {score_override}")
+    if signal_trans_override:
+        print(f"  Signal transformation override: {signal_trans_override}")
 
     # Step 2: Load registries
     indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
@@ -400,6 +424,9 @@ def generate_and_save_dashboard(workflow_dir: Path) -> go.Figure:
         score_registry=score_registry,
         signal_transformation_registry=signal_transformation_registry,
         signal_registry=signal_registry,
+        indicator_transformation_override=indicator_override,
+        score_transformation_override=score_override,
+        signal_transformation_override=signal_trans_override,
     )
 
     # Step 5: Load backtest results
