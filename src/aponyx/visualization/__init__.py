@@ -8,6 +8,7 @@ All functions return Plotly figure objects for integration with Streamlit or not
 from .plots import (
     plot_drawdown,
     plot_equity_curve,
+    plot_research_dashboard,
     plot_signal,
 )
 from .visualizer import Visualizer
@@ -17,4 +18,5 @@ __all__ = [
     "plot_equity_curve",
     "plot_signal",
     "plot_drawdown",
+    "plot_research_dashboard",
 ]
