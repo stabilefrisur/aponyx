@@ -42,6 +42,49 @@ def _sanitize_signal_value(signal_val: float, date: pd.Timestamp) -> float:
     return signal_val
 
 
+def _calculate_transaction_cost(
+    notional_mm: float,
+    spread_level: float,
+    config: BacktestConfig,
+) -> float:
+    """
+    Calculate transaction cost using static or dynamic method.
+
+    Parameters
+    ----------
+    notional_mm : float
+        Notional amount being traded in millions.
+    spread_level : float
+        Current spread level in basis points (used for dynamic mode).
+    config : BacktestConfig
+        Configuration containing cost parameters.
+
+    Returns
+    -------
+    float
+        Transaction cost in dollars.
+
+    Notes
+    -----
+    Two modes:
+    - Static (transaction_cost_pct=None): cost = transaction_cost_bps × notional_mm × 100
+    - Dynamic (transaction_cost_pct set): cost = transaction_cost_pct × spread_level × notional_mm × 100
+
+    The factor of 100 converts from bps to dollars per million notional.
+
+    Industry Reference
+    ------------------
+    CDX indices typically trade with ~2.5% of spread as transaction cost.
+    For a 60bp spread: 0.025 × 60 = 1.5bps effective cost.
+    """
+    if config.transaction_cost_pct is not None:
+        # Dynamic mode: cost = pct × spread × notional × 100
+        return config.transaction_cost_pct * spread_level * notional_mm * 100
+    else:
+        # Static mode: cost = bps × notional × 100
+        return config.transaction_cost_bps * notional_mm * 100
+
+
 class PositionState(Enum):
     """
     Internal state machine for position tracking.
@@ -264,15 +307,15 @@ def run_backtest(
 
                 if is_proportional:
                     # Entry cost based on actual position size
-                    entry_cost = (
-                        abs(current_position) * config.transaction_cost_bps * 100
+                    entry_cost = _calculate_transaction_cost(
+                        abs(current_position), spread_level, config
                     )
                 else:
                     position_entry_value = (
                         config.position_size_mm * config.dv01_per_million
                     )
-                    entry_cost = (
-                        config.transaction_cost_bps * config.position_size_mm * 100
+                    entry_cost = _calculate_transaction_cost(
+                        config.position_size_mm, spread_level, config
                     )
 
                 logger.debug(
@@ -323,12 +366,12 @@ def run_backtest(
             if check_take_profit:
                 exit_reason = "take_profit"
                 if is_proportional:
-                    exit_cost = (
-                        abs(current_position) * config.transaction_cost_bps * 100
+                    exit_cost = _calculate_transaction_cost(
+                        abs(current_position), spread_level, config
                     )
                 else:
-                    exit_cost = (
-                        config.transaction_cost_bps * config.position_size_mm * 100
+                    exit_cost = _calculate_transaction_cost(
+                        config.position_size_mm, spread_level, config
                     )
                 current_position = 0.0
                 days_held = 0
@@ -342,12 +385,12 @@ def run_backtest(
             elif check_stop_loss:
                 exit_reason = "stop_loss"
                 if is_proportional:
-                    exit_cost = (
-                        abs(current_position) * config.transaction_cost_bps * 100
+                    exit_cost = _calculate_transaction_cost(
+                        abs(current_position), spread_level, config
                     )
                 else:
-                    exit_cost = (
-                        config.transaction_cost_bps * config.position_size_mm * 100
+                    exit_cost = _calculate_transaction_cost(
+                        config.position_size_mm, spread_level, config
                     )
                 current_position = 0.0
                 days_held = 0
@@ -361,12 +404,12 @@ def run_backtest(
             elif check_max_holding:
                 exit_reason = "max_holding_days"
                 if is_proportional:
-                    exit_cost = (
-                        abs(current_position) * config.transaction_cost_bps * 100
+                    exit_cost = _calculate_transaction_cost(
+                        abs(current_position), spread_level, config
                     )
                 else:
-                    exit_cost = (
-                        config.transaction_cost_bps * config.position_size_mm * 100
+                    exit_cost = _calculate_transaction_cost(
+                        config.position_size_mm, spread_level, config
                     )
                 current_position = 0.0
                 days_held = 0
@@ -381,12 +424,12 @@ def run_backtest(
             elif signal_is_zero:
                 exit_reason = "signal"
                 if is_proportional:
-                    exit_cost = (
-                        abs(current_position) * config.transaction_cost_bps * 100
+                    exit_cost = _calculate_transaction_cost(
+                        abs(current_position), spread_level, config
                     )
                 else:
-                    exit_cost = (
-                        config.transaction_cost_bps * config.position_size_mm * 100
+                    exit_cost = _calculate_transaction_cost(
+                        config.position_size_mm, spread_level, config
                     )
                 current_position = 0.0
                 days_held = 0
@@ -399,13 +442,15 @@ def run_backtest(
                 if is_proportional:
                     # Cost for full position change (exit old + enter new)
                     trade_delta = abs(target_position - current_position)
-                    exit_cost = trade_delta * config.transaction_cost_bps * 100
-                else:
-                    exit_cost = (
-                        config.transaction_cost_bps * config.position_size_mm * 100
+                    exit_cost = _calculate_transaction_cost(
+                        trade_delta, spread_level, config
                     )
-                    entry_cost = (
-                        config.transaction_cost_bps * config.position_size_mm * 100
+                else:
+                    exit_cost = _calculate_transaction_cost(
+                        config.position_size_mm, spread_level, config
+                    )
+                    entry_cost = _calculate_transaction_cost(
+                        config.position_size_mm, spread_level, config
                     )
 
                 current_position = target_position
@@ -427,7 +472,9 @@ def run_backtest(
             elif is_proportional and abs(target_position - current_position) > 1e-9:
                 # Rebalance: position magnitude changed but direction stayed same
                 trade_delta = abs(target_position - current_position)
-                rebalance_cost = trade_delta * config.transaction_cost_bps * 100
+                rebalance_cost = _calculate_transaction_cost(
+                    trade_delta, spread_level, config
+                )
                 entry_cost = rebalance_cost  # Record as entry cost (trade activity)
                 current_position = target_position
                 logger.debug(

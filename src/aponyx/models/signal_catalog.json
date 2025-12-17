@@ -19,11 +19,11 @@
   },
   {
     "name": "spread_momentum",
-    "description": "Short-term volatility-adjusted momentum in CDX spreads",
+    "description": "Trend-following signal: go long after tightening, short after widening",
     "indicator_transformation": "spread_momentum_5d",
-    "score_transformation": "volatility_adjust_20d",
+    "score_transformation": "z_score_20d",
     "signal_transformation": "passthrough",
     "enabled": true,
-    "sign_multiplier": 1
+    "sign_multiplier": -1
   }
 ]

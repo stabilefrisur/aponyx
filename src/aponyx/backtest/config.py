@@ -24,8 +24,14 @@ class BacktestConfig:
     max_holding_days : int | None
         Maximum days to hold a position before forced exit. None for no limit.
     transaction_cost_bps : float
-        Round-trip transaction cost in basis points.
-        Typical CDX costs: 0.5-2.0 bps depending on liquidity.
+        Static transaction cost in basis points per trade.
+        Used when transaction_cost_pct is None.
+        For CDX IG 5Y with typical spread ~60bps: 2.5% × 60 ≈ 1.5bps.
+    transaction_cost_pct : float | None
+        Dynamic transaction cost as percentage of current spread.
+        Industry standard: 0.025 (2.5%) for CDX indices.
+        When set, overrides transaction_cost_bps with spread-dependent costs.
+        Cost = transaction_cost_pct × current_spread × notional_mm × 100.
     dv01_per_million : float
         DV01 per $1MM notional for risk calculations.
         CDX IG 5Y with ~4.75 year duration: ~475.
@@ -43,6 +49,21 @@ class BacktestConfig:
     - PnL-based exits (stop loss, take profit) trigger cooldown before re-entry.
     - Transaction costs are applied symmetrically on entry and exit.
     - signal_lag models realistic execution timing and prevents look-ahead bias.
+
+    Transaction Cost Modes
+    ----------------------
+    - **Static mode** (transaction_cost_pct=None): Uses fixed transaction_cost_bps.
+      Pre-calibrate as: 0.025 × typical_spread (e.g., 0.025 × 60bp = 1.5bp).
+    - **Dynamic mode** (transaction_cost_pct set): Uses percentage of current spread.
+      Industry standard is 2.5% (0.025) per UBS Credit Beta methodology.
+
+    Examples
+    --------
+    >>> # Static mode: pre-calibrated 1.5bps for typical 60bp spread
+    >>> config = BacktestConfig(..., transaction_cost_bps=1.5, transaction_cost_pct=None)
+
+    >>> # Dynamic mode: 2.5% of current spread
+    >>> config = BacktestConfig(..., transaction_cost_bps=0.0, transaction_cost_pct=0.025)
     """
 
     position_size_mm: float
@@ -53,6 +74,7 @@ class BacktestConfig:
     transaction_cost_bps: float
     dv01_per_million: float
     signal_lag: int = 1
+    transaction_cost_pct: float | None = None
 
     def __post_init__(self) -> None:
         """Validate configuration parameters."""
@@ -79,6 +101,12 @@ class BacktestConfig:
         if self.transaction_cost_bps < 0:
             raise ValueError(
                 f"transaction_cost_bps must be non-negative, got {self.transaction_cost_bps}"
+            )
+        if self.transaction_cost_pct is not None and not (
+            0 < self.transaction_cost_pct <= 1
+        ):
+            raise ValueError(
+                f"transaction_cost_pct must be in (0, 1], got {self.transaction_cost_pct}"
             )
         if self.signal_lag < 0:
             raise ValueError(f"signal_lag must be non-negative, got {self.signal_lag}")

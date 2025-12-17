@@ -1692,3 +1692,152 @@ def test_binary_sizing_mode_override() -> None:
     # Override to binary
     binary_config = metadata.to_config(sizing_mode_override="binary")
     assert binary_config.sizing_mode == "binary"
+
+
+# ============================================================================
+# Transaction Cost Mode Tests (Static vs Dynamic)
+# ============================================================================
+
+
+def test_transaction_cost_pct_validation() -> None:
+    """Test that transaction_cost_pct is validated correctly."""
+    # Valid: None (use static bps)
+    make_test_config(transaction_cost_pct=None)
+
+    # Valid: percentage in (0, 1]
+    make_test_config(transaction_cost_pct=0.025)  # 2.5%
+    make_test_config(transaction_cost_pct=1.0)  # 100% (unlikely but valid)
+
+    # Invalid: 0 or negative
+    with pytest.raises(ValueError, match="transaction_cost_pct must be in"):
+        make_test_config(transaction_cost_pct=0.0)
+
+    with pytest.raises(ValueError, match="transaction_cost_pct must be in"):
+        make_test_config(transaction_cost_pct=-0.01)
+
+    # Invalid: greater than 1
+    with pytest.raises(ValueError, match="transaction_cost_pct must be in"):
+        make_test_config(transaction_cost_pct=1.5)
+
+
+def test_static_transaction_cost_mode() -> None:
+    """Test that static transaction cost mode uses transaction_cost_bps."""
+    dates = pd.date_range("2024-01-01", periods=10, freq="D")
+    signal = pd.Series([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], index=dates)
+    spread = pd.Series([100.0] * 10, index=dates)  # Constant spread
+
+    config = make_test_config(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        signal_lag=0,
+        transaction_cost_bps=1.0,  # 1 bps
+        transaction_cost_pct=None,  # Static mode
+    )
+
+    result = run_backtest(signal, spread, config)
+
+    # Entry cost: 1 bps * 10MM / 10000 = $1,000
+    # Exit cost: 1 bps * 10MM / 10000 = $1,000
+    # Total cost = $2,000
+    total_cost = result.pnl["cost"].sum()
+    expected_cost = 2 * (1.0 * 10.0 * 100)  # 1 bps * 10MM in $ = 1000 per trade
+    assert abs(total_cost - expected_cost) < 1.0
+
+
+def test_dynamic_transaction_cost_mode() -> None:
+    """Test that dynamic transaction cost mode uses spread × percentage."""
+    dates = pd.date_range("2024-01-01", periods=10, freq="D")
+    signal = pd.Series([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], index=dates)
+    spread = pd.Series([100.0] * 10, index=dates)  # 100 bps spread
+
+    config = make_test_config(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        signal_lag=0,
+        transaction_cost_bps=1.0,  # Will be ignored in dynamic mode
+        transaction_cost_pct=0.025,  # 2.5% of spread
+    )
+
+    result = run_backtest(signal, spread, config)
+
+    # Expected cost per trade: 2.5% * 100 bps = 2.5 bps
+    # Entry cost: 2.5 bps * 10MM / 10000 = $2,500
+    # Exit cost: 2.5 bps * 10MM / 10000 = $2,500
+    # Total = $5,000
+    total_cost = result.pnl["cost"].sum()
+    expected_cost = 2 * (0.025 * 100.0 * 10.0 * 100)  # 2.5% * 100bps * 10MM
+    assert abs(total_cost - expected_cost) < 1.0
+
+
+def test_dynamic_cost_varies_with_spread() -> None:
+    """Test that dynamic costs change with spread level."""
+    dates = pd.date_range("2024-01-01", periods=20, freq="D")
+    # Two trades: one at low spread (50 bps), one at high spread (150 bps)
+    signal = pd.Series(
+        [0.0] * 3 + [1.0] * 3 + [0.0] * 4 + [1.0] * 3 + [0.0] * 7,
+        index=dates,
+    )
+    spread = pd.Series(
+        [50.0] * 10 + [150.0] * 10,  # Low spread first half, high second half
+        index=dates,
+    )
+
+    config = make_test_config(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        signal_lag=0,
+        transaction_cost_pct=0.025,  # 2.5% of spread
+    )
+
+    result = run_backtest(signal, spread, config)
+
+    # Get daily costs
+    costs = result.pnl[result.pnl["cost"] > 0]["cost"]
+
+    # First trade at 50 bps: 2.5% * 50 = 1.25 bps → 1.25 * 10 * 100 = $1,250 per leg
+    # Second trade at 150 bps: 2.5% * 150 = 3.75 bps → 3.75 * 10 * 100 = $3,750 per leg
+    # Since we have entry + exit for each trade, we expect 4 cost events
+    # Costs should increase for second trade
+    assert len(costs) >= 2
+    # Total costs in second half should be higher than first half
+    first_half_cost = result.pnl.iloc[:10]["cost"].sum()
+    second_half_cost = result.pnl.iloc[10:]["cost"].sum()
+    assert second_half_cost > first_half_cost * 2.5  # Should be ~3x higher
+
+
+def test_static_vs_dynamic_comparison() -> None:
+    """Test that static and dynamic modes produce different costs."""
+    dates = pd.date_range("2024-01-01", periods=10, freq="D")
+    signal = pd.Series([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], index=dates)
+    spread = pd.Series([60.0] * 10, index=dates)  # Typical IG spread
+
+    # Static mode: 1.5 bps pre-calibrated (2.5% × 60 bps)
+    static_config = make_test_config(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        signal_lag=0,
+        transaction_cost_bps=1.5,
+        transaction_cost_pct=None,
+    )
+
+    # Dynamic mode: 2.5% of current spread
+    dynamic_config = make_test_config(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        signal_lag=0,
+        transaction_cost_bps=1.0,  # Ignored
+        transaction_cost_pct=0.025,
+    )
+
+    static_result = run_backtest(signal, spread, static_config)
+    dynamic_result = run_backtest(signal, spread, dynamic_config)
+
+    # With spread = 60 bps:
+    # Static: 1.5 bps → cost = 1.5 * 10 * 100 = $1,500 per trade
+    # Dynamic: 2.5% * 60 = 1.5 bps → cost = 1.5 * 10 * 100 = $1,500 per trade
+    # Should be equal when static is calibrated to 2.5% × typical spread
+    static_cost = static_result.pnl["cost"].sum()
+    dynamic_cost = dynamic_result.pnl["cost"].sum()
+
+    # Should be very close (both use 1.5 bps equivalent)
+    assert abs(static_cost - dynamic_cost) < 10.0

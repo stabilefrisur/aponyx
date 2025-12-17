@@ -39,6 +39,7 @@ def make_minimal_test_config(**overrides) -> BacktestConfig:
         "take_profit_pct": None,  # Intentionally None for simpler tests
         "max_holding_days": None,
         "transaction_cost_bps": 1.0,
+        "transaction_cost_pct": None,  # Static mode by default
         "dv01_per_million": 475.0,
         "signal_lag": 1,
     }
