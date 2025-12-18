@@ -108,14 +108,19 @@ def attribute_by_signal_strength(
     -------
     dict[str, float]
         Attribution by quantile with keys:
-        - 'q1_pnl', 'q2_pnl', ...: P&L per quantile
+        - 'q1_pnl', 'q2_pnl', ...: P&L per quantile (1-indexed)
         - 'q1_pct', 'q2_pct', ...: Percentage contribution per quantile
         - 'quantile_labels': List of quantile labels
+        - 'actual_quantiles': Number of actual quantiles after duplicate handling
 
     Notes
     -----
     Uses absolute signal values to handle both long and short positions.
     Quantiles are computed on days when positioned (position != 0).
+
+    When signal values cluster at boundaries (e.g., bounded signals), fewer
+    quantiles may be returned than requested. The 'actual_quantiles' key
+    indicates how many bins were created.
 
     Examples
     --------
@@ -133,18 +138,36 @@ def attribute_by_signal_strength(
             {f"q{i + 1}_pnl": 0.0 for i in range(n_quantiles)}
             | {f"q{i + 1}_pct": 0.0 for i in range(n_quantiles)}
             | {"quantile_labels": [f"Q{i + 1}" for i in range(n_quantiles)]}
+            | {"actual_quantiles": 0}
         )
 
     # Use absolute signal strength
     positioned["abs_signal"] = positioned["signal"].abs()
 
-    # Assign quantiles (1 = weakest, n_quantiles = strongest)
-    positioned["quantile"] = pd.qcut(
-        positioned["abs_signal"],
-        q=n_quantiles,
-        labels=range(1, n_quantiles + 1),
-        duplicates="drop",
-    )
+    # Assign quantiles without labels first (handles duplicate edges)
+    # Then determine actual number of bins created
+    try:
+        quantile_result = pd.qcut(
+            positioned["abs_signal"],
+            q=n_quantiles,
+            labels=False,  # Return integer codes (0-indexed)
+            duplicates="drop",
+        )
+        actual_n_bins = quantile_result.nunique()
+        # Convert to 1-indexed labels
+        positioned["quantile"] = quantile_result + 1
+    except ValueError:
+        # All values are identical - single bin
+        logger.warning("All signal values identical, using single bin")
+        positioned["quantile"] = 1
+        actual_n_bins = 1
+
+    if actual_n_bins < n_quantiles:
+        logger.warning(
+            "Reduced quantiles from %d to %d due to duplicate values",
+            n_quantiles,
+            actual_n_bins,
+        )
 
     # Align P&L
     aligned_pnl = pnl_df.reindex(positioned.index)["net_pnl"]
@@ -153,8 +176,8 @@ def attribute_by_signal_strength(
     quantile_pnl = aligned_pnl.groupby(positioned["quantile"], observed=True).sum()
     total_pnl = aligned_pnl.sum()
 
-    # Build result dictionary
-    result = {}
+    # Build result dictionary with 1-indexed keys
+    result: dict[str, float | list[str] | int] = {}
     for q in range(1, n_quantiles + 1):
         pnl_value = quantile_pnl.get(q, 0.0)
         pct_value = pnl_value / total_pnl if abs(total_pnl) > 0 else 0.0
@@ -163,12 +186,14 @@ def attribute_by_signal_strength(
         result[f"q{q}_pct"] = pct_value
 
     result["quantile_labels"] = [f"Q{i + 1}" for i in range(n_quantiles)]
+    result["actual_quantiles"] = actual_n_bins
 
     logger.debug(
-        "Signal strength attribution: %s",
+        "Signal strength attribution: %s (actual_bins=%d)",
         ", ".join(
             [f"Q{i + 1}={result[f'q{i + 1}_pct']:.1%}" for i in range(n_quantiles)]
         ),
+        actual_n_bins,
     )
 
     return result
