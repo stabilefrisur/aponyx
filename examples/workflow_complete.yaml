@@ -8,6 +8,10 @@
 #   1. indicator (transformation)  - Raw metric in interpretable units (bps, ratios)
 #   2. score_transformation        - Normalization (z-score, volatility adjustment)
 #   3. signal_transformation       - Trading rules (floor, cap, neutral_range)
+#
+# Product Microstructure (automatic):
+#   DV01 and transaction costs loaded from bloomberg_securities.json based on product.
+#   Override with: dv01_per_million_override, transaction_cost_bps_override, or transaction_cost_pct_override
 
 label: complete_test
 signal: cdx_etf_basis
@@ -26,6 +30,11 @@ signal_transformation: bounded_1_5
 securities:
   cdx: cdx_ig_5y
   etf: lqd
+
+# Optional: Override product microstructure (uncomment to use)
+# dv01_per_million_override: 500.0         # Override product's DV01
+# transaction_cost_bps_override: 2.5       # Fixed bps override (OR)
+# transaction_cost_pct_override: 0.025     # Percentage of spread (mutually exclusive with bps)
 
 # Data source (synthetic, file, bloomberg)
 data: synthetic

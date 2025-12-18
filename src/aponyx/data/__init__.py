@@ -25,7 +25,7 @@ from .validation import (
     validate_etf_schema,
     handle_duplicate_index,
 )
-from .bloomberg_config import validate_bloomberg_registry
+from .bloomberg_config import validate_bloomberg_registry, get_product_microstructure
 from .registry import DataRegistry, DatasetEntry
 from .transforms import apply_transform, TransformType
 from .requirements import get_required_data_keys
@@ -81,6 +81,7 @@ __all__ = [
     "validate_vix_schema",
     "validate_etf_schema",
     "validate_bloomberg_registry",
+    "get_product_microstructure",
     "handle_duplicate_index",
     # Registry
     "DataRegistry",

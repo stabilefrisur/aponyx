@@ -14,7 +14,12 @@ from aponyx.config import STRATEGY_CATALOG_PATH
 
 # Test helper for creating complete strategy metadata
 def _make_test_metadata(**overrides) -> dict:
-    """Create a complete strategy metadata dict for testing."""
+    """Create a complete strategy metadata dict for testing.
+    
+    Note: StrategyMetadata no longer contains microstructure fields
+    (transaction_cost_bps, dv01_per_million). These are now loaded from
+    bloomberg_securities.json at runtime.
+    """
     defaults = {
         "name": "test_strategy",
         "description": "Test strategy",
@@ -23,8 +28,6 @@ def _make_test_metadata(**overrides) -> dict:
         "stop_loss_pct": None,
         "take_profit_pct": None,
         "max_holding_days": None,
-        "transaction_cost_bps": 1.0,
-        "dv01_per_million": 475.0,
         "enabled": True,
     }
     defaults.update(overrides)
@@ -67,7 +70,7 @@ def test_strategy_metadata_validation() -> None:
 
 
 def test_strategy_metadata_to_config() -> None:
-    """Test converting StrategyMetadata to BacktestConfig."""
+    """Test converting StrategyMetadata to BacktestConfig with product microstructure."""
     metadata = StrategyMetadata(
         **_make_test_metadata(
             name="aggressive",
@@ -77,15 +80,21 @@ def test_strategy_metadata_to_config() -> None:
         )
     )
 
-    # Use defaults
-    config = metadata.to_config()
+    # to_config now requires product microstructure params
+    config = metadata.to_config(
+        dv01_per_million=475.0,
+        transaction_cost_bps=1.5,
+    )
     assert isinstance(config, BacktestConfig)
     assert config.position_size_mm == 15.0
     assert config.stop_loss_pct == 10.0
-    assert config.transaction_cost_bps == 1.0  # From metadata
+    assert config.dv01_per_million == 475.0  # From params
+    assert config.transaction_cost_bps == 1.5  # From params
 
-    # Override defaults
+    # Override strategy defaults (not microstructure)
     config = metadata.to_config(
+        dv01_per_million=475.0,
+        transaction_cost_bps=1.5,
         position_size_mm_override=20.0,
         stop_loss_pct_override=5.0,
     )

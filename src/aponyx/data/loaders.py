@@ -13,7 +13,7 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from .registry import DataRegistry
-    from ..models.registry import SignalRegistry
+    from ..models.registry import IndicatorTransformationRegistry, SignalRegistry
 
 
 logger = logging.getLogger(__name__)
@@ -128,14 +128,16 @@ def load_instrument_from_raw(
 def load_signal_required_data(
     signal_registry: "SignalRegistry",
     data_registry: "DataRegistry",
+    indicator_registry: "IndicatorTransformationRegistry | None" = None,
     security_mapping: dict[str, str] | None = None,
 ) -> dict[str, pd.DataFrame]:
     """
     Load all market data required by enabled signals.
 
-    Collects data requirements from all enabled signals and loads
-    corresponding datasets from the data registry. Uses default_securities
-    from signal catalog unless overridden by security_mapping.
+    Collects data requirements from all enabled signals via their indicator
+    transformations and loads corresponding datasets from the data registry.
+    Uses default_securities from indicator catalog unless overridden by
+    security_mapping.
 
     Parameters
     ----------
@@ -143,6 +145,9 @@ def load_signal_required_data(
         Signal registry with enabled signal definitions.
     data_registry : DataRegistry
         Data registry for loading datasets by security ID.
+    indicator_registry : IndicatorTransformationRegistry or None
+        Indicator transformation registry for looking up default_securities.
+        If None, will be loaded from config.INDICATOR_TRANSFORMATION_PATH.
     security_mapping : dict[str, str] or None
         Optional mapping to override default securities.
         Keys are instrument types (e.g., "cdx", "etf").
@@ -156,30 +161,44 @@ def load_signal_required_data(
 
     Examples
     --------
-    >>> from aponyx.models import SignalRegistry
+    >>> from aponyx.models import SignalRegistry, IndicatorTransformationRegistry
     >>> from aponyx.data import DataRegistry
     >>> signal_reg = SignalRegistry("signal_catalog.json")
+    >>> indicator_reg = IndicatorTransformationRegistry("indicator_transformation.json")
     >>> data_reg = DataRegistry("registry.json", "data/")
     >>> # Use default securities from catalog
-    >>> data = load_signal_required_data(signal_reg, data_reg)
+    >>> data = load_signal_required_data(signal_reg, data_reg, indicator_reg)
     >>> # Override with custom securities
     >>> data = load_signal_required_data(
     ...     signal_reg,
     ...     data_reg,
+    ...     indicator_reg,
     ...     security_mapping={"cdx": "cdx_hy_5y", "etf": "hyg"}
     ... )
 
     Notes
     -----
-    For each enabled signal, uses default_securities to map
-    instrument types to specific security IDs. If security_mapping
-    is provided, it overrides the defaults for specified instruments.
+    For each enabled signal, retrieves the indicator transformation and uses
+    its default_securities to map instrument types to specific security IDs.
+    If security_mapping is provided, it overrides the defaults.
     """
+    # Load indicator registry if not provided
+    if indicator_registry is None:
+        from ..config import INDICATOR_TRANSFORMATION_PATH
+        from ..models.registry import IndicatorTransformationRegistry
+
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
+
     # Build mapping from instrument type to security ID
-    # by collecting default_securities from all enabled signals
+    # by collecting default_securities from indicator transformations
     instrument_to_security = {}
-    for signal_name, metadata in signal_registry.get_enabled().items():
-        for inst_type, security_id in metadata.default_securities.items():
+    for signal_name, signal_metadata in signal_registry.get_enabled().items():
+        indicator_metadata = indicator_registry.get_metadata(
+            signal_metadata.indicator_transformation
+        )
+        for inst_type, security_id in indicator_metadata.default_securities.items():
             # If multiple signals specify the same instrument type,
             # the last one wins (consistent behavior across codebase)
             instrument_to_security[inst_type] = security_id

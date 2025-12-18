@@ -949,16 +949,25 @@ def test_position_size_mm_override() -> None:
     """Test T044: position_size_mm_override substitutes catalog value."""
     from aponyx.backtest.registry import StrategyRegistry
     from aponyx.config import STRATEGY_CATALOG_PATH
+    from aponyx.data import get_product_microstructure
 
     registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
     metadata = registry.get_metadata("balanced")
+    microstructure = get_product_microstructure("cdx_ig_5y")
 
     # Default config
-    default_config = metadata.to_config()
+    default_config = metadata.to_config(
+        dv01_per_million=microstructure.dv01_per_million,
+        transaction_cost_bps=microstructure.transaction_cost_bps,
+    )
     assert default_config.position_size_mm == metadata.position_size_mm
 
     # Overridden config
-    override_config = metadata.to_config(position_size_mm_override=20.0)
+    override_config = metadata.to_config(
+        dv01_per_million=microstructure.dv01_per_million,
+        transaction_cost_bps=microstructure.transaction_cost_bps,
+        position_size_mm_override=20.0,
+    )
     assert override_config.position_size_mm == 20.0
 
 
@@ -966,16 +975,25 @@ def test_stop_loss_pct_override() -> None:
     """Test T045: stop_loss_pct_override substitutes catalog value."""
     from aponyx.backtest.registry import StrategyRegistry
     from aponyx.config import STRATEGY_CATALOG_PATH
+    from aponyx.data import get_product_microstructure
 
     registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
     metadata = registry.get_metadata("balanced")
+    microstructure = get_product_microstructure("cdx_ig_5y")
 
     # Default config
-    default_config = metadata.to_config()
+    default_config = metadata.to_config(
+        dv01_per_million=microstructure.dv01_per_million,
+        transaction_cost_bps=microstructure.transaction_cost_bps,
+    )
     assert default_config.stop_loss_pct == metadata.stop_loss_pct
 
     # Overridden config
-    override_config = metadata.to_config(stop_loss_pct_override=3.0)
+    override_config = metadata.to_config(
+        dv01_per_million=microstructure.dv01_per_million,
+        transaction_cost_bps=microstructure.transaction_cost_bps,
+        stop_loss_pct_override=3.0,
+    )
     assert override_config.stop_loss_pct == 3.0
 
 
@@ -983,16 +1001,25 @@ def test_take_profit_pct_override_enables_when_catalog_has_null() -> None:
     """Test T046: take_profit_pct_override enables take profit when catalog has null."""
     from aponyx.backtest.registry import StrategyRegistry
     from aponyx.config import STRATEGY_CATALOG_PATH
+    from aponyx.data import get_product_microstructure
 
     registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
     metadata = registry.get_metadata("aggressive")
+    microstructure = get_product_microstructure("cdx_ig_5y")
 
     # Aggressive strategy has null take_profit_pct by default
-    default_config = metadata.to_config()
+    default_config = metadata.to_config(
+        dv01_per_million=microstructure.dv01_per_million,
+        transaction_cost_bps=microstructure.transaction_cost_bps,
+    )
     assert default_config.take_profit_pct is None
 
     # Override to enable
-    override_config = metadata.to_config(take_profit_pct_override=15.0)
+    override_config = metadata.to_config(
+        dv01_per_million=microstructure.dv01_per_million,
+        transaction_cost_bps=microstructure.transaction_cost_bps,
+        take_profit_pct_override=15.0,
+    )
     assert override_config.take_profit_pct == 15.0
 
 
@@ -1000,22 +1027,40 @@ def test_runtime_overrides_validated() -> None:
     """Test T047: Runtime overrides are validated with same fail-fast rules."""
     from aponyx.backtest.registry import StrategyRegistry
     from aponyx.config import STRATEGY_CATALOG_PATH
+    from aponyx.data import get_product_microstructure
 
     registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
     metadata = registry.get_metadata("balanced")
+    microstructure = get_product_microstructure("cdx_ig_5y")
 
     # Invalid override should raise when creating BacktestConfig
     with pytest.raises(ValueError, match="position_size_mm must be positive"):
-        metadata.to_config(position_size_mm_override=-5.0)
+        metadata.to_config(
+            dv01_per_million=microstructure.dv01_per_million,
+            transaction_cost_bps=microstructure.transaction_cost_bps,
+            position_size_mm_override=-5.0,
+        )
 
     with pytest.raises(ValueError, match="sizing_mode must be"):
-        metadata.to_config(sizing_mode_override="invalid")
+        metadata.to_config(
+            dv01_per_million=microstructure.dv01_per_million,
+            transaction_cost_bps=microstructure.transaction_cost_bps,
+            sizing_mode_override="invalid",
+        )
 
     with pytest.raises(ValueError, match="stop_loss_pct must be in"):
-        metadata.to_config(stop_loss_pct_override=0.0)
+        metadata.to_config(
+            dv01_per_million=microstructure.dv01_per_million,
+            transaction_cost_bps=microstructure.transaction_cost_bps,
+            stop_loss_pct_override=0.0,
+        )
 
     with pytest.raises(ValueError, match="take_profit_pct must be in"):
-        metadata.to_config(take_profit_pct_override=150.0)
+        metadata.to_config(
+            dv01_per_million=microstructure.dv01_per_million,
+            transaction_cost_bps=microstructure.transaction_cost_bps,
+            take_profit_pct_override=150.0,
+        )
 
 
 # ============================================================================
@@ -1657,8 +1702,10 @@ def test_proportional_strategies_are_default() -> None:
     """Test that all base strategies have proportional sizing as default."""
     from aponyx.backtest.registry import StrategyRegistry
     from aponyx.config import STRATEGY_CATALOG_PATH
+    from aponyx.data import get_product_microstructure
 
     registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
+    microstructure = get_product_microstructure("cdx_ig_5y")
 
     base_strategies = [
         "conservative",
@@ -1673,7 +1720,10 @@ def test_proportional_strategies_are_default() -> None:
         )
 
         # Verify can convert to config
-        config = metadata.to_config()
+        config = metadata.to_config(
+            dv01_per_million=microstructure.dv01_per_million,
+            transaction_cost_bps=microstructure.transaction_cost_bps,
+        )
         assert config.sizing_mode == "proportional"
 
 
@@ -1681,16 +1731,25 @@ def test_binary_sizing_mode_override() -> None:
     """Test that sizing_mode can be overridden to binary at runtime."""
     from aponyx.backtest.registry import StrategyRegistry
     from aponyx.config import STRATEGY_CATALOG_PATH
+    from aponyx.data import get_product_microstructure
 
     registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
     metadata = registry.get_metadata("balanced")
+    microstructure = get_product_microstructure("cdx_ig_5y")
 
     # Default should be proportional
-    default_config = metadata.to_config()
+    default_config = metadata.to_config(
+        dv01_per_million=microstructure.dv01_per_million,
+        transaction_cost_bps=microstructure.transaction_cost_bps,
+    )
     assert default_config.sizing_mode == "proportional"
 
     # Override to binary
-    binary_config = metadata.to_config(sizing_mode_override="binary")
+    binary_config = metadata.to_config(
+        dv01_per_million=microstructure.dv01_per_million,
+        transaction_cost_bps=microstructure.transaction_cost_bps,
+        sizing_mode_override="binary",
+    )
     assert binary_config.sizing_mode == "binary"
 
 

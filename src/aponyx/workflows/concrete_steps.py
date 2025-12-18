@@ -23,7 +23,7 @@ from aponyx.config import (
     SIGNAL_CATALOG_PATH,
     STRATEGY_CATALOG_PATH,
 )
-from aponyx.data import DataRegistry
+from aponyx.data import DataRegistry, get_product_microstructure
 from aponyx.data.fetch_registry import get_fetch_spec
 from aponyx.data.loaders import load_instrument_from_raw
 from aponyx.models.registry import SignalRegistry
@@ -337,10 +337,22 @@ class SignalStep(BaseWorkflowStep):
         )
 
         # Securities used info is not cached, will use defaults
+        # Get indicator metadata which has default_securities
+        from aponyx.config import INDICATOR_TRANSFORMATION_PATH
+        from aponyx.models.registry import IndicatorTransformationRegistry
+
         signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
         signal_metadata = signal_registry.get_metadata(self.config.signal_name)
+
+        # Get default securities from the indicator
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
+        indicator_metadata = indicator_registry.get_metadata(
+            signal_metadata.indicator_transformation
+        )
         securities_used = (
-            self.config.security_mapping or signal_metadata.default_securities
+            self.config.security_mapping or indicator_metadata.default_securities
         )
 
         return {
@@ -472,6 +484,35 @@ class BacktestStep(BaseWorkflowStep):
         # Get product from config, or from suitability step if available
         product = context.get("suitability", {}).get("product") or self.config.product
 
+        # Load product microstructure parameters (T009)
+        try:
+            microstructure = get_product_microstructure(product)
+        except ValueError as e:
+            raise ValueError(
+                f"Cannot run backtest for product '{product}': {e}"
+            ) from e
+
+        # Apply runtime overrides (T017, T018)
+        dv01 = (
+            self.config.dv01_per_million_override
+            if self.config.dv01_per_million_override is not None
+            else microstructure.dv01_per_million
+        )
+
+        # Transaction cost handling: pct mode vs bps mode (T018)
+        if self.config.transaction_cost_pct_override is not None:
+            # Use percentage-based transaction cost mode
+            transaction_cost_bps: float | None = None
+            transaction_cost_pct: float | None = self.config.transaction_cost_pct_override
+        else:
+            # Use fixed bps mode (override or product default)
+            transaction_cost_bps = (
+                self.config.transaction_cost_bps_override
+                if self.config.transaction_cost_bps_override is not None
+                else microstructure.transaction_cost_bps
+            )
+            transaction_cost_pct = None
+
         # Load spread data for backtest from DataStep context
         market_data = context["data"]["market_data"]
         spread_df = self._load_spread_for_product(market_data, product)
@@ -492,7 +533,29 @@ class BacktestStep(BaseWorkflowStep):
         # Get strategy config from catalog
         strategy_registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
         strategy_metadata = strategy_registry.get_metadata(self.config.strategy_name)
-        backtest_config = strategy_metadata.to_config()
+
+        # Convert to backtest config with product microstructure and overrides (T017, T018)
+        backtest_config = strategy_metadata.to_config(
+            dv01_per_million=dv01,
+            transaction_cost_bps=transaction_cost_bps if transaction_cost_bps is not None else 0.0,
+            transaction_cost_pct=transaction_cost_pct,
+        )
+
+        # Log which mode we're using
+        if transaction_cost_pct is not None:
+            logger.info(
+                "Backtest config: product=%s, dv01=%.1f, tcost=%.2f%% (pct mode)",
+                product,
+                backtest_config.dv01_per_million,
+                transaction_cost_pct * 100,
+            )
+        else:
+            logger.info(
+                "Backtest config: product=%s, dv01=%.1f, tcost=%.1fbps",
+                product,
+                backtest_config.dv01_per_million,
+                backtest_config.transaction_cost_bps,
+            )
 
         # Run backtest using function (not class)
         result = run_backtest(signal, spread, backtest_config)

@@ -333,7 +333,7 @@ def test_run_command_minimal_config(runner, mock_workflow_engine, tmp_path):
     assert "Data:                     synthetic [default]" in result.output
     assert "Indicator Transform:      spread_momentum_5d [from signal]" in result.output
     assert (
-        "Score Transform:          volatility_adjust_20d [from signal]" in result.output
+        "Score Transform:          z_score_20d [from signal]" in result.output
     )
     assert "Signal Transform:         passthrough [from signal]" in result.output
     assert "Steps:                    all [default]" in result.output
@@ -394,7 +394,7 @@ def test_run_command_indicator_override_only(runner, mock_workflow_engine, tmp_p
     assert result.exit_code == 0
     assert "Indicator Transform:      spread_momentum_5d [config]" in result.output
     assert (
-        "Score Transform:          volatility_adjust_20d [from signal]" in result.output
+        "Score Transform:          z_score_20d [from signal]" in result.output
     )
     assert "Signal Transform:         passthrough [from signal]" in result.output
     # Transformation should come from signal

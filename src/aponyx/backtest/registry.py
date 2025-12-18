@@ -19,6 +19,10 @@ class StrategyMetadata:
     """
     Metadata for a registered backtest strategy.
 
+    Strategy metadata defines trading behavior only. Product-specific
+    microstructure parameters (DV01, transaction costs) are loaded from
+    bloomberg_securities.json at runtime based on the workflow's product.
+
     Attributes
     ----------
     name : str
@@ -36,10 +40,6 @@ class StrategyMetadata:
         Take profit as percentage of initial position value. None to disable.
     max_holding_days : int | None
         Maximum days to hold a position before forced exit. None for no limit.
-    transaction_cost_bps : float
-        Round-trip transaction cost in basis points.
-    dv01_per_million : float
-        DV01 per $1MM notional for risk calculations.
     enabled : bool
         Whether strategy should be included in evaluation.
     """
@@ -51,8 +51,6 @@ class StrategyMetadata:
     stop_loss_pct: float | None
     take_profit_pct: float | None
     max_holding_days: int | None
-    transaction_cost_bps: float
-    dv01_per_million: float
     enabled: bool = True
 
     def __post_init__(self) -> None:
@@ -84,32 +82,31 @@ class StrategyMetadata:
                 f"Strategy '{self.name}': max_holding_days must be positive, "
                 f"got {self.max_holding_days}"
             )
-        if self.transaction_cost_bps < 0:
-            raise ValueError(
-                f"Strategy '{self.name}': transaction_cost_bps must be non-negative, "
-                f"got {self.transaction_cost_bps}"
-            )
-        if self.dv01_per_million <= 0:
-            raise ValueError(
-                f"Strategy '{self.name}': dv01_per_million must be positive, "
-                f"got {self.dv01_per_million}"
-            )
 
     def to_config(
         self,
+        dv01_per_million: float,
+        transaction_cost_bps: float,
         position_size_mm_override: float | None = None,
         sizing_mode_override: str | None = None,
         stop_loss_pct_override: float | None = None,
         take_profit_pct_override: float | None = None,
         max_holding_days_override: int | None = None,
+        transaction_cost_pct: float | None = None,
     ) -> BacktestConfig:
         """
         Convert strategy metadata to BacktestConfig.
 
-        Supports runtime parameter overrides for rapid experimentation.
+        Requires product-specific microstructure parameters (DV01, transaction cost)
+        to be passed in. These come from bloomberg_securities.json via
+        get_product_microstructure() in the workflow layer.
 
         Parameters
         ----------
+        dv01_per_million : float
+            DV01 per $1MM notional for the product being backtested.
+        transaction_cost_bps : float
+            Transaction cost in basis points for the product.
         position_size_mm_override : float | None, default None
             Override catalog position_size_mm value.
         sizing_mode_override : str | None, default None
@@ -120,23 +117,30 @@ class StrategyMetadata:
             Override catalog take_profit_pct value (use False to explicitly disable).
         max_holding_days_override : int | None, default None
             Override catalog max_holding_days value (use False to explicitly disable).
+        transaction_cost_pct : float | None, default None
+            Dynamic transaction cost as percentage of current spread.
+            When set, this overrides transaction_cost_bps with spread-dependent costs.
 
         Returns
         -------
         BacktestConfig
-            Full backtest configuration with strategy parameters.
+            Full backtest configuration with strategy and product parameters.
 
         Examples
         --------
+        >>> from aponyx.data import get_product_microstructure
         >>> metadata = StrategyMetadata(
-        ...     name="aggressive",
-        ...     description="High risk tolerance",
-        ...     position_size_mm=15.0,
-        ...     sizing_mode="binary"
+        ...     name="balanced", description="Balanced strategy",
+        ...     position_size_mm=10.0, sizing_mode="proportional",
+        ...     stop_loss_pct=5.0, take_profit_pct=10.0, max_holding_days=None
         ... )
-        >>> config = metadata.to_config(position_size_mm_override=20.0)
-        >>> config.position_size_mm
-        20.0
+        >>> params = get_product_microstructure("cdx_ig_5y")
+        >>> config = metadata.to_config(
+        ...     dv01_per_million=params.dv01_per_million,
+        ...     transaction_cost_bps=params.transaction_cost_bps
+        ... )
+        >>> config.dv01_per_million
+        475.0
         """
         return BacktestConfig(
             position_size_mm=(
@@ -164,8 +168,9 @@ class StrategyMetadata:
                 if max_holding_days_override is not None
                 else self.max_holding_days
             ),
-            transaction_cost_bps=self.transaction_cost_bps,
-            dv01_per_million=self.dv01_per_million,
+            transaction_cost_bps=transaction_cost_bps,
+            dv01_per_million=dv01_per_million,
+            transaction_cost_pct=transaction_cost_pct,
         )
 
 

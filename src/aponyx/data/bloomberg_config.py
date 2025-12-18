@@ -293,13 +293,98 @@ def list_securities(instrument_type: str | None = None) -> list[str]:
     ]
 
 
+@dataclass(frozen=True)
+class ProductMicrostructure:
+    """
+    Product microstructure parameters for backtest configuration.
+
+    Attributes
+    ----------
+    dv01_per_million : float
+        Dollar value of 01 per $1MM notional for the product.
+    transaction_cost_bps : float
+        Default transaction cost in basis points for the product.
+    """
+
+    dv01_per_million: float
+    transaction_cost_bps: float
+
+
+def get_product_microstructure(product: str) -> ProductMicrostructure:
+    """
+    Get microstructure parameters for a CDX product.
+
+    Returns DV01 and transaction cost parameters from bloomberg_securities.json.
+    Only CDX products have microstructure parameters; ETFs and VIX do not.
+
+    Parameters
+    ----------
+    product : str
+        Product identifier (e.g., 'cdx_ig_5y', 'cdx_hy_5y').
+
+    Returns
+    -------
+    ProductMicrostructure
+        Frozen dataclass with dv01_per_million and transaction_cost_bps.
+
+    Raises
+    ------
+    ValueError
+        If product not found in catalog or lacks microstructure parameters.
+
+    Examples
+    --------
+    >>> params = get_product_microstructure("cdx_ig_5y")
+    >>> params.dv01_per_million
+    475.0
+    >>> params.transaction_cost_bps
+    1.5
+    """
+    catalog = _load_securities_catalog()
+
+    if product not in catalog:
+        available = ", ".join(sorted(catalog.keys()))
+        raise ValueError(
+            f"Product '{product}' not found in catalog. Available: {available}"
+        )
+
+    spec_data = catalog[product]
+    instrument_type = spec_data.get("instrument_type")
+
+    # Check if product has microstructure parameters (only CDX products)
+    dv01 = spec_data.get("dv01_per_million")
+    tcost = spec_data.get("transaction_cost_bps")
+
+    if dv01 is None or tcost is None:
+        raise ValueError(
+            f"Product '{product}' does not have microstructure parameters "
+            f"(dv01_per_million, transaction_cost_bps). "
+            f"Only CDX products can be backtested. "
+            f"Product instrument_type: '{instrument_type}'"
+        )
+
+    logger.debug(
+        "Loaded microstructure for %s: dv01=%.1f, tcost=%.1fbps",
+        product,
+        dv01,
+        tcost,
+    )
+
+    return ProductMicrostructure(
+        dv01_per_million=float(dv01),
+        transaction_cost_bps=float(tcost),
+    )
+
+
 __all__ = [
     "BloombergInstrumentSpec",
     "BloombergSecuritySpec",
+    "ProductMicrostructure",
     "get_instrument_spec",
     "get_security_spec",
     "get_bloomberg_ticker",
     "get_security_from_ticker",
+    "get_product_microstructure",
     "list_instrument_types",
     "list_securities",
     "validate_bloomberg_registry",

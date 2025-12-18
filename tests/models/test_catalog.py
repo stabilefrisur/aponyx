@@ -151,16 +151,23 @@ class TestCatalogCompletenessValidation:
         """
         Verify all strategy entries have required fields with valid values.
 
-        StrategyMetadata.to_config() requires these fields to create BacktestConfig.
+        StrategyMetadata defines trading behavior only. Product microstructure
+        (dv01_per_million, transaction_cost_bps) is loaded from bloomberg_securities.json
+        via get_product_microstructure() at runtime.
         """
         from aponyx.config import STRATEGY_CATALOG_PATH
         from aponyx.backtest.registry import StrategyRegistry
 
         registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
 
+        # Required fields: trading behavior only (no microstructure)
         required_fields = {
             "position_size_mm",
             "sizing_mode",
+        }
+
+        # Fields that should NOT be present on StrategyMetadata anymore
+        forbidden_fields = {
             "transaction_cost_bps",
             "dv01_per_million",
         }
@@ -173,6 +180,13 @@ class TestCatalogCompletenessValidation:
                 value = getattr(metadata, field)
                 assert value is not None, (
                     f"Strategy '{name}' has None for required field '{field}'"
+                )
+
+            # Verify microstructure fields are NOT on metadata
+            for field in forbidden_fields:
+                assert not hasattr(metadata, field), (
+                    f"Strategy '{name}' should NOT have field '{field}' "
+                    f"(microstructure belongs in bloomberg_securities.json)"
                 )
 
 

@@ -110,15 +110,22 @@ def test_load_instrument_from_raw_file_not_found(tmp_path: Path) -> None:
 
 
 def test_load_signal_required_data_default_securities() -> None:
-    """Test loading signal data using default securities from catalog."""
-    # Mock signal registry with enabled signals
+    """Test loading signal data using default securities from indicator catalog."""
+    # Mock signal metadata (references indicator transformation)
     mock_signal_metadata = MagicMock()
-    mock_signal_metadata.default_securities = {"cdx": "cdx_ig_5y", "etf": "lqd"}
+    mock_signal_metadata.indicator_transformation = "test_indicator"
 
     mock_signal_registry = MagicMock()
     mock_signal_registry.get_enabled.return_value = {
         "test_signal": mock_signal_metadata
     }
+
+    # Mock indicator metadata (has default_securities)
+    mock_indicator_metadata = MagicMock()
+    mock_indicator_metadata.default_securities = {"cdx": "cdx_ig_5y", "etf": "lqd"}
+
+    mock_indicator_registry = MagicMock()
+    mock_indicator_registry.get_metadata.return_value = mock_indicator_metadata
 
     # Mock data registry
     mock_df = pd.DataFrame(
@@ -128,7 +135,9 @@ def test_load_signal_required_data_default_securities() -> None:
     mock_data_registry.load_dataset_by_security.return_value = mock_df
 
     # Execute
-    result = load_signal_required_data(mock_signal_registry, mock_data_registry)
+    result = load_signal_required_data(
+        mock_signal_registry, mock_data_registry, mock_indicator_registry
+    )
 
     # Verify
     assert "cdx" in result
@@ -139,14 +148,21 @@ def test_load_signal_required_data_default_securities() -> None:
 
 def test_load_signal_required_data_with_overrides() -> None:
     """Test loading signal data with security mapping overrides."""
-    # Mock signal registry with enabled signals
+    # Mock signal metadata (references indicator transformation)
     mock_signal_metadata = MagicMock()
-    mock_signal_metadata.default_securities = {"cdx": "cdx_ig_5y", "etf": "lqd"}
+    mock_signal_metadata.indicator_transformation = "test_indicator"
 
     mock_signal_registry = MagicMock()
     mock_signal_registry.get_enabled.return_value = {
         "test_signal": mock_signal_metadata
     }
+
+    # Mock indicator metadata (has default_securities)
+    mock_indicator_metadata = MagicMock()
+    mock_indicator_metadata.default_securities = {"cdx": "cdx_ig_5y", "etf": "lqd"}
+
+    mock_indicator_registry = MagicMock()
+    mock_indicator_registry.get_metadata.return_value = mock_indicator_metadata
 
     # Mock data registry
     mock_df = pd.DataFrame(
@@ -158,7 +174,10 @@ def test_load_signal_required_data_with_overrides() -> None:
     # Execute with overrides
     security_mapping = {"cdx": "cdx_hy_5y", "etf": "hyg"}
     result = load_signal_required_data(
-        mock_signal_registry, mock_data_registry, security_mapping=security_mapping
+        mock_signal_registry,
+        mock_data_registry,
+        mock_indicator_registry,
+        security_mapping=security_mapping,
     )
 
     # Verify overrides were used
@@ -172,18 +191,30 @@ def test_load_signal_required_data_with_overrides() -> None:
 
 def test_load_signal_required_data_multiple_signals() -> None:
     """Test loading data required by multiple enabled signals."""
-    # Mock signal registry with multiple enabled signals
+    # Mock signal metadata (references different indicator transformations)
     signal1_metadata = MagicMock()
-    signal1_metadata.default_securities = {"cdx": "cdx_ig_5y", "etf": "lqd"}
+    signal1_metadata.indicator_transformation = "indicator1"
 
     signal2_metadata = MagicMock()
-    signal2_metadata.default_securities = {"cdx": "cdx_ig_5y", "vix": "vix"}
+    signal2_metadata.indicator_transformation = "indicator2"
 
     mock_signal_registry = MagicMock()
     mock_signal_registry.get_enabled.return_value = {
         "signal1": signal1_metadata,
         "signal2": signal2_metadata,
     }
+
+    # Mock indicator metadata (each has different default_securities)
+    indicator1_metadata = MagicMock()
+    indicator1_metadata.default_securities = {"cdx": "cdx_ig_5y", "etf": "lqd"}
+
+    indicator2_metadata = MagicMock()
+    indicator2_metadata.default_securities = {"cdx": "cdx_ig_5y", "vix": "vix"}
+
+    mock_indicator_registry = MagicMock()
+    mock_indicator_registry.get_metadata.side_effect = lambda name: (
+        indicator1_metadata if name == "indicator1" else indicator2_metadata
+    )
 
     # Mock data registry
     mock_df = pd.DataFrame(
@@ -193,7 +224,9 @@ def test_load_signal_required_data_multiple_signals() -> None:
     mock_data_registry.load_dataset_by_security.return_value = mock_df
 
     # Execute
-    result = load_signal_required_data(mock_signal_registry, mock_data_registry)
+    result = load_signal_required_data(
+        mock_signal_registry, mock_data_registry, mock_indicator_registry
+    )
 
     # Verify all unique instruments loaded
     assert "cdx" in result
