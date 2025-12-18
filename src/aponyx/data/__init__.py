@@ -31,6 +31,7 @@ from .transforms import apply_transform, TransformType
 from .requirements import get_required_data_keys
 from .fetch_registry import get_fetch_spec, list_instruments
 from .loaders import load_instrument_from_raw, load_signal_required_data
+from .test_scenarios import TestScenario, get_scenario, list_scenarios, get_all_scenarios
 
 logger = logging.getLogger(__name__)
 
@@ -97,4 +98,9 @@ __all__ = [
     # Loaders
     "load_instrument_from_raw",
     "load_signal_required_data",
+    # Test scenarios (for testing with deterministic outcomes)
+    "TestScenario",
+    "get_scenario",
+    "list_scenarios",
+    "get_all_scenarios",
 ]
