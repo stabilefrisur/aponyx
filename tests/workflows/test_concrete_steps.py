@@ -533,14 +533,14 @@ class TestBacktestStep:
         import pytest
 
         step = BacktestStep(workflow_config)
-        # Use VIX as the product - it lacks microstructure parameters
+        # Use a nonexistent product - it lacks microstructure parameters
         context = {
             "signal": {"signal": sample_signal},
-            "data": {"market_data": {"vix": sample_market_data.get("vix", sample_market_data["cdx"])}},
-            "suitability": {"product": "vix"},  # VIX is not a CDX product
+            "data": {"market_data": {"nonexistent_product": sample_market_data["cdx"]}},
+            "suitability": {"product": "nonexistent_product"},  # Not in product catalog
         }
 
-        with pytest.raises(ValueError, match="Cannot run backtest for product 'vix'"):
+        with pytest.raises(ValueError, match="Cannot run backtest for product 'nonexistent_product'"):
             step.execute(context)
 
     @patch("aponyx.workflows.concrete_steps.load_parquet")
@@ -586,12 +586,12 @@ class TestBacktestStep:
         }
         step.execute(context)
 
-        # Verify run_backtest was called with overridden dv01
+        # Verify run_backtest was called with overridden dv01 in calculator
         call_args = mock_run_backtest.call_args
         assert call_args is not None
-        # Third argument is config
-        config_used = call_args[0][2]
-        assert config_used.dv01_per_million == 600.0  # Our override
+        # Fourth argument is calculator (0=signal, 1=spread, 2=config, 3=calculator)
+        calculator_used = call_args[0][3]
+        assert calculator_used.dv01_per_million == 600.0  # Our override
 
     @patch("aponyx.workflows.concrete_steps.load_parquet")
     @patch("aponyx.workflows.concrete_steps.DataRegistry")

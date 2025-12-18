@@ -9,7 +9,10 @@ import pandas as pd
 
 from aponyx.backtest import BacktestConfig, run_backtest
 
-from . import make_test_config
+from . import make_test_config, make_test_calculator
+
+# Default DV01 used in tests (matches make_test_calculator default)
+TEST_DV01 = 475.0
 
 
 def test_incremental_pnl_no_double_counting() -> None:
@@ -33,12 +36,11 @@ def test_incremental_pnl_no_double_counting() -> None:
     config = make_test_config(
         position_size_mm=10.0,  # $10MM
         sizing_mode="binary",  # Use binary mode for this test
-        dv01_per_million=100.0,  # $100 DV01 per $1MM
         transaction_cost_bps=0.0,  # Disable costs for cleaner test
         signal_lag=0,  # No lag to avoid data truncation
     )
 
-    result = run_backtest(signal, spread, config)
+    result = run_backtest(signal, spread, config, make_test_calculator(dv01_per_million=100.0))
 
     # Verify position is held throughout (binary mode: position = 1)
     assert (result.positions["position"] == 1).all()
@@ -50,7 +52,7 @@ def test_incremental_pnl_no_double_counting() -> None:
     # Long position: spread widening = loss
     # Spread change per day = 1bp (in spread points, not decimal)
     # Expected daily P&L: -1.0 * 100 * 10 = -$1,000 per day
-    expected_daily_pnl = -1.0 * config.dv01_per_million * config.position_size_mm
+    expected_daily_pnl = -1.0 * 100.0 * config.position_size_mm
     for i in range(1, 10):
         actual_pnl = result.pnl.iloc[i]["spread_pnl"]
         assert abs(actual_pnl - expected_daily_pnl) < 0.01, (
@@ -85,22 +87,23 @@ def test_incremental_pnl_with_position_changes() -> None:
     # Spread: increases steadily by 1 spread point per day
     spread = pd.Series([100.0 + i for i in range(20)], index=dates)
 
+    dv01 = 100.0  # Use fixed DV01 for this test
+    
     config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",  # Use binary mode for this test
-        dv01_per_million=100.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
 
-    result = run_backtest(signal, spread, config)
+    result = run_backtest(signal, spread, config, make_test_calculator(dv01_per_million=dv01))
 
     # Day 0: Entry, no previous spread
     assert result.pnl.iloc[0]["spread_pnl"] == 0.0
 
     # Days 1-9: Should have incremental P&L
     # Each day spread widens by 1 point: -1.0 * 100 * 10 = -$1,000
-    expected_daily = -1.0 * config.dv01_per_million * config.position_size_mm
+    expected_daily = -1.0 * dv01 * config.position_size_mm
     for i in range(1, 10):
         assert abs(result.pnl.iloc[i]["spread_pnl"] - expected_daily) < 0.01
 
@@ -124,18 +127,18 @@ def test_incremental_pnl_long_vs_short() -> None:
 
     config = make_test_config(
         position_size_mm=10.0,
-        dv01_per_million=100.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
+    calculator = make_test_calculator(dv01_per_million=100.0)
 
     # Test long position
     signal_long = pd.Series([2.0] * 6, index=dates)
-    result_long = run_backtest(signal_long, spread, config)
+    result_long = run_backtest(signal_long, spread, config, calculator)
 
     # Test short position
     signal_short = pd.Series([-2.0] * 6, index=dates)
-    result_short = run_backtest(signal_short, spread, config)
+    result_short = run_backtest(signal_short, spread, config, calculator)
 
     # Long and short should have opposite P&L (excluding day 0)
     for i in range(1, 6):
@@ -160,15 +163,17 @@ def test_cumulative_pnl_equals_mark_to_market() -> None:
     spread_values = [100.0, 100.5, 99.8, 101.2, 100.0, 99.5, 100.3, 99.9, 100.8, 99.2]
     spread = pd.Series(spread_values, index=dates)
 
+    # DV01 used for this test
+    dv01 = 100.0
+    
     config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",  # Use binary mode for this test
-        dv01_per_million=100.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
 
-    result = run_backtest(signal, spread, config)
+    result = run_backtest(signal, spread, config, make_test_calculator(dv01_per_million=dv01))
 
     # Entry spread is first spread value
     entry_spread = spread_values[0]
@@ -181,7 +186,7 @@ def test_cumulative_pnl_equals_mark_to_market() -> None:
         # Long position: profit when spreads tighten (negative change)
         expected_mtm = (
             -spread_change_from_entry
-            * config.dv01_per_million
+            * dv01
             * config.position_size_mm
         )
         actual_cumulative = result.pnl.iloc[i]["cumulative_pnl"]
@@ -213,12 +218,11 @@ def test_stop_loss_triggers_on_cumulative_pnl_threshold() -> None:
         position_size_mm=10.0,
         sizing_mode="binary",
         stop_loss_pct=5.0,
-        dv01_per_million=475.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
 
-    result = run_backtest(signal, spread, config)
+    result = run_backtest(signal, spread, config, make_test_calculator(dv01_per_million=100.0))
 
     # Find stop loss exit
     stop_loss_exits = result.positions[result.positions["exit_reason"] == "stop_loss"]
@@ -242,12 +246,11 @@ def test_stop_loss_disabled_when_none() -> None:
         position_size_mm=10.0,
         sizing_mode="binary",
         stop_loss_pct=None,  # Disabled
-        dv01_per_million=475.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
 
-    result = run_backtest(signal, spread, config)
+    result = run_backtest(signal, spread, config, make_test_calculator())
 
     # Should not have stop loss exits
     stop_loss_exits = result.positions[result.positions["exit_reason"] == "stop_loss"]
@@ -280,12 +283,11 @@ def test_take_profit_triggers_on_cumulative_pnl_threshold() -> None:
         position_size_mm=10.0,
         sizing_mode="binary",
         take_profit_pct=10.0,
-        dv01_per_million=475.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
 
-    result = run_backtest(signal, spread, config)
+    result = run_backtest(signal, spread, config, make_test_calculator())
 
     # Find take profit exit
     take_profit_exits = result.positions[
@@ -311,12 +313,11 @@ def test_take_profit_disabled_when_none() -> None:
         position_size_mm=10.0,
         sizing_mode="binary",
         take_profit_pct=None,  # Disabled
-        dv01_per_million=475.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
 
-    result = run_backtest(signal, spread, config)
+    result = run_backtest(signal, spread, config, make_test_calculator())
 
     # Should not have take profit exits
     take_profit_exits = result.positions[
@@ -347,12 +348,11 @@ def test_take_profit_precedence_over_stop_loss() -> None:
         sizing_mode="binary",
         stop_loss_pct=3.0,
         take_profit_pct=5.0,
-        dv01_per_million=475.0,
         transaction_cost_bps=0.0,
         signal_lag=0,
     )
 
-    result = run_backtest(signal, spread, config)
+    result = run_backtest(signal, spread, config, make_test_calculator())
 
     # The large spread tightening (6 bps) should trigger take profit
     # Position value: 10.0 * 475.0 = $4,750

@@ -32,9 +32,6 @@ class BacktestConfig:
         Industry standard: 0.025 (2.5%) for CDX indices.
         When set, overrides transaction_cost_bps with spread-dependent costs.
         Cost = transaction_cost_pct × current_spread × notional_mm × 100.
-    dv01_per_million : float
-        DV01 per $1MM notional for risk calculations.
-        CDX IG 5Y with ~4.75 year duration: ~475.
     signal_lag : int
         Number of days to lag the signal before execution.
         0 = same-day execution (idealized), 1 = next-day execution (realistic).
@@ -56,6 +53,12 @@ class BacktestConfig:
     - Transaction costs are applied symmetrically on entry and exit.
     - signal_lag models realistic execution timing and prevents look-ahead bias.
     - entry_threshold creates asymmetric entry/exit: enter at extremes, exit at neutral.
+
+    Calculator Integration
+    ----------------------
+    DV01 and other product-specific parameters are now encapsulated in the
+    ReturnCalculator passed to run_backtest(). Use resolve_calculator() to
+    obtain the appropriate calculator based on product quote_type.
 
     Transaction Cost Modes
     ----------------------
@@ -90,7 +93,6 @@ class BacktestConfig:
     take_profit_pct: float | None
     max_holding_days: int | None
     transaction_cost_bps: float
-    dv01_per_million: float
     signal_lag: int = 1
     transaction_cost_pct: float | None = None
     entry_threshold: float | None = None

@@ -18,6 +18,7 @@ class TestGetProductMicrostructure:
         result = get_product_microstructure("cdx_ig_5y")
 
         assert isinstance(result, ProductMicrostructure)
+        assert result.quote_type == "spread"
         assert result.dv01_per_million == 475.0
         assert result.transaction_cost_bps == 1.5
 
@@ -26,6 +27,7 @@ class TestGetProductMicrostructure:
         result = get_product_microstructure("cdx_ig_10y")
 
         assert isinstance(result, ProductMicrostructure)
+        assert result.quote_type == "spread"
         assert result.dv01_per_million == 875.0
         assert result.transaction_cost_bps == 2.0
 
@@ -34,6 +36,7 @@ class TestGetProductMicrostructure:
         result = get_product_microstructure("cdx_hy_5y")
 
         assert isinstance(result, ProductMicrostructure)
+        assert result.quote_type == "spread"
         assert result.dv01_per_million == 425.0
         assert result.transaction_cost_bps == 8.0
         # HY should have higher tcost than IG
@@ -45,6 +48,7 @@ class TestGetProductMicrostructure:
         result = get_product_microstructure("itrx_eur_5y")
 
         assert isinstance(result, ProductMicrostructure)
+        assert result.quote_type == "spread"
         assert result.dv01_per_million == 475.0
         assert result.transaction_cost_bps == 1.5
 
@@ -53,36 +57,35 @@ class TestGetProductMicrostructure:
         result = get_product_microstructure("itrx_xover_5y")
 
         assert isinstance(result, ProductMicrostructure)
+        assert result.quote_type == "spread"
         assert result.dv01_per_million == 425.0
         assert result.transaction_cost_bps == 7.0
 
-    def test_etf_raises_value_error(self) -> None:
-        """Test T004: get_product_microstructure raises ValueError for ETF products."""
-        with pytest.raises(ValueError) as exc_info:
-            get_product_microstructure("hyg")
+    def test_etf_hyg_returns_price_quote_type(self) -> None:
+        """Test T007: get_product_microstructure returns quote_type='price' for ETF products."""
+        result = get_product_microstructure("hyg")
 
-        error_msg = str(exc_info.value)
-        assert "hyg" in error_msg
-        assert "does not have microstructure parameters" in error_msg
-        assert "Only CDX products can be backtested" in error_msg
+        assert isinstance(result, ProductMicrostructure)
+        assert result.quote_type == "price"
+        assert result.dv01_per_million is None
+        # ETFs may have default 0 transaction cost
+        assert result.transaction_cost_bps >= 0
 
-    def test_vix_raises_value_error(self) -> None:
-        """Test T004: get_product_microstructure raises ValueError for VIX."""
-        with pytest.raises(ValueError) as exc_info:
-            get_product_microstructure("vix")
+    def test_etf_lqd_returns_price_quote_type(self) -> None:
+        """Test get_product_microstructure returns quote_type='price' for LQD ETF."""
+        result = get_product_microstructure("lqd")
 
-        error_msg = str(exc_info.value)
-        assert "vix" in error_msg
-        assert "does not have microstructure parameters" in error_msg
+        assert isinstance(result, ProductMicrostructure)
+        assert result.quote_type == "price"
+        assert result.dv01_per_million is None
 
-    def test_lqd_etf_raises_value_error(self) -> None:
-        """Test get_product_microstructure raises ValueError for LQD ETF."""
-        with pytest.raises(ValueError) as exc_info:
-            get_product_microstructure("lqd")
+    def test_vix_returns_price_quote_type(self) -> None:
+        """Test get_product_microstructure returns quote_type='price' for VIX."""
+        result = get_product_microstructure("vix")
 
-        error_msg = str(exc_info.value)
-        assert "lqd" in error_msg
-        assert "does not have microstructure parameters" in error_msg
+        assert isinstance(result, ProductMicrostructure)
+        assert result.quote_type == "price"
+        assert result.dv01_per_million is None
 
     def test_unknown_product_raises_value_error(self) -> None:
         """Test get_product_microstructure raises ValueError for unknown products."""
@@ -106,6 +109,8 @@ class TestGetProductMicrostructure:
 
         for product in cdx_products:
             result = get_product_microstructure(product)
+            assert result.quote_type == "spread", f"{product} should have quote_type='spread'"
+            assert result.dv01_per_million is not None, f"{product} should have DV01"
             assert result.dv01_per_million > 0, f"{product} should have positive DV01"
             assert result.transaction_cost_bps >= 0, f"{product} should have non-negative tcost"
 
@@ -114,6 +119,7 @@ class TestGetProductMicrostructure:
         for product in ["cdx_ig_5y", "cdx_ig_10y", "cdx_hy_5y"]:
             result = get_product_microstructure(product)
 
+            assert result.dv01_per_million is not None
             # DV01 should be in reasonable range (100-1000 for credit indices)
             assert 100 <= result.dv01_per_million <= 1000, (
                 f"{product} DV01 {result.dv01_per_million} outside expected range"
@@ -123,3 +129,54 @@ class TestGetProductMicrostructure:
             assert 0.5 <= result.transaction_cost_bps <= 20.0, (
                 f"{product} tcost {result.transaction_cost_bps} outside expected range"
             )
+
+
+class TestProductMicrostructureValidation:
+    """Tests for ProductMicrostructure validation."""
+
+    def test_missing_quote_type_raises_value_error(self) -> None:
+        """Test T008: ProductMicrostructure raises ValueError for missing quote_type."""
+        # We cannot easily test missing quote_type in JSON without modifying the file,
+        # so we test the dataclass validation directly
+        with pytest.raises(ValueError) as exc_info:
+            ProductMicrostructure(
+                quote_type="invalid",
+                dv01_per_million=475.0,
+                transaction_cost_bps=1.5,
+            )
+
+        assert "quote_type must be 'spread' or 'price'" in str(exc_info.value)
+
+    def test_spread_product_without_dv01_raises_value_error(self) -> None:
+        """Test T008: spread product without dv01_per_million raises ValueError."""
+        with pytest.raises(ValueError) as exc_info:
+            ProductMicrostructure(
+                quote_type="spread",
+                dv01_per_million=None,
+                transaction_cost_bps=1.5,
+            )
+
+        assert "dv01_per_million is required for spread-based products" in str(exc_info.value)
+
+    def test_negative_dv01_raises_value_error(self) -> None:
+        """Test ProductMicrostructure raises ValueError for negative DV01."""
+        with pytest.raises(ValueError) as exc_info:
+            ProductMicrostructure(
+                quote_type="spread",
+                dv01_per_million=-100.0,
+                transaction_cost_bps=1.5,
+            )
+
+        assert "dv01_per_million must be positive" in str(exc_info.value)
+
+    def test_price_product_without_dv01_is_valid(self) -> None:
+        """Test price product without DV01 is valid."""
+        result = ProductMicrostructure(
+            quote_type="price",
+            dv01_per_million=None,
+            transaction_cost_bps=0.0,
+        )
+
+        assert result.quote_type == "price"
+        assert result.dv01_per_million is None
+        assert result.transaction_cost_bps == 0.0

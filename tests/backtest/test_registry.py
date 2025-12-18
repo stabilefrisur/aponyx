@@ -94,10 +94,7 @@ def test_strategy_metadata_to_config_produces_valid_backtest_config() -> None:
 
         # Test for each strategy
         for name, metadata in registry.list_all().items():
-            config = metadata.to_config(
-                dv01_per_million=microstructure.dv01_per_million,
-                transaction_cost_bps=microstructure.transaction_cost_bps,
-            )
+            config = metadata.to_config(transaction_cost_bps=microstructure.transaction_cost_bps)
 
             # Should be valid BacktestConfig
             assert isinstance(config, BacktestConfig)
@@ -110,7 +107,6 @@ def test_strategy_metadata_to_config_produces_valid_backtest_config() -> None:
             assert config.max_holding_days == metadata.max_holding_days
 
             # Should have product microstructure parameters
-            assert config.dv01_per_million == microstructure.dv01_per_million
             assert config.transaction_cost_bps == microstructure.transaction_cost_bps
 
 
@@ -232,18 +228,16 @@ def test_strategy_metadata_validation() -> None:
 
 
 def test_strategy_metadata_to_config_requires_microstructure_params() -> None:
-    """Test that to_config() requires dv01_per_million and transaction_cost_bps."""
+    """Test that to_config() requires transaction_cost_bps (DV01 is now in calculator)."""
     metadata = make_test_strategy_metadata(
         name="test",
         description="Test strategy",
     )
 
-    # Should work when microstructure params are provided
+    # Should work when transaction_cost_bps is provided
     config = metadata.to_config(
-        dv01_per_million=475.0,
         transaction_cost_bps=1.5,
     )
-    assert config.dv01_per_million == 475.0
     assert config.transaction_cost_bps == 1.5
 
     # Should fail without required params
@@ -260,7 +254,6 @@ def test_strategy_metadata_to_config_preserves_entry_threshold() -> None:
     )
 
     config = metadata.to_config(
-        dv01_per_million=475.0,
         transaction_cost_bps=1.5,
     )
     assert config.entry_threshold == 1.8
@@ -276,7 +269,6 @@ def test_strategy_metadata_to_config_entry_threshold_override() -> None:
 
     # Override with different value
     config = metadata.to_config(
-        dv01_per_million=475.0,
         transaction_cost_bps=1.5,
         entry_threshold_override=2.0,
     )

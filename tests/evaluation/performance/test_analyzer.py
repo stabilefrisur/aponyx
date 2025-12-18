@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from aponyx.backtest import BacktestResult, run_backtest, BacktestConfig
+from aponyx.backtest.calculators import SpreadReturnCalculator
 from aponyx.data.test_scenarios import get_scenario
 from aponyx.evaluation.performance import (
     PerformanceConfig,
@@ -153,11 +154,15 @@ class TestDeterministicScenarios:
             "take_profit_pct": None,
             "max_holding_days": None,
             "transaction_cost_bps": 0.0,
-            "dv01_per_million": 475.0,
             "signal_lag": 0,
         }
         defaults.update(overrides)
         return BacktestConfig(**defaults)
+
+    @staticmethod
+    def _make_calculator(dv01_per_million: float = 475.0) -> SpreadReturnCalculator:
+        """Create a spread return calculator for testing."""
+        return SpreadReturnCalculator(dv01_per_million=dv01_per_million)
 
     @staticmethod
     def _make_perf_config(**overrides) -> PerformanceConfig:
@@ -181,7 +186,8 @@ class TestDeterministicScenarios:
         config = self._make_config()
         perf_config = self._make_perf_config()
 
-        backtest_result = run_backtest(scenario.signal, scenario.spread, config)
+        calculator = self._make_calculator()
+        backtest_result = run_backtest(scenario.signal, scenario.spread, config, calculator)
         perf_result = analyze_backtest_performance(backtest_result, perf_config)
 
         # Many trades scenario should have high trade count

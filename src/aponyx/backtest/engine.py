@@ -15,6 +15,7 @@ from typing import Any, cast
 import numpy as np
 import pandas as pd
 
+from .calculators import ReturnCalculator, PriceReturnCalculator
 from .config import BacktestConfig
 
 logger = logging.getLogger(__name__)
@@ -148,6 +149,7 @@ def run_backtest(
     signal: pd.Series,
     spread: pd.Series,
     config: BacktestConfig,
+    calculator: ReturnCalculator,
 ) -> BacktestResult:
     """
     Run backtest converting signals to positions and computing P&L.
@@ -158,10 +160,14 @@ def run_backtest(
         Daily positioning scores from signal transformation.
         DatetimeIndex with float values. Non-zero = enter, zero = exit.
     spread : pd.Series
-        CDX spread levels aligned to signal dates.
-        Used for P&L calculation.
+        Market price/spread levels aligned to signal dates.
+        For spread products (CDX): spread in basis points.
+        For price products (ETF): price levels.
     config : BacktestConfig
         Backtest parameters. Required - use StrategyRegistry.to_config() in production.
+    calculator : ReturnCalculator
+        Calculator for computing daily returns. Use resolve_calculator() to
+        obtain the appropriate calculator for the product type.
 
     Returns
     -------
@@ -181,8 +187,9 @@ def run_backtest(
     - Proportional: position = signal × position_size_mm (actual notional in MM)
 
     P&L Calculation:
-    - Long position: profit when spreads tighten (P&L = -ΔSpread * DV01)
-    - Short position: profit when spreads widen (P&L = ΔSpread * DV01)
+    - Delegated to calculator.compute_daily_return()
+    - SpreadReturnCalculator: Long profits when spreads tighten
+    - PriceReturnCalculator: Long profits when prices increase
     - Transaction costs applied on entry, exit, and rebalancing
     - P&L expressed in dollars
 
@@ -194,22 +201,27 @@ def run_backtest(
 
     Examples
     --------
+    >>> from aponyx.backtest import resolve_calculator, SpreadReturnCalculator
+    >>> calculator = SpreadReturnCalculator(dv01_per_million=475.0)
     >>> config = BacktestConfig(position_size_mm=10.0, stop_loss_pct=5.0)
-    >>> result = run_backtest(signal, cdx_spread, config)
+    >>> result = run_backtest(signal, cdx_spread, config, calculator)
     >>> sharpe = result.pnl['net_pnl'].mean() / result.pnl['net_pnl'].std() * np.sqrt(252)
 
-    >>> # Proportional mode
+    >>> # Proportional mode with factory
+    >>> from aponyx.backtest import resolve_calculator
+    >>> calculator = resolve_calculator("spread", dv01_per_million=475.0)
     >>> config = BacktestConfig(sizing_mode="proportional", position_size_mm=10.0)
-    >>> result = run_backtest(signal, cdx_spread, config)
+    >>> result = run_backtest(signal, cdx_spread, config, calculator)
     """
     is_proportional = config.sizing_mode == "proportional"
 
     logger.info(
-        "Starting backtest: dates=%d, sizing_mode=%s, position_size=%.1fMM, signal_lag=%d",
+        "Starting backtest: dates=%d, sizing_mode=%s, position_size=%.1fMM, signal_lag=%d, calculator=%s",
         len(signal),
         config.sizing_mode,
         config.position_size_mm,
         config.signal_lag,
+        type(calculator).__name__,
     )
 
     # Validate inputs
@@ -217,6 +229,10 @@ def run_backtest(
         raise ValueError("signal must have DatetimeIndex")
     if not isinstance(spread.index, pd.DatetimeIndex):
         raise ValueError("spread must have DatetimeIndex")
+
+    # Validate price data for price-based calculators (fail-fast)
+    if isinstance(calculator, PriceReturnCalculator):
+        calculator.validate_price_data(spread)
 
     # Apply signal lag if specified
     if config.signal_lag > 0:
@@ -318,9 +334,15 @@ def run_backtest(
                         abs(current_position), spread_level, config
                     )
                 else:
-                    position_entry_value = (
-                        config.position_size_mm * config.dv01_per_million
-                    )
+                    # Get DV01 from calculator if it's a SpreadReturnCalculator
+                    # For price-based calculators, use notional * 1M as entry value
+                    if hasattr(calculator, "dv01_per_million"):
+                        position_entry_value = (
+                            config.position_size_mm * calculator.dv01_per_million
+                        )
+                    else:
+                        # Price-based: entry value is notional in dollars
+                        position_entry_value = config.position_size_mm * 1_000_000
                     entry_cost = _calculate_transaction_cost(
                         config.position_size_mm, spread_level, config
                     )
@@ -464,9 +486,15 @@ def run_backtest(
                 days_held = 0
                 cumulative_position_pnl = 0.0
                 if not is_proportional:
-                    position_entry_value = (
-                        config.position_size_mm * config.dv01_per_million
-                    )
+                    # Get DV01 from calculator if it's a SpreadReturnCalculator
+                    # For price-based calculators, use notional * 1M as entry value
+                    if hasattr(calculator, "dv01_per_million"):
+                        position_entry_value = (
+                            config.position_size_mm * calculator.dv01_per_million
+                        )
+                    else:
+                        # Price-based: entry value is notional in dollars
+                        position_entry_value = config.position_size_mm * 1_000_000
                 state = PositionState.IN_POSITION
                 exit_counts["reversal"] += 1
                 logger.debug(
@@ -506,24 +534,24 @@ def run_backtest(
                 logger.debug("Cooldown released (sign change): date=%s", date)
             # Otherwise stay in cooldown (no action)
 
-        # Calculate incremental P&L for this day
+        # Calculate incremental P&L for this day using calculator
         if abs(position_before_update) > 1e-9:
-            spread_change = spread_level - prev_spread_before_update
             if is_proportional:
                 # Proportional: position_before_update is actual notional in MM
-                spread_pnl = (
-                    -np.sign(position_before_update)
-                    * abs(position_before_update)
-                    * spread_change
-                    * config.dv01_per_million
+                # Pass position sign and notional separately for calculator
+                spread_pnl = calculator.compute_daily_return(
+                    position=np.sign(position_before_update),
+                    price_today=spread_level,
+                    price_yesterday=prev_spread_before_update,
+                    notional_mm=abs(position_before_update),
                 )
             else:
-                # Binary: position_before_update is direction indicator
-                spread_pnl = (
-                    -position_before_update
-                    * spread_change
-                    * config.dv01_per_million
-                    * config.position_size_mm
+                # Binary: position_before_update is direction indicator (-1, 0, +1)
+                spread_pnl = calculator.compute_daily_return(
+                    position=position_before_update,
+                    price_today=spread_level,
+                    price_yesterday=prev_spread_before_update,
+                    notional_mm=config.position_size_mm,
                 )
             # Update cumulative position P&L (only when in position)
             cumulative_position_pnl += spread_pnl
@@ -577,6 +605,12 @@ def run_backtest(
     total_pnl = pnl_df["cumulative_pnl"].iloc[-1]
     avg_pnl_per_trade = total_pnl / n_trades if n_trades > 0 else 0.0
 
+    # Extract DV01 from calculator if it's a SpreadReturnCalculator
+    from .calculators import SpreadReturnCalculator
+    calculator_info: dict[str, str | float] = {"type": type(calculator).__name__}
+    if isinstance(calculator, SpreadReturnCalculator):
+        calculator_info["dv01_per_million"] = calculator.dv01_per_million
+
     metadata = {
         "timestamp": datetime.now().isoformat(),
         "config": {
@@ -587,9 +621,9 @@ def run_backtest(
             "max_holding_days": config.max_holding_days,
             "entry_threshold": config.entry_threshold,
             "transaction_cost_bps": config.transaction_cost_bps,
-            "dv01_per_million": config.dv01_per_million,
             "signal_lag": config.signal_lag,
         },
+        "calculator": calculator_info,
         "summary": {
             "start_date": str(aligned.index[0]),
             "end_date": str(aligned.index[-1]),

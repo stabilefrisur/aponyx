@@ -97,7 +97,6 @@ class StrategyMetadata:
 
     def to_config(
         self,
-        dv01_per_million: float,
         transaction_cost_bps: float,
         position_size_mm_override: float | None = None,
         sizing_mode_override: str | None = None,
@@ -110,14 +109,12 @@ class StrategyMetadata:
         """
         Convert strategy metadata to BacktestConfig.
 
-        Requires product-specific microstructure parameters (DV01, transaction cost)
-        to be passed in. These come from bloomberg_securities.json via
-        get_product_microstructure() in the workflow layer.
+        DV01 and other product-specific parameters are now encapsulated in
+        the ReturnCalculator passed to run_backtest(). Use resolve_calculator()
+        to obtain the appropriate calculator based on product quote_type.
 
         Parameters
         ----------
-        dv01_per_million : float
-            DV01 per $1MM notional for the product being backtested.
         transaction_cost_bps : float
             Transaction cost in basis points for the product.
         position_size_mm_override : float | None, default None
@@ -144,6 +141,7 @@ class StrategyMetadata:
         Examples
         --------
         >>> from aponyx.data import get_product_microstructure
+        >>> from aponyx.backtest import resolve_calculator
         >>> metadata = StrategyMetadata(
         ...     name="balanced", description="Balanced strategy",
         ...     position_size_mm=10.0, sizing_mode="proportional",
@@ -151,11 +149,9 @@ class StrategyMetadata:
         ... )
         >>> params = get_product_microstructure("cdx_ig_5y")
         >>> config = metadata.to_config(
-        ...     dv01_per_million=params.dv01_per_million,
         ...     transaction_cost_bps=params.transaction_cost_bps
         ... )
-        >>> config.dv01_per_million
-        475.0
+        >>> calculator = resolve_calculator(params.quote_type, params.dv01_per_million)
         """
         return BacktestConfig(
             position_size_mm=(
@@ -189,7 +185,6 @@ class StrategyMetadata:
                 else self.entry_threshold
             ),
             transaction_cost_bps=transaction_cost_bps,
-            dv01_per_million=dv01_per_million,
             transaction_cost_pct=transaction_cost_pct,
         )
 

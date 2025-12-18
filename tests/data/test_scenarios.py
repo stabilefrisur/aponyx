@@ -326,7 +326,6 @@ class TestBacktestIntegration:
                 "sizing_mode": "binary",
                 "signal_lag": 0,
                 "transaction_cost_bps": 0.0,
-                "dv01_per_million": 475.0,
                 "stop_loss_pct": None,
                 "take_profit_pct": None,
                 "max_holding_days": None,
@@ -337,102 +336,112 @@ class TestBacktestIntegration:
 
         return _make_config
 
-    def test_profitable_long_produces_positive_pnl(self, make_config) -> None:
+    @pytest.fixture
+    def make_calculator(self):
+        """Create spread return calculator for testing."""
+        from aponyx.backtest.calculators import SpreadReturnCalculator
+
+        def _make_calculator(dv01_per_million: float = 475.0):
+            return SpreadReturnCalculator(dv01_per_million=dv01_per_million)
+
+        return _make_calculator
+
+    def test_profitable_long_produces_positive_pnl(self, make_config, make_calculator) -> None:
         """Test profitable_long scenario produces positive P&L."""
         from aponyx.backtest.engine import run_backtest
 
         scenario = get_scenario("profitable_long")
         config = make_config()
 
-        result = run_backtest(scenario.signal, scenario.spread, config)
+        result = run_backtest(scenario.signal, scenario.spread, config, make_calculator())
 
         assert result.pnl["cumulative_pnl"].iloc[-1] > 0
 
-    def test_profitable_short_produces_positive_pnl(self, make_config) -> None:
+    def test_profitable_short_produces_positive_pnl(self, make_config, make_calculator) -> None:
         """Test profitable_short scenario produces positive P&L."""
         from aponyx.backtest.engine import run_backtest
 
         scenario = get_scenario("profitable_short")
         config = make_config()
 
-        result = run_backtest(scenario.signal, scenario.spread, config)
+        result = run_backtest(scenario.signal, scenario.spread, config, make_calculator())
 
         assert result.pnl["cumulative_pnl"].iloc[-1] > 0
 
-    def test_unprofitable_long_produces_negative_pnl(self, make_config) -> None:
+    def test_unprofitable_long_produces_negative_pnl(self, make_config, make_calculator) -> None:
         """Test unprofitable_long scenario produces negative P&L."""
         from aponyx.backtest.engine import run_backtest
 
         scenario = get_scenario("unprofitable_long")
         config = make_config()
 
-        result = run_backtest(scenario.signal, scenario.spread, config)
+        result = run_backtest(scenario.signal, scenario.spread, config, make_calculator())
 
         assert result.pnl["cumulative_pnl"].iloc[-1] < 0
 
-    def test_unprofitable_short_produces_negative_pnl(self, make_config) -> None:
+    def test_unprofitable_short_produces_negative_pnl(self, make_config, make_calculator) -> None:
         """Test unprofitable_short scenario produces negative P&L."""
         from aponyx.backtest.engine import run_backtest
 
         scenario = get_scenario("unprofitable_short")
         config = make_config()
 
-        result = run_backtest(scenario.signal, scenario.spread, config)
+        result = run_backtest(scenario.signal, scenario.spread, config, make_calculator())
 
         assert result.pnl["cumulative_pnl"].iloc[-1] < 0
 
-    def test_few_trades_produces_few_trades(self, make_config) -> None:
+    def test_few_trades_produces_few_trades(self, make_config, make_calculator) -> None:
         """Test few_trades scenario produces < 5 trades."""
         from aponyx.backtest.engine import run_backtest
 
         scenario = get_scenario("few_trades")
         config = make_config()
 
-        result = run_backtest(scenario.signal, scenario.spread, config)
+        result = run_backtest(scenario.signal, scenario.spread, config, make_calculator())
 
         assert result.metadata["summary"]["n_trades"] <= 5
 
-    def test_many_trades_produces_many_trades(self, make_config) -> None:
+    def test_many_trades_produces_many_trades(self, make_config, make_calculator) -> None:
         """Test many_trades scenario produces > 20 trades."""
         from aponyx.backtest.engine import run_backtest
 
         scenario = get_scenario("many_trades")
         config = make_config()
 
-        result = run_backtest(scenario.signal, scenario.spread, config)
+        result = run_backtest(scenario.signal, scenario.spread, config, make_calculator())
 
         assert result.metadata["summary"]["n_trades"] >= 20
 
-    def test_stop_loss_triggers_exit(self, make_config) -> None:
+    def test_stop_loss_triggers_exit(self, make_config, make_calculator) -> None:
         """Test stop_loss_trigger scenario triggers stop loss exit."""
         from aponyx.backtest.engine import run_backtest
 
         scenario = get_scenario("stop_loss_trigger")
         config = make_config(stop_loss_pct=5.0)
 
-        result = run_backtest(scenario.signal, scenario.spread, config)
+        result = run_backtest(scenario.signal, scenario.spread, config, make_calculator())
 
         assert result.metadata["summary"]["exit_counts"]["stop_loss"] > 0
 
-    def test_take_profit_triggers_exit(self, make_config) -> None:
+    def test_take_profit_triggers_exit(self, make_config, make_calculator) -> None:
         """Test take_profit_trigger scenario triggers take profit exit."""
         from aponyx.backtest.engine import run_backtest
 
         scenario = get_scenario("take_profit_trigger")
         config = make_config(take_profit_pct=10.0)
 
-        result = run_backtest(scenario.signal, scenario.spread, config)
+        result = run_backtest(scenario.signal, scenario.spread, config, make_calculator())
 
         assert result.metadata["summary"]["exit_counts"]["take_profit"] > 0
 
-    def test_max_holding_triggers_exit(self, make_config) -> None:
+    def test_max_holding_triggers_exit(self, make_config, make_calculator) -> None:
         """Test max_holding_trigger scenario triggers max holding days exit."""
         from aponyx.backtest.engine import run_backtest
 
         scenario = get_scenario("max_holding_trigger")
         config = make_config(max_holding_days=10)
 
-        result = run_backtest(scenario.signal, scenario.spread, config)
+        result = run_backtest(scenario.signal, scenario.spread, config, make_calculator())
 
         assert result.metadata["summary"]["exit_counts"]["max_holding_days"] > 0
 
