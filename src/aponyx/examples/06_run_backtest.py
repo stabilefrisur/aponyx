@@ -52,7 +52,7 @@ def main() -> BacktestResult:
     """
     signal_name, product, strategy_name = define_backtest_parameters()
     signal, spread = load_backtest_data(signal_name, product)
-    config = load_strategy_config(strategy_name)
+    config = load_strategy_config(strategy_name, product)  # Pass product for microstructure
     result = execute_backtest(signal, spread, config)
     save_backtest_result(result, signal_name, strategy_name)
     return result
@@ -155,27 +155,40 @@ def load_spread_data(product: str) -> pd.Series:
     return spread_df["spread"]
 
 
-def load_strategy_config(strategy_name: str):
+def load_strategy_config(strategy_name: str, product: str):
     """
-    Load strategy configuration from catalog.
+    Load strategy configuration from catalog with product microstructure.
 
     Parameters
     ----------
     strategy_name : str
         Name of strategy in catalog (e.g., "balanced", "conservative").
+    product : str
+        Product identifier for microstructure lookup (e.g., "cdx_ig_5y").
 
     Returns
     -------
     BacktestConfig
-        Backtest configuration with strategy parameters.
+        Backtest configuration with strategy parameters and product microstructure.
 
     Notes
     -----
-    Reads strategy metadata from catalog and converts to BacktestConfig.
+    Reads strategy metadata from catalog (trading behavior) and product microstructure
+    from bloomberg_securities.json (DV01, transaction costs), then merges both into
+    BacktestConfig. This separation allows strategies to be reused across products.
     """
+    from aponyx.data import get_product_microstructure
+
     registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
     metadata = registry.get_metadata(strategy_name)
-    return metadata.to_config()
+
+    # Load product-specific microstructure (DV01, transaction costs)
+    microstructure = get_product_microstructure(product)
+
+    return metadata.to_config(
+        dv01_per_million=microstructure.dv01_per_million,
+        transaction_cost_bps=microstructure.transaction_cost_bps,
+    )
 
 
 def execute_backtest(

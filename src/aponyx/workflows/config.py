@@ -58,6 +58,18 @@ class WorkflowConfig:
         Override signal transformation from catalog (must exist in signal_transformation.json).
         If None, uses signal_transformation from signal catalog.
         Example: "bounded_2_0" to swap trading rules while keeping indicator/score transformations.
+    dv01_per_million_override : float | None
+        Override product's default DV01 per million parameter.
+        If None, uses dv01_per_million from bloomberg_securities.json for the product.
+    transaction_cost_bps_override : float | None
+        Override product's default transaction cost in basis points.
+        Mutually exclusive with transaction_cost_pct_override.
+        If None, uses transaction_cost_bps from bloomberg_securities.json for the product.
+    transaction_cost_pct_override : float | None
+        Override to use percentage-based transaction costs instead of fixed bps.
+        Mutually exclusive with transaction_cost_bps_override.
+        When set, transaction costs are calculated as a percentage of the current spread.
+        Value should be in decimal form (e.g., 0.025 for 2.5%).
     steps : list[StepName] | None
         Specific steps to execute (None = all steps in order).
     force_rerun : bool
@@ -81,6 +93,9 @@ class WorkflowConfig:
     - indicator_transformation_override: Swap indicator while keeping score/signal transformations
     - score_transformation_override: Swap normalization while keeping indicator/signal transformations
     - signal_transformation_override: Swap trading rules while keeping indicator/score transformations
+    - dv01_per_million_override: Override product's DV01 for sensitivity analysis
+    - transaction_cost_bps_override: Override fixed transaction costs
+    - transaction_cost_pct_override: Use percentage-based transaction costs (mutually exclusive with bps)
     """
 
     label: str
@@ -92,6 +107,9 @@ class WorkflowConfig:
     indicator_transformation_override: str | None = None
     score_transformation_override: str | None = None
     signal_transformation_override: str | None = None
+    dv01_per_million_override: float | None = None
+    transaction_cost_bps_override: float | None = None
+    transaction_cost_pct_override: float | None = None
     steps: list[StepName] | None = None
     force_rerun: bool = False
     output_dir: Path = field(default_factory=lambda: DATA_WORKFLOWS_DIR)
@@ -120,3 +138,14 @@ class WorkflowConfig:
             invalid = set(self.steps) - valid_steps
             if invalid:
                 raise ValueError(f"Invalid steps: {invalid}")
+
+        # T016: Validate mutual exclusivity of transaction cost overrides
+        if (
+            self.transaction_cost_bps_override is not None
+            and self.transaction_cost_pct_override is not None
+        ):
+            raise ValueError(
+                "Cannot specify both transaction_cost_bps_override and "
+                "transaction_cost_pct_override. Use either fixed basis points "
+                "(bps) or percentage-based (pct), not both."
+            )

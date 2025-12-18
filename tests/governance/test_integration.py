@@ -19,7 +19,12 @@ from aponyx.backtest.registry import StrategyRegistry
 
 # Test helper for creating complete strategy metadata
 def _make_test_metadata(**overrides) -> dict:
-    """Create a complete strategy metadata dict for testing."""
+    """Create a complete strategy metadata dict for testing.
+    
+    Note: StrategyMetadata no longer contains microstructure fields
+    (transaction_cost_bps, dv01_per_million). These are now loaded from
+    bloomberg_securities.json at runtime.
+    """
     defaults = {
         "name": "test_strategy",
         "description": "Test strategy",
@@ -28,8 +33,6 @@ def _make_test_metadata(**overrides) -> dict:
         "stop_loss_pct": None,
         "take_profit_pct": None,
         "max_holding_days": None,
-        "transaction_cost_bps": 1.0,
-        "dv01_per_million": 475.0,
         "enabled": True,
     }
     defaults.update(overrides)
@@ -156,13 +159,19 @@ def test_cross_layer_integration() -> None:
     assert signal_metadata.indicator_transformation == "cdx_etf_spread_diff"
 
     # Strategy catalog produces configs for backtest layer
+    # Now requires product microstructure params to be passed
     strategy_registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
     strategy_metadata = strategy_registry.get_metadata("balanced")
 
-    # Verify conversion to BacktestConfig
-    config = strategy_metadata.to_config()
+    # Verify conversion to BacktestConfig with product params
+    config = strategy_metadata.to_config(
+        dv01_per_million=475.0,
+        transaction_cost_bps=1.5,
+    )
     assert config.position_size_mm == strategy_metadata.position_size_mm
     assert config.stop_loss_pct == strategy_metadata.stop_loss_pct
+    assert config.dv01_per_million == 475.0
+    assert config.transaction_cost_bps == 1.5
 
 
 def test_json_persistence_roundtrip() -> None:

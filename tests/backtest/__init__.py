@@ -49,6 +49,7 @@ def make_minimal_test_config(**overrides) -> BacktestConfig:
 
 def make_catalog_test_config(
     strategy_name: str = "balanced",
+    product: str = "cdx_ig_5y",
     **overrides,
 ) -> BacktestConfig:
     """
@@ -61,6 +62,8 @@ def make_catalog_test_config(
     ----------
     strategy_name : str, default "balanced"
         Name of the strategy to load from strategy_catalog.json.
+    product : str, default "cdx_ig_5y"
+        Product identifier to load microstructure params from bloomberg_securities.json.
     **overrides
         Any BacktestConfig parameters to override after loading from catalog.
 
@@ -71,13 +74,22 @@ def make_catalog_test_config(
 
     Examples
     --------
-    >>> config = make_catalog_test_config()  # Load 'balanced' strategy
-    >>> config = make_catalog_test_config("conservative")  # Load 'conservative'
-    >>> config = make_catalog_test_config(signal_lag=0)  # Catalog defaults + override
+    >>> config = make_catalog_test_config()  # Load 'balanced' strategy with cdx_ig_5y
+    >>> config = make_catalog_test_config("conservative", "cdx_hy_5y")
+    >>> config = make_catalog_test_config(stop_loss_pct_override=3.0)  # Catalog defaults + override
     """
+    from aponyx.data import get_product_microstructure
+
     registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
     metadata = registry.get_metadata(strategy_name)
-    return metadata.to_config(**{f"{k}_override": v for k, v in overrides.items()})
+    microstructure = get_product_microstructure(product)
+
+    return metadata.to_config(
+        dv01_per_million=microstructure.dv01_per_million,
+        transaction_cost_bps=microstructure.transaction_cost_bps,
+        **{f"{k}_override": v for k, v in overrides.items() if not k.endswith("_override")},
+        **{k: v for k, v in overrides.items() if k.endswith("_override")},
+    )
 
 
 # Backwards compatibility alias
@@ -93,6 +105,10 @@ def make_minimal_test_metadata(**overrides) -> StrategyMetadata:
     StrategyMetadata validation and conversion.
 
     For tests that require catalog-accurate metadata, use make_catalog_test_metadata().
+
+    Note: StrategyMetadata no longer contains microstructure fields
+    (transaction_cost_bps, dv01_per_million). These are now loaded from
+    bloomberg_securities.json at runtime.
 
     Parameters
     ----------
@@ -117,8 +133,6 @@ def make_minimal_test_metadata(**overrides) -> StrategyMetadata:
         "stop_loss_pct": None,  # Intentionally None for simpler tests
         "take_profit_pct": None,  # Intentionally None for simpler tests
         "max_holding_days": None,
-        "transaction_cost_bps": 1.0,
-        "dv01_per_million": 475.0,
         "enabled": True,
     }
     defaults.update(overrides)

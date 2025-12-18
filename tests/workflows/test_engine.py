@@ -64,6 +64,64 @@ def test_workflow_config_validation():
         )
 
 
+def test_workflow_config_transaction_cost_mutual_exclusivity():
+    """Test T019: WorkflowConfig rejects both transaction cost overrides at once."""
+    # Valid: only bps override
+    config_bps = WorkflowConfig(
+        label="test_bps",
+        signal_name="spread_momentum",
+        strategy_name="balanced",
+        product="cdx_ig_5y",
+        transaction_cost_bps_override=2.5,
+    )
+    assert config_bps.transaction_cost_bps_override == 2.5
+    assert config_bps.transaction_cost_pct_override is None
+
+    # Valid: only pct override
+    config_pct = WorkflowConfig(
+        label="test_pct",
+        signal_name="spread_momentum",
+        strategy_name="balanced",
+        product="cdx_ig_5y",
+        transaction_cost_pct_override=0.025,
+    )
+    assert config_pct.transaction_cost_pct_override == 0.025
+    assert config_pct.transaction_cost_bps_override is None
+
+    # Valid: neither override (use product defaults)
+    config_default = WorkflowConfig(
+        label="test_default",
+        signal_name="spread_momentum",
+        strategy_name="balanced",
+        product="cdx_ig_5y",
+    )
+    assert config_default.transaction_cost_bps_override is None
+    assert config_default.transaction_cost_pct_override is None
+
+    # Invalid: both overrides (mutual exclusivity violation)
+    with pytest.raises(ValueError, match="Cannot specify both"):
+        WorkflowConfig(
+            label="test_both",
+            signal_name="spread_momentum",
+            strategy_name="balanced",
+            product="cdx_ig_5y",
+            transaction_cost_bps_override=2.5,
+            transaction_cost_pct_override=0.025,
+        )
+
+
+def test_workflow_config_dv01_override():
+    """Test T019: WorkflowConfig accepts dv01_per_million_override."""
+    config = WorkflowConfig(
+        label="test_dv01",
+        signal_name="spread_momentum",
+        strategy_name="balanced",
+        product="cdx_ig_5y",
+        dv01_per_million_override=500.0,
+    )
+    assert config.dv01_per_million_override == 500.0
+
+
 def test_workflow_engine_execution_order():
     """Test steps execute in correct order."""
     config = WorkflowConfig(

@@ -238,6 +238,14 @@ def _display_workflow_config(
     force_source = "[config]" if "force" in config_dict else "[default]"
     click.echo(f"Force re-run:             {config.force_rerun} {force_source}")
 
+    # Display microstructure overrides (only if specified)
+    if config.dv01_per_million_override is not None:
+        click.echo(f"DV01 Override:            {config.dv01_per_million_override} [config]")
+    if config.transaction_cost_bps_override is not None:
+        click.echo(f"TCost BPS Override:       {config.transaction_cost_bps_override} [config]")
+    if config.transaction_cost_pct_override is not None:
+        click.echo(f"TCost PCT Override:       {config.transaction_cost_pct_override} [config]")
+
     click.echo("=" * len(header))
     click.echo()
 
@@ -324,6 +332,10 @@ def run(config_path: Path) -> None:
     data_source = config_dict.get("data", "synthetic")
     step_list = config_dict.get("steps")
     force_rerun = config_dict.get("force", False)
+    # Product microstructure overrides (008-product-microstructure)
+    dv01_per_million_override = config_dict.get("dv01_per_million_override")
+    transaction_cost_bps_override = config_dict.get("transaction_cost_bps_override")
+    transaction_cost_pct_override = config_dict.get("transaction_cost_pct_override")
 
     # Validate all catalog references
     _validate_config_references(
@@ -347,6 +359,9 @@ def run(config_path: Path) -> None:
             indicator_transformation_override=indicator_override,
             score_transformation_override=score_transformation_override,
             signal_transformation_override=signal_transformation_override,
+            dv01_per_million_override=dv01_per_million_override,
+            transaction_cost_bps_override=transaction_cost_bps_override,
+            transaction_cost_pct_override=transaction_cost_pct_override,
             steps=step_list,  # type: ignore
             force_rerun=force_rerun,
         )

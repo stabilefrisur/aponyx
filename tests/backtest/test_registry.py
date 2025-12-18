@@ -24,15 +24,16 @@ def test_strategy_registry_loads_new_schema() -> None:
     all_strategies = registry.list_all()
     assert len(all_strategies) == 4  # 4 base strategies (no _proportional variants)
 
-    # Check that strategies have new schema fields
+    # Check that strategies have new schema fields (no microstructure fields)
     for name, metadata in all_strategies.items():
         assert hasattr(metadata, "position_size_mm")
         assert hasattr(metadata, "sizing_mode")
         assert hasattr(metadata, "stop_loss_pct")
         assert hasattr(metadata, "take_profit_pct")
         assert hasattr(metadata, "max_holding_days")
-        assert hasattr(metadata, "transaction_cost_bps")
-        assert hasattr(metadata, "dv01_per_million")
+        # Microstructure fields should NOT be in metadata
+        assert not hasattr(metadata, "transaction_cost_bps")
+        assert not hasattr(metadata, "dv01_per_million")
 
 
 def test_all_strategies_have_position_sizing_fields() -> None:
@@ -63,27 +64,47 @@ def test_entry_exit_thresholds_not_present() -> None:
         assert not hasattr(metadata, "exit_threshold"), (
             f"Strategy {name}: exit_threshold should not exist"
         )
+        # Microstructure fields should also not exist (moved to product)
+        assert not hasattr(metadata, "transaction_cost_bps"), (
+            f"Strategy {name}: transaction_cost_bps should not exist (moved to product)"
+        )
+        assert not hasattr(metadata, "dv01_per_million"), (
+            f"Strategy {name}: dv01_per_million should not exist (moved to product)"
+        )
 
 
 def test_strategy_metadata_to_config_produces_valid_backtest_config() -> None:
-    """Test T038: StrategyMetadata.to_config() produces valid BacktestConfig."""
+    """Test T038: StrategyMetadata.to_config() produces valid BacktestConfig with product params."""
     registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
 
-    # Test for each strategy
-    for name, metadata in registry.list_all().items():
-        config = metadata.to_config()
+    # Test microstructure params from different products
+    from aponyx.data import get_product_microstructure
 
-        # Should be valid BacktestConfig
-        assert isinstance(config, BacktestConfig)
+    products = ["cdx_ig_5y", "cdx_hy_5y"]
 
-        # Should preserve strategy parameters
-        assert config.position_size_mm == metadata.position_size_mm
-        assert config.sizing_mode == metadata.sizing_mode
-        assert config.stop_loss_pct == metadata.stop_loss_pct
-        assert config.take_profit_pct == metadata.take_profit_pct
-        assert config.max_holding_days == metadata.max_holding_days
-        assert config.transaction_cost_bps == metadata.transaction_cost_bps
-        assert config.dv01_per_million == metadata.dv01_per_million
+    for product in products:
+        microstructure = get_product_microstructure(product)
+
+        # Test for each strategy
+        for name, metadata in registry.list_all().items():
+            config = metadata.to_config(
+                dv01_per_million=microstructure.dv01_per_million,
+                transaction_cost_bps=microstructure.transaction_cost_bps,
+            )
+
+            # Should be valid BacktestConfig
+            assert isinstance(config, BacktestConfig)
+
+            # Should preserve strategy parameters
+            assert config.position_size_mm == metadata.position_size_mm
+            assert config.sizing_mode == metadata.sizing_mode
+            assert config.stop_loss_pct == metadata.stop_loss_pct
+            assert config.take_profit_pct == metadata.take_profit_pct
+            assert config.max_holding_days == metadata.max_holding_days
+
+            # Should have product microstructure parameters
+            assert config.dv01_per_million == microstructure.dv01_per_million
+            assert config.transaction_cost_bps == microstructure.transaction_cost_bps
 
 
 def test_conservative_strategy_has_appropriate_risk_management() -> None:
@@ -178,3 +199,23 @@ def test_strategy_metadata_validation() -> None:
             description="Test",
             stop_loss_pct=150.0,
         )
+
+
+def test_strategy_metadata_to_config_requires_microstructure_params() -> None:
+    """Test that to_config() requires dv01_per_million and transaction_cost_bps."""
+    metadata = make_test_strategy_metadata(
+        name="test",
+        description="Test strategy",
+    )
+
+    # Should work when microstructure params are provided
+    config = metadata.to_config(
+        dv01_per_million=475.0,
+        transaction_cost_bps=1.5,
+    )
+    assert config.dv01_per_million == 475.0
+    assert config.transaction_cost_bps == 1.5
+
+    # Should fail without required params
+    with pytest.raises(TypeError):
+        metadata.to_config()  # type: ignore  # Missing required args

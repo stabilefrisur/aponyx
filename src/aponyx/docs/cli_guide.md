@@ -60,6 +60,9 @@ uv run aponyx run <config_path>
 | `score_transformation` | string | | from signal | Override score transformation (must exist in score_transformation.json) |
 | `signal_transformation` | string | | from signal | Override signal transformation (must exist in signal_transformation.json) |
 | `securities` | dict | | from indicator | Custom security mapping (e.g., `cdx: cdx_hy_5y`) |
+| `dv01_per_million_override` | float | | from product | Override product's DV01 (sensitivity analysis) |
+| `transaction_cost_bps_override` | float | | from product | Override transaction cost in basis points |
+| `transaction_cost_pct_override` | float | | - | Use percentage-based transaction cost mode (mutually exclusive with bps) |
 | `data` | string | | "synthetic" | Data source: `synthetic`, `file`, `bloomberg` |
 | `steps` | list | | all | Specific steps to execute (e.g., `[data, signal, backtest]`) |
 | `force` | boolean | | false | Force re-run all steps (skip cache)
@@ -86,6 +89,10 @@ signal_transformation: bounded_1_5
 securities:
   cdx: cdx_ig_5y
   etf: lqd
+# Product microstructure overrides (optional)
+# dv01_per_million_override: 500.0
+# transaction_cost_bps_override: 2.5
+# transaction_cost_pct_override: 0.025  # OR use pct mode (mutually exclusive with bps)
 data: synthetic
 steps: [data, signal, suitability, backtest, performance, visualization]
 force: true
@@ -106,7 +113,7 @@ Product:                  cdx_ig_5y [config]
 Signal:                   spread_momentum [config]
 Indicator Transform:      spread_momentum_5d [from signal]
 Securities:               cdx:cdx_ig_5y [from indicator]
-Score Transform:          volatility_adjust_20d [from signal]
+Score Transform:          z_score_20d [from signal]
 Signal Transform:         passthrough [from signal]
 Strategy:                 balanced [config]
 Data:                     synthetic [default]
@@ -116,6 +123,18 @@ Force re-run:             False [default]
 
 Completed 6 steps in 1.5s
 Results: data/workflows/minimal_test_20251213_205920/
+```
+
+**With microstructure overrides:**
+```
+=== Workflow Configuration ===
+Label:                    override_test [config]
+Product:                  cdx_ig_5y [config]
+...
+Force re-run:             True [config]
+DV01 Override:            500.0 [config]
+TCost BPS Override:       3.0 [config]
+==============================
 ```
 
 **Source Tags:**
@@ -377,7 +396,63 @@ uv run aponyx run examples/workflow_minimal.yaml
 1. Explicitly provided in YAML config (`[config]`)
 2. Resolved from signal metadata (`[from signal]`)
 3. Resolved from indicator metadata (`[from indicator]`)
-4. System defaults (`[default]`)
+4. Resolved from product metadata (`[from product]`)
+5. System defaults (`[default]`)
+
+---
+
+## Product Microstructure
+
+Each CDX product has specific DV01 and transaction cost parameters defined in `bloomberg_securities.json`. These are automatically applied during backtesting based on the `product` field.
+
+### Default Product Parameters
+
+| Product | DV01 per Million | Transaction Cost (bps) | Description |
+|---------|-----------------|----------------------|-------------|
+| `cdx_ig_5y` | 475.0 | 1.5 | CDX IG 5Y (investment grade) |
+| `cdx_ig_10y` | 875.0 | 2.0 | CDX IG 10Y (longer duration) |
+| `cdx_hy_5y` | 425.0 | 8.0 | CDX HY 5Y (high yield, wider spreads) |
+| `itrx_eur_5y` | 475.0 | 1.5 | iTraxx Europe Main 5Y |
+| `itrx_xover_5y` | 425.0 | 7.0 | iTraxx Europe Crossover 5Y |
+
+### Runtime Overrides
+
+Override product defaults for sensitivity analysis or scenario testing:
+
+**Override DV01**:
+```yaml
+label: dv01_sensitivity
+signal: spread_momentum
+product: cdx_ig_5y
+strategy: balanced
+dv01_per_million_override: 500.0    # Test with higher DV01
+```
+
+**Override transaction cost (fixed bps)**:
+```yaml
+label: high_cost_scenario
+signal: spread_momentum
+product: cdx_ig_5y
+strategy: balanced
+transaction_cost_bps_override: 5.0   # Test with higher costs
+```
+
+**Percentage-based transaction cost**:
+```yaml
+label: pct_cost_mode
+signal: spread_momentum
+product: cdx_ig_5y
+strategy: balanced
+transaction_cost_pct_override: 0.025  # 2.5% of spread
+```
+
+**Note:** `transaction_cost_bps_override` and `transaction_cost_pct_override` are mutually exclusive. Use either fixed basis points OR percentage-based mode, not both.
+
+### P&L Calculation
+
+Transaction costs affect P&L on position changes:
+- **Fixed bps mode**: Cost = `|position_change| × transaction_cost_bps / 10000 × notional`
+- **Percentage mode**: Cost = `|position_change| × spread × transaction_cost_pct × notional`
 
 ---
 
@@ -604,4 +679,4 @@ uv run aponyx clean --indicators
 ---
 
 **Maintained by:** stabilefrisur  
-**Last Updated:** December 13, 2025
+**Last Updated:** December 18, 2025

@@ -510,6 +510,174 @@ class TestBacktestStep:
         call_args = mock_run_backtest.call_args
         assert call_args is not None
 
+    def test_backtest_step_raises_for_product_without_microstructure(
+        self,
+        workflow_config,
+        sample_signal,
+        sample_market_data,
+    ):
+        """Test T012: BacktestStep raises ValueError for products without microstructure."""
+        import pytest
+
+        step = BacktestStep(workflow_config)
+        # Use VIX as the product - it lacks microstructure parameters
+        context = {
+            "signal": {"signal": sample_signal},
+            "data": {"market_data": {"vix": sample_market_data.get("vix", sample_market_data["cdx"])}},
+            "suitability": {"product": "vix"},  # VIX is not a CDX product
+        }
+
+        with pytest.raises(ValueError, match="Cannot run backtest for product 'vix'"):
+            step.execute(context)
+
+    @patch("aponyx.workflows.concrete_steps.load_parquet")
+    @patch("aponyx.workflows.concrete_steps.DataRegistry")
+    @patch("aponyx.workflows.concrete_steps.run_backtest")
+    @patch("aponyx.workflows.concrete_steps.save_parquet")
+    def test_backtest_step_applies_dv01_override(
+        self,
+        mock_save,
+        mock_run_backtest,
+        mock_data_registry_class,
+        mock_load_parquet,
+        sample_signal,
+        sample_market_data,
+        sample_backtest_result,
+    ):
+        """Test T020: BacktestStep applies dv01_per_million_override correctly."""
+        from unittest.mock import Mock
+        from aponyx.workflows.config import WorkflowConfig
+
+        # Create config with dv01 override
+        config_with_override = WorkflowConfig(
+            label="test_dv01_override",
+            signal_name="spread_momentum",
+            strategy_name="balanced",
+            product="cdx_ig_5y",
+            dv01_per_million_override=600.0,  # Override default 475.0
+        )
+
+        # Mock data registry
+        mock_registry = Mock()
+        mock_registry.load_dataset_by_security.return_value = sample_market_data["cdx"]
+        mock_data_registry_class.return_value = mock_registry
+
+        # Mock backtest result
+        mock_run_backtest.return_value = sample_backtest_result
+
+        step = BacktestStep(config_with_override)
+        context = {
+            "signal": {"signal": sample_signal},
+            "data": {"market_data": {"cdx_ig_5y": sample_market_data["cdx"]}},
+            "suitability": {"product": "cdx_ig_5y"},
+        }
+        step.execute(context)
+
+        # Verify run_backtest was called with overridden dv01
+        call_args = mock_run_backtest.call_args
+        assert call_args is not None
+        # Third argument is config
+        config_used = call_args[0][2]
+        assert config_used.dv01_per_million == 600.0  # Our override
+
+    @patch("aponyx.workflows.concrete_steps.load_parquet")
+    @patch("aponyx.workflows.concrete_steps.DataRegistry")
+    @patch("aponyx.workflows.concrete_steps.run_backtest")
+    @patch("aponyx.workflows.concrete_steps.save_parquet")
+    def test_backtest_step_applies_transaction_cost_bps_override(
+        self,
+        mock_save,
+        mock_run_backtest,
+        mock_data_registry_class,
+        mock_load_parquet,
+        sample_signal,
+        sample_market_data,
+        sample_backtest_result,
+    ):
+        """Test T020: BacktestStep applies transaction_cost_bps_override correctly."""
+        from unittest.mock import Mock
+        from aponyx.workflows.config import WorkflowConfig
+
+        # Create config with transaction cost bps override
+        config_with_override = WorkflowConfig(
+            label="test_tcost_bps_override",
+            signal_name="spread_momentum",
+            strategy_name="balanced",
+            product="cdx_ig_5y",
+            transaction_cost_bps_override=3.0,  # Override default 1.5
+        )
+
+        # Mock data registry
+        mock_registry = Mock()
+        mock_registry.load_dataset_by_security.return_value = sample_market_data["cdx"]
+        mock_data_registry_class.return_value = mock_registry
+
+        # Mock backtest result
+        mock_run_backtest.return_value = sample_backtest_result
+
+        step = BacktestStep(config_with_override)
+        context = {
+            "signal": {"signal": sample_signal},
+            "data": {"market_data": {"cdx_ig_5y": sample_market_data["cdx"]}},
+            "suitability": {"product": "cdx_ig_5y"},
+        }
+        step.execute(context)
+
+        # Verify run_backtest was called with overridden transaction cost
+        call_args = mock_run_backtest.call_args
+        assert call_args is not None
+        config_used = call_args[0][2]
+        assert config_used.transaction_cost_bps == 3.0  # Our override
+
+    @patch("aponyx.workflows.concrete_steps.load_parquet")
+    @patch("aponyx.workflows.concrete_steps.DataRegistry")
+    @patch("aponyx.workflows.concrete_steps.run_backtest")
+    @patch("aponyx.workflows.concrete_steps.save_parquet")
+    def test_backtest_step_applies_transaction_cost_pct_override(
+        self,
+        mock_save,
+        mock_run_backtest,
+        mock_data_registry_class,
+        mock_load_parquet,
+        sample_signal,
+        sample_market_data,
+        sample_backtest_result,
+    ):
+        """Test T020: BacktestStep applies transaction_cost_pct_override correctly."""
+        from unittest.mock import Mock
+        from aponyx.workflows.config import WorkflowConfig
+
+        # Create config with percentage-based transaction cost
+        config_with_override = WorkflowConfig(
+            label="test_tcost_pct_override",
+            signal_name="spread_momentum",
+            strategy_name="balanced",
+            product="cdx_ig_5y",
+            transaction_cost_pct_override=0.025,  # 2.5%
+        )
+
+        # Mock data registry
+        mock_registry = Mock()
+        mock_registry.load_dataset_by_security.return_value = sample_market_data["cdx"]
+        mock_data_registry_class.return_value = mock_registry
+
+        # Mock backtest result
+        mock_run_backtest.return_value = sample_backtest_result
+
+        step = BacktestStep(config_with_override)
+        context = {
+            "signal": {"signal": sample_signal},
+            "data": {"market_data": {"cdx_ig_5y": sample_market_data["cdx"]}},
+            "suitability": {"product": "cdx_ig_5y"},
+        }
+        step.execute(context)
+
+        # Verify run_backtest was called with pct mode
+        call_args = mock_run_backtest.call_args
+        assert call_args is not None
+        config_used = call_args[0][2]
+        assert config_used.transaction_cost_pct == 0.025  # Our override
+
 
 class TestPerformanceStep:
     """Test PerformanceStep implementation."""
