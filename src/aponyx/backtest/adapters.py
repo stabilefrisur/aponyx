@@ -32,13 +32,18 @@ class BacktestEngine(Protocol):
     ...         config: BacktestConfig | None = None,
     ...     ) -> BacktestResult:
     ...         import vectorbt as vbt
-    ...         entries = signal > config.entry_threshold
-    ...         exits = signal.abs() < config.exit_threshold
+    ...         # Entry when signal exceeds threshold (or any non-zero if no threshold)
+    ...         if config.entry_threshold is not None:
+    ...             entries = signal.abs() >= config.entry_threshold
+    ...         else:
+    ...             entries = signal != 0
+    ...         # Exit when signal returns to zero (via signal transformation's neutral_range)
+    ...         exits = signal == 0
     ...         portfolio = vbt.Portfolio.from_signals(
     ...             close=spread,
     ...             entries=entries,
     ...             exits=exits,
-    ...             size=config.position_size,
+    ...             size=config.position_size_mm,
     ...             fees=config.transaction_cost_bps / 10000,
     ...         )
     ...         # Convert vectorbt results to BacktestResult

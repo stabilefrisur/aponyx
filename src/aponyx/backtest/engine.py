@@ -273,6 +273,13 @@ def run_backtest(
         # Signal-based triggers: non-zero = enter, zero = exit
         signal_is_zero = abs(signal_val) < 1e-9
 
+        # Entry threshold check: only enter if signal exceeds threshold
+        # Entry threshold creates asymmetric entry/exit for mean-reversion strategies
+        if config.entry_threshold is not None:
+            signal_exceeds_entry_threshold = abs(signal_val) >= config.entry_threshold
+        else:
+            signal_exceeds_entry_threshold = not signal_is_zero
+
         # Calculate target position based on sizing mode
         if is_proportional:
             # Proportional: target position is actual notional in MM
@@ -298,8 +305,8 @@ def run_backtest(
 
         # State machine logic
         if state == PositionState.NO_POSITION:
-            # Ready to enter on non-zero signal
-            if not signal_is_zero:
+            # Ready to enter when signal exceeds entry threshold (or non-zero if no threshold)
+            if signal_exceeds_entry_threshold:
                 current_position = target_position
                 days_held = 0
                 state = PositionState.IN_POSITION
@@ -578,6 +585,7 @@ def run_backtest(
             "stop_loss_pct": config.stop_loss_pct,
             "take_profit_pct": config.take_profit_pct,
             "max_holding_days": config.max_holding_days,
+            "entry_threshold": config.entry_threshold,
             "transaction_cost_bps": config.transaction_cost_bps,
             "dv01_per_million": config.dv01_per_million,
             "signal_lag": config.signal_lag,

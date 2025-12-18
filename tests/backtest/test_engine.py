@@ -10,6 +10,7 @@ from aponyx.backtest import (
     BacktestConfig,
     run_backtest,
 )
+from aponyx.data.test_scenarios import get_scenario
 from aponyx.evaluation.performance import compute_all_metrics
 
 from . import make_test_config
@@ -80,9 +81,17 @@ def test_backtest_config_validation() -> None:
     with pytest.raises(ValueError, match="signal_lag must be non-negative"):
         make_test_config(signal_lag=-1)
 
+    # Invalid entry_threshold should raise
+    with pytest.raises(ValueError, match="entry_threshold must be positive"):
+        make_test_config(entry_threshold=0.0)
+
+    with pytest.raises(ValueError, match="entry_threshold must be positive"):
+        make_test_config(entry_threshold=-1.0)
+
     # Test default signal_lag value
     config = make_test_config()
     assert config.signal_lag == 1  # Default should be 1 for realistic execution
+    assert config.entry_threshold is None  # Default should be None (legacy behavior)
 
 
 def test_run_backtest_returns_result(
@@ -1698,6 +1707,187 @@ def test_binary_vs_proportional_comparison() -> None:
     assert (long_period["position"] == 5.0).all()
 
 
+# ============================================================================
+# Deterministic Test Scenario Integration
+# ============================================================================
+
+
+class TestDeterministicScenarios:
+    """Tests using deterministic scenarios with predictable outcomes."""
+
+    def test_profitable_long_scenario(self) -> None:
+        """Test profitable_long scenario produces expected positive P&L."""
+        scenario = get_scenario("profitable_long")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        # Verify expected outcome from scenario
+        assert result.pnl["cumulative_pnl"].iloc[-1] > 0
+        assert scenario.expected["pnl_positive"] is True
+
+    def test_profitable_short_scenario(self) -> None:
+        """Test profitable_short scenario produces expected positive P&L."""
+        scenario = get_scenario("profitable_short")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        assert result.pnl["cumulative_pnl"].iloc[-1] > 0
+
+    def test_unprofitable_long_scenario(self) -> None:
+        """Test unprofitable_long scenario produces expected negative P&L."""
+        scenario = get_scenario("unprofitable_long")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        assert result.pnl["cumulative_pnl"].iloc[-1] < 0
+        assert scenario.expected["pnl_positive"] is False
+
+    def test_unprofitable_short_scenario(self) -> None:
+        """Test unprofitable_short scenario produces expected negative P&L."""
+        scenario = get_scenario("unprofitable_short")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        assert result.pnl["cumulative_pnl"].iloc[-1] < 0
+
+    def test_few_trades_scenario(self) -> None:
+        """Test few_trades scenario produces limited number of trades."""
+        scenario = get_scenario("few_trades")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        n_trades = result.metadata["summary"]["n_trades"]
+        assert n_trades >= scenario.expected["n_trades_min"]
+        assert n_trades <= scenario.expected["n_trades_max"]
+
+    def test_many_trades_scenario(self) -> None:
+        """Test many_trades scenario produces high trade frequency."""
+        scenario = get_scenario("many_trades")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        n_trades = result.metadata["summary"]["n_trades"]
+        assert n_trades >= scenario.expected["n_trades_min"]
+
+    def test_stop_loss_trigger_scenario(self) -> None:
+        """Test stop_loss_trigger scenario correctly triggers exit."""
+        scenario = get_scenario("stop_loss_trigger")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+            stop_loss_pct=5.0,
+            dv01_per_million=475.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        # Verify stop loss triggered
+        stop_loss_count = result.metadata["summary"]["exit_counts"]["stop_loss"]
+        assert stop_loss_count > 0
+        assert scenario.expected["stop_loss_triggered"] is True
+
+    def test_take_profit_trigger_scenario(self) -> None:
+        """Test take_profit_trigger scenario correctly triggers exit."""
+        scenario = get_scenario("take_profit_trigger")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+            take_profit_pct=10.0,
+            dv01_per_million=475.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        # Verify take profit triggered
+        take_profit_count = result.metadata["summary"]["exit_counts"]["take_profit"]
+        assert take_profit_count > 0
+        assert scenario.expected["take_profit_triggered"] is True
+
+    def test_max_holding_trigger_scenario(self) -> None:
+        """Test max_holding_trigger scenario correctly triggers exit."""
+        scenario = get_scenario("max_holding_trigger")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+            max_holding_days=10,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        # Verify max holding days triggered
+        max_holding_count = result.metadata["summary"]["exit_counts"]["max_holding_days"]
+        assert max_holding_count > 0
+        assert scenario.expected["max_holding_triggered"] is True
+
+    def test_alternating_outcomes_scenario(self) -> None:
+        """Test alternating_outcomes scenario produces mixed hit rate."""
+        scenario = get_scenario("alternating_outcomes")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        # Compute hit rate from results
+        metrics = compute_all_metrics(result.pnl, result.positions)
+        hit_rate = metrics.hit_rate
+
+        assert hit_rate >= scenario.expected["hit_rate_min"]
+        assert hit_rate <= scenario.expected["hit_rate_max"]
+
+    def test_high_hit_rate_scenario(self) -> None:
+        """Test high_hit_rate scenario produces high win percentage."""
+        scenario = get_scenario("high_hit_rate")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        # Compute hit rate from results
+        metrics = compute_all_metrics(result.pnl, result.positions)
+        hit_rate = metrics.hit_rate
+
+        assert hit_rate >= scenario.expected["hit_rate_min"]
+
+
 def test_proportional_strategies_are_default() -> None:
     """Test that all base strategies have proportional sizing as default."""
     from aponyx.backtest.registry import StrategyRegistry
@@ -1900,3 +2090,384 @@ def test_static_vs_dynamic_comparison() -> None:
 
     # Should be very close (both use 1.5 bps equivalent)
     assert abs(static_cost - dynamic_cost) < 10.0
+
+
+# ============================================================================
+# Deterministic Test Scenario Integration
+# ============================================================================
+
+
+class TestDeterministicScenarios:
+    """Tests using deterministic scenarios with predictable outcomes."""
+
+    def test_profitable_long_scenario(self) -> None:
+        """Test profitable_long scenario produces expected positive P&L."""
+        scenario = get_scenario("profitable_long")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        # Verify expected outcome from scenario
+        assert result.pnl["cumulative_pnl"].iloc[-1] > 0
+        assert scenario.expected["pnl_positive"] is True
+
+    def test_profitable_short_scenario(self) -> None:
+        """Test profitable_short scenario produces expected positive P&L."""
+        scenario = get_scenario("profitable_short")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        assert result.pnl["cumulative_pnl"].iloc[-1] > 0
+
+    def test_unprofitable_long_scenario(self) -> None:
+        """Test unprofitable_long scenario produces expected negative P&L."""
+        scenario = get_scenario("unprofitable_long")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        assert result.pnl["cumulative_pnl"].iloc[-1] < 0
+        assert scenario.expected["pnl_positive"] is False
+
+    def test_unprofitable_short_scenario(self) -> None:
+        """Test unprofitable_short scenario produces expected negative P&L."""
+        scenario = get_scenario("unprofitable_short")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        assert result.pnl["cumulative_pnl"].iloc[-1] < 0
+
+    def test_few_trades_scenario(self) -> None:
+        """Test few_trades scenario produces limited number of trades."""
+        scenario = get_scenario("few_trades")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        n_trades = result.metadata["summary"]["n_trades"]
+        assert n_trades >= scenario.expected["n_trades_min"]
+        assert n_trades <= scenario.expected["n_trades_max"]
+
+    def test_many_trades_scenario(self) -> None:
+        """Test many_trades scenario produces high trade frequency."""
+        scenario = get_scenario("many_trades")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        n_trades = result.metadata["summary"]["n_trades"]
+        assert n_trades >= scenario.expected["n_trades_min"]
+
+    def test_stop_loss_trigger_scenario(self) -> None:
+        """Test stop_loss_trigger scenario correctly triggers exit."""
+        scenario = get_scenario("stop_loss_trigger")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+            stop_loss_pct=5.0,
+            dv01_per_million=475.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        # Verify stop loss triggered
+        stop_loss_count = result.metadata["summary"]["exit_counts"]["stop_loss"]
+        assert stop_loss_count > 0
+        assert scenario.expected["stop_loss_triggered"] is True
+
+    def test_take_profit_trigger_scenario(self) -> None:
+        """Test take_profit_trigger scenario correctly triggers exit."""
+        scenario = get_scenario("take_profit_trigger")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+            take_profit_pct=10.0,
+            dv01_per_million=475.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        # Verify take profit triggered
+        take_profit_count = result.metadata["summary"]["exit_counts"]["take_profit"]
+        assert take_profit_count > 0
+        assert scenario.expected["take_profit_triggered"] is True
+
+    def test_max_holding_trigger_scenario(self) -> None:
+        """Test max_holding_trigger scenario correctly triggers exit."""
+        scenario = get_scenario("max_holding_trigger")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+            max_holding_days=10,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        # Verify max holding days triggered
+        max_holding_count = result.metadata["summary"]["exit_counts"]["max_holding_days"]
+        assert max_holding_count > 0
+        assert scenario.expected["max_holding_triggered"] is True
+
+    def test_alternating_outcomes_scenario(self) -> None:
+        """Test alternating_outcomes scenario produces mixed hit rate."""
+        scenario = get_scenario("alternating_outcomes")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        # Compute hit rate from results
+        metrics = compute_all_metrics(result.pnl, result.positions)
+        hit_rate = metrics.hit_rate
+
+        assert hit_rate >= scenario.expected["hit_rate_min"]
+        assert hit_rate <= scenario.expected["hit_rate_max"]
+
+    def test_high_hit_rate_scenario(self) -> None:
+        """Test high_hit_rate scenario produces high win percentage."""
+        scenario = get_scenario("high_hit_rate")
+        config = make_test_config(
+            sizing_mode="binary",
+            signal_lag=0,
+            transaction_cost_bps=0.0,
+        )
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        # Compute hit rate from results
+        metrics = compute_all_metrics(result.pnl, result.positions)
+        hit_rate = metrics.hit_rate
+
+        assert hit_rate >= scenario.expected["hit_rate_min"]
+
+
+# ============================================================================
+# Entry Threshold Tests
+# ============================================================================
+
+
+def test_entry_threshold_prevents_entry_below_threshold() -> None:
+    """Test that entry_threshold prevents entry when signal is below threshold."""
+    dates = pd.date_range("2024-01-01", periods=10, freq="D")
+
+    # Signal oscillates but never exceeds entry threshold of 1.5
+    signal = pd.Series(
+        [0.0, 0.5, 1.0, 1.4, 1.0, 0.5, -0.5, -1.0, -1.4, 0.0],
+        index=dates,
+    )
+    spread = pd.Series([100.0] * 10, index=dates)
+
+    config = make_test_config(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        entry_threshold=1.5,  # Signal never reaches this
+    )
+
+    result = run_backtest(signal, spread, config)
+
+    # Should never enter a position (all signals below threshold)
+    assert (result.positions["position"] == 0).all(), (
+        "Should never enter position when signal doesn't exceed entry_threshold"
+    )
+
+
+def test_entry_threshold_allows_entry_above_threshold() -> None:
+    """Test that entry_threshold allows entry when signal exceeds threshold."""
+    dates = pd.date_range("2024-01-01", periods=10, freq="D")
+
+    # Signal exceeds entry threshold of 1.5 on day 4
+    signal = pd.Series(
+        [0.0, 0.5, 1.0, 1.6, 1.2, 0.8, 0.4, 0.0, -1.6, 0.0],
+        index=dates,
+    )
+    spread = pd.Series([100.0] * 10, index=dates)
+
+    config = make_test_config(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        entry_threshold=1.5,
+    )
+
+    result = run_backtest(signal, spread, config)
+
+    # Should enter on day 4 (signal = 1.6 > 1.5)
+    assert result.positions.loc[dates[3], "position"] != 0, (
+        "Should enter position when signal exceeds entry_threshold"
+    )
+    # Should be long (positive signal)
+    assert result.positions.loc[dates[3], "position"] > 0
+
+
+def test_entry_threshold_asymmetric_entry_exit() -> None:
+    """Test asymmetric entry/exit: enter at extreme, exit when signal returns to zero."""
+    dates = pd.date_range("2024-01-01", periods=15, freq="D")
+
+    # Signal: extreme entry → gradual decline → zero exit
+    signal = pd.Series(
+        [0.0, 0.5, 2.0, 1.5, 1.0, 0.5, 0.3, 0.0, -2.0, -1.5, -1.0, -0.5, -0.3, 0.0, 0.0],
+        index=dates,
+    )
+    spread = pd.Series([100.0] * 15, index=dates)
+
+    config = make_test_config(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        entry_threshold=1.8,  # Only enter at extremes
+    )
+
+    result = run_backtest(signal, spread, config)
+
+    # Entry on day 3 (signal = 2.0 > 1.8)
+    assert result.positions.loc[dates[2], "position"] > 0, "Should enter long on day 3"
+
+    # Position held through declining signal (1.5, 1.0, 0.5, 0.3 - all non-zero)
+    for i in range(3, 7):
+        assert result.positions.loc[dates[i], "position"] != 0, (
+            f"Should maintain position on day {i+1} (signal still non-zero)"
+        )
+
+    # Exit when signal hits zero
+    assert result.positions.loc[dates[7], "position"] == 0, (
+        "Should exit when signal returns to zero"
+    )
+
+    # Entry on day 9 (signal = -2.0, |signal| > 1.8)
+    assert result.positions.loc[dates[8], "position"] < 0, "Should enter short on day 9"
+
+
+def test_entry_threshold_no_reentry_between_threshold_and_zero() -> None:
+    """Test that no re-entry occurs when signal is between 0 and entry_threshold."""
+    dates = pd.date_range("2024-01-01", periods=12, freq="D")
+
+    # Signal: extreme entry → zero exit → moderate signal (below threshold)
+    signal = pd.Series(
+        [0.0, 2.0, 1.0, 0.0, 0.5, 1.0, 1.4, 0.8, 0.3, 0.0, -0.5, 0.0],
+        index=dates,
+    )
+    spread = pd.Series([100.0] * 12, index=dates)
+
+    config = make_test_config(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        entry_threshold=1.5,
+    )
+
+    result = run_backtest(signal, spread, config)
+
+    # Enter on day 2 (signal = 2.0 > 1.5)
+    assert result.positions.loc[dates[1], "position"] > 0
+
+    # Exit on day 4 (signal = 0.0)
+    assert result.positions.loc[dates[3], "position"] == 0
+
+    # No re-entry on days 5-9 (signals 0.5, 1.0, 1.4, 0.8, 0.3 all below threshold)
+    for i in range(4, 9):
+        assert result.positions.loc[dates[i], "position"] == 0, (
+            f"Should not re-enter on day {i+1} (signal {signal.iloc[i]} below threshold)"
+        )
+
+
+def test_entry_threshold_none_preserves_legacy_behavior() -> None:
+    """Test that entry_threshold=None preserves legacy behavior (any non-zero = entry)."""
+    dates = pd.date_range("2024-01-01", periods=6, freq="D")
+
+    # Small signal values
+    signal = pd.Series([0.0, 0.1, 0.3, 0.0, -0.1, 0.0], index=dates)
+    spread = pd.Series([100.0] * 6, index=dates)
+
+    config = make_test_config(
+        position_size_mm=10.0,
+        sizing_mode="proportional",
+        signal_lag=0,
+        entry_threshold=None,  # Legacy behavior
+    )
+
+    result = run_backtest(signal, spread, config)
+
+    # Should enter on day 2 (signal = 0.1 is non-zero)
+    assert result.positions.loc[dates[1], "position"] != 0, (
+        "With entry_threshold=None, any non-zero signal should trigger entry"
+    )
+
+
+def test_entry_threshold_with_binary_sizing() -> None:
+    """Test entry_threshold works correctly with binary sizing mode."""
+    dates = pd.date_range("2024-01-01", periods=8, freq="D")
+
+    # Signal exceeds threshold on day 3
+    signal = pd.Series([0.0, 0.5, 1.8, 1.0, 0.5, 0.0, -2.0, 0.0], index=dates)
+    spread = pd.Series([100.0] * 8, index=dates)
+
+    config = make_test_config(
+        position_size_mm=10.0,
+        sizing_mode="binary",
+        signal_lag=0,
+        entry_threshold=1.5,
+    )
+
+    result = run_backtest(signal, spread, config)
+
+    # Days 1-2: no entry (signal 0.5 below threshold)
+    assert result.positions.loc[dates[1], "position"] == 0
+
+    # Day 3: entry (signal 1.8 > 1.5)
+    assert result.positions.loc[dates[2], "position"] == 1  # Binary mode: +1
+
+    # Day 6: exit (signal = 0)
+    assert result.positions.loc[dates[5], "position"] == 0
+
+    # Day 7: entry short (signal -2.0, |-2.0| > 1.5)
+    assert result.positions.loc[dates[6], "position"] == -1  # Binary mode: -1
+
+
+def test_entry_threshold_in_metadata() -> None:
+    """Test that entry_threshold is included in backtest result metadata."""
+    dates = pd.date_range("2024-01-01", periods=5, freq="D")
+    signal = pd.Series([0.0, 2.0, 1.0, 0.0, 0.0], index=dates)
+    spread = pd.Series([100.0] * 5, index=dates)
+
+    config = make_test_config(
+        signal_lag=0,
+        entry_threshold=1.8,
+    )
+
+    result = run_backtest(signal, spread, config)
+
+    assert "entry_threshold" in result.metadata["config"]
+    assert result.metadata["config"]["entry_threshold"] == 1.8

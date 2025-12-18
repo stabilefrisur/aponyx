@@ -38,6 +38,7 @@ def make_minimal_test_config(**overrides) -> BacktestConfig:
         "stop_loss_pct": None,  # Intentionally None for simpler tests
         "take_profit_pct": None,  # Intentionally None for simpler tests
         "max_holding_days": None,
+        "entry_threshold": None,  # Intentionally None for simpler tests (legacy behavior)
         "transaction_cost_bps": 1.0,
         "transaction_cost_pct": None,  # Static mode by default
         "dv01_per_million": 475.0,
@@ -133,6 +134,7 @@ def make_minimal_test_metadata(**overrides) -> StrategyMetadata:
         "stop_loss_pct": None,  # Intentionally None for simpler tests
         "take_profit_pct": None,  # Intentionally None for simpler tests
         "max_holding_days": None,
+        "entry_threshold": None,  # Intentionally None for simpler tests (legacy behavior)
         "enabled": True,
     }
     defaults.update(overrides)

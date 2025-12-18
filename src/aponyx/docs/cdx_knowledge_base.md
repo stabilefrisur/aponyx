@@ -370,9 +370,20 @@ class BacktestConfig:
     transaction_cost_bps: float       # Per-trade cost in bps (required)
     dv01_per_million: float           # DV01 per $1MM (required, ~475 for CDX IG 5Y)
     signal_lag: int = 1               # Days to lag signal (0=same-day, 1=next-day)
+    entry_threshold: float | None     # Min |signal| to enter (asymmetric entry/exit)
 ```
 
-Note: All parameters except `signal_lag` must be explicitly provided. Use `StrategyRegistry.get()` to load from catalog.
+Note: All parameters except `signal_lag` and `entry_threshold` must be explicitly provided. Use `StrategyRegistry.get()` to load from catalog.
+
+### Entry Threshold for Mean-Reversion
+
+The `entry_threshold` parameter enables asymmetric entry/exit for mean-reversion strategies:
+- **Entry**: Only when |signal| >= entry_threshold (e.g., 1.8)
+- **Exit**: When signal returns to zero (via signal transformation's neutral_range)
+
+This allows the reversion to run before closing the trade. Example configuration:
+- `entry_threshold=1.8`: Enter at extreme signal values
+- Signal transformation `neutral_range=[-0.5, 0.5]`: Exit when signal enters neutral zone
 
 ### Strategy Catalog
 
@@ -385,24 +396,24 @@ Note: All parameters except `signal_lag` must be explicitly provided. Use `Strat
   "stop_loss_pct": 5.0,
   "take_profit_pct": 10.0,
   "max_holding_days": null,
-  "transaction_cost_bps": 1.0,
-  "dv01_per_million": 475.0,
+  "entry_threshold": 1.5,
   "enabled": true
 }
 ```
 
-Note: `signal_lag` defaults to 1 in BacktestConfig and is not stored in the catalog.
+Note: `signal_lag` defaults to 1 in BacktestConfig. Microstructure parameters (transaction_cost_bps, dv01_per_million) come from bloomberg_securities.json.
 
 ### Running a Backtest
 
 ```python
 from aponyx.backtest import BacktestConfig, run_backtest
 
-# DV01 comes from strategy catalog (475.0 for CDX IG 5Y)
+# DV01 comes from bloomberg_securities.json (475.0 for CDX IG 5Y)
 config = BacktestConfig(
     position_size_mm=10.0,
     stop_loss_pct=5.0,
-    dv01_per_million=475.0
+    dv01_per_million=475.0,
+    entry_threshold=1.8,  # Enter only at extreme signals
 )
 
 result = run_backtest(signal, spread, config)

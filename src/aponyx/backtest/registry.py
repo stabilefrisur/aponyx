@@ -40,6 +40,12 @@ class StrategyMetadata:
         Take profit as percentage of initial position value. None to disable.
     max_holding_days : int | None
         Maximum days to hold a position before forced exit. None for no limit.
+    entry_threshold : float | None
+        Minimum absolute signal value required to enter a position.
+        Only signals with |signal| >= entry_threshold trigger entry.
+        Should be wider than neutral_range in signal transformation to allow
+        reversion signals to run before exiting.
+        None = any non-zero signal triggers entry (legacy behavior).
     enabled : bool
         Whether strategy should be included in evaluation.
     """
@@ -51,6 +57,7 @@ class StrategyMetadata:
     stop_loss_pct: float | None
     take_profit_pct: float | None
     max_holding_days: int | None
+    entry_threshold: float | None = None
     enabled: bool = True
 
     def __post_init__(self) -> None:
@@ -82,6 +89,11 @@ class StrategyMetadata:
                 f"Strategy '{self.name}': max_holding_days must be positive, "
                 f"got {self.max_holding_days}"
             )
+        if self.entry_threshold is not None and self.entry_threshold <= 0:
+            raise ValueError(
+                f"Strategy '{self.name}': entry_threshold must be positive, "
+                f"got {self.entry_threshold}"
+            )
 
     def to_config(
         self,
@@ -92,6 +104,7 @@ class StrategyMetadata:
         stop_loss_pct_override: float | None = None,
         take_profit_pct_override: float | None = None,
         max_holding_days_override: int | None = None,
+        entry_threshold_override: float | None = None,
         transaction_cost_pct: float | None = None,
     ) -> BacktestConfig:
         """
@@ -117,6 +130,8 @@ class StrategyMetadata:
             Override catalog take_profit_pct value (use False to explicitly disable).
         max_holding_days_override : int | None, default None
             Override catalog max_holding_days value (use False to explicitly disable).
+        entry_threshold_override : float | None, default None
+            Override catalog entry_threshold value (use False to explicitly disable).
         transaction_cost_pct : float | None, default None
             Dynamic transaction cost as percentage of current spread.
             When set, this overrides transaction_cost_bps with spread-dependent costs.
@@ -167,6 +182,11 @@ class StrategyMetadata:
                 max_holding_days_override
                 if max_holding_days_override is not None
                 else self.max_holding_days
+            ),
+            entry_threshold=(
+                entry_threshold_override
+                if entry_threshold_override is not None
+                else self.entry_threshold
             ),
             transaction_cost_bps=transaction_cost_bps,
             dv01_per_million=dv01_per_million,

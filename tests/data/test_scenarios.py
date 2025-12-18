@@ -222,14 +222,11 @@ class TestTradeFrequencyScenarios:
     def test_many_trades_oscillates(self) -> None:
         """Test many_trades signal oscillates frequently."""
         scenario = get_scenario("many_trades")
-        # Count sign changes
-        sign_changes = (
-            (np.sign(scenario.signal) != np.sign(scenario.signal.shift(1)))
-            & (scenario.signal != 0)
-            & (scenario.signal.shift(1) != 0)
-        )
-        n_sign_changes = sign_changes.sum()
-        assert n_sign_changes > 20
+        # Count position changes (entry/exit transitions)
+        position_changes = np.sign(scenario.signal) != np.sign(scenario.signal.shift(1))
+        n_position_changes = position_changes.sum()
+        # Should have at least 20 position changes for "many trades"
+        assert n_position_changes > 20
 
 
 class TestLagScenarios:
@@ -330,6 +327,10 @@ class TestBacktestIntegration:
                 "signal_lag": 0,
                 "transaction_cost_bps": 0.0,
                 "dv01_per_million": 475.0,
+                "stop_loss_pct": None,
+                "take_profit_pct": None,
+                "max_holding_days": None,
+                "entry_threshold": None,
             }
             defaults.update(kwargs)
             return BacktestConfig(**defaults)

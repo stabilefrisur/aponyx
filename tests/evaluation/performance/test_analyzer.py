@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from aponyx.backtest import BacktestResult
+from aponyx.backtest import BacktestResult, run_backtest, BacktestConfig
+from aponyx.data.test_scenarios import get_scenario
 from aponyx.evaluation.performance import (
     PerformanceConfig,
     analyze_backtest_performance,
@@ -137,3 +138,54 @@ class TestAnalyzeBacktestPerformance:
         assert result.metadata["strategy_id"] == "test_strategy"
         assert "evaluator_version" in result.metadata
         assert "backtest_config" in result.metadata
+
+
+class TestDeterministicScenarios:
+    """Tests using deterministic scenarios for performance analysis validation."""
+
+    @staticmethod
+    def _make_config(**overrides) -> BacktestConfig:
+        """Create a minimal backtest config for testing."""
+        defaults = {
+            "position_size_mm": 10.0,
+            "sizing_mode": "binary",
+            "stop_loss_pct": None,
+            "take_profit_pct": None,
+            "max_holding_days": None,
+            "transaction_cost_bps": 0.0,
+            "dv01_per_million": 475.0,
+            "signal_lag": 0,
+        }
+        defaults.update(overrides)
+        return BacktestConfig(**defaults)
+
+    @staticmethod
+    def _make_perf_config(**overrides) -> PerformanceConfig:
+        """Create a performance config for testing with lower min_obs."""
+        defaults = {
+            "min_obs": 100,  # Lower for test scenarios
+            "n_subperiods": 2,
+            "rolling_window": 20,
+            "attribution_quantiles": 2,  # Lower for simple test signals
+        }
+        defaults.update(overrides)
+        return PerformanceConfig(**defaults)
+
+    def test_many_trades_scenario_trade_count(self) -> None:
+        """Test many_trades scenario has expected trade count in metrics.
+
+        Uses many_trades scenario which has varying signal magnitudes,
+        compatible with signal strength attribution analysis.
+        """
+        scenario = get_scenario("many_trades")
+        config = self._make_config()
+        perf_config = self._make_perf_config()
+
+        backtest_result = run_backtest(scenario.signal, scenario.spread, config)
+        perf_result = analyze_backtest_performance(backtest_result, perf_config)
+
+        # Many trades scenario should have high trade count
+        assert perf_result.metrics.n_trades >= scenario.expected["n_trades_min"]
+        # Verify metrics computed successfully
+        assert perf_result.stability_score >= 0
+        assert perf_result.metrics.sharpe_ratio is not None

@@ -40,6 +40,12 @@ class BacktestConfig:
         0 = same-day execution (idealized), 1 = next-day execution (realistic).
         Helps prevent look-ahead bias in backtests.
         Default is 1 for realistic execution timing.
+    entry_threshold : float | None
+        Minimum absolute signal value required to enter a position.
+        Only signals with |signal| >= entry_threshold trigger entry.
+        Should be wider than neutral_range in signal transformation to allow
+        reversion signals to run before exiting.
+        None = any non-zero signal triggers entry (legacy behavior).
 
     Notes
     -----
@@ -49,6 +55,7 @@ class BacktestConfig:
     - PnL-based exits (stop loss, take profit) trigger cooldown before re-entry.
     - Transaction costs are applied symmetrically on entry and exit.
     - signal_lag models realistic execution timing and prevents look-ahead bias.
+    - entry_threshold creates asymmetric entry/exit: enter at extremes, exit at neutral.
 
     Transaction Cost Modes
     ----------------------
@@ -57,6 +64,14 @@ class BacktestConfig:
     - **Dynamic mode** (transaction_cost_pct set): Uses percentage of current spread.
       Industry standard is 2.5% (0.025) per UBS Credit Beta methodology.
 
+    Entry/Exit Asymmetry
+    --------------------
+    For mean-reversion strategies, entry_threshold should be wider than the
+    signal's neutral_range. Example:
+    - entry_threshold=1.8: Only enter when |signal| >= 1.8
+    - neutral_range=[-0.5, 0.5]: Exit when signal enters this zone
+    This allows the reversion to run before closing the trade.
+
     Examples
     --------
     >>> # Static mode: pre-calibrated 1.5bps for typical 60bp spread
@@ -64,6 +79,9 @@ class BacktestConfig:
 
     >>> # Dynamic mode: 2.5% of current spread
     >>> config = BacktestConfig(..., transaction_cost_bps=0.0, transaction_cost_pct=0.025)
+
+    >>> # Entry threshold for reversion strategy
+    >>> config = BacktestConfig(..., entry_threshold=1.8)  # Enter at extremes only
     """
 
     position_size_mm: float
@@ -75,6 +93,7 @@ class BacktestConfig:
     dv01_per_million: float
     signal_lag: int = 1
     transaction_cost_pct: float | None = None
+    entry_threshold: float | None = None
 
     def __post_init__(self) -> None:
         """Validate configuration parameters."""
@@ -110,3 +129,7 @@ class BacktestConfig:
             )
         if self.signal_lag < 0:
             raise ValueError(f"signal_lag must be non-negative, got {self.signal_lag}")
+        if self.entry_threshold is not None and self.entry_threshold <= 0:
+            raise ValueError(
+                f"entry_threshold must be positive, got {self.entry_threshold}"
+            )

@@ -28,6 +28,7 @@ def _make_test_metadata(**overrides) -> dict:
         "stop_loss_pct": None,
         "take_profit_pct": None,
         "max_holding_days": None,
+        "entry_threshold": None,
         "enabled": True,
     }
     defaults.update(overrides)

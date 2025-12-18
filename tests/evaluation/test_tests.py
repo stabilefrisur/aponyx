@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 
+from aponyx.data.test_scenarios import get_scenario
 from aponyx.evaluation.suitability import tests
 
 
@@ -231,3 +232,82 @@ class TestComputeStabilityMetrics:
         assert (
             metrics["sign_consistency_ratio"] == 1.0
         )  # All significant ones are positive
+
+
+class TestDeterministicScenarios:
+    """Tests using deterministic scenarios for statistical function validation."""
+
+    def test_high_correlation_scenario(self) -> None:
+        """Test high_correlation scenario produces expected correlation."""
+        scenario = get_scenario("high_correlation")
+
+        corr = tests.compute_correlation(scenario.signal, scenario.target)
+
+        assert corr >= scenario.expected["correlation_min"]
+        assert corr <= scenario.expected["correlation_max"]
+
+    def test_low_correlation_scenario(self) -> None:
+        """Test low_correlation scenario produces near-zero correlation."""
+        scenario = get_scenario("low_correlation")
+
+        corr = tests.compute_correlation(scenario.signal, scenario.target)
+
+        assert corr >= scenario.expected["correlation_min"]
+        assert corr <= scenario.expected["correlation_max"]
+
+    def test_negative_correlation_scenario(self) -> None:
+        """Test negative_correlation scenario produces expected negative correlation."""
+        scenario = get_scenario("negative_correlation")
+
+        corr = tests.compute_correlation(scenario.signal, scenario.target)
+
+        assert corr >= scenario.expected["correlation_min"]
+        assert corr <= scenario.expected["correlation_max"]
+
+    def test_stable_beta_regression_stats(self) -> None:
+        """Test stable_beta scenario produces consistent regression stats."""
+        scenario = get_scenario("stable_beta")
+
+        stats = tests.compute_regression_stats(scenario.signal, scenario.target)
+
+        # Stable relationship should have high R²
+        assert stats["r_squared"] >= scenario.expected.get("r_squared_min", 0.8)
+        assert stats["p_value"] < 0.01  # Should be significant
+
+        # Beta should be positive
+        if scenario.expected.get("beta_positive"):
+            assert stats["beta"] > 0
+
+    def test_stable_beta_rolling_stability(self) -> None:
+        """Test stable_beta scenario produces consistent rolling betas."""
+        scenario = get_scenario("stable_beta")
+
+        rolling_betas = tests.compute_rolling_betas(
+            scenario.signal, scenario.target, window=252
+        )
+
+        # Full-sample beta
+        full_stats = tests.compute_regression_stats(scenario.signal, scenario.target)
+        aggregate_beta = full_stats["beta"]
+
+        metrics = tests.compute_stability_metrics(rolling_betas, aggregate_beta)
+
+        assert metrics["sign_consistency_ratio"] >= scenario.expected["sign_consistency_min"]
+        assert metrics["beta_cv"] <= scenario.expected["beta_cv_max"]
+
+    def test_unstable_beta_rolling_stability(self) -> None:
+        """Test unstable_beta scenario produces varying rolling betas."""
+        scenario = get_scenario("unstable_beta")
+
+        rolling_betas = tests.compute_rolling_betas(
+            scenario.signal, scenario.target, window=252
+        )
+
+        # Full-sample beta (may be near zero due to cancellation)
+        full_stats = tests.compute_regression_stats(scenario.signal, scenario.target)
+        aggregate_beta = full_stats["beta"]
+
+        metrics = tests.compute_stability_metrics(rolling_betas, aggregate_beta)
+
+        assert metrics["sign_consistency_ratio"] <= scenario.expected["sign_consistency_max"]
+        assert metrics["beta_cv"] >= scenario.expected.get("beta_cv_min", 0.5)

@@ -31,6 +31,7 @@ def test_strategy_registry_loads_new_schema() -> None:
         assert hasattr(metadata, "stop_loss_pct")
         assert hasattr(metadata, "take_profit_pct")
         assert hasattr(metadata, "max_holding_days")
+        assert hasattr(metadata, "entry_threshold")
         # Microstructure fields should NOT be in metadata
         assert not hasattr(metadata, "transaction_cost_bps")
         assert not hasattr(metadata, "dv01_per_million")
@@ -52,15 +53,21 @@ def test_all_strategies_have_position_sizing_fields() -> None:
         )
 
 
-def test_entry_exit_thresholds_not_present() -> None:
-    """Test T037: entry_threshold/exit_threshold are not present in loaded strategies."""
+def test_entry_threshold_present_in_strategies() -> None:
+    """Test T037: entry_threshold is now a valid optional field in strategies."""
     registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
 
     for name, metadata in registry.list_all().items():
-        # Old fields should not exist
-        assert not hasattr(metadata, "entry_threshold"), (
-            f"Strategy {name}: entry_threshold should not exist"
+        # entry_threshold should now be a valid attribute (can be None or positive value)
+        assert hasattr(metadata, "entry_threshold"), (
+            f"Strategy {name}: entry_threshold should be an attribute"
         )
+        # If set, must be positive
+        if metadata.entry_threshold is not None:
+            assert metadata.entry_threshold > 0, (
+                f"Strategy {name}: entry_threshold must be positive if set"
+            )
+        # exit_threshold should NOT exist (exits are based on signal returning to zero/neutral)
         assert not hasattr(metadata, "exit_threshold"), (
             f"Strategy {name}: exit_threshold should not exist"
         )
@@ -200,6 +207,29 @@ def test_strategy_metadata_validation() -> None:
             stop_loss_pct=150.0,
         )
 
+    # Invalid entry_threshold should raise
+    with pytest.raises(ValueError, match="entry_threshold must be positive"):
+        make_test_strategy_metadata(
+            name="test",
+            description="Test",
+            entry_threshold=0.0,
+        )
+
+    with pytest.raises(ValueError, match="entry_threshold must be positive"):
+        make_test_strategy_metadata(
+            name="test",
+            description="Test",
+            entry_threshold=-1.0,
+        )
+
+    # Valid entry_threshold should work
+    metadata_with_threshold = make_test_strategy_metadata(
+        name="test",
+        description="Test strategy",
+        entry_threshold=1.5,
+    )
+    assert metadata_with_threshold.entry_threshold == 1.5
+
 
 def test_strategy_metadata_to_config_requires_microstructure_params() -> None:
     """Test that to_config() requires dv01_per_million and transaction_cost_bps."""
@@ -219,3 +249,44 @@ def test_strategy_metadata_to_config_requires_microstructure_params() -> None:
     # Should fail without required params
     with pytest.raises(TypeError):
         metadata.to_config()  # type: ignore  # Missing required args
+
+
+def test_strategy_metadata_to_config_preserves_entry_threshold() -> None:
+    """Test that to_config() preserves entry_threshold from metadata."""
+    metadata = make_test_strategy_metadata(
+        name="test",
+        description="Test strategy",
+        entry_threshold=1.8,
+    )
+
+    config = metadata.to_config(
+        dv01_per_million=475.0,
+        transaction_cost_bps=1.5,
+    )
+    assert config.entry_threshold == 1.8
+
+
+def test_strategy_metadata_to_config_entry_threshold_override() -> None:
+    """Test that to_config() allows entry_threshold override."""
+    metadata = make_test_strategy_metadata(
+        name="test",
+        description="Test strategy",
+        entry_threshold=1.8,
+    )
+
+    # Override with different value
+    config = metadata.to_config(
+        dv01_per_million=475.0,
+        transaction_cost_bps=1.5,
+        entry_threshold_override=2.0,
+    )
+    assert config.entry_threshold == 2.0
+
+    # Override to None (disable)
+    metadata_with_threshold = make_test_strategy_metadata(
+        name="test",
+        description="Test strategy",
+        entry_threshold=1.8,
+    )
+    # Note: Can't override to None since None means "use catalog value"
+    # This is consistent with other override patterns

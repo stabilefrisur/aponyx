@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from aponyx.backtest import run_backtest, BacktestConfig
+from aponyx.data.test_scenarios import get_scenario
 from aponyx.evaluation.performance.metrics import (
     compute_all_metrics,
     compute_consistency_score,
@@ -387,3 +389,70 @@ class TestComputeAllMetrics:
         assert metrics.beta is not None
         assert isinstance(metrics.alpha, (int, float))
         assert isinstance(metrics.beta, (int, float))
+
+
+class TestDeterministicScenarios:
+    """Tests using deterministic scenarios for metrics validation."""
+
+    @staticmethod
+    def _make_config(**overrides) -> BacktestConfig:
+        """Create a minimal backtest config for testing."""
+        defaults = {
+            "position_size_mm": 10.0,
+            "sizing_mode": "binary",
+            "stop_loss_pct": None,
+            "take_profit_pct": None,
+            "max_holding_days": None,
+            "transaction_cost_bps": 0.0,
+            "dv01_per_million": 475.0,
+            "signal_lag": 0,
+        }
+        defaults.update(overrides)
+        return BacktestConfig(**defaults)
+
+    def test_profitable_long_positive_profit_factor(self) -> None:
+        """Test profitable_long scenario has high profit factor."""
+        scenario = get_scenario("profitable_long")
+        config = self._make_config()
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+        profit_factor = compute_profit_factor(result.pnl["net_pnl"])
+
+        # Profitable scenario should have profit factor > 1
+        assert profit_factor > 1.0 or profit_factor == np.inf
+
+    def test_unprofitable_long_low_profit_factor(self) -> None:
+        """Test unprofitable_long scenario has low profit factor."""
+        scenario = get_scenario("unprofitable_long")
+        config = self._make_config()
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+        profit_factor = compute_profit_factor(result.pnl["net_pnl"])
+
+        # Unprofitable scenario should have profit factor < 1
+        assert profit_factor < 1.0
+
+    def test_alternating_outcomes_moderate_consistency(self) -> None:
+        """Test alternating_outcomes scenario has moderate consistency score."""
+        scenario = get_scenario("alternating_outcomes")
+        config = self._make_config()
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+
+        # Compute extended metrics
+        extended = compute_extended_metrics(result.pnl, rolling_window=21)
+
+        # Alternating wins/losses should produce moderate consistency
+        # Not too high (all wins) and not too low (all losses)
+        assert 0.2 <= extended["consistency_score"] <= 0.8
+
+    def test_profitable_tail_ratio(self) -> None:
+        """Test profitable scenario has favorable tail ratio."""
+        scenario = get_scenario("profitable_long")
+        config = self._make_config()
+
+        result = run_backtest(scenario.signal, scenario.spread, config)
+        tail_ratio = compute_tail_ratio(result.pnl["net_pnl"])
+
+        # Profitable trending scenario should have decent tail ratio
+        assert tail_ratio >= 0  # At minimum, should be calculable

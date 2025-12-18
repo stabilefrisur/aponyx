@@ -502,6 +502,26 @@ Position is full size regardless of signal magnitude:
 
 **Note:** All default strategies use proportional sizing. To use binary sizing, modify the strategy's `sizing_mode` in `strategy_catalog.json`.
 
+### Entry Threshold for Mean-Reversion
+
+The `entry_threshold` parameter enables asymmetric entry/exit, ideal for mean-reversion strategies:
+
+| Parameter | Description | Effect |
+|-----------|-------------|--------|
+| `entry_threshold` | Min |signal| to enter | Only enter when signal is at extreme values |
+| Signal's `neutral_range` | Values that become zero | Exit when signal reverts to neutral zone |
+
+**Example:** With `entry_threshold=1.8` and signal `neutral_range=[-0.5, 0.5]`:
+- Entry: Signal must exceed ±1.8 to enter a position
+- Exit: Position closes when signal enters [-0.5, 0.5] (becomes zero)
+- This allows the reversion to run before exiting
+
+**Strategy Values:**
+- `conservative`: entry_threshold=1.8 (most selective entry)
+- `balanced`: entry_threshold=1.5
+- `aggressive`: entry_threshold=1.0 (most entries)
+- `experimental`: entry_threshold=null (legacy behavior - any non-zero signal enters)
+
 ### Example Comparison
 
 ```yaml
