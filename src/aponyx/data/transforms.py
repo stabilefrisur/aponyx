@@ -148,7 +148,7 @@ def _pct_change(series: pd.Series, periods: int = 1) -> pd.Series:
     - First `periods` observations will be NaN
     - Use for cross-asset comparison where scales differ
     """
-    return series.pct_change(periods)
+    return series.pct_change(periods, fill_method=None)
 
 
 def _log_return(series: pd.Series, periods: int = 1) -> pd.Series:
