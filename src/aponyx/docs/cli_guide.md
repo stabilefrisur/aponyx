@@ -310,7 +310,9 @@ Results saved to: `data/workflows/{label}_{timestamp}/`
 ```
 ├── metadata.json              # Run parameters (label, signal, strategy, product, securities_used, status, timestamp)
 ├── signals/
-│   └── signal.parquet         # Signal time series
+│   ├── indicator.parquet      # Raw indicator output (bps, ratios)
+│   ├── score.parquet          # Normalized score (z-score)
+│   └── signal.parquet         # Final signal after trading rules
 ├── reports/
 │   ├── suitability_evaluation_{timestamp}.md  # Pre-backtest analysis
 │   └── performance_analysis_{timestamp}.md    # Post-backtest metrics
@@ -320,7 +322,8 @@ Results saved to: `data/workflows/{label}_{timestamp}/`
 └── visualizations/            # Plotly charts (HTML)
     ├── equity_curve.html
     ├── drawdown.html
-    └── signal.html
+    ├── signal.html
+    └── research_dashboard.html  # 5-panel pipeline visualization
 ```
 
 **Cache:** `data/cache/{provider}/{security}_{hash}.parquet` (TTL-based, auto-regenerated)

@@ -3,40 +3,60 @@ Generate visualization charts for backtest results.
 
 Prerequisites
 -------------
-Backtest results saved from backtest execution (06_run_backtest.py):
-- P&L file: data/workflows/backtests/{signal}_{strategy}_pnl.parquet
-- Positions file: data/workflows/backtests/{signal}_{strategy}_positions.parquet
+Completed workflow run with saved results:
+- signals/indicator.parquet: Indicator time series
+- signals/score.parquet: Score time series
+- signals/signal.parquet: Signal time series
+- backtest/pnl.parquet: P&L series
+- backtest/positions.parquet: Position series
+
+OR legacy backtest results from 06_run_backtest.py:
+- data/workflows/backtests/{signal}_{strategy}_pnl.parquet
+- data/workflows/backtests/{signal}_{strategy}_positions.parquet
 
 Outputs
 -------
-Three Plotly figure objects:
+Four Plotly figure objects:
 - Equity curve: cumulative P&L over time
 - Drawdown chart: underwater equity visualization
 - Signal plot: time series of signal values with thresholds
+- Research dashboard: 5-panel view of full signal pipeline
 
 Examples
 --------
-Run from project root:
+Run from project root with workflow directory:
+    python -m aponyx.examples.08_visualize_results data/workflows/test_workflow_20251218_123456/
+
+Or run with defaults (uses legacy backtest path):
     python -m aponyx.examples.08_visualize_results
 
-Expected output: Three interactive Plotly charts displayed or saved.
+Expected output: Four interactive Plotly charts displayed or saved.
 Figures can be rendered in notebooks, Streamlit apps, or exported to HTML.
 """
+
+import json
+import sys
+from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
 
-from aponyx.config import DATA_WORKFLOWS_DIR
+from aponyx.config import DATA_DIR, DATA_WORKFLOWS_DIR
 from aponyx.persistence import load_parquet
-from aponyx.visualization import plot_equity_curve, plot_drawdown, plot_signal
+from aponyx.visualization import (
+    plot_drawdown,
+    plot_equity_curve,
+    plot_research_dashboard,
+    plot_signal,
+)
 
 
 def main() -> dict[str, go.Figure]:
     """
     Execute visualization workflow.
 
-    Loads backtest results and generates three key charts:
-    equity curve, drawdown, and signal time series.
+    Loads workflow or backtest results and generates visualization charts
+    including equity curve, drawdown, signal, and research dashboard.
 
     Returns
     -------
@@ -45,14 +65,112 @@ def main() -> dict[str, go.Figure]:
 
     Notes
     -----
+    If workflow directory provided as argument, loads from workflow structure.
+    Otherwise falls back to legacy backtest path.
+
     Figures are returned for flexible rendering (Streamlit, Jupyter, HTML).
     To display in Jupyter: fig.show()
     To save to HTML: fig.write_html("output.html")
     To display in Streamlit: st.plotly_chart(fig)
     """
+    # Check for workflow directory argument
+    if len(sys.argv) > 1:
+        workflow_dir = Path(sys.argv[1])
+        return generate_from_workflow(workflow_dir)
+
+    # Fall back to legacy behavior
     signal_name, strategy_name = define_visualization_parameters()
     pnl, positions = load_backtest_data(signal_name, strategy_name)
     return generate_all_charts(pnl, positions, signal_name, strategy_name)
+
+
+def generate_from_workflow(workflow_dir: Path) -> dict[str, go.Figure]:
+    """
+    Generate all visualizations from a completed workflow directory.
+
+    Parameters
+    ----------
+    workflow_dir : Path
+        Path to workflow directory containing signals/ and backtest/ folders.
+
+    Returns
+    -------
+    dict[str, go.Figure]
+        Dictionary with keys: equity_curve, drawdown, signal, research_dashboard.
+
+    Notes
+    -----
+    Loads saved intermediates (indicator, score, signal) and backtest results
+    to generate full research dashboard alongside standard charts.
+    """
+    # Load metadata for signal/strategy names
+    metadata_path = workflow_dir / "metadata.json"
+    if not metadata_path.exists():
+        raise FileNotFoundError(f"Metadata not found: {metadata_path}")
+
+    with open(metadata_path, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+
+    signal_name = metadata["signal"]
+    strategy_name = metadata.get("strategy", "unknown")
+    product = metadata["product"]
+
+    # Load signal intermediates
+    signals_dir = workflow_dir / "signals"
+    indicator = load_parquet(signals_dir / "indicator.parquet")["value"]
+    score = load_parquet(signals_dir / "score.parquet")["value"]
+    signal = load_parquet(signals_dir / "signal.parquet")["value"]
+
+    # Load backtest results
+    backtest_dir = workflow_dir / "backtest"
+    pnl_df = load_parquet(backtest_dir / "pnl.parquet")
+    positions_df = load_parquet(backtest_dir / "positions.parquet")
+
+    pnl = pnl_df["net_pnl"]
+    positions = positions_df["position"]
+
+    # Load traded product spread from raw data
+    synthetic_path = DATA_DIR / "raw" / "synthetic"
+    traded_product_path = synthetic_path / f"{product}.parquet"
+    if traded_product_path.exists():
+        traded_product_df = load_parquet(traded_product_path)
+        traded_product = traded_product_df["spread"]
+    else:
+        # Fallback: use indicator as placeholder (shouldn't happen normally)
+        traded_product = indicator
+
+    # Generate all charts
+    figures = {}
+    title_prefix = f"{signal_name} ({strategy_name})"
+
+    figures["equity_curve"] = plot_equity_curve(
+        pnl,
+        title=f"Equity Curve: {title_prefix}",
+        show_drawdown_shading=True,
+    )
+
+    figures["drawdown"] = plot_drawdown(
+        pnl,
+        title=f"Drawdown: {title_prefix}",
+    )
+
+    figures["signal"] = plot_signal(
+        signal,
+        title=f"Signal: {signal_name}",
+        threshold_lines=[-2.0, 2.0],
+    )
+
+    figures["research_dashboard"] = plot_research_dashboard(
+        traded_product=traded_product,
+        indicator=indicator,
+        score=score,
+        signal=signal,
+        positions=positions,
+        pnl=pnl,
+        title=f"Research Dashboard: {signal_name}",
+    )
+
+    return figures
 
 
 def define_visualization_parameters() -> tuple[str, str]:

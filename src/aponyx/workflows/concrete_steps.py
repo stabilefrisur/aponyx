@@ -42,7 +42,7 @@ from aponyx.evaluation.performance import (
 )
 from aponyx.backtest import run_backtest
 from aponyx.backtest.registry import StrategyRegistry
-from aponyx.visualization import plot_equity_curve, plot_drawdown, plot_signal
+from aponyx.visualization import plot_equity_curve, plot_drawdown, plot_signal, plot_research_dashboard
 from aponyx.persistence import load_parquet, save_parquet
 from .steps import BaseWorkflowStep
 
@@ -266,7 +266,7 @@ class SignalStep(BaseWorkflowStep):
         # Compute the specific signal for this workflow using four-stage pipeline
         from aponyx.models.signal_composer import compose_signal
 
-        signal = compose_signal(
+        result = compose_signal(
             signal_name=self.config.signal_name,
             market_data=market_data,
             indicator_registry=indicator_registry,
@@ -276,8 +276,13 @@ class SignalStep(BaseWorkflowStep):
             indicator_transformation_override=self.config.indicator_transformation_override,
             score_transformation_override=self.config.score_transformation_override,
             signal_transformation_override=self.config.signal_transformation_override,
-            include_intermediates=False,
+            include_intermediates=True,
         )
+
+        # Extract intermediates from result
+        indicator = result["indicator"]
+        score = result["score"]
+        signal = result["signal"]
 
         logger.info(
             "Computed signal '%s': %d values, %.2f%% non-null",
@@ -286,20 +291,23 @@ class SignalStep(BaseWorkflowStep):
             100 * signal.notna().sum() / len(signal),
         )
 
-        # Save signal to output directory
+        # Save all intermediates to output directory
         output_dir = context.get("output_dir", self.config.output_dir) / "signals"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        output_path = output_dir / "signal.parquet"
-        signal_df = signal.to_frame(name="value")
-        save_parquet(signal_df, output_path)
+        # Save indicator, score, and signal parquet files
+        save_parquet(indicator.to_frame(name="value"), output_dir / "indicator.parquet")
+        save_parquet(score.to_frame(name="value"), output_dir / "score.parquet")
+        save_parquet(signal.to_frame(name="value"), output_dir / "signal.parquet")
         logger.debug(
-            "Saved signal to %s",
-            output_path,
+            "Saved indicator, score, signal to %s",
+            output_dir,
         )
 
-        # Return the signal and the securities used for downstream steps
+        # Return intermediates and securities used for downstream steps
         output = {
+            "indicator": indicator,
+            "score": score,
             "signal": signal,
             "securities_used": securities_to_use,
         }
@@ -733,6 +741,15 @@ class VisualizationStep(BaseWorkflowStep):
         pnl = backtest_result.pnl
         positions = backtest_result.positions
 
+        # Get signal intermediates from signal step
+        indicator = context["signal"]["indicator"]
+        score = context["signal"]["score"]
+        signal = context["signal"]["signal"]
+
+        # Get traded product spread from market data
+        market_data = context["data"]["market_data"]
+        traded_product = market_data[self.config.product]["spread"]
+
         # Generate charts with descriptive titles
         title_prefix = f"{self.config.signal_name} ({self.config.strategy_name})"
         equity_fig = plot_equity_curve(
@@ -749,7 +766,18 @@ class VisualizationStep(BaseWorkflowStep):
             title=f"Signal: {self.config.signal_name}",
         )
 
-        logger.debug("Generated 3 visualization charts")
+        # Generate research dashboard with all pipeline stages
+        research_dashboard_fig = plot_research_dashboard(
+            traded_product=traded_product,
+            indicator=indicator,
+            score=score,
+            signal=signal,
+            positions=positions["position"],
+            pnl=pnl["net_pnl"],
+            title=f"Research Dashboard: {self.config.signal_name}",
+        )
+
+        logger.debug("Generated 4 visualization charts including research dashboard")
 
         # Save charts (HTML)
         output_dir = (
@@ -760,18 +788,22 @@ class VisualizationStep(BaseWorkflowStep):
         equity_fig.write_html(output_dir / "equity_curve.html")
         drawdown_fig.write_html(output_dir / "drawdown.html")
         signal_fig.write_html(output_dir / "signal.html")
+        research_dashboard_fig.write_html(output_dir / "research_dashboard.html")
 
         output = {
             "equity_fig": equity_fig,
             "drawdown_fig": drawdown_fig,
             "signal_fig": signal_fig,
+            "research_dashboard_fig": research_dashboard_fig,
         }
         self._log_complete(output)
         return output
 
     def output_exists(self) -> bool:
-        equity_path = self.get_output_path() / "equity_curve.html"
-        return equity_path.exists()
+        output_path = self.get_output_path()
+        equity_path = output_path / "equity_curve.html"
+        dashboard_path = output_path / "research_dashboard.html"
+        return equity_path.exists() and dashboard_path.exists()
 
     def get_output_path(self) -> Path:
         # Use workflow output_dir from config (timestamped folder)

@@ -266,50 +266,63 @@ class TestSignalStep:
         step = SignalStep(workflow_config)
         assert step.name == "signal"
 
-    @patch("aponyx.models.orchestrator._compute_signal")
+    @patch("aponyx.models.signal_composer.compose_signal")
     @patch("aponyx.workflows.concrete_steps.save_parquet")
     def test_signal_step_computes_signal(
         self,
         mock_save,
-        mock_compute,
+        mock_compose_signal,
         workflow_config,
         sample_market_data,
         sample_signal,
     ):
-        """Test SignalStep computes and saves signal."""
-        # Mock signal computation (_compute_signal returns a single Series)
-        mock_compute.return_value = sample_signal
+        """Test SignalStep computes and saves signal with intermediates."""
+        # Mock signal computation - compose_signal with include_intermediates=True returns dict
+        mock_compose_signal.return_value = {
+            "indicator": sample_signal,
+            "score": sample_signal,
+            "signal": sample_signal,
+        }
 
         step = SignalStep(workflow_config)
         # Use security IDs instead of instrument types for market_data keys
         context = {"data": {"market_data": {"cdx_ig_5y": sample_market_data["cdx"]}}}
         result = step.execute(context)
 
+        # Verify intermediates are returned
+        assert "indicator" in result
+        assert "score" in result
         assert "signal" in result
         assert isinstance(result["signal"], pd.Series)
-        mock_save.assert_called_once()
+        assert isinstance(result["indicator"], pd.Series)
+        assert isinstance(result["score"], pd.Series)
+        # Verify three parquet files saved (indicator, score, signal)
+        assert mock_save.call_count == 3
 
-    @patch("aponyx.models.orchestrator._compute_signal")
+    @patch("aponyx.models.signal_composer.compose_signal")
     @patch("aponyx.workflows.concrete_steps.save_parquet")
     def test_signal_step_output_path(
         self,
         mock_save,
-        mock_compute,
+        mock_compose_signal,
         workflow_config,
         sample_market_data,
         sample_signal,
     ):
         """Test SignalStep creates output in correct location."""
-        mock_compute.return_value = sample_signal
+        mock_compose_signal.return_value = {
+            "indicator": sample_signal,
+            "score": sample_signal,
+            "signal": sample_signal,
+        }
 
         step = SignalStep(workflow_config)
         # Use security IDs instead of instrument types for market_data keys
         context = {"data": {"market_data": {"cdx_ig_5y": sample_market_data["cdx"]}}}
         step.execute(context)
 
-        # SignalStep now saves to output_dir, not a signal-specific subdirectory
-        # Just verify the save was called
-        assert mock_save.called
+        # Verify saves were called for indicator, score, signal
+        assert mock_save.call_count == 3
 
     def test_signal_step_output_exists(self, workflow_config, tmp_path):
         """Test SignalStep checks for existing output."""
@@ -740,46 +753,60 @@ class TestVisualizationStep:
     @patch("aponyx.workflows.concrete_steps.plot_equity_curve")
     @patch("aponyx.workflows.concrete_steps.plot_drawdown")
     @patch("aponyx.workflows.concrete_steps.plot_signal")
+    @patch("aponyx.workflows.concrete_steps.plot_research_dashboard")
     def test_visualization_step_creates_charts(
         self,
+        mock_plot_dashboard,
         mock_plot_signal,
         mock_plot_drawdown,
         mock_plot_equity,
         workflow_config,
         sample_signal,
+        sample_market_data,
         sample_backtest_result,
     ):
-        """Test VisualizationStep generates all charts."""
+        """Test VisualizationStep generates all charts including research dashboard."""
         # Mock plotting functions
         mock_fig = Mock()
         mock_plot_equity.return_value = mock_fig
         mock_plot_drawdown.return_value = mock_fig
         mock_plot_signal.return_value = mock_fig
+        mock_plot_dashboard.return_value = mock_fig
 
         step = VisualizationStep(workflow_config)
         context = {
             "backtest": {"backtest_result": sample_backtest_result},
-            "signal": {"signal": sample_signal},
+            "signal": {
+                "indicator": sample_signal,
+                "score": sample_signal,
+                "signal": sample_signal,
+            },
+            "data": {"market_data": {"cdx_ig_5y": sample_market_data["cdx"]}},
         }
         result = step.execute(context)
 
         assert "equity_fig" in result
         assert "drawdown_fig" in result
         assert "signal_fig" in result
+        assert "research_dashboard_fig" in result
         mock_plot_equity.assert_called_once()
         mock_plot_drawdown.assert_called_once()
         mock_plot_signal.assert_called_once()
+        mock_plot_dashboard.assert_called_once()
 
     @patch("aponyx.workflows.concrete_steps.plot_equity_curve")
     @patch("aponyx.workflows.concrete_steps.plot_drawdown")
     @patch("aponyx.workflows.concrete_steps.plot_signal")
+    @patch("aponyx.workflows.concrete_steps.plot_research_dashboard")
     def test_visualization_step_saves_charts(
         self,
+        mock_plot_dashboard,
         mock_plot_signal,
         mock_plot_drawdown,
         mock_plot_equity,
         workflow_config,
         sample_signal,
+        sample_market_data,
         sample_backtest_result,
     ):
         """Test VisualizationStep saves charts to output directory."""
@@ -788,16 +815,44 @@ class TestVisualizationStep:
         mock_plot_equity.return_value = mock_fig
         mock_plot_drawdown.return_value = mock_fig
         mock_plot_signal.return_value = mock_fig
+        mock_plot_dashboard.return_value = mock_fig
 
         step = VisualizationStep(workflow_config)
         context = {
             "backtest": {"backtest_result": sample_backtest_result},
-            "signal": {"signal": sample_signal},
+            "signal": {
+                "indicator": sample_signal,
+                "score": sample_signal,
+                "signal": sample_signal,
+            },
+            "data": {"market_data": {"cdx_ig_5y": sample_market_data["cdx"]}},
         }
         step.execute(context)
 
-        # Verify write_html was called on figures
-        assert mock_fig.write_html.call_count >= 3
+        # Verify write_html was called on figures (4 charts now)
+        assert mock_fig.write_html.call_count >= 4
+
+    def test_visualization_step_output_exists_checks_dashboard(self, workflow_config, tmp_path):
+        """Test VisualizationStep checks for research_dashboard.html in output_exists."""
+        step = VisualizationStep(workflow_config)
+        output_path = step.get_output_path()
+
+        # Create visualizations directory
+        viz_dir = output_path.parent / "visualizations"
+        viz_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create only equity_curve.html - should NOT be enough
+        (viz_dir / "equity_curve.html").write_text("dummy")
+        # output_exists looks in get_output_path() which is config.output_dir / "visualization"
+        # So we need to match that path
+        actual_viz_dir = step.get_output_path()
+        actual_viz_dir.mkdir(parents=True, exist_ok=True)
+        (actual_viz_dir / "equity_curve.html").write_text("dummy")
+        assert not step.output_exists()  # Missing research_dashboard.html
+
+        # Now add research_dashboard.html - should be enough
+        (actual_viz_dir / "research_dashboard.html").write_text("dummy")
+        assert step.output_exists()
 
 
 class TestStepIntegration:
@@ -830,8 +885,12 @@ class TestStepIntegration:
         mock_data_registry_class.return_value = mock_registry
         mock_load_parquet.return_value = sample_market_data["cdx"]
 
-        # Setup SignalStep - compose_signal returns a signal Series
-        mock_compose_signal.return_value = sample_signal
+        # Setup SignalStep - compose_signal with include_intermediates=True returns dict
+        mock_compose_signal.return_value = {
+            "indicator": sample_signal,
+            "score": sample_signal,
+            "signal": sample_signal,
+        }
 
         # Execute DataStep
         data_step = DataStep(workflow_config)
@@ -844,8 +903,10 @@ class TestStepIntegration:
         signal_output = signal_step.execute(context)
         context["signal"] = signal_output
 
-        # Verify signal was computed with data from DataStep
+        # Verify intermediates were computed with data from DataStep
         assert "signal" in signal_output
+        assert "indicator" in signal_output
+        assert "score" in signal_output
         mock_compose_signal.assert_called_once()
 
     def test_step_output_path_hierarchy(self, workflow_config):
