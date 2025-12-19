@@ -17,7 +17,8 @@ def _make_test_metadata(**overrides) -> dict:
     """Create a complete strategy metadata dict for testing.
     
     Note: StrategyMetadata no longer contains microstructure fields
-    (transaction_cost_bps, dv01_per_million). These are now loaded from
+    (transaction_cost_bps). Note: dv01_per_million is now passed to 
+    the calculator, not config. These are loaded from
     bloomberg_securities.json at runtime.
     """
     defaults = {
@@ -82,19 +83,17 @@ def test_strategy_metadata_to_config() -> None:
     )
 
     # to_config now requires product microstructure params
+    # Note: dv01_per_million is now passed to calculator, not config
     config = metadata.to_config(
-        dv01_per_million=475.0,
         transaction_cost_bps=1.5,
     )
     assert isinstance(config, BacktestConfig)
     assert config.position_size_mm == 15.0
     assert config.stop_loss_pct == 10.0
-    assert config.dv01_per_million == 475.0  # From params
     assert config.transaction_cost_bps == 1.5  # From params
 
     # Override strategy defaults (not microstructure)
     config = metadata.to_config(
-        dv01_per_million=475.0,
         transaction_cost_bps=1.5,
         position_size_mm_override=20.0,
         stop_loss_pct_override=5.0,

@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Return Calculator Abstraction** (spec 009)
+  - `ReturnCalculator` protocol for computing daily P&L returns
+  - `SpreadReturnCalculator` for DV01-based spread products (CDX indices)
+  - `PriceReturnCalculator` for price-based products (ETFs: LQD, HYG, etc.)
+  - `resolve_calculator()` factory function for automatic calculator selection
+  - `quote_type` field in product microstructure for product categorization
+  - Price data validation for price-based calculators (fail-fast)
+  - Calculator info in backtest result metadata
+  - Example workflow `workflow_etf.yaml` for ETF backtesting
+  - 24 new tests for calculator implementations and factory logic
+
+### Changed
+- **BREAKING: `run_backtest()` Signature Change**
+  - Now requires `calculator: ReturnCalculator` as fourth positional parameter
+  - DV01-based P&L calculation moved from engine to `SpreadReturnCalculator`
+  - Calculator must be resolved via `resolve_calculator()` or created directly
+- **BREAKING: `BacktestConfig` Changes**
+  - Removed `dv01_per_million` field (now passed to calculator)
+  - All backtest tests updated to inject calculator parameter
+- **BREAKING: `StrategyRegistry.to_config()` Changes**
+  - Removed `dv01_per_million` parameter (now handled separately via calculator)
+- **Product Metadata Enhancement**
+  - All products now require `quote_type` field ("spread" or "price")
+  - CDX products: `quote_type: "spread"` with `dv01_per_million`
+  - ETF products: `quote_type: "price"` (no DV01 required)
+  - VIX: `quote_type: "price"` (can now be backtested as price-based product)
+
+### Migration Guide
+- **Workflow YAML files**: No changes required (BacktestStep handles resolution automatically)
+- **Direct `run_backtest()` calls**: Add calculator parameter:
+  ```python
+  from aponyx.backtest import resolve_calculator
+  calculator = resolve_calculator("spread", dv01_per_million=475.0)
+  result = run_backtest(signal, spread, config, calculator)
+  ```
+- **`to_config()` calls**: Remove `dv01_per_million` parameter
+
+### Test Coverage
+- 918 total tests passing
+- All existing spread-based backtests produce identical results (zero regression)
+
 ## [0.1.19] - 2025-12-15
 
 ### Added

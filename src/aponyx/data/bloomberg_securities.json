@@ -3,6 +3,7 @@
     "description": "CDX North America Investment Grade 5Y",
     "bloomberg_ticker": "CDX IG CDSI GEN 5Y Corp",
     "instrument_type": "cdx",
+    "quote_type": "spread",
     "dv01_per_million": 475.0,
     "transaction_cost_bps": 1.5
   },
@@ -10,6 +11,7 @@
     "description": "CDX North America Investment Grade 10Y",
     "bloomberg_ticker": "CDX IG CDSI GEN 10Y Corp",
     "instrument_type": "cdx",
+    "quote_type": "spread",
     "dv01_per_million": 875.0,
     "transaction_cost_bps": 2.0
   },
@@ -17,6 +19,7 @@
     "description": "CDX North America High Yield 5Y",
     "bloomberg_ticker": "CDX HY CDSI GEN 5Y SPRD Corp",
     "instrument_type": "cdx",
+    "quote_type": "spread",
     "dv01_per_million": 425.0,
     "transaction_cost_bps": 8.0
   },
@@ -24,6 +27,7 @@
     "description": "iTraxx Europe Crossover 5Y",
     "bloomberg_ticker": "ITRX XOVER CDSI GEN 5Y Corp",
     "instrument_type": "cdx",
+    "quote_type": "spread",
     "dv01_per_million": 425.0,
     "transaction_cost_bps": 7.0
   },
@@ -31,22 +35,26 @@
     "description": "iTraxx Europe Main 5Y",
     "bloomberg_ticker": "ITRX EUR CDSI GEN 5Y Corp",
     "instrument_type": "cdx",
+    "quote_type": "spread",
     "dv01_per_million": 475.0,
     "transaction_cost_bps": 1.5
   },
   "hyg": {
     "description": "iShares iBoxx High Yield Corporate Bond ETF",
     "bloomberg_ticker": "HYG US Equity",
-    "instrument_type": "etf"
+    "instrument_type": "etf",
+    "quote_type": "price"
   },
   "lqd": {
     "description": "iShares iBoxx Investment Grade Corporate Bond ETF",
     "bloomberg_ticker": "LQD US Equity",
-    "instrument_type": "etf"
+    "instrument_type": "etf",
+    "quote_type": "price"
   },
   "vix": {
     "description": "CBOE Volatility Index",
     "bloomberg_ticker": "VIX Index",
-    "instrument_type": "vix"
+    "instrument_type": "vix",
+    "quote_type": "price"
   }
 }

@@ -13,7 +13,7 @@ from aponyx.backtest.engine import BacktestResult
 from aponyx.backtest.protocols import BacktestEngine
 from aponyx.evaluation.performance import compute_all_metrics
 
-from . import make_test_config
+from . import make_test_config, make_test_calculator
 
 
 class SimpleBacktestEngine:
@@ -96,10 +96,11 @@ def test_backtest_engine_protocol_conformance() -> None:
     signal = pd.Series(np.random.randn(50), index=dates)
     spread = pd.Series(100 + np.random.randn(50), index=dates)
     config = make_test_config()
+    calculator = make_test_calculator()
 
     # Our function should work as protocol implementation
     # (functions with compatible signatures satisfy Protocol)
-    result = run_backtest(signal, spread, config)
+    result = run_backtest(signal, spread, config, calculator)
 
     # Verify result structure matches protocol expectations
     assert isinstance(result, BacktestResult)
@@ -216,7 +217,7 @@ def test_backtest_result_immutability_expectation() -> None:
     signal = pd.Series([1.0] * 30, index=dates)
     spread = pd.Series([100.0] * 30, index=dates)
 
-    result = run_backtest(signal, spread, make_test_config(signal_lag=0))
+    result = run_backtest(signal, spread, make_test_config(signal_lag=0), make_test_calculator())
 
     # Modify result
     result.positions.iloc[0, 0] = 999.0
@@ -257,7 +258,7 @@ def test_metadata_structure_consistency() -> None:
     spread = pd.Series(100 + np.random.randn(50), index=dates)
 
     # Test with our main engine
-    result = run_backtest(signal, spread, make_test_config(signal_lag=0))
+    result = run_backtest(signal, spread, make_test_config(signal_lag=0), make_test_calculator())
 
     # Verify expected metadata structure
     assert "config" in result.metadata

@@ -11,6 +11,8 @@ Core Components
 - config: Backtest parameters and constraints
 - protocols: Abstract interfaces for extensibility
 - registry: Strategy catalog management
+- calculators: Return calculator protocol and implementations
+- calculator_factory: Factory for resolving calculators based on product type
 
 Note: Performance metrics have been moved to aponyx.evaluation.performance
 """
@@ -19,6 +21,8 @@ from .config import BacktestConfig
 from .engine import run_backtest, BacktestResult
 from .protocols import BacktestEngine, PerformanceCalculator
 from .registry import StrategyRegistry, StrategyMetadata
+from .calculators import ReturnCalculator, SpreadReturnCalculator, PriceReturnCalculator
+from .calculator_factory import resolve_calculator
 
 __all__ = [
     "BacktestConfig",
@@ -28,4 +32,8 @@ __all__ = [
     "PerformanceCalculator",
     "StrategyRegistry",
     "StrategyMetadata",
+    "ReturnCalculator",
+    "SpreadReturnCalculator",
+    "PriceReturnCalculator",
+    "resolve_calculator",
 ]

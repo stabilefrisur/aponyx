@@ -22,7 +22,8 @@ def _make_test_metadata(**overrides) -> dict:
     """Create a complete strategy metadata dict for testing.
     
     Note: StrategyMetadata no longer contains microstructure fields
-    (transaction_cost_bps, dv01_per_million). These are now loaded from
+    (transaction_cost_bps). Note: dv01_per_million is now passed to 
+    the calculator, not config. These are loaded from
     bloomberg_securities.json at runtime.
     """
     defaults = {
@@ -164,13 +165,12 @@ def test_cross_layer_integration() -> None:
     strategy_metadata = strategy_registry.get_metadata("balanced")
 
     # Verify conversion to BacktestConfig with product params
+    # Note: dv01_per_million is now passed to calculator, not config
     config = strategy_metadata.to_config(
-        dv01_per_million=475.0,
         transaction_cost_bps=1.5,
     )
     assert config.position_size_mm == strategy_metadata.position_size_mm
     assert config.stop_loss_pct == strategy_metadata.stop_loss_pct
-    assert config.dv01_per_million == 475.0
     assert config.transaction_cost_bps == 1.5
 
 

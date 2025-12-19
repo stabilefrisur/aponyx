@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from aponyx.backtest import run_backtest, BacktestConfig
+from aponyx.backtest.calculators import SpreadReturnCalculator
 from aponyx.data.test_scenarios import get_scenario
 from aponyx.evaluation.performance.metrics import (
     compute_all_metrics,
@@ -404,18 +405,23 @@ class TestDeterministicScenarios:
             "take_profit_pct": None,
             "max_holding_days": None,
             "transaction_cost_bps": 0.0,
-            "dv01_per_million": 475.0,
             "signal_lag": 0,
         }
         defaults.update(overrides)
         return BacktestConfig(**defaults)
+
+    @staticmethod
+    def _make_calculator(dv01_per_million: float = 475.0) -> SpreadReturnCalculator:
+        """Create a spread return calculator for testing."""
+        return SpreadReturnCalculator(dv01_per_million=dv01_per_million)
 
     def test_profitable_long_positive_profit_factor(self) -> None:
         """Test profitable_long scenario has high profit factor."""
         scenario = get_scenario("profitable_long")
         config = self._make_config()
 
-        result = run_backtest(scenario.signal, scenario.spread, config)
+        calculator = self._make_calculator()
+        result = run_backtest(scenario.signal, scenario.spread, config, calculator)
         profit_factor = compute_profit_factor(result.pnl["net_pnl"])
 
         # Profitable scenario should have profit factor > 1
@@ -426,7 +432,8 @@ class TestDeterministicScenarios:
         scenario = get_scenario("unprofitable_long")
         config = self._make_config()
 
-        result = run_backtest(scenario.signal, scenario.spread, config)
+        calculator = self._make_calculator()
+        result = run_backtest(scenario.signal, scenario.spread, config, calculator)
         profit_factor = compute_profit_factor(result.pnl["net_pnl"])
 
         # Unprofitable scenario should have profit factor < 1
@@ -437,7 +444,8 @@ class TestDeterministicScenarios:
         scenario = get_scenario("alternating_outcomes")
         config = self._make_config()
 
-        result = run_backtest(scenario.signal, scenario.spread, config)
+        calculator = self._make_calculator()
+        result = run_backtest(scenario.signal, scenario.spread, config, calculator)
 
         # Compute extended metrics
         extended = compute_extended_metrics(result.pnl, rolling_window=21)
@@ -451,7 +459,8 @@ class TestDeterministicScenarios:
         scenario = get_scenario("profitable_long")
         config = self._make_config()
 
-        result = run_backtest(scenario.signal, scenario.spread, config)
+        calculator = self._make_calculator()
+        result = run_backtest(scenario.signal, scenario.spread, config, calculator)
         tail_ratio = compute_tail_ratio(result.pnl["net_pnl"])
 
         # Profitable trending scenario should have decent tail ratio

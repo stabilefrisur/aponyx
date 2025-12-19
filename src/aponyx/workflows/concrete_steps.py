@@ -40,7 +40,7 @@ from aponyx.evaluation.performance import (
     generate_performance_report,
     save_report as save_performance_report,
 )
-from aponyx.backtest import run_backtest
+from aponyx.backtest import run_backtest, resolve_calculator
 from aponyx.backtest.registry import StrategyRegistry
 from aponyx.visualization import plot_equity_curve, plot_drawdown, plot_signal, plot_research_dashboard
 from aponyx.persistence import load_parquet, save_parquet
@@ -492,7 +492,7 @@ class BacktestStep(BaseWorkflowStep):
         # Get product from config, or from suitability step if available
         product = context.get("suitability", {}).get("product") or self.config.product
 
-        # Load product microstructure parameters (T009)
+        # Load product microstructure parameters
         try:
             microstructure = get_product_microstructure(product)
         except ValueError as e:
@@ -500,14 +500,20 @@ class BacktestStep(BaseWorkflowStep):
                 f"Cannot run backtest for product '{product}': {e}"
             ) from e
 
-        # Apply runtime overrides (T017, T018)
+        # Apply DV01 runtime override
         dv01 = (
             self.config.dv01_per_million_override
             if self.config.dv01_per_million_override is not None
             else microstructure.dv01_per_million
         )
 
-        # Transaction cost handling: pct mode vs bps mode (T018)
+        # Resolve calculator based on product quote_type
+        calculator = resolve_calculator(
+            quote_type=microstructure.quote_type,
+            dv01_per_million=dv01,
+        )
+
+        # Transaction cost handling: pct mode vs bps mode
         if self.config.transaction_cost_pct_override is not None:
             # Use percentage-based transaction cost mode
             transaction_cost_bps: float | None = None
@@ -521,15 +527,26 @@ class BacktestStep(BaseWorkflowStep):
             )
             transaction_cost_pct = None
 
-        # Load spread data for backtest from DataStep context
+        # Load spread/price data for backtest from DataStep context
         market_data = context["data"]["market_data"]
-        spread_df = self._load_spread_for_product(market_data, product)
-        spread = spread_df["spread"]
+        product_df = self._load_spread_for_product(market_data, product)
 
-        # Align signal and spread to common dates
-        common_idx = signal.index.intersection(spread.index)
+        # Use appropriate column based on quote_type
+        if microstructure.quote_type == "spread":
+            price_series = product_df["spread"]
+        elif "price" in product_df.columns:
+            price_series = product_df["price"]
+        elif "level" in product_df.columns:
+            # Some price products may use 'level' column (e.g., VIX)
+            price_series = product_df["level"]
+        else:
+            # Fallback to spread column if it exists
+            price_series = product_df["spread"]
+
+        # Align signal and price data to common dates
+        common_idx = signal.index.intersection(price_series.index)
         signal = signal.loc[common_idx]
-        spread = spread.loc[common_idx]
+        price_series = price_series.loc[common_idx]
 
         logger.debug(
             "Aligned data: %d rows from %s to %s",
@@ -542,31 +559,32 @@ class BacktestStep(BaseWorkflowStep):
         strategy_registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
         strategy_metadata = strategy_registry.get_metadata(self.config.strategy_name)
 
-        # Convert to backtest config with product microstructure and overrides (T017, T018)
+        # Convert to backtest config (without DV01, now in calculator)
         backtest_config = strategy_metadata.to_config(
-            dv01_per_million=dv01,
             transaction_cost_bps=transaction_cost_bps if transaction_cost_bps is not None else 0.0,
             transaction_cost_pct=transaction_cost_pct,
         )
 
-        # Log which mode we're using
+        # Log configuration
         if transaction_cost_pct is not None:
             logger.info(
-                "Backtest config: product=%s, dv01=%.1f, tcost=%.2f%% (pct mode)",
+                "Backtest config: product=%s, quote_type=%s, calculator=%s, tcost=%.2f%% (pct mode)",
                 product,
-                backtest_config.dv01_per_million,
+                microstructure.quote_type,
+                type(calculator).__name__,
                 transaction_cost_pct * 100,
             )
         else:
             logger.info(
-                "Backtest config: product=%s, dv01=%.1f, tcost=%.1fbps",
+                "Backtest config: product=%s, quote_type=%s, calculator=%s, tcost=%.1fbps",
                 product,
-                backtest_config.dv01_per_million,
+                microstructure.quote_type,
+                type(calculator).__name__,
                 backtest_config.transaction_cost_bps,
             )
 
-        # Run backtest using function (not class)
-        result = run_backtest(signal, spread, backtest_config)
+        # Run backtest with calculator injection
+        result = run_backtest(signal, price_series, backtest_config, calculator)
 
         # Compute quick Sharpe for debug logging (handle zero std)
         pnl_std = result.pnl["net_pnl"].std()

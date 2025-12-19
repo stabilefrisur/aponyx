@@ -300,45 +300,72 @@ class ProductMicrostructure:
 
     Attributes
     ----------
-    dv01_per_million : float
-        Dollar value of 01 per $1MM notional for the product.
+    quote_type : str
+        Quote type: 'spread' or 'price'. Determines which calculator to use.
+    dv01_per_million : float | None
+        Dollar value of 01 per $1MM notional (required for spread products).
     transaction_cost_bps : float
         Default transaction cost in basis points for the product.
     """
 
-    dv01_per_million: float
+    quote_type: str
+    dv01_per_million: float | None
     transaction_cost_bps: float
+
+    def __post_init__(self) -> None:
+        """Validate microstructure parameters."""
+        if self.quote_type not in ("spread", "price"):
+            raise ValueError(
+                f"quote_type must be 'spread' or 'price', got '{self.quote_type}'"
+            )
+        if self.quote_type == "spread" and self.dv01_per_million is None:
+            raise ValueError(
+                "dv01_per_million is required for spread-based products"
+            )
+        if self.dv01_per_million is not None and self.dv01_per_million <= 0:
+            raise ValueError(
+                f"dv01_per_million must be positive, got {self.dv01_per_million}"
+            )
 
 
 def get_product_microstructure(product: str) -> ProductMicrostructure:
     """
-    Get microstructure parameters for a CDX product.
+    Get microstructure parameters for a product.
 
-    Returns DV01 and transaction cost parameters from bloomberg_securities.json.
-    Only CDX products have microstructure parameters; ETFs and VIX do not.
+    Returns quote_type, DV01, and transaction cost parameters from
+    bloomberg_securities.json. Spread products (CDX) require DV01;
+    price products (ETFs) do not.
 
     Parameters
     ----------
     product : str
-        Product identifier (e.g., 'cdx_ig_5y', 'cdx_hy_5y').
+        Product identifier (e.g., 'cdx_ig_5y', 'lqd').
 
     Returns
     -------
     ProductMicrostructure
-        Frozen dataclass with dv01_per_million and transaction_cost_bps.
+        Frozen dataclass with quote_type, dv01_per_million, and transaction_cost_bps.
 
     Raises
     ------
     ValueError
-        If product not found in catalog or lacks microstructure parameters.
+        If product not found in catalog or missing required quote_type field.
 
     Examples
     --------
     >>> params = get_product_microstructure("cdx_ig_5y")
+    >>> params.quote_type
+    'spread'
     >>> params.dv01_per_million
     475.0
     >>> params.transaction_cost_bps
     1.5
+
+    >>> params = get_product_microstructure("lqd")
+    >>> params.quote_type
+    'price'
+    >>> params.dv01_per_million is None
+    True
     """
     catalog = _load_securities_catalog()
 
@@ -349,30 +376,48 @@ def get_product_microstructure(product: str) -> ProductMicrostructure:
         )
 
     spec_data = catalog[product]
-    instrument_type = spec_data.get("instrument_type")
 
-    # Check if product has microstructure parameters (only CDX products)
+    # Validate quote_type is present (required field)
+    quote_type = spec_data.get("quote_type")
+    if quote_type is None:
+        raise ValueError(
+            f"Product '{product}' missing required 'quote_type' field. "
+            f"Please add 'quote_type': 'spread' or 'price' to bloomberg_securities.json"
+        )
+
+    # Get optional DV01 and required transaction cost
     dv01 = spec_data.get("dv01_per_million")
     tcost = spec_data.get("transaction_cost_bps")
 
-    if dv01 is None or tcost is None:
-        raise ValueError(
-            f"Product '{product}' does not have microstructure parameters "
-            f"(dv01_per_million, transaction_cost_bps). "
-            f"Only CDX products can be backtested. "
-            f"Product instrument_type: '{instrument_type}'"
-        )
+    # For spread products, DV01 and transaction_cost are required
+    if quote_type == "spread":
+        if dv01 is None:
+            raise ValueError(
+                f"Product '{product}' is quote_type='spread' but missing 'dv01_per_million'. "
+                f"Spread products require DV01 configuration."
+            )
+        if tcost is None:
+            raise ValueError(
+                f"Product '{product}' is quote_type='spread' but missing 'transaction_cost_bps'. "
+                f"Spread products require transaction cost configuration."
+            )
+
+    # For price products, set default transaction cost if not specified
+    if quote_type == "price" and tcost is None:
+        tcost = 0.0  # ETFs often have minimal explicit transaction costs
 
     logger.debug(
-        "Loaded microstructure for %s: dv01=%.1f, tcost=%.1fbps",
+        "Loaded microstructure for %s: quote_type=%s, dv01=%s, tcost=%.1fbps",
         product,
+        quote_type,
         dv01,
-        tcost,
+        tcost if tcost else 0.0,
     )
 
     return ProductMicrostructure(
-        dv01_per_million=float(dv01),
-        transaction_cost_bps=float(tcost),
+        quote_type=quote_type,
+        dv01_per_million=float(dv01) if dv01 is not None else None,
+        transaction_cost_bps=float(tcost) if tcost is not None else 0.0,
     )
 
 

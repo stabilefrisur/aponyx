@@ -1,8 +1,11 @@
 """Unit tests for backtest module."""
 
-from aponyx.backtest import BacktestConfig
+from aponyx.backtest import BacktestConfig, SpreadReturnCalculator, resolve_calculator
 from aponyx.backtest.registry import StrategyMetadata, StrategyRegistry
 from aponyx.config import STRATEGY_CATALOG_PATH
+
+# Default DV01 for test spread calculators
+DEFAULT_TEST_DV01 = 475.0
 
 
 def make_minimal_test_config(**overrides) -> BacktestConfig:
@@ -15,6 +18,9 @@ def make_minimal_test_config(**overrides) -> BacktestConfig:
     where risk management exits would complicate the test.
 
     For tests that require catalog-accurate defaults, use make_catalog_test_config().
+
+    Note: DV01 is no longer part of BacktestConfig. Use make_test_calculator()
+    to get a calculator for tests.
 
     Parameters
     ----------
@@ -41,11 +47,32 @@ def make_minimal_test_config(**overrides) -> BacktestConfig:
         "entry_threshold": None,  # Intentionally None for simpler tests (legacy behavior)
         "transaction_cost_bps": 1.0,
         "transaction_cost_pct": None,  # Static mode by default
-        "dv01_per_million": 475.0,
         "signal_lag": 1,
     }
     defaults.update(overrides)
     return BacktestConfig(**defaults)
+
+
+def make_test_calculator(dv01_per_million: float = DEFAULT_TEST_DV01) -> SpreadReturnCalculator:
+    """
+    Create a SpreadReturnCalculator for unit testing.
+
+    Parameters
+    ----------
+    dv01_per_million : float, default 475.0
+        DV01 per $1MM notional.
+
+    Returns
+    -------
+    SpreadReturnCalculator
+        Calculator for spread-based products.
+
+    Examples
+    --------
+    >>> calculator = make_test_calculator()
+    >>> calculator = make_test_calculator(dv01_per_million=500.0)
+    """
+    return SpreadReturnCalculator(dv01_per_million=dv01_per_million)
 
 
 def make_catalog_test_config(
@@ -58,6 +85,9 @@ def make_catalog_test_config(
 
     Use this when tests require catalog-accurate defaults, such as testing
     that catalog values are correctly applied or integration tests.
+
+    Note: DV01 is no longer part of BacktestConfig. Use make_catalog_test_calculator()
+    to get a calculator for tests.
 
     Parameters
     ----------
@@ -86,10 +116,37 @@ def make_catalog_test_config(
     microstructure = get_product_microstructure(product)
 
     return metadata.to_config(
-        dv01_per_million=microstructure.dv01_per_million,
         transaction_cost_bps=microstructure.transaction_cost_bps,
         **{f"{k}_override": v for k, v in overrides.items() if not k.endswith("_override")},
         **{k: v for k, v in overrides.items() if k.endswith("_override")},
+    )
+
+
+def make_catalog_test_calculator(product: str = "cdx_ig_5y"):
+    """
+    Create a ReturnCalculator by loading from product microstructure.
+
+    Parameters
+    ----------
+    product : str, default "cdx_ig_5y"
+        Product identifier to load microstructure params from bloomberg_securities.json.
+
+    Returns
+    -------
+    ReturnCalculator
+        Calculator appropriate for the product's quote_type.
+
+    Examples
+    --------
+    >>> calculator = make_catalog_test_calculator()  # SpreadReturnCalculator for cdx_ig_5y
+    >>> calculator = make_catalog_test_calculator("hyg")  # PriceReturnCalculator for ETF
+    """
+    from aponyx.data import get_product_microstructure
+
+    microstructure = get_product_microstructure(product)
+    return resolve_calculator(
+        quote_type=microstructure.quote_type,
+        dv01_per_million=microstructure.dv01_per_million,
     )
 
 
