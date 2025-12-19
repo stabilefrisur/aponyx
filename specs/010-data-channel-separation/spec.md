@@ -113,7 +113,7 @@ As a system administrator, I want the system to validate security configurations
 
 - **FR-001**: System MUST support defining multiple data channels per security in the catalog
 - **FR-002**: System MUST resolve channel requests to the correct ticker/field combination based on catalog configuration
-- **FR-003**: System MUST merge data from multiple Bloomberg tickers into a single DataFrame when a security requires it
+- **FR-003**: System MUST merge data from multiple Bloomberg tickers into a single DataFrame when a security requires it, using inner join (only dates where all channels have data)
 - **FR-004**: System MUST use instrument type defaults to determine which channel to use for indicator computation
 - **FR-005**: System MUST use security's `quote_type` to determine which channel to use for P&L calculation
 - **FR-006**: System MUST use instrument type defaults to determine which channel to use for display purposes
@@ -121,11 +121,13 @@ As a system administrator, I want the system to validate security configurations
 - **FR-008**: System MUST validate that `dv01_per_million` is present when `quote_type: spread`
 - **FR-009**: System MUST provide clear error messages when requested channels are not available
 - **FR-010**: FileSource MUST work with the same catalog structure, validating channel columns exist in parquet files
+- **FR-011**: System MUST fail the entire fetch operation if any required channel/ticker fails, providing error details for all failures
+- **FR-012**: System MUST reject workflow configuration if `display_channel` override specifies a channel not defined for the security
 
 ### Key Entities
 
 - **Security**: Tradeable instrument with primary ticker, data channels, quote type, and microstructure parameters
-- **Data Channel**: Named data stream (spread, price, level) with optional explicit ticker and required field mapping
+- **Data Channel**: Named data stream with fixed allowed values (`spread`, `price`, `level`), optional explicit ticker, and required field mapping
 - **Instrument Type**: Category (cdx, etf, vix) with default channel preferences for indicator and display purposes
 - **Usage Purpose**: Context (indicator, pnl, display) that determines which channel is selected
 
@@ -145,3 +147,14 @@ As a system administrator, I want the system to validate security configurations
 - All securities of the same instrument type share the same default channel preferences
 - FileSource parquet files will be regenerated to include all required channel columns
 - Existing `quote_type` field semantics remain unchanged (spread vs price for P&L method)
+- This is a breaking change: old single-column parquet files will not be supported; manual conversion documentation will be provided
+
+## Clarifications
+
+### Session 2025-12-19
+
+- Q: How should date alignment work when merging data from multiple tickers with different trading calendars? → A: Inner join - only dates where ALL requested channels have data
+- Q: What happens when one ticker succeeds but another fails during multi-ticker fetch? → A: Fail entire fetch with clear error details
+- Q: Should channel names be restricted to a fixed set or free-form? → A: Fixed enum - only `spread`, `price`, `level` allowed
+- Q: How to handle backward compatibility for existing FileSource parquet files? → A: Breaking change - require new format, document manual conversion steps
+- Q: What happens when display_channel override specifies a channel not available for the security? → A: Fail with error - reject workflow configuration
