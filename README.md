@@ -181,6 +181,13 @@ Aponyx provides a **complete CLI orchestrator** for running research workflows f
 aponyx --help  # or aponyx -h
 ```
 
+**Core commands:**
+- `run` — Execute complete workflow from YAML config
+- `report` — Generate multi-format analysis reports
+- `list` — Browse signals, strategies, datasets, workflows
+- `catalog` — Manage YAML catalog files (validate, sync, migrate)
+- `clean` — Remove cached workflow results
+
 ### Run Complete Workflow
 
 All workflows are configured via YAML files. Create a config file with required fields:
@@ -268,6 +275,28 @@ aponyx list datasets     # View data registry
 aponyx list workflows    # View workflow results (sorted by timestamp, newest first)
 aponyx list workflows --label minimal_test  # Filter workflows by label
 ```
+
+### Manage Catalog Configurations
+
+YAML files are the single source of truth for all catalogs. JSON files are generated for runtime.
+
+```bash
+# Validate catalog cross-references
+aponyx catalog validate
+
+# Preview JSON regeneration
+aponyx catalog sync --dry-run
+
+# Regenerate all JSON files from YAML
+aponyx catalog sync
+
+# One-time migration from existing JSON to YAML
+aponyx catalog migrate
+```
+
+**YAML Source Files** (in `config/`):
+- `catalogs.yaml` - signals, transformations, strategies
+- `securities.yaml` - securities, instruments
 
 ### Clean Workflow Cache
 
@@ -488,4 +517,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 **Maintained by stabilefrisur**  
-**Version**: 0.1.19 | **Last Updated**: December 15, 2025
+**Version**: 0.1.19 | **Last Updated**: December 20, 2025
