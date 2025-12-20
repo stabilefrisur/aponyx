@@ -120,7 +120,7 @@ class TestSpreadReturnCalculator:
 
     def test_proportional_mode_with_actual_notional(self) -> None:
         """Test T009: Calculator works with proportional mode positions.
-        
+
         Note: In proportional mode, the engine passes the actual notional as
         the position parameter. The calculator formula -position * spread_change * dv01 * notional
         would double-count the notional. This test documents the expected behavior
@@ -289,7 +289,10 @@ class TestPriceDataValidation:
         """Test T020: Valid positive prices pass validation."""
         calc = PriceReturnCalculator()
         dates = pd.date_range("2024-01-01", periods=10, freq="D")
-        prices = pd.Series([100.0, 101.0, 102.0, 101.5, 103.0, 102.5, 104.0, 103.5, 105.0, 104.5], index=dates)
+        prices = pd.Series(
+            [100.0, 101.0, 102.0, 101.5, 103.0, 102.5, 104.0, 103.5, 105.0, 104.5],
+            index=dates,
+        )
 
         # Should not raise
         calc.validate_price_data(prices)
@@ -340,6 +343,7 @@ class TestReturnCalculatorProtocol:
 
     def test_non_compliant_class_fails_check(self) -> None:
         """Test that non-compliant class fails isinstance check."""
+
         class NotACalculator:
             pass
 
@@ -348,6 +352,7 @@ class TestReturnCalculatorProtocol:
 
     def test_partial_implementation_fails_check(self) -> None:
         """Test that partial implementation fails isinstance check."""
+
         class PartialCalculator:
             def compute_daily_return(self, wrong_signature: str) -> str:
                 return wrong_signature

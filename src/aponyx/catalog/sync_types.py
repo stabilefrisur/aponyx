@@ -43,7 +43,9 @@ class SyncResult:
         if self.success:
             written = len(self.files_written)
             unchanged = len(self.files_unchanged)
-            return f"{prefix}Sync complete: {written} files updated, {unchanged} unchanged"
+            return (
+                f"{prefix}Sync complete: {written} files updated, {unchanged} unchanged"
+            )
 
         error_str = "\n  ".join(self.errors)
         return f"{prefix}Sync failed:\n  {error_str}"

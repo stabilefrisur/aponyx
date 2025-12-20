@@ -43,18 +43,22 @@ EntryType = (
 )
 
 # Valid category names
-CATALOG_CATEGORIES = frozenset({
-    "indicator_transformations",
-    "score_transformations",
-    "signal_transformations",
-    "signals",
-    "strategies",
-})
+CATALOG_CATEGORIES = frozenset(
+    {
+        "indicator_transformations",
+        "score_transformations",
+        "signal_transformations",
+        "signals",
+        "strategies",
+    }
+)
 
-SECURITY_CATEGORIES = frozenset({
-    "securities",
-    "instruments",
-})
+SECURITY_CATEGORIES = frozenset(
+    {
+        "securities",
+        "instruments",
+    }
+)
 
 ALL_CATEGORIES = CATALOG_CATEGORIES | SECURITY_CATEGORIES
 
@@ -269,7 +273,9 @@ class CatalogManager:
         self._ensure_loaded()
 
         if category not in ALL_CATEGORIES:
-            raise KeyError(f"Unknown category: {category}. Valid: {sorted(ALL_CATEGORIES)}")
+            raise KeyError(
+                f"Unknown category: {category}. Valid: {sorted(ALL_CATEGORIES)}"
+            )
 
         assert self._catalogs_data is not None
         assert self._securities_data is not None
@@ -322,7 +328,9 @@ class CatalogManager:
         self._ensure_loaded()
 
         if category not in ALL_CATEGORIES:
-            raise KeyError(f"Unknown category: {category}. Valid: {sorted(ALL_CATEGORIES)}")
+            raise KeyError(
+                f"Unknown category: {category}. Valid: {sorted(ALL_CATEGORIES)}"
+            )
 
         assert self._catalogs_data is not None
         assert self._securities_data is not None
@@ -365,7 +373,9 @@ class CatalogManager:
         self._ensure_loaded()
 
         if category not in ALL_CATEGORIES:
-            raise KeyError(f"Unknown category: {category}. Valid: {sorted(ALL_CATEGORIES)}")
+            raise KeyError(
+                f"Unknown category: {category}. Valid: {sorted(ALL_CATEGORIES)}"
+            )
 
         assert self._catalogs_data is not None
         assert self._securities_data is not None
@@ -373,12 +383,16 @@ class CatalogManager:
         # Check for duplicates
         existing = self.list_items(category)
         if entry.name in existing:
-            raise ValueError(f"Entry '{entry.name}' already exists in category '{category}'")
+            raise ValueError(
+                f"Entry '{entry.name}' already exists in category '{category}'"
+            )
 
         # Add to appropriate list/dict
         if category == "indicator_transformations":
             if not isinstance(entry, IndicatorTransformationEntry):
-                raise TypeError(f"Expected IndicatorTransformationEntry, got {type(entry)}")
+                raise TypeError(
+                    f"Expected IndicatorTransformationEntry, got {type(entry)}"
+                )
             self._catalogs_data.indicator_transformations.append(entry)
         elif category == "score_transformations":
             if not isinstance(entry, ScoreTransformationEntry):
@@ -386,7 +400,9 @@ class CatalogManager:
             self._catalogs_data.score_transformations.append(entry)
         elif category == "signal_transformations":
             if not isinstance(entry, SignalTransformationEntry):
-                raise TypeError(f"Expected SignalTransformationEntry, got {type(entry)}")
+                raise TypeError(
+                    f"Expected SignalTransformationEntry, got {type(entry)}"
+                )
             self._catalogs_data.signal_transformations.append(entry)
         elif category == "signals":
             if not isinstance(entry, SignalEntry):
@@ -428,7 +444,9 @@ class CatalogManager:
         self._ensure_loaded()
 
         if category not in ALL_CATEGORIES:
-            raise KeyError(f"Unknown category: {category}. Valid: {sorted(ALL_CATEGORIES)}")
+            raise KeyError(
+                f"Unknown category: {category}. Valid: {sorted(ALL_CATEGORIES)}"
+            )
 
         assert self._catalogs_data is not None
         assert self._securities_data is not None

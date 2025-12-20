@@ -195,9 +195,9 @@ class TestDataStep:
         # Mock fetch_security_data from the data.fetch module (used internally)
         with patch("aponyx.data.fetch.fetch_security_data") as mock_fetch:
             from aponyx.data.channels import ChannelFetchError, DataChannel
+
             mock_fetch.side_effect = ChannelFetchError(
-                "cdx_ig_5y",
-                {DataChannel.SPREAD: "Bloomberg returned empty data"}
+                "cdx_ig_5y", {DataChannel.SPREAD: "Bloomberg returned empty data"}
             )
             with pytest.raises(ChannelFetchError, match="cdx_ig_5y"):
                 step.execute({})
@@ -555,7 +555,9 @@ class TestBacktestStep:
             "suitability": {"product": "nonexistent_product"},  # Not in product catalog
         }
 
-        with pytest.raises(ValueError, match="Cannot run backtest for product 'nonexistent_product'"):
+        with pytest.raises(
+            ValueError, match="Cannot run backtest for product 'nonexistent_product'"
+        ):
             step.execute(context)
 
     @patch("aponyx.workflows.concrete_steps.load_parquet")
@@ -847,7 +849,9 @@ class TestVisualizationStep:
         # Verify write_html was called on figures (4 charts now)
         assert mock_fig.write_html.call_count >= 4
 
-    def test_visualization_step_output_exists_checks_dashboard(self, workflow_config, tmp_path):
+    def test_visualization_step_output_exists_checks_dashboard(
+        self, workflow_config, tmp_path
+    ):
         """Test VisualizationStep checks for research_dashboard.html in output_exists."""
         step = VisualizationStep(workflow_config)
         output_path = step.get_output_path()

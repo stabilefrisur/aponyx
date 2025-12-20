@@ -62,8 +62,7 @@ def validate_cmd() -> None:
             + f"signal_transformations: {result.summary.signal_transformations} entries"
         )
         click.echo(
-            click.style("✓ ", fg="green")
-            + f"signals: {result.summary.signals} entries"
+            click.style("✓ ", fg="green") + f"signals: {result.summary.signals} entries"
         )
         click.echo(
             click.style("✓ ", fg="green")
@@ -101,10 +100,13 @@ def validate_cmd() -> None:
     # Display warnings
     if result.warnings:
         click.echo(
-            click.style("Warnings: ", fg="yellow") + f"{len(result.warnings)} warning(s)"
+            click.style("Warnings: ", fg="yellow")
+            + f"{len(result.warnings)} warning(s)"
         )
         for warning in result.warnings:
-            click.echo(f"  [{warning.category}] {warning.entry_name}: {warning.message}")
+            click.echo(
+                f"  [{warning.category}] {warning.entry_name}: {warning.message}"
+            )
         click.echo()
 
     click.echo(click.style("All catalog references valid.", fg="green"))
@@ -214,9 +216,7 @@ def migrate_cmd(force: bool) -> None:
     securities_yaml = config_dir / "securities.yaml"
 
     if (catalogs_yaml.exists() or securities_yaml.exists()) and not force:
-        click.echo(
-            click.style("Error: ", fg="red") + "YAML files already exist."
-        )
+        click.echo(click.style("Error: ", fg="red") + "YAML files already exist.")
         click.echo(f"  {catalogs_yaml}")
         click.echo(f"  {securities_yaml}")
         click.echo()
@@ -261,4 +261,6 @@ def migrate_cmd(force: bool) -> None:
         )
 
     click.echo()
-    click.echo("Migration complete. Edit YAML files in config/ and run 'aponyx catalog sync'.")
+    click.echo(
+        "Migration complete. Edit YAML files in config/ and run 'aponyx catalog sync'."
+    )

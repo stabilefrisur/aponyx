@@ -217,7 +217,9 @@ def test_backtest_result_immutability_expectation() -> None:
     signal = pd.Series([1.0] * 30, index=dates)
     spread = pd.Series([100.0] * 30, index=dates)
 
-    result = run_backtest(signal, spread, make_test_config(signal_lag=0), make_test_calculator())
+    result = run_backtest(
+        signal, spread, make_test_config(signal_lag=0), make_test_calculator()
+    )
 
     # Modify result
     result.positions.iloc[0, 0] = 999.0
@@ -258,7 +260,9 @@ def test_metadata_structure_consistency() -> None:
     spread = pd.Series(100 + np.random.randn(50), index=dates)
 
     # Test with our main engine
-    result = run_backtest(signal, spread, make_test_config(signal_lag=0), make_test_calculator())
+    result = run_backtest(
+        signal, spread, make_test_config(signal_lag=0), make_test_calculator()
+    )
 
     # Verify expected metadata structure
     assert "config" in result.metadata

@@ -336,7 +336,9 @@ def test_run_backtest_validates_empty_data_after_alignment() -> None:
     spread = pd.Series([100.0, 101.0, 102.0, 101.0, 100.0], index=dates2)
 
     with pytest.raises(ValueError, match="No valid data after alignment"):
-        run_backtest(signal, spread, make_test_config(signal_lag=0), make_test_calculator())
+        run_backtest(
+            signal, spread, make_test_config(signal_lag=0), make_test_calculator()
+        )
 
 
 def test_signal_lag_shifts_execution() -> None:
@@ -588,7 +590,9 @@ def test_backtest_metadata_completeness() -> None:
     assert result.metadata["config"]["signal_lag"] == 2
     assert result.metadata["config"]["transaction_cost_bps"] == 1.5
     assert result.metadata["config"]["max_holding_days"] == 10
-    assert result.metadata["calculator"]["dv01_per_million"] == 475.0  # Now in calculator
+    assert (
+        result.metadata["calculator"]["dv01_per_million"] == 475.0
+    )  # Now in calculator
     assert result.metadata["config"]["signal_lag"] == 2
 
     # Verify summary statistics
@@ -959,11 +963,15 @@ def test_position_size_mm_override() -> None:
     microstructure = get_product_microstructure("cdx_ig_5y")
 
     # Default config
-    default_config = metadata.to_config(transaction_cost_bps=microstructure.transaction_cost_bps)
+    default_config = metadata.to_config(
+        transaction_cost_bps=microstructure.transaction_cost_bps
+    )
     assert default_config.position_size_mm == metadata.position_size_mm
 
     # Overridden config
-    override_config = metadata.to_config(transaction_cost_bps=microstructure.transaction_cost_bps, position_size_mm_override=20.0,
+    override_config = metadata.to_config(
+        transaction_cost_bps=microstructure.transaction_cost_bps,
+        position_size_mm_override=20.0,
     )
     assert override_config.position_size_mm == 20.0
 
@@ -979,11 +987,15 @@ def test_stop_loss_pct_override() -> None:
     microstructure = get_product_microstructure("cdx_ig_5y")
 
     # Default config
-    default_config = metadata.to_config(transaction_cost_bps=microstructure.transaction_cost_bps)
+    default_config = metadata.to_config(
+        transaction_cost_bps=microstructure.transaction_cost_bps
+    )
     assert default_config.stop_loss_pct == metadata.stop_loss_pct
 
     # Overridden config
-    override_config = metadata.to_config(transaction_cost_bps=microstructure.transaction_cost_bps, stop_loss_pct_override=3.0,
+    override_config = metadata.to_config(
+        transaction_cost_bps=microstructure.transaction_cost_bps,
+        stop_loss_pct_override=3.0,
     )
     assert override_config.stop_loss_pct == 3.0
 
@@ -999,11 +1011,15 @@ def test_take_profit_pct_override_enables_when_catalog_has_null() -> None:
     microstructure = get_product_microstructure("cdx_ig_5y")
 
     # Aggressive strategy has null take_profit_pct by default
-    default_config = metadata.to_config(transaction_cost_bps=microstructure.transaction_cost_bps)
+    default_config = metadata.to_config(
+        transaction_cost_bps=microstructure.transaction_cost_bps
+    )
     assert default_config.take_profit_pct is None
 
     # Override to enable
-    override_config = metadata.to_config(transaction_cost_bps=microstructure.transaction_cost_bps, take_profit_pct_override=15.0,
+    override_config = metadata.to_config(
+        transaction_cost_bps=microstructure.transaction_cost_bps,
+        take_profit_pct_override=15.0,
     )
     assert override_config.take_profit_pct == 15.0
 
@@ -1020,19 +1036,27 @@ def test_runtime_overrides_validated() -> None:
 
     # Invalid override should raise when creating BacktestConfig
     with pytest.raises(ValueError, match="position_size_mm must be positive"):
-        metadata.to_config(transaction_cost_bps=microstructure.transaction_cost_bps, position_size_mm_override=-5.0,
+        metadata.to_config(
+            transaction_cost_bps=microstructure.transaction_cost_bps,
+            position_size_mm_override=-5.0,
         )
 
     with pytest.raises(ValueError, match="sizing_mode must be"):
-        metadata.to_config(transaction_cost_bps=microstructure.transaction_cost_bps, sizing_mode_override="invalid",
+        metadata.to_config(
+            transaction_cost_bps=microstructure.transaction_cost_bps,
+            sizing_mode_override="invalid",
         )
 
     with pytest.raises(ValueError, match="stop_loss_pct must be in"):
-        metadata.to_config(transaction_cost_bps=microstructure.transaction_cost_bps, stop_loss_pct_override=0.0,
+        metadata.to_config(
+            transaction_cost_bps=microstructure.transaction_cost_bps,
+            stop_loss_pct_override=0.0,
         )
 
     with pytest.raises(ValueError, match="take_profit_pct must be in"):
-        metadata.to_config(transaction_cost_bps=microstructure.transaction_cost_bps, take_profit_pct_override=150.0,
+        metadata.to_config(
+            transaction_cost_bps=microstructure.transaction_cost_bps,
+            take_profit_pct_override=150.0,
         )
 
 
@@ -1684,7 +1708,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         # Verify expected outcome from scenario
         assert result.pnl["cumulative_pnl"].iloc[-1] > 0
@@ -1699,7 +1725,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         assert result.pnl["cumulative_pnl"].iloc[-1] > 0
 
@@ -1712,7 +1740,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         assert result.pnl["cumulative_pnl"].iloc[-1] < 0
         assert scenario.expected["pnl_positive"] is False
@@ -1726,7 +1756,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         assert result.pnl["cumulative_pnl"].iloc[-1] < 0
 
@@ -1739,7 +1771,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         n_trades = result.metadata["summary"]["n_trades"]
         assert n_trades >= scenario.expected["n_trades_min"]
@@ -1754,7 +1788,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         n_trades = result.metadata["summary"]["n_trades"]
         assert n_trades >= scenario.expected["n_trades_min"]
@@ -1769,7 +1805,9 @@ class TestDeterministicScenarios:
             stop_loss_pct=5.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         # Verify stop loss triggered
         stop_loss_count = result.metadata["summary"]["exit_counts"]["stop_loss"]
@@ -1786,7 +1824,9 @@ class TestDeterministicScenarios:
             take_profit_pct=10.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         # Verify take profit triggered
         take_profit_count = result.metadata["summary"]["exit_counts"]["take_profit"]
@@ -1803,10 +1843,14 @@ class TestDeterministicScenarios:
             max_holding_days=10,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         # Verify max holding days triggered
-        max_holding_count = result.metadata["summary"]["exit_counts"]["max_holding_days"]
+        max_holding_count = result.metadata["summary"]["exit_counts"][
+            "max_holding_days"
+        ]
         assert max_holding_count > 0
         assert scenario.expected["max_holding_triggered"] is True
 
@@ -1819,7 +1863,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         # Compute hit rate from results
         metrics = compute_all_metrics(result.pnl, result.positions)
@@ -1837,7 +1883,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         # Compute hit rate from results
         metrics = compute_all_metrics(result.pnl, result.positions)
@@ -1868,7 +1916,9 @@ def test_proportional_strategies_are_default() -> None:
         )
 
         # Verify can convert to config
-        config = metadata.to_config(transaction_cost_bps=microstructure.transaction_cost_bps)
+        config = metadata.to_config(
+            transaction_cost_bps=microstructure.transaction_cost_bps
+        )
         assert config.sizing_mode == "proportional"
 
 
@@ -1883,11 +1933,15 @@ def test_binary_sizing_mode_override() -> None:
     microstructure = get_product_microstructure("cdx_ig_5y")
 
     # Default should be proportional
-    default_config = metadata.to_config(transaction_cost_bps=microstructure.transaction_cost_bps)
+    default_config = metadata.to_config(
+        transaction_cost_bps=microstructure.transaction_cost_bps
+    )
     assert default_config.sizing_mode == "proportional"
 
     # Override to binary
-    binary_config = metadata.to_config(transaction_cost_bps=microstructure.transaction_cost_bps, sizing_mode_override="binary",
+    binary_config = metadata.to_config(
+        transaction_cost_bps=microstructure.transaction_cost_bps,
+        sizing_mode_override="binary",
     )
     assert binary_config.sizing_mode == "binary"
 
@@ -2028,7 +2082,9 @@ def test_static_vs_dynamic_comparison() -> None:
     )
 
     static_result = run_backtest(signal, spread, static_config, make_test_calculator())
-    dynamic_result = run_backtest(signal, spread, dynamic_config, make_test_calculator())
+    dynamic_result = run_backtest(
+        signal, spread, dynamic_config, make_test_calculator()
+    )
 
     # With spread = 60 bps:
     # Static: 1.5 bps → cost = 1.5 * 10 * 100 = $1,500 per trade
@@ -2058,7 +2114,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         # Verify expected outcome from scenario
         assert result.pnl["cumulative_pnl"].iloc[-1] > 0
@@ -2073,7 +2131,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         assert result.pnl["cumulative_pnl"].iloc[-1] > 0
 
@@ -2086,7 +2146,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         assert result.pnl["cumulative_pnl"].iloc[-1] < 0
         assert scenario.expected["pnl_positive"] is False
@@ -2100,7 +2162,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         assert result.pnl["cumulative_pnl"].iloc[-1] < 0
 
@@ -2113,7 +2177,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         n_trades = result.metadata["summary"]["n_trades"]
         assert n_trades >= scenario.expected["n_trades_min"]
@@ -2128,7 +2194,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         n_trades = result.metadata["summary"]["n_trades"]
         assert n_trades >= scenario.expected["n_trades_min"]
@@ -2143,7 +2211,9 @@ class TestDeterministicScenarios:
             stop_loss_pct=5.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         # Verify stop loss triggered
         stop_loss_count = result.metadata["summary"]["exit_counts"]["stop_loss"]
@@ -2160,7 +2230,9 @@ class TestDeterministicScenarios:
             take_profit_pct=10.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         # Verify take profit triggered
         take_profit_count = result.metadata["summary"]["exit_counts"]["take_profit"]
@@ -2177,10 +2249,14 @@ class TestDeterministicScenarios:
             max_holding_days=10,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         # Verify max holding days triggered
-        max_holding_count = result.metadata["summary"]["exit_counts"]["max_holding_days"]
+        max_holding_count = result.metadata["summary"]["exit_counts"][
+            "max_holding_days"
+        ]
         assert max_holding_count > 0
         assert scenario.expected["max_holding_triggered"] is True
 
@@ -2193,7 +2269,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         # Compute hit rate from results
         metrics = compute_all_metrics(result.pnl, result.positions)
@@ -2211,7 +2289,9 @@ class TestDeterministicScenarios:
             transaction_cost_bps=0.0,
         )
 
-        result = run_backtest(scenario.signal, scenario.spread, config, make_test_calculator())
+        result = run_backtest(
+            scenario.signal, scenario.spread, config, make_test_calculator()
+        )
 
         # Compute hit rate from results
         metrics = compute_all_metrics(result.pnl, result.positions)
@@ -2285,7 +2365,23 @@ def test_entry_threshold_asymmetric_entry_exit() -> None:
 
     # Signal: extreme entry → gradual decline → zero exit
     signal = pd.Series(
-        [0.0, 0.5, 2.0, 1.5, 1.0, 0.5, 0.3, 0.0, -2.0, -1.5, -1.0, -0.5, -0.3, 0.0, 0.0],
+        [
+            0.0,
+            0.5,
+            2.0,
+            1.5,
+            1.0,
+            0.5,
+            0.3,
+            0.0,
+            -2.0,
+            -1.5,
+            -1.0,
+            -0.5,
+            -0.3,
+            0.0,
+            0.0,
+        ],
         index=dates,
     )
     spread = pd.Series([100.0] * 15, index=dates)
@@ -2305,7 +2401,7 @@ def test_entry_threshold_asymmetric_entry_exit() -> None:
     # Position held through declining signal (1.5, 1.0, 0.5, 0.3 - all non-zero)
     for i in range(3, 7):
         assert result.positions.loc[dates[i], "position"] != 0, (
-            f"Should maintain position on day {i+1} (signal still non-zero)"
+            f"Should maintain position on day {i + 1} (signal still non-zero)"
         )
 
     # Exit when signal hits zero
@@ -2346,7 +2442,7 @@ def test_entry_threshold_no_reentry_between_threshold_and_zero() -> None:
     # No re-entry on days 5-9 (signals 0.5, 1.0, 1.4, 0.8, 0.3 all below threshold)
     for i in range(4, 9):
         assert result.positions.loc[dates[i], "position"] == 0, (
-            f"Should not re-enter on day {i+1} (signal {signal.iloc[i]} below threshold)"
+            f"Should not re-enter on day {i + 1} (signal {signal.iloc[i]} below threshold)"
         )
 
 
@@ -2441,7 +2537,9 @@ class TestBacktestChannelDataIntegration:
         data_dir.mkdir(parents=True)
 
         dates = pd.date_range("2024-01-01", periods=20, freq="B")
-        cdx_df = pd.DataFrame({"spread": [100.0 + i * 0.5 for i in range(20)]}, index=dates)
+        cdx_df = pd.DataFrame(
+            {"spread": [100.0 + i * 0.5 for i in range(20)]}, index=dates
+        )
         cdx_df.to_parquet(data_dir / "cdx_ig_5y_abc123.parquet")
 
         registry = {"cdx_ig_5y": "cdx_ig_5y_abc123.parquet"}
@@ -2517,10 +2615,14 @@ class TestBacktestChannelDataIntegration:
         )
 
         assert "price" in df.columns, "P&L data should have price column"
-        assert "spread" not in df.columns, "P&L data should NOT include spread for price-quoted"
+        assert "spread" not in df.columns, (
+            "P&L data should NOT include spread for price-quoted"
+        )
         assert len(df) == 20
 
-    def test_quote_type_not_spread_availability_drives_pnl_channel(self, tmp_path) -> None:
+    def test_quote_type_not_spread_availability_drives_pnl_channel(
+        self, tmp_path
+    ) -> None:
         """Test that quote_type field (not spread availability) determines P&L channel.
 
         This is a key requirement: ETF has both price and spread channels, but
@@ -2564,8 +2666,12 @@ class TestBacktestChannelDataIntegration:
         assert pnl_channel == DataChannel.SPREAD, "CDX HY P&L should use SPREAD"
 
         # Indicator also uses spread (CDX instrument_type default)
-        indicator_channel = resolve_channel_for_purpose("cdx_hy_5y", UsagePurpose.INDICATOR)
-        assert indicator_channel == DataChannel.SPREAD, "CDX HY indicator should use SPREAD"
+        indicator_channel = resolve_channel_for_purpose(
+            "cdx_hy_5y", UsagePurpose.INDICATOR
+        )
+        assert indicator_channel == DataChannel.SPREAD, (
+            "CDX HY indicator should use SPREAD"
+        )
 
     def test_backtest_spread_pnl_calculation_with_channel_data(self, tmp_path) -> None:
         """Test backtest P&L calculation uses correct spread data from channel."""
@@ -2602,7 +2708,9 @@ class TestBacktestChannelDataIntegration:
         signal = pd.Series([0.8] * 10, index=dates)
         spread = df["spread"]
 
-        config = make_test_config(signal_lag=0, transaction_cost_bps=0.0, sizing_mode="binary")
+        config = make_test_config(
+            signal_lag=0, transaction_cost_bps=0.0, sizing_mode="binary"
+        )
         result = run_backtest(signal, spread, config, make_test_calculator())
 
         # Spread tightened by 9 bps total (100 → 91), long position profits

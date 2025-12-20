@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.20] - 2024-12-20
+
 ### Added
 - **Parameter Sweep Engine** (spec 012-parameter-sweeps)
   - Self-contained sweep configuration files (YAML) defining parameter experiments independently from catalogs
@@ -1130,6 +1132,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.20]: https://github.com/stabilefrisur/aponyx/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/stabilefrisur/aponyx/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/stabilefrisur/aponyx/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/stabilefrisur/aponyx/compare/v0.1.16...v0.1.17

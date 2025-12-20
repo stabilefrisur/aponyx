@@ -155,12 +155,16 @@ def evaluate_indicator(
     )
     from aponyx.models.signal_composer import compose_signal
 
-    logger.debug("Evaluating indicator: signal=%s, combo=%s", config.base.signal, combination)
+    logger.debug(
+        "Evaluating indicator: signal=%s, combo=%s", config.base.signal, combination
+    )
 
     # Load registries
     indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
     score_registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
-    signal_transformation_registry = SignalTransformationRegistry(SIGNAL_TRANSFORMATION_PATH)
+    signal_transformation_registry = SignalTransformationRegistry(
+        SIGNAL_TRANSFORMATION_PATH
+    )
     signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
 
     # Load market data
@@ -200,7 +204,8 @@ def evaluate_indicator(
         signal_registry=signal_registry,
         indicator_params_override=indicator_params_override or None,
         score_params_override=score_params_override or None,
-        signal_transformation_params_override=signal_transformation_params_override or None,
+        signal_transformation_params_override=signal_transformation_params_override
+        or None,
         include_intermediates=True,
     )
 
@@ -230,7 +235,9 @@ def evaluate_indicator(
         "Suitability result: decision=%s, score=%.2f, t_stat=%.2f",
         suitability_result.decision,
         suitability_result.composite_score,
-        list(suitability_result.t_stats.values())[0] if suitability_result.t_stats else 0.0,
+        list(suitability_result.t_stats.values())[0]
+        if suitability_result.t_stats
+        else 0.0,
     )
 
     return suitability_result
@@ -300,7 +307,9 @@ def evaluate_backtest(
     # Load registries
     indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
     score_registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
-    signal_transformation_registry = SignalTransformationRegistry(SIGNAL_TRANSFORMATION_PATH)
+    signal_transformation_registry = SignalTransformationRegistry(
+        SIGNAL_TRANSFORMATION_PATH
+    )
     signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
     strategy_registry = StrategyRegistry(STRATEGY_CATALOG_PATH)
 
@@ -332,14 +341,18 @@ def evaluate_backtest(
         signal_registry=signal_registry,
         indicator_params_override=indicator_params_override or None,
         score_params_override=score_params_override or None,
-        signal_transformation_params_override=signal_transformation_params_override or None,
+        signal_transformation_params_override=signal_transformation_params_override
+        or None,
         include_intermediates=False,
     )
-    
+
     # With include_intermediates=False, compose_signal returns a Series
     import pandas as pd
+
     if isinstance(signal_result, dict):
-        raise TypeError("Expected pd.Series from compose_signal with include_intermediates=False")
+        raise TypeError(
+            "Expected pd.Series from compose_signal with include_intermediates=False"
+        )
     signal: pd.Series = signal_result
 
     # Get product for backtest (use first CDX instrument as default)
@@ -364,7 +377,7 @@ def evaluate_backtest(
         product_df = market_data["cdx"]
     else:
         product_df = market_data[list(market_data.keys())[0]]
-    
+
     if "spread" in product_df.columns:
         price_series = product_df["spread"]
     elif "price" in product_df.columns:
@@ -394,6 +407,7 @@ def evaluate_backtest(
     if strategy_overrides:
         # Use dataclasses.replace for type-safe override application
         from dataclasses import replace
+
         backtest_config = replace(backtest_config, **strategy_overrides)
 
     # Get calculator

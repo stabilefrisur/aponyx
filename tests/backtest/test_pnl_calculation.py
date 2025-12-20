@@ -40,7 +40,9 @@ def test_incremental_pnl_no_double_counting() -> None:
         signal_lag=0,  # No lag to avoid data truncation
     )
 
-    result = run_backtest(signal, spread, config, make_test_calculator(dv01_per_million=100.0))
+    result = run_backtest(
+        signal, spread, config, make_test_calculator(dv01_per_million=100.0)
+    )
 
     # Verify position is held throughout (binary mode: position = 1)
     assert (result.positions["position"] == 1).all()
@@ -88,7 +90,7 @@ def test_incremental_pnl_with_position_changes() -> None:
     spread = pd.Series([100.0 + i for i in range(20)], index=dates)
 
     dv01 = 100.0  # Use fixed DV01 for this test
-    
+
     config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",  # Use binary mode for this test
@@ -96,7 +98,9 @@ def test_incremental_pnl_with_position_changes() -> None:
         signal_lag=0,
     )
 
-    result = run_backtest(signal, spread, config, make_test_calculator(dv01_per_million=dv01))
+    result = run_backtest(
+        signal, spread, config, make_test_calculator(dv01_per_million=dv01)
+    )
 
     # Day 0: Entry, no previous spread
     assert result.pnl.iloc[0]["spread_pnl"] == 0.0
@@ -165,7 +169,7 @@ def test_cumulative_pnl_equals_mark_to_market() -> None:
 
     # DV01 used for this test
     dv01 = 100.0
-    
+
     config = make_test_config(
         position_size_mm=10.0,
         sizing_mode="binary",  # Use binary mode for this test
@@ -173,7 +177,9 @@ def test_cumulative_pnl_equals_mark_to_market() -> None:
         signal_lag=0,
     )
 
-    result = run_backtest(signal, spread, config, make_test_calculator(dv01_per_million=dv01))
+    result = run_backtest(
+        signal, spread, config, make_test_calculator(dv01_per_million=dv01)
+    )
 
     # Entry spread is first spread value
     entry_spread = spread_values[0]
@@ -184,11 +190,7 @@ def test_cumulative_pnl_equals_mark_to_market() -> None:
         spread_change_from_entry = current_spread - entry_spread
 
         # Long position: profit when spreads tighten (negative change)
-        expected_mtm = (
-            -spread_change_from_entry
-            * dv01
-            * config.position_size_mm
-        )
+        expected_mtm = -spread_change_from_entry * dv01 * config.position_size_mm
         actual_cumulative = result.pnl.iloc[i]["cumulative_pnl"]
 
         assert abs(actual_cumulative - expected_mtm) < 0.01, (
@@ -222,7 +224,9 @@ def test_stop_loss_triggers_on_cumulative_pnl_threshold() -> None:
         signal_lag=0,
     )
 
-    result = run_backtest(signal, spread, config, make_test_calculator(dv01_per_million=100.0))
+    result = run_backtest(
+        signal, spread, config, make_test_calculator(dv01_per_million=100.0)
+    )
 
     # Find stop loss exit
     stop_loss_exits = result.positions[result.positions["exit_reason"] == "stop_loss"]

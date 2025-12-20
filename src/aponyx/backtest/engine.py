@@ -607,6 +607,7 @@ def run_backtest(
 
     # Extract DV01 from calculator if it's a SpreadReturnCalculator
     from .calculators import SpreadReturnCalculator
+
     calculator_info: dict[str, str | float] = {"type": type(calculator).__name__}
     if isinstance(calculator, SpreadReturnCalculator):
         calculator_info["dv01_per_million"] = calculator.dv01_per_million

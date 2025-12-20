@@ -703,7 +703,6 @@ def get_security_spec(security_id: str) -> "SecuritySpec":
     >>> spec.instrument_type  # 'cdx'
     >>> spec.has_channel(DataChannel.SPREAD)  # True
     """
-    from .security_catalog import SecuritySpec
 
     catalog = _get_security_catalog()
     return catalog.get_spec(security_id)
@@ -746,7 +745,6 @@ def resolve_channel_for_purpose(
     >>> resolve_channel_for_purpose("hyg", UsagePurpose.PNL)
     DataChannel.PRICE
     """
-    from .channels import DataChannel, UsagePurpose
 
     catalog = _get_security_catalog()
     return catalog.resolve_channel(security_id, purpose, override)
@@ -773,7 +771,6 @@ def list_security_channels(security_id: str) -> list["DataChannel"]:
     >>> list_security_channels("vix")
     [DataChannel.LEVEL]
     """
-    from .channels import DataChannel
 
     spec = get_security_spec(security_id)
     return spec.list_channels()
@@ -846,7 +843,6 @@ def fetch_security_data(
     >>> df = fetch_security_data(source, "hyg", purpose=UsagePurpose.PNL)
     >>> df.columns  # ['price']
     """
-    from .channels import DataChannel, UsagePurpose, ChannelFetchError
     from .sources import FileSource
 
     # Get security specification with clear error on failure
@@ -968,8 +964,6 @@ def _fetch_security_from_file(
     FileNotFoundError
         If data file does not exist.
     """
-    from .channels import DataChannel
-    from .sources import FileSource
     from .validation import validate_channel_data, validate_channel_columns_exist
     from ..persistence.parquet_io import load_parquet
 
@@ -1008,7 +1002,7 @@ def _fetch_security_from_file(
 
     # Extract requested channel columns
     channel_names = [c.value for c in channels]
-    
+
     # Validate channel columns exist (FR-010: fail-fast on missing columns)
     try:
         validate_channel_columns_exist(df, channel_names, security_id)
@@ -1292,4 +1286,3 @@ def _merge_channel_data(channel_dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
         )
 
     return result
-

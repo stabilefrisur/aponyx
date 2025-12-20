@@ -187,7 +187,9 @@ class TestDeterministicScenarios:
         perf_config = self._make_perf_config()
 
         calculator = self._make_calculator()
-        backtest_result = run_backtest(scenario.signal, scenario.spread, config, calculator)
+        backtest_result = run_backtest(
+            scenario.signal, scenario.spread, config, calculator
+        )
         perf_result = analyze_backtest_performance(backtest_result, perf_config)
 
         # Many trades scenario should have high trade count

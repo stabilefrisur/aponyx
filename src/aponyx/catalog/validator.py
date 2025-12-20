@@ -304,7 +304,9 @@ def validate_catalogs(
 
     # Check for duplicates in each category
     errors.extend(
-        check_duplicates(catalogs.indicator_transformations, "indicator_transformations")
+        check_duplicates(
+            catalogs.indicator_transformations, "indicator_transformations"
+        )
     )
     errors.extend(
         check_duplicates(catalogs.score_transformations, "score_transformations")

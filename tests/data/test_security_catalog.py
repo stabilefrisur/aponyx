@@ -393,7 +393,7 @@ class TestSecuritySpecEnhancedValidation:
                 quote_type="spread",
                 channels=channels,
             )
-        
+
         error_msg = str(exc_info.value)
         assert "cdx_test" in error_msg
         assert "quote_type='spread'" in error_msg
@@ -414,7 +414,7 @@ class TestSecuritySpecEnhancedValidation:
                 channels=channels,
                 dv01_per_million=475.0,
             )
-        
+
         error_msg = str(exc_info.value)
         assert "cdx_test" in error_msg
         assert "no SPREAD channel" in error_msg
@@ -434,7 +434,7 @@ class TestSecuritySpecEnhancedValidation:
                 quote_type="price",
                 channels=channels,
             )
-        
+
         error_msg = str(exc_info.value)
         assert "etf_test" in error_msg
         assert "no PRICE channel" in error_msg
@@ -453,10 +453,10 @@ class TestSecuritySpecEnhancedValidation:
             channels=channels,
             dv01_per_million=475.0,
         )
-        
+
         with pytest.raises(ValueError) as exc_info:
             spec.get_channel_config(DataChannel.PRICE)
-        
+
         error_msg = str(exc_info.value)
         assert "price" in error_msg.lower()
         assert "cdx_test" in error_msg
@@ -475,14 +475,14 @@ class TestSecurityCatalogResolveChannelValidation:
     def test_resolve_channel_invalid_override_error_message(self):
         """Invalid channel override error includes available channels."""
         catalog = SecurityCatalog(BLOOMBERG_SECURITIES_PATH)
-        
+
         with pytest.raises(ValueError) as exc_info:
             catalog.resolve_channel(
                 "vix",
                 UsagePurpose.INDICATOR,
                 override=DataChannel.SPREAD,
             )
-        
+
         error_msg = str(exc_info.value)
         assert "vix" in error_msg
         assert "spread" in error_msg.lower()
@@ -507,10 +507,10 @@ class TestSecurityCatalogResolveChannelValidation:
             json.dump(invalid_catalog, f)
             f.flush()
             catalog = SecurityCatalog(Path(f.name))
-            
+
             with pytest.raises(ValueError) as exc_info:
                 catalog.resolve_channel("test_security", UsagePurpose.INDICATOR)
-            
+
             error_msg = str(exc_info.value)
             assert "indicator" in error_msg.lower()
             assert "spread" in error_msg.lower()  # Default channel for ETF indicator
@@ -518,10 +518,10 @@ class TestSecurityCatalogResolveChannelValidation:
     def test_catalog_get_spec_unknown_error_message(self):
         """get_spec for unknown security shows available securities."""
         catalog = SecurityCatalog(BLOOMBERG_SECURITIES_PATH)
-        
+
         with pytest.raises(ValueError) as exc_info:
             catalog.get_spec("nonexistent_security")
-        
+
         error_msg = str(exc_info.value)
         assert "nonexistent_security" in error_msg
         assert "cdx_ig_5y" in error_msg  # Shows available securities
@@ -533,11 +533,11 @@ class TestSecuritySpecDv01Warning:
     def test_dv01_on_price_product_logs_warning(self, caplog):
         """DV01 provided for price-quoted product logs warning."""
         import logging
-        
+
         channels = {
             DataChannel.PRICE: ChannelConfig("HYG US Equity"),
         }
-        
+
         with caplog.at_level(logging.WARNING):
             spec = SecuritySpec(
                 security_id="hyg_test",
@@ -547,10 +547,10 @@ class TestSecuritySpecDv01Warning:
                 channels=channels,
                 dv01_per_million=100.0,  # Not needed for price products
             )
-        
+
         # Spec should be created successfully
         assert spec.dv01_per_million == 100.0
-        
+
         # Warning should be logged
         assert any("hyg_test" in record.message for record in caplog.records)
         assert any("price" in record.message for record in caplog.records)

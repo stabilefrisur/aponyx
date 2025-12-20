@@ -104,9 +104,7 @@ class ChannelFetchError(Exception):
         self.security_id = security_id
         self.failures = failures
         # Format failures for error message
-        failures_str = ", ".join(
-            f"{ch.value}: {msg}" for ch, msg in failures.items()
-        )
+        failures_str = ", ".join(f"{ch.value}: {msg}" for ch, msg in failures.items())
         msg = f"Failed to fetch channels for '{security_id}': {{{failures_str}}}"
         super().__init__(msg)
 

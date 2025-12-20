@@ -558,11 +558,13 @@ def make_stop_loss_trigger(n_days: int = 50) -> TestScenario:
     # P&L = -position * spread_change * DV01 = -10MM * delta_spread * 475
     # For 5% loss on $10MM × $475 = $4,750,000 exposure: need loss of $237,500
     # That requires spread widening of 237,500 / (10 × 475) = ~50 bps
-    spread_values = np.concatenate([
-        np.full(10, 100.0),  # Flat for entry
-        np.linspace(100.0, 160.0, 30),  # Sharp widening (60 bps)
-        np.full(10, 160.0),  # Flat after
-    ])
+    spread_values = np.concatenate(
+        [
+            np.full(10, 100.0),  # Flat for entry
+            np.linspace(100.0, 160.0, 30),  # Sharp widening (60 bps)
+            np.full(10, 160.0),  # Flat after
+        ]
+    )
 
     spread = pd.Series(spread_values, index=dates, name="spread")
     target = -spread.diff().fillna(0)
@@ -590,11 +592,13 @@ def make_take_profit_trigger(n_days: int = 50) -> TestScenario:
     signal = pd.Series([1.0] * n_days, index=dates, name="signal")
 
     # Sharp spread tightening to trigger take profit
-    spread_values = np.concatenate([
-        np.full(10, 100.0),  # Flat for entry
-        np.linspace(100.0, 40.0, 30),  # Sharp tightening (60 bps)
-        np.full(10, 40.0),  # Flat after
-    ])
+    spread_values = np.concatenate(
+        [
+            np.full(10, 100.0),  # Flat for entry
+            np.linspace(100.0, 40.0, 30),  # Sharp tightening (60 bps)
+            np.full(10, 40.0),  # Flat after
+        ]
+    )
 
     spread = pd.Series(spread_values, index=dates, name="spread")
     target = -spread.diff().fillna(0)
@@ -655,32 +659,36 @@ def make_alternating_outcomes(n_days: int = 200) -> TestScenario:
     dates = _make_dates(n_days)
 
     # 4 trades: win, loss, win, loss
-    signal_values = np.concatenate([
-        np.zeros(10),  # Flat
-        np.ones(20),  # Trade 1: Long
-        np.zeros(10),  # Flat
-        np.ones(20),  # Trade 2: Long
-        np.zeros(10),  # Flat
-        np.ones(20),  # Trade 3: Long
-        np.zeros(10),  # Flat
-        np.ones(20),  # Trade 4: Long
-        np.zeros(80),  # Remaining flat
-    ])[:n_days]
+    signal_values = np.concatenate(
+        [
+            np.zeros(10),  # Flat
+            np.ones(20),  # Trade 1: Long
+            np.zeros(10),  # Flat
+            np.ones(20),  # Trade 2: Long
+            np.zeros(10),  # Flat
+            np.ones(20),  # Trade 3: Long
+            np.zeros(10),  # Flat
+            np.ones(20),  # Trade 4: Long
+            np.zeros(80),  # Remaining flat
+        ]
+    )[:n_days]
 
     signal = pd.Series(signal_values, index=dates, name="signal")
 
     # Spread: tighten for trades 1,3 (wins), widen for trades 2,4 (losses)
-    spread_values = np.concatenate([
-        np.full(10, 100.0),  # Flat before trade 1
-        np.linspace(100.0, 90.0, 20),  # Trade 1: tighten (win)
-        np.full(10, 90.0),  # Flat
-        np.linspace(90.0, 105.0, 20),  # Trade 2: widen (loss)
-        np.full(10, 105.0),  # Flat
-        np.linspace(105.0, 95.0, 20),  # Trade 3: tighten (win)
-        np.full(10, 95.0),  # Flat
-        np.linspace(95.0, 110.0, 20),  # Trade 4: widen (loss)
-        np.full(80, 110.0),  # Remaining flat
-    ])[:n_days]
+    spread_values = np.concatenate(
+        [
+            np.full(10, 100.0),  # Flat before trade 1
+            np.linspace(100.0, 90.0, 20),  # Trade 1: tighten (win)
+            np.full(10, 90.0),  # Flat
+            np.linspace(90.0, 105.0, 20),  # Trade 2: widen (loss)
+            np.full(10, 105.0),  # Flat
+            np.linspace(105.0, 95.0, 20),  # Trade 3: tighten (win)
+            np.full(10, 95.0),  # Flat
+            np.linspace(95.0, 110.0, 20),  # Trade 4: widen (loss)
+            np.full(80, 110.0),  # Remaining flat
+        ]
+    )[:n_days]
 
     spread = pd.Series(spread_values, index=dates, name="spread")
     target = -spread.diff().fillna(0)

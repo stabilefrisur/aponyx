@@ -107,9 +107,7 @@ class TestCatalogValidateCommand:
     ) -> None:
         """Test validate with missing config directory."""
         # Point PROJECT_ROOT to temp directory
-        monkeypatch.setattr(
-            "aponyx.cli.commands.catalog.PROJECT_ROOT", tmp_path
-        )
+        monkeypatch.setattr("aponyx.cli.commands.catalog.PROJECT_ROOT", tmp_path)
 
         result = runner.invoke(catalog, ["validate"])
         assert result.exit_code == 1
@@ -152,9 +150,7 @@ class TestCatalogMigrateCommand:
         project_root.mkdir()
         shutil.move(str(sample_config_dir), str(project_root / "config"))
 
-        monkeypatch.setattr(
-            "aponyx.cli.commands.catalog.PROJECT_ROOT", project_root
-        )
+        monkeypatch.setattr("aponyx.cli.commands.catalog.PROJECT_ROOT", project_root)
 
         result = runner.invoke(catalog, ["migrate"])
         assert result.exit_code == 1

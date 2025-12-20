@@ -292,7 +292,10 @@ class TestDeterministicScenarios:
 
         metrics = tests.compute_stability_metrics(rolling_betas, aggregate_beta)
 
-        assert metrics["sign_consistency_ratio"] >= scenario.expected["sign_consistency_min"]
+        assert (
+            metrics["sign_consistency_ratio"]
+            >= scenario.expected["sign_consistency_min"]
+        )
         assert metrics["beta_cv"] <= scenario.expected["beta_cv_max"]
 
     def test_unstable_beta_rolling_stability(self) -> None:
@@ -309,5 +312,8 @@ class TestDeterministicScenarios:
 
         metrics = tests.compute_stability_metrics(rolling_betas, aggregate_beta)
 
-        assert metrics["sign_consistency_ratio"] <= scenario.expected["sign_consistency_max"]
+        assert (
+            metrics["sign_consistency_ratio"]
+            <= scenario.expected["sign_consistency_max"]
+        )
         assert metrics["beta_cv"] >= scenario.expected.get("beta_cv_min", 0.5)

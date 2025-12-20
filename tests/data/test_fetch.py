@@ -514,7 +514,9 @@ class TestFetchSecurityDataIntegration:
 
         source = FileSource(synthetic_data_dir)
         with pytest.raises(ValueError, match="Unknown security: 'unknown_sec'"):
-            fetch_security_data(source=source, security_id="unknown_sec", use_cache=False)
+            fetch_security_data(
+                source=source, security_id="unknown_sec", use_cache=False
+            )
 
 
 class TestChannelResolution:
@@ -641,12 +643,18 @@ class TestChannelResolution:
         from aponyx.data.fetch import resolve_channel_for_purpose, get_security_spec
         from aponyx.data.channels import UsagePurpose, DataChannel
 
-        cdx_securities = ["cdx_ig_5y", "cdx_ig_10y", "cdx_hy_5y", "itrx_xover_5y", "itrx_eur_5y"]
-        
+        cdx_securities = [
+            "cdx_ig_5y",
+            "cdx_ig_10y",
+            "cdx_hy_5y",
+            "itrx_xover_5y",
+            "itrx_eur_5y",
+        ]
+
         for sec_id in cdx_securities:
             spec = get_security_spec(sec_id)
             assert spec.instrument_type == "cdx"
-            
+
             # All CDX should use spread for indicator
             channel = resolve_channel_for_purpose(sec_id, UsagePurpose.INDICATOR)
             assert channel == DataChannel.SPREAD, f"Failed for {sec_id}"
@@ -676,7 +684,9 @@ class TestFetchSecurityDataIndicatorPurpose:
         dates = pd.date_range("2024-01-01", periods=10, freq="B")
 
         # CDX IG 5Y: spread only
-        cdx_ig_df = pd.DataFrame({"spread": [100.0 + i for i in range(10)]}, index=dates)
+        cdx_ig_df = pd.DataFrame(
+            {"spread": [100.0 + i for i in range(10)]}, index=dates
+        )
         cdx_ig_df.to_parquet(data_dir / "cdx_ig_5y_abc123.parquet")
 
         # CDX HY 5Y: spread and price
@@ -988,11 +998,19 @@ class TestPnLChannelResolution:
         from aponyx.data.fetch import resolve_channel_for_purpose, get_security_spec
         from aponyx.data.channels import UsagePurpose, DataChannel
 
-        cdx_securities = ["cdx_ig_5y", "cdx_ig_10y", "cdx_hy_5y", "itrx_xover_5y", "itrx_eur_5y"]
+        cdx_securities = [
+            "cdx_ig_5y",
+            "cdx_ig_10y",
+            "cdx_hy_5y",
+            "itrx_xover_5y",
+            "itrx_eur_5y",
+        ]
 
         for sec_id in cdx_securities:
             spec = get_security_spec(sec_id)
-            assert spec.quote_type == "spread", f"{sec_id} should have quote_type=spread"
+            assert spec.quote_type == "spread", (
+                f"{sec_id} should have quote_type=spread"
+            )
 
             channel = resolve_channel_for_purpose(sec_id, UsagePurpose.PNL)
             assert channel == DataChannel.SPREAD, f"{sec_id} should use SPREAD for P&L"
@@ -1022,7 +1040,9 @@ class TestPnLChannelResolution:
         from aponyx.data.channels import UsagePurpose, DataChannel
 
         # Both use SPREAD
-        indicator_channel = resolve_channel_for_purpose("cdx_ig_5y", UsagePurpose.INDICATOR)
+        indicator_channel = resolve_channel_for_purpose(
+            "cdx_ig_5y", UsagePurpose.INDICATOR
+        )
         pnl_channel = resolve_channel_for_purpose("cdx_ig_5y", UsagePurpose.PNL)
 
         assert indicator_channel == DataChannel.SPREAD
@@ -1040,7 +1060,9 @@ class TestPnLChannelResolution:
         dates = pd.date_range("2024-01-01", periods=10, freq="B")
 
         # CDX IG 5Y: spread only (spread-quoted)
-        cdx_ig_df = pd.DataFrame({"spread": [100.0 + i for i in range(10)]}, index=dates)
+        cdx_ig_df = pd.DataFrame(
+            {"spread": [100.0 + i for i in range(10)]}, index=dates
+        )
         cdx_ig_df.to_parquet(data_dir / "cdx_ig_5y_abc123.parquet")
 
         # HYG: price and spread (price-quoted)
@@ -1224,7 +1246,9 @@ class TestDisplayChannelResolution:
         hyg_df.to_parquet(data_dir / "hyg_display_test.parquet")
 
         # VIX with level
-        vix_df = pd.DataFrame({"level": [15.0 + i * 0.5 for i in range(10)]}, index=dates)
+        vix_df = pd.DataFrame(
+            {"level": [15.0 + i * 0.5 for i in range(10)]}, index=dates
+        )
         vix_df.to_parquet(data_dir / "vix_display_test.parquet")
 
         registry = {
@@ -1236,7 +1260,9 @@ class TestDisplayChannelResolution:
 
         return data_dir
 
-    def test_fetch_security_data_display_purpose(self, synthetic_data_with_all_channels):
+    def test_fetch_security_data_display_purpose(
+        self, synthetic_data_with_all_channels
+    ):
         """Test fetch_security_data with DISPLAY purpose returns default channel."""
         from aponyx.data.fetch import fetch_security_data
         from aponyx.data.sources import FileSource
@@ -1273,6 +1299,7 @@ class TestDisplayChannelResolution:
 
         assert "level" in result.columns
         assert len(result) == 10
+
 
 # =============================================================================
 # Phase 6: User Story 4 - Unified Data Fetch Hiding Multi-Ticker Complexity
@@ -1373,7 +1400,9 @@ class TestMultiChannelFetchWithInnerJoin:
         assert "spread" in result.columns
         assert len(result.columns) == 2
 
-    def test_multi_channel_fetch_has_no_nan_values(self, synthetic_data_misaligned_dates):
+    def test_multi_channel_fetch_has_no_nan_values(
+        self, synthetic_data_misaligned_dates
+    ):
         """Test multi-channel fetch result has no NaN values (inner join effect)."""
         from aponyx.data.fetch import fetch_security_data
         from aponyx.data.sources import FileSource
@@ -1388,7 +1417,9 @@ class TestMultiChannelFetchWithInnerJoin:
         )
 
         # Inner join means no NaN values in result
-        assert result.notna().all().all(), "Multi-channel fetch should have no NaN values"
+        assert result.notna().all().all(), (
+            "Multi-channel fetch should have no NaN values"
+        )
 
     def test_multi_channel_fetch_preserves_datetimeindex(
         self, synthetic_data_misaligned_dates
@@ -1973,7 +2004,9 @@ class TestEdgeCasesNoDataAndPartialFailure:
         from aponyx.data.validation import validate_channel_data
 
         dates = pd.date_range("2024-01-01", periods=5, freq="B")
-        df = pd.DataFrame({"spread": [100.0, 200.0, 15000.0, 300.0, 400.0]}, index=dates)
+        df = pd.DataFrame(
+            {"spread": [100.0, 200.0, 15000.0, 300.0, 400.0]}, index=dates
+        )
 
         with pytest.raises(ValueError) as exc_info:
             validate_channel_data(df, ["spread"], "cdx_ig_5y")
@@ -1987,7 +2020,9 @@ class TestEdgeCasesNoDataAndPartialFailure:
         from aponyx.data.validation import validate_channel_data
 
         dates = pd.date_range("2024-01-01", periods=5, freq="B")
-        df = pd.DataFrame({"level": [15.0, 20.0, 250.0, 25.0, 30.0]}, index=dates)  # 250 > 200
+        df = pd.DataFrame(
+            {"level": [15.0, 20.0, 250.0, 25.0, 30.0]}, index=dates
+        )  # 250 > 200
 
         with pytest.raises(ValueError) as exc_info:
             validate_channel_data(df, ["level"], "vix")

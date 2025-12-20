@@ -105,14 +105,24 @@ class TestGetProductMicrostructure:
 
     def test_all_cdx_products_have_microstructure(self) -> None:
         """Test all CDX products in catalog have microstructure parameters."""
-        cdx_products = ["cdx_ig_5y", "cdx_ig_10y", "cdx_hy_5y", "itrx_eur_5y", "itrx_xover_5y"]
+        cdx_products = [
+            "cdx_ig_5y",
+            "cdx_ig_10y",
+            "cdx_hy_5y",
+            "itrx_eur_5y",
+            "itrx_xover_5y",
+        ]
 
         for product in cdx_products:
             result = get_product_microstructure(product)
-            assert result.quote_type == "spread", f"{product} should have quote_type='spread'"
+            assert result.quote_type == "spread", (
+                f"{product} should have quote_type='spread'"
+            )
             assert result.dv01_per_million is not None, f"{product} should have DV01"
             assert result.dv01_per_million > 0, f"{product} should have positive DV01"
-            assert result.transaction_cost_bps >= 0, f"{product} should have non-negative tcost"
+            assert result.transaction_cost_bps >= 0, (
+                f"{product} should have non-negative tcost"
+            )
 
     def test_microstructure_values_are_reasonable(self) -> None:
         """Test microstructure values are within expected ranges."""
@@ -156,7 +166,9 @@ class TestProductMicrostructureValidation:
                 transaction_cost_bps=1.5,
             )
 
-        assert "dv01_per_million is required for spread-based products" in str(exc_info.value)
+        assert "dv01_per_million is required for spread-based products" in str(
+            exc_info.value
+        )
 
     def test_negative_dv01_raises_value_error(self) -> None:
         """Test ProductMicrostructure raises ValueError for negative DV01."""

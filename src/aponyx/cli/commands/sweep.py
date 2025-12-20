@@ -130,7 +130,9 @@ def _display_sweep_config(config: Any, dry_run: bool) -> None:
         total *= len(p.values)
 
     if config.max_combinations:
-        click.echo(f"Combinations: {min(total, config.max_combinations)} (limited from {total})")
+        click.echo(
+            f"Combinations: {min(total, config.max_combinations)} (limited from {total})"
+        )
     else:
         click.echo(f"Combinations: {total}")
 

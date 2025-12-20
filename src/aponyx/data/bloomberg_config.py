@@ -339,9 +339,7 @@ class ProductMicrostructure:
                 f"quote_type must be 'spread' or 'price', got '{self.quote_type}'"
             )
         if self.quote_type == "spread" and self.dv01_per_million is None:
-            raise ValueError(
-                "dv01_per_million is required for spread-based products"
-            )
+            raise ValueError("dv01_per_million is required for spread-based products")
         if self.dv01_per_million is not None and self.dv01_per_million <= 0:
             raise ValueError(
                 f"dv01_per_million must be positive, got {self.dv01_per_million}"

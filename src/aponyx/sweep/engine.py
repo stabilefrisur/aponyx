@@ -239,9 +239,7 @@ def run_sweep(
                 results.append(row)
 
                 # Update progress bar postfix
-                pbar.set_postfix(
-                    success=successful, failed=failed, refresh=False
-                )
+                pbar.set_postfix(success=successful, failed=failed, refresh=False)
 
     except KeyboardInterrupt:
         logger.warning(

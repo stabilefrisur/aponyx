@@ -56,9 +56,7 @@ def resolve_calculator(
     """
     if quote_type == "spread":
         if dv01_per_million is None:
-            raise ValueError(
-                "dv01_per_million is required for spread-based products"
-            )
+            raise ValueError("dv01_per_million is required for spread-based products")
         spread_calc = SpreadReturnCalculator(dv01_per_million=dv01_per_million)
         logger.debug(
             "Resolved SpreadReturnCalculator with dv01=%.1f",

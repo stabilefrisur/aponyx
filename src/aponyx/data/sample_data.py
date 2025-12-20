@@ -317,7 +317,13 @@ def generate_for_fetch_interface(
                 # Higher spread = lower price, approximately
                 base_price = 100.0  # Par value
                 # Price ~ 100 - (spread / 100) with some noise
-                price_values = base_price - (df["spread"] / 100) + np.random.default_rng(seed + seed_offset + 100).normal(0, 0.5, len(df))
+                price_values = (
+                    base_price
+                    - (df["spread"] / 100)
+                    + np.random.default_rng(seed + seed_offset + 100).normal(
+                        0, 0.5, len(df)
+                    )
+                )
                 df["price"] = price_values.clip(50, 150)  # Reasonable bounds
 
             # Generate hash for raw storage naming
@@ -426,7 +432,13 @@ def generate_for_fetch_interface(
         save_json(metadata, metadata_path)
 
         file_paths[security_id] = file_path
-        logger.info("Saved %s to %s (%d rows, columns: %s)", security_id, file_path, len(df), list(df.columns))
+        logger.info(
+            "Saved %s to %s (%d rows, columns: %s)",
+            security_id,
+            file_path,
+            len(df),
+            list(df.columns),
+        )
 
         seed_offset += 1
 

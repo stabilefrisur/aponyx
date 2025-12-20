@@ -20,9 +20,9 @@ from aponyx.backtest.registry import StrategyRegistry
 # Test helper for creating complete strategy metadata
 def _make_test_metadata(**overrides) -> dict:
     """Create a complete strategy metadata dict for testing.
-    
+
     Note: StrategyMetadata no longer contains microstructure fields
-    (transaction_cost_bps). Note: dv01_per_million is now passed to 
+    (transaction_cost_bps). Note: dv01_per_million is now passed to
     the calculator, not config. These are loaded from
     bloomberg_securities.json at runtime.
     """

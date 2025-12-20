@@ -195,9 +195,7 @@ def backtest_sweep_result(tmp_path: Path) -> SweepResult:
 class TestGenerateSweepReport:
     """Tests for generate_sweep_report function."""
 
-    def test_indicator_report_header(
-        self, indicator_sweep_result: SweepResult
-    ) -> None:
+    def test_indicator_report_header(self, indicator_sweep_result: SweepResult) -> None:
         """Report includes name, description, mode, and signal."""
         report = generate_sweep_report(indicator_sweep_result)
 
@@ -260,9 +258,7 @@ class TestGenerateSweepReport:
         # Best result (1.35) should appear
         assert "1.350" in report
 
-    def test_statistics_section(
-        self, indicator_sweep_result: SweepResult
-    ) -> None:
+    def test_statistics_section(self, indicator_sweep_result: SweepResult) -> None:
         """Report includes metric statistics."""
         report = generate_sweep_report(indicator_sweep_result)
 

@@ -204,9 +204,10 @@ class TestMigrateJsonToYaml:
         # Verify files exist and are valid YAML
         assert catalogs_path.exists()
         assert securities_path.exists()
-        
+
         # Load and verify content is valid
         from ruamel.yaml import YAML
+
         yaml = YAML()
         with open(catalogs_path) as f:
             content = yaml.load(f)
@@ -272,9 +273,7 @@ class TestMigrationIntegration:
         (json_output_dir / "data").mkdir()
 
         # Step 1: Migrate JSON → YAML
-        catalogs_path, securities_path = migrate_json_to_yaml(
-            sample_json_dir, yaml_dir
-        )
+        catalogs_path, securities_path = migrate_json_to_yaml(sample_json_dir, yaml_dir)
 
         # Step 2: Load YAML
         from aponyx.catalog.loader import load_catalogs_yaml, load_securities_yaml

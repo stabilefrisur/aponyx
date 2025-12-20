@@ -122,7 +122,9 @@ class TestComposeSignalWithOverrides:
         )
         from aponyx.models.signal_composer import compose_signal
 
-        indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
         score_registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
         signal_transformation_registry = SignalTransformationRegistry(
             SIGNAL_TRANSFORMATION_PATH
@@ -175,7 +177,9 @@ class TestComposeSignalWithOverrides:
         )
         from aponyx.models.signal_composer import compose_signal
 
-        indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
         score_registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
         signal_transformation_registry = SignalTransformationRegistry(
             SIGNAL_TRANSFORMATION_PATH
@@ -228,7 +232,9 @@ class TestComposeSignalWithOverrides:
         )
         from aponyx.models.signal_composer import compose_signal
 
-        indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
         score_registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
         signal_transformation_registry = SignalTransformationRegistry(
             SIGNAL_TRANSFORMATION_PATH
@@ -270,7 +276,7 @@ class TestComposeSignalWithOverrides:
 
 class TestEvaluateBacktestWithOverrides:
     """Tests for evaluate_backtest with transformation parameter overrides.
-    
+
     Note: These tests require full infrastructure (market data, catalogs).
     They are marked as integration tests.
     """
@@ -278,7 +284,7 @@ class TestEvaluateBacktestWithOverrides:
     @pytest.mark.integration
     def test_different_floor_cap_produce_different_metrics(self) -> None:
         """Verify that different floor/cap values produce different backtest metrics.
-        
+
         This is the key regression test for the bug where floor/cap overrides
         were recorded but never applied.
         """

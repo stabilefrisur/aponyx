@@ -20,7 +20,13 @@ based on instrument type and usage purpose.
 import logging
 
 from ..config import RAW_DIR
-from .channels import DataChannel, UsagePurpose, ChannelConfig, ChannelFetchError, INSTRUMENT_DEFAULTS
+from .channels import (
+    DataChannel,
+    UsagePurpose,
+    ChannelConfig,
+    ChannelFetchError,
+    INSTRUMENT_DEFAULTS,
+)
 from .security_catalog import SecuritySpec, SecurityCatalog
 from .fetch import (
     fetch_cdx,
@@ -46,7 +52,12 @@ from .transforms import apply_transform, TransformType
 from .requirements import get_required_data_keys
 from .fetch_registry import get_fetch_spec, list_instruments
 from .loaders import load_instrument_from_raw, load_signal_required_data
-from .test_scenarios import TestScenario, get_scenario, list_scenarios, get_all_scenarios
+from .test_scenarios import (
+    TestScenario,
+    get_scenario,
+    list_scenarios,
+    get_all_scenarios,
+)
 
 logger = logging.getLogger(__name__)
 

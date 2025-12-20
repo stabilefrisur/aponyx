@@ -109,7 +109,13 @@ class TestResolveCalculatorIntegration:
         """Test resolver works for all CDX products in catalog."""
         from aponyx.data import get_product_microstructure
 
-        cdx_products = ["cdx_ig_5y", "cdx_ig_10y", "cdx_hy_5y", "itrx_eur_5y", "itrx_xover_5y"]
+        cdx_products = [
+            "cdx_ig_5y",
+            "cdx_ig_10y",
+            "cdx_hy_5y",
+            "itrx_eur_5y",
+            "itrx_xover_5y",
+        ]
 
         for product in cdx_products:
             micro = get_product_microstructure(product)

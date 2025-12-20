@@ -178,8 +178,7 @@ def save_sweep_results(
             "strategy": result.config.base.strategy,
         },
         "parameters": [
-            {"path": p.path, "values": list(p.values)}
-            for p in result.config.parameters
+            {"path": p.path, "values": list(p.values)} for p in result.config.parameters
         ],
         "max_combinations": result.config.max_combinations,
     }
@@ -328,9 +327,7 @@ def get_top_results(
     """
     if sort_by not in results_df.columns:
         available = ", ".join(sorted(results_df.columns))
-        raise KeyError(
-            f"Column '{sort_by}' not found. Available columns: {available}"
-        )
+        raise KeyError(f"Column '{sort_by}' not found. Available columns: {available}")
 
     # Filter to successful results only
     if "status" in results_df.columns:
@@ -342,7 +339,9 @@ def get_top_results(
     return sorted_df.head(limit)
 
 
-def flatten_suitability_result(result: SuitabilityResult) -> dict[str, float | int | str]:
+def flatten_suitability_result(
+    result: SuitabilityResult,
+) -> dict[str, float | int | str]:
     """
     Flatten a SuitabilityResult into a dict suitable for DataFrame columns.
 

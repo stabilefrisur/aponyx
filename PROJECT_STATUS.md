@@ -1,7 +1,7 @@
 # Project Status — aponyx
 
-**Last Updated:** December 20, 2025  
-**Version:** 0.1.19 (Interactive Research Dashboard)
+**Last Updated:** December 20, 2024  
+**Version:** 0.1.20 (Parameter Sweeps & Catalog Management)
 
 ## Quick Reference
 

@@ -53,7 +53,9 @@ def make_minimal_test_config(**overrides) -> BacktestConfig:
     return BacktestConfig(**defaults)
 
 
-def make_test_calculator(dv01_per_million: float = DEFAULT_TEST_DV01) -> SpreadReturnCalculator:
+def make_test_calculator(
+    dv01_per_million: float = DEFAULT_TEST_DV01,
+) -> SpreadReturnCalculator:
     """
     Create a SpreadReturnCalculator for unit testing.
 
@@ -117,7 +119,11 @@ def make_catalog_test_config(
 
     return metadata.to_config(
         transaction_cost_bps=microstructure.transaction_cost_bps,
-        **{f"{k}_override": v for k, v in overrides.items() if not k.endswith("_override")},
+        **{
+            f"{k}_override": v
+            for k, v in overrides.items()
+            if not k.endswith("_override")
+        },
         **{k: v for k, v in overrides.items() if k.endswith("_override")},
     )
 

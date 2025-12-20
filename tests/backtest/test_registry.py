@@ -94,7 +94,9 @@ def test_strategy_metadata_to_config_produces_valid_backtest_config() -> None:
 
         # Test for each strategy
         for name, metadata in registry.list_all().items():
-            config = metadata.to_config(transaction_cost_bps=microstructure.transaction_cost_bps)
+            config = metadata.to_config(
+                transaction_cost_bps=microstructure.transaction_cost_bps
+            )
 
             # Should be valid BacktestConfig
             assert isinstance(config, BacktestConfig)

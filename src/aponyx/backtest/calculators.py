@@ -162,9 +162,7 @@ class PriceReturnCalculator:
             If price_yesterday is non-positive.
         """
         if price_yesterday <= 0:
-            raise ValueError(
-                f"price_yesterday must be positive, got {price_yesterday}"
-            )
+            raise ValueError(f"price_yesterday must be positive, got {price_yesterday}")
 
         daily_return = (price_today / price_yesterday) - 1.0
         # Long position profits when price increases

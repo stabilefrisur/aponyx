@@ -280,7 +280,9 @@ class SecurityCatalog:
                     # For price quote_type, map to price channel
                     quote_type = config.get("quote_type", "spread")
                     default_channel = (
-                        DataChannel.SPREAD if quote_type == "spread" else DataChannel.PRICE
+                        DataChannel.SPREAD
+                        if quote_type == "spread"
+                        else DataChannel.PRICE
                     )
                 else:
                     default_channel = DataChannel.SPREAD

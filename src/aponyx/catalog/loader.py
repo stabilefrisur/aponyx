@@ -34,7 +34,9 @@ def _get_yaml_instance() -> YAML:
     return yaml
 
 
-def _parse_indicator_transformation(data: dict[str, Any]) -> IndicatorTransformationEntry:
+def _parse_indicator_transformation(
+    data: dict[str, Any],
+) -> IndicatorTransformationEntry:
     """Parse a single indicator transformation entry."""
     return IndicatorTransformationEntry(
         name=data["name"],

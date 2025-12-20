@@ -315,8 +315,8 @@ def validate_etf_schema(
 # Validation bounds per channel type
 CHANNEL_BOUNDS: dict[str, dict[str, float]] = {
     "spread": {"min": 0.0, "max": 10000.0},  # Basis points
-    "price": {"min": 0.0, "max": 10000.0},   # Price levels
-    "level": {"min": 0.0, "max": 200.0},     # VIX-style levels
+    "price": {"min": 0.0, "max": 10000.0},  # Price levels
+    "level": {"min": 0.0, "max": 200.0},  # VIX-style levels
 }
 
 
@@ -380,7 +380,9 @@ def validate_channel_data(
     for channel in channels:
         bounds = CHANNEL_BOUNDS.get(channel)
         if bounds is None:
-            logger.debug("No bounds defined for channel '%s', skipping validation", channel)
+            logger.debug(
+                "No bounds defined for channel '%s', skipping validation", channel
+            )
             continue
 
         min_val, max_val = bounds["min"], bounds["max"]

@@ -240,11 +240,17 @@ def _display_workflow_config(
 
     # Display microstructure overrides (only if specified)
     if config.dv01_per_million_override is not None:
-        click.echo(f"DV01 Override:            {config.dv01_per_million_override} [config]")
+        click.echo(
+            f"DV01 Override:            {config.dv01_per_million_override} [config]"
+        )
     if config.transaction_cost_bps_override is not None:
-        click.echo(f"TCost BPS Override:       {config.transaction_cost_bps_override} [config]")
+        click.echo(
+            f"TCost BPS Override:       {config.transaction_cost_bps_override} [config]"
+        )
     if config.transaction_cost_pct_override is not None:
-        click.echo(f"TCost PCT Override:       {config.transaction_cost_pct_override} [config]")
+        click.echo(
+            f"TCost PCT Override:       {config.transaction_cost_pct_override} [config]"
+        )
 
     click.echo("=" * len(header))
     click.echo()

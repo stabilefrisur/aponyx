@@ -52,7 +52,9 @@ def main() -> BacktestResult:
     """
     signal_name, product, strategy_name = define_backtest_parameters()
     signal, spread = load_backtest_data(signal_name, product)
-    config = load_strategy_config(strategy_name, product)  # Pass product for microstructure
+    config = load_strategy_config(
+        strategy_name, product
+    )  # Pass product for microstructure
     result = execute_backtest(signal, spread, config)
     save_backtest_result(result, signal_name, strategy_name)
     return result

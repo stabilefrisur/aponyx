@@ -280,6 +280,7 @@ def compose_signal(
     # This works with both real dataclasses and mock objects in tests
     class _IndicatorMetadataProxy:
         """Lightweight proxy for indicator metadata with parameter overrides."""
+
         def __init__(self, original: Any, params: dict[str, Any]) -> None:
             self._original = original
             self.parameters = params
@@ -353,7 +354,9 @@ def compose_signal(
         if "cap" in signal_transformation_params_override:
             effective_cap = signal_transformation_params_override["cap"]
         if "neutral_range" in signal_transformation_params_override:
-            effective_neutral_range = signal_transformation_params_override["neutral_range"]
+            effective_neutral_range = signal_transformation_params_override[
+                "neutral_range"
+            ]
         logger.info(
             "Override: signal_transformation_params=%s",
             signal_transformation_params_override,

@@ -40,7 +40,12 @@ from aponyx.evaluation.performance import (
 )
 from aponyx.backtest import run_backtest, resolve_calculator
 from aponyx.backtest.registry import StrategyRegistry
-from aponyx.visualization import plot_equity_curve, plot_drawdown, plot_signal, plot_research_dashboard
+from aponyx.visualization import (
+    plot_equity_curve,
+    plot_drawdown,
+    plot_signal,
+    plot_research_dashboard,
+)
 from aponyx.persistence import load_parquet, save_parquet
 from .steps import BaseWorkflowStep
 
@@ -49,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 class DataStep(BaseWorkflowStep):
     """Load all required market data from registry or raw files.
-    
+
     Uses the unified fetch_security_data() interface for channel-aware
     data fetching. All channels are loaded for each security to support
     different purposes (indicator, P&L, display).
@@ -128,9 +133,7 @@ class DataStep(BaseWorkflowStep):
             raw_data_dir = RAW_DIR / self.config.data_source
 
             if not raw_data_dir.exists():
-                raise ValueError(
-                    f"Raw data directory does not exist: {raw_data_dir}"
-                )
+                raise ValueError(f"Raw data directory does not exist: {raw_data_dir}")
 
             source = FileSource(raw_data_dir)
             logger.info(
@@ -484,9 +487,7 @@ class BacktestStep(BaseWorkflowStep):
         try:
             microstructure = get_product_microstructure(product)
         except ValueError as e:
-            raise ValueError(
-                f"Cannot run backtest for product '{product}': {e}"
-            ) from e
+            raise ValueError(f"Cannot run backtest for product '{product}': {e}") from e
 
         # Apply DV01 runtime override
         dv01 = (
@@ -505,7 +506,9 @@ class BacktestStep(BaseWorkflowStep):
         if self.config.transaction_cost_pct_override is not None:
             # Use percentage-based transaction cost mode
             transaction_cost_bps: float | None = None
-            transaction_cost_pct: float | None = self.config.transaction_cost_pct_override
+            transaction_cost_pct: float | None = (
+                self.config.transaction_cost_pct_override
+            )
         else:
             # Use fixed bps mode (override or product default)
             transaction_cost_bps = (
@@ -549,7 +552,9 @@ class BacktestStep(BaseWorkflowStep):
 
         # Convert to backtest config (without DV01, now in calculator)
         backtest_config = strategy_metadata.to_config(
-            transaction_cost_bps=transaction_cost_bps if transaction_cost_bps is not None else 0.0,
+            transaction_cost_bps=transaction_cost_bps
+            if transaction_cost_bps is not None
+            else 0.0,
             transaction_cost_pct=transaction_cost_pct,
         )
 
