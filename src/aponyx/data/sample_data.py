@@ -223,13 +223,14 @@ def generate_for_fetch_interface(
     """
     Generate synthetic data for all securities in bloomberg_securities.json.
 
-    Creates individual files per security that work with fetch_cdx, fetch_vix,
-    and fetch_etf functions. Uses bloomberg_instruments.json for schema mapping.
+    Creates individual files per security with channel columns that work with
+    fetch_security_data() function. Each file contains columns for all defined
+    channels in the security catalog.
 
     Parameters
     ----------
     output_dir : str or Path
-        Base directory for raw files (e.g., "data/raw/file").
+        Base directory for raw files (e.g., "data/raw/synthetic").
     start_date : str, default "2020-01-01"
         Start date for time series.
     end_date : str, default "2025-01-01"
@@ -244,10 +245,11 @@ def generate_for_fetch_interface(
 
     Notes
     -----
-    Automatically generates data for all securities defined in bloomberg_securities.json:
-    - CDX indices: spread column with realistic credit dynamics
-    - VIX: level column with volatility spikes
-    - ETFs: spread column representing option-adjusted spreads
+    Generates data for all securities defined in bloomberg_securities.json with
+    channel-based columns:
+    - CDX indices: 'spread' column (+ 'price' column for securities with price channel)
+    - VIX: 'level' column
+    - ETFs: 'price' and 'spread' columns
     """
     import json
 
@@ -281,6 +283,7 @@ def generate_for_fetch_interface(
 
     for security_id, security_config in securities.items():
         instrument_type = security_config["instrument_type"]
+        channels_config = security_config.get("channels", {})
 
         logger.info("Generating %s data: %s", instrument_type, security_id)
 
@@ -293,7 +296,8 @@ def generate_for_fetch_interface(
                 security_id, default_params["cdx"]["default"]
             )
 
-            df = generate_cdx_sample(
+            # Generate spread data
+            spread_df = generate_cdx_sample(
                 start_date=start_date,
                 periods=periods,
                 index_name=index_name,
@@ -302,13 +306,21 @@ def generate_for_fetch_interface(
                 volatility=params["volatility"],
                 seed=seed + seed_offset,
             )
+            spread_df = spread_df.set_index("date")
 
-            # Transform to CDX schema
-            df = df.set_index("date")
-            df = df[["spread"]].copy()
-            df["security"] = security_id
+            # Start with spread column
+            df = spread_df[["spread"]].copy()
 
-            # Generate hash for raw storage naming (consistent with save_to_raw)
+            # Add price column if security has price channel
+            if "price" in channels_config:
+                # Generate price data (inverted relationship with spread)
+                # Higher spread = lower price, approximately
+                base_price = 100.0  # Par value
+                # Price ~ 100 - (spread / 100) with some noise
+                price_values = base_price - (df["spread"] / 100) + np.random.default_rng(seed + seed_offset + 100).normal(0, 0.5, len(df))
+                df["price"] = price_values.clip(50, 150)  # Reasonable bounds
+
+            # Generate hash for raw storage naming
             safe_instrument = security_id.replace(".", "_").replace("/", "_")
             hash_input = (
                 f"synthetic|{security_id}|{df.index.min()}|{df.index.max()}|{len(df)}"
@@ -320,7 +332,7 @@ def generate_for_fetch_interface(
         elif instrument_type == "vix":
             params = default_params["vix"]
 
-            df = generate_vix_sample(
+            vix_df = generate_vix_sample(
                 start_date=start_date,
                 periods=periods,
                 base_vix=params["base_vix"],
@@ -328,11 +340,11 @@ def generate_for_fetch_interface(
                 seed=seed + seed_offset,
             )
 
-            # Transform to VIX schema
-            df = df.set_index("date")
+            # Transform to VIX schema with 'level' channel
+            df = vix_df.set_index("date")
             df = df[["level"]].copy()
 
-            # Generate hash for raw storage naming (consistent with save_to_raw)
+            # Generate hash for raw storage naming
             safe_instrument = security_id.replace(".", "_").replace("/", "_")
             hash_input = (
                 f"synthetic|{security_id}|{df.index.min()}|{df.index.max()}|{len(df)}"
@@ -346,7 +358,8 @@ def generate_for_fetch_interface(
                 security_id, default_params["etf"]["default"]
             )
 
-            df = generate_etf_sample(
+            # Generate price data
+            price_df = generate_etf_sample(
                 start_date=start_date,
                 periods=periods,
                 ticker=security_id.upper(),
@@ -354,13 +367,30 @@ def generate_for_fetch_interface(
                 volatility=params["volatility"],
                 seed=seed + seed_offset,
             )
+            price_df = price_df.set_index("date")
 
-            # Transform to ETF schema
-            df = df.set_index("date")
-            df = df[["spread"]].copy()
-            df["security"] = security_id
+            # Start DataFrame with price channel (rename 'spread' to 'price')
+            df = price_df[["spread"]].rename(columns={"spread": "price"}).copy()
 
-            # Generate hash for raw storage naming (consistent with save_to_raw)
+            # Add spread channel (OAS spread for ETF)
+            # Generate realistic OAS spread values (typically 100-500 bps for HY, 50-150 for IG)
+            if security_id == "hyg":
+                base_oas = 350.0  # HY ETF
+                oas_vol = 30.0
+            else:  # lqd
+                base_oas = 100.0  # IG ETF
+                oas_vol = 10.0
+
+            rng = np.random.default_rng(seed + seed_offset + 200)
+            oas_spreads = [base_oas]
+            for _ in range(periods - 1):
+                drift = 0.1 * (base_oas - oas_spreads[-1])
+                shock = rng.normal(0, oas_vol)
+                new_spread = max(10.0, oas_spreads[-1] + drift + shock)
+                oas_spreads.append(new_spread)
+            df["spread"] = oas_spreads
+
+            # Generate hash for raw storage naming
             safe_instrument = security_id.replace(".", "_").replace("/", "_")
             hash_input = (
                 f"synthetic|{security_id}|{df.index.min()}|{df.index.max()}|{len(df)}"
@@ -396,7 +426,7 @@ def generate_for_fetch_interface(
         save_json(metadata, metadata_path)
 
         file_paths[security_id] = file_path
-        logger.info("Saved %s to %s (%d rows)", security_id, file_path, len(df))
+        logger.info("Saved %s to %s (%d rows, columns: %s)", security_id, file_path, len(df), list(df.columns))
 
         seed_offset += 1
 

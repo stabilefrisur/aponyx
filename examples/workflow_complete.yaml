@@ -12,6 +12,13 @@
 # Product Microstructure (automatic):
 #   DV01 and transaction costs loaded from bloomberg_securities.json based on product.
 #   Override with: dv01_per_million_override, transaction_cost_bps_override, or transaction_cost_pct_override
+#
+# Data Channels:
+#   Each security can have multiple data channels (spread, price, level).
+#   Channel selection is automatic based on usage purpose:
+#   - INDICATOR: Uses instrument_type defaults (CDX→spread, VIX→level, ETF→spread)
+#   - PNL: Uses quote_type from security spec (spread-quoted→spread, price-quoted→price)
+#   - DISPLAY: Uses instrument_type defaults, overridable with display_channel
 
 label: complete_test
 signal: cdx_etf_basis
@@ -35,6 +42,11 @@ securities:
 # dv01_per_million_override: 500.0         # Override product's DV01
 # transaction_cost_bps_override: 2.5       # Fixed bps override (OR)
 # transaction_cost_pct_override: 0.025     # Percentage of spread (mutually exclusive with bps)
+
+# Optional: Override display channel for visualization
+# By default, charts use instrument_type defaults (spread for CDX, level for VIX)
+# Override to show different channel in visualizations:
+# display_channel: price                   # Options: spread, price, level
 
 # Data source (synthetic, file, bloomberg)
 data: synthetic

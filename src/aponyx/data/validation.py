@@ -306,3 +306,163 @@ def validate_etf_schema(
         "ETF validation passed: date_range=%s to %s", df.index.min(), df.index.max()
     )
     return df
+
+
+# =============================================================================
+# Channel-aware validation functions
+# =============================================================================
+
+# Validation bounds per channel type
+CHANNEL_BOUNDS: dict[str, dict[str, float]] = {
+    "spread": {"min": 0.0, "max": 10000.0},  # Basis points
+    "price": {"min": 0.0, "max": 10000.0},   # Price levels
+    "level": {"min": 0.0, "max": 200.0},     # VIX-style levels
+}
+
+
+def validate_channel_data(
+    df: pd.DataFrame,
+    channels: list[str],
+    security_id: str | None = None,
+) -> pd.DataFrame:
+    """
+    Validate DataFrame with channel columns.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with channel columns to validate.
+    channels : list[str]
+        List of channel names (e.g., ["spread"], ["price", "spread"]).
+    security_id : str or None
+        Security identifier for error messages.
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated DataFrame with DatetimeIndex.
+
+    Raises
+    ------
+    ValueError
+        If required channels are missing or values are out of bounds.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"spread": [100.0, 150.0]}, index=dates)
+    >>> validated = validate_channel_data(df, ["spread"], "cdx_ig_5y")
+    """
+    logger.debug(
+        "Validating channel data: security=%s, channels=%s, rows=%d",
+        security_id,
+        channels,
+        len(df),
+    )
+
+    # Ensure DatetimeIndex
+    if not isinstance(df.index, pd.DatetimeIndex):
+        if "date" in df.columns:
+            df = _ensure_datetime_index(df.copy(), "date")
+        else:
+            raise ValueError("DataFrame must have DatetimeIndex or 'date' column")
+
+    # Check all requested channels exist
+    missing_channels = [c for c in channels if c not in df.columns]
+    if missing_channels:
+        available = list(df.columns)
+        sec_context = f" for security '{security_id}'" if security_id else ""
+        raise ValueError(
+            f"Missing channels {missing_channels}{sec_context}. "
+            f"Available columns: {available}"
+        )
+
+    # Validate value bounds for each channel
+    for channel in channels:
+        bounds = CHANNEL_BOUNDS.get(channel)
+        if bounds is None:
+            logger.debug("No bounds defined for channel '%s', skipping validation", channel)
+            continue
+
+        min_val, max_val = bounds["min"], bounds["max"]
+        series = df[channel]
+
+        # Check for NaN values
+        nan_count = series.isna().sum()
+        if nan_count > 0:
+            logger.debug(
+                "Channel '%s' has %d NaN values (%.1f%%)",
+                channel,
+                nan_count,
+                100 * nan_count / len(series),
+            )
+
+        # Validate non-NaN values are within bounds
+        valid_values = series.dropna()
+        if len(valid_values) > 0:
+            out_of_bounds = ~valid_values.between(min_val, max_val)
+            if out_of_bounds.any():
+                invalid_count = out_of_bounds.sum()
+                sec_context = f" for security '{security_id}'" if security_id else ""
+                logger.warning(
+                    "Channel '%s'%s has %d values outside [%.1f, %.1f]",
+                    channel,
+                    sec_context,
+                    invalid_count,
+                    min_val,
+                    max_val,
+                )
+                raise ValueError(
+                    f"Channel '{channel}' values outside valid range [{min_val}, {max_val}]"
+                    f"{sec_context}"
+                )
+
+    # Handle duplicate dates
+    if df.index.duplicated().any():
+        n_dups = df.index.duplicated().sum()
+        logger.debug("Removing %d duplicate dates", n_dups)
+        df = df[~df.index.duplicated(keep="last")]
+
+    logger.debug(
+        "Channel validation passed: %d rows, date_range=%s to %s",
+        len(df),
+        df.index.min(),
+        df.index.max(),
+    )
+
+    return df
+
+
+def validate_channel_columns_exist(
+    df: pd.DataFrame,
+    channels: list[str],
+    security_id: str,
+) -> None:
+    """
+    Check that all requested channel columns exist in DataFrame.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame to check.
+    channels : list[str]
+        Required channel column names.
+    security_id : str
+        Security identifier for error messages.
+
+    Raises
+    ------
+    ValueError
+        If any requested channels are missing.
+
+    Notes
+    -----
+    This is a lightweight check without value validation.
+    Use validate_channel_data() for full validation.
+    """
+    missing = [c for c in channels if c not in df.columns]
+    if missing:
+        available = list(df.columns)
+        raise ValueError(
+            f"Channels {missing} not found in file for security '{security_id}'. "
+            f"Available columns: {available}"
+        )

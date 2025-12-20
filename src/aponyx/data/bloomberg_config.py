@@ -162,6 +162,7 @@ def get_security_spec(security_id: str) -> BloombergSecuritySpec:
     -------
     BloombergSecuritySpec
         Security specification with Bloomberg ticker and instrument type.
+        The bloomberg_ticker is derived from the first available channel.
 
     Raises
     ------
@@ -177,10 +178,21 @@ def get_security_spec(security_id: str) -> BloombergSecuritySpec:
         )
 
     spec_data = catalog[security_id]
+
+    # Get primary ticker from channels (use first channel as primary)
+    channels = spec_data.get("channels", {})
+    if channels:
+        # Get first channel's ticker
+        first_channel = next(iter(channels.values()))
+        primary_ticker = first_channel.get("bloomberg_ticker", "")
+    else:
+        # Fallback to legacy structure if exists
+        primary_ticker = spec_data.get("bloomberg_ticker", "")
+
     return BloombergSecuritySpec(
         security_id=security_id,
         description=spec_data["description"],
-        bloomberg_ticker=spec_data["bloomberg_ticker"],
+        bloomberg_ticker=primary_ticker,
         instrument_type=spec_data["instrument_type"],
     )
 
@@ -219,6 +231,8 @@ def get_security_from_ticker(bloomberg_ticker: str) -> str:
     """
     Reverse lookup: get security ID from Bloomberg ticker.
 
+    Searches through all channel configurations to find a matching ticker.
+
     Parameters
     ----------
     bloomberg_ticker : str
@@ -243,9 +257,15 @@ def get_security_from_ticker(bloomberg_ticker: str) -> str:
     """
     catalog = _load_securities_catalog()
 
-    # Build reverse lookup
+    # Build reverse lookup by searching all channel tickers
     for sec_id, spec_data in catalog.items():
-        if spec_data["bloomberg_ticker"] == bloomberg_ticker:
+        channels = spec_data.get("channels", {})
+        for channel_config in channels.values():
+            if channel_config.get("bloomberg_ticker") == bloomberg_ticker:
+                return sec_id
+
+        # Fallback to legacy structure if exists
+        if spec_data.get("bloomberg_ticker") == bloomberg_ticker:
             return sec_id
 
     raise ValueError(

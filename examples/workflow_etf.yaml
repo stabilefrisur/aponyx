@@ -6,6 +6,11 @@
 # The backtest engine automatically selects PriceReturnCalculator
 # based on the product's quote_type in bloomberg_securities.json.
 #
+# Data Channel Selection:
+#   - For P&L calculation: Uses quote_type from security spec (price for ETF)
+#   - For visualization: Uses instrument_type default (spread), override with display_channel
+#   - For indicators: Uses instrument_type defaults
+#
 # P&L formula for price products:
 #   P&L = Position × (Price[t]/Price[t-1] - 1) × Notional
 
@@ -25,6 +30,11 @@ strategy: balanced
 
 # Data source: 'synthetic' for testing, 'bloomberg' for production
 data: synthetic
+
+# Optional: Override display channel for visualizations
+# By default, charts show the instrument_type default (spread for ETF)
+# Override to show price data in charts:
+# display_channel: price
 
 # Optional: Override default securities for signal computation
 # Uncomment to use different securities than signal defaults

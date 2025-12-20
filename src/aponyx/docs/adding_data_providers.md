@@ -6,6 +6,42 @@ The data layer uses a **provider pattern** to support multiple data sources (fil
 
 **Goal:** Extend data sources without modifying existing code—add new providers as separate modules.
 
+## Data Channel Architecture
+
+The data layer supports **multi-channel data fetching** where each security can have multiple data channels (spread, price, level). Channel selection is automatic based on usage purpose:
+
+| Usage Purpose | Channel Resolution |
+|---------------|-------------------|
+| `INDICATOR` | Uses instrument_type defaults (CDX→spread, VIX→level, ETF→spread) |
+| `PNL` | Uses `quote_type` from security spec (spread or price) |
+| `DISPLAY` | Uses instrument_type defaults, overridable with `display_channel` |
+
+### Recommended API
+
+```python
+from aponyx.data import (
+    fetch_security_data,
+    DataChannel,
+    UsagePurpose,
+    FileSource,
+)
+
+source = FileSource(Path("data/raw/synthetic"))
+
+# Fetch using purpose (automatic channel resolution)
+df = fetch_security_data(source, "cdx_ig_5y", purpose=UsagePurpose.INDICATOR)
+# Returns: DataFrame with 'spread' column for CDX
+
+# Fetch specific channels
+df = fetch_security_data(source, "cdx_hy_5y", 
+                         channels=[DataChannel.SPREAD, DataChannel.PRICE])
+# Returns: DataFrame with 'spread' and 'price' columns (inner join on dates)
+
+# Fetch for P&L calculation
+df = fetch_security_data(source, "hyg", purpose=UsagePurpose.PNL)
+# Returns: DataFrame with 'price' column (quote_type=price for ETF)
+```
+
 ## Provider Architecture
 
 ### Current Providers
@@ -679,4 +715,4 @@ source = APISource(
 ---
 
 **Maintained by:** stabilefrisur  
-**Last Updated:** December 13, 2025
+**Last Updated:** December 19, 2025

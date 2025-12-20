@@ -892,7 +892,88 @@ df = fetch_cdx(provider="file", path="...")
 source = FileSource("data/raw/cdx.parquet")
 ```
 
-### 4. Workflow Context Sharing
+### 4. Data Channel Pattern
+
+**REQUIRED**: Use DataChannel and UsagePurpose enums for channel-aware data fetching:
+
+```python
+from aponyx.data.channels import DataChannel, UsagePurpose
+from aponyx.data.fetch import fetch_security_data
+from aponyx.data.security_catalog import SecurityCatalog
+
+# Load security catalog
+catalog = SecurityCatalog()
+
+# Fetch data with automatic channel resolution based on usage purpose
+df = fetch_security_data(
+    security="cdx_ig_5y",
+    source=source,
+    purpose=UsagePurpose.PNL,       # Resolves to quote_type channel (spread)
+    catalog=catalog,
+)
+
+# Fetch with explicit channel override
+df = fetch_security_data(
+    security="lqd",
+    source=source,
+    purpose=UsagePurpose.DISPLAY,
+    channel_override=DataChannel.PRICE,  # Override default channel
+    catalog=catalog,
+)
+
+# Available channels
+DataChannel.SPREAD  # CDX spreads, OAS spreads
+DataChannel.PRICE   # ETF prices, bond prices
+DataChannel.LEVEL   # VIX levels, index levels
+
+# Usage purposes and their channel resolution
+UsagePurpose.INDICATOR  # Uses instrument_type defaults (CDX→spread, VIX→level)
+UsagePurpose.PNL        # Uses quote_type from security spec (spread or price)
+UsagePurpose.DISPLAY    # Uses instrument_type defaults, overridable with display_channel
+```
+
+**Channel configuration in security catalog** (`bloomberg_securities.json`):
+```json
+{
+  "cdx_ig_5y": {
+    "bloomberg_ticker": "CDX IG CDSI GEN 5Y Corp",
+    "instrument_type": "cdx",
+    "quote_type": "spread",
+    "available_channels": ["spread"],
+    "channel_config": {
+      "spread": {"column": "spread", "validation": {"min": 0, "max": 10000}}
+    }
+  },
+  "lqd": {
+    "bloomberg_ticker": "LQD US Equity",
+    "instrument_type": "etf",
+    "quote_type": "price",
+    "available_channels": ["spread", "price"],
+    "channel_config": {
+      "spread": {"column": "oas", "validation": {"min": 0, "max": 10000}},
+      "price": {"column": "price", "validation": {"min": 0, "max": 1000}}
+    }
+  }
+}
+```
+
+**Error handling for missing channels**:
+```python
+# Clear error message when channel unavailable
+try:
+    df = fetch_security_data(
+        security="cdx_ig_5y",
+        source=source,
+        channel_override=DataChannel.PRICE,  # CDX doesn't have price channel
+        catalog=catalog,
+    )
+except ValueError as e:
+    # Error: "Channel 'price' not available for security 'cdx_ig_5y'. 
+    #         Available channels: ['spread']. Check bloomberg_securities.json."
+    pass
+```
+
+### 5. Workflow Context Sharing
 
 **REQUIRED**: Steps communicate via context dict:
 
@@ -906,7 +987,7 @@ def execute(self, context: dict[str, Any]) -> dict[str, Any]:
     prev_output = context["step_name"]["my_output"]
 ```
 
-### 5. Frozen Dataclass Configs
+### 6. Frozen Dataclass Configs
 
 **REQUIRED**: All configs use frozen dataclasses:
 
@@ -922,7 +1003,7 @@ class MyConfig:
             raise ValueError("param1 must be non-negative")
 ```
 
-### 6. Return Figures, Never Display
+### 7. Return Figures, Never Display
 
 **REQUIRED**: Visualization functions return figures:
 
@@ -937,7 +1018,7 @@ fig = plot_my_chart(data)
 fig.show()  # OR st.plotly_chart(fig)  OR fig.write_html("chart.html")
 ```
 
-### 7. Module-Level Loggers
+### 8. Module-Level Loggers
 
 **REQUIRED**: Use module-level loggers, never basicConfig:
 
@@ -958,7 +1039,7 @@ logger.debug("Cache hit: key=%s", cache_key)
 logging.basicConfig(level=logging.INFO)
 ```
 
-### 8. Modern Type Hints
+### 9. Modern Type Hints
 
 **REQUIRED**: Use PEP 604 union syntax and built-in generics:
 

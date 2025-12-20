@@ -24,8 +24,6 @@ from aponyx.config import (
     STRATEGY_CATALOG_PATH,
 )
 from aponyx.data import DataRegistry, get_product_microstructure
-from aponyx.data.fetch_registry import get_fetch_spec
-from aponyx.data.loaders import load_instrument_from_raw
 from aponyx.models.registry import SignalRegistry
 from aponyx.evaluation.suitability import (
     evaluate_signal_suitability,
@@ -50,7 +48,12 @@ logger = logging.getLogger(__name__)
 
 
 class DataStep(BaseWorkflowStep):
-    """Load all required market data from registry or raw files."""
+    """Load all required market data from registry or raw files.
+    
+    Uses the unified fetch_security_data() interface for channel-aware
+    data fetching. All channels are loaded for each security to support
+    different purposes (indicator, P&L, display).
+    """
 
     @property
     def name(self) -> str:
@@ -60,7 +63,6 @@ class DataStep(BaseWorkflowStep):
         self._log_start()
 
         # Get all securities from Bloomberg securities config
-        # Download all configured securities regardless of signal requirements
         from aponyx.data.bloomberg_config import list_securities
 
         all_securities = list_securities()  # Get all security IDs
@@ -86,91 +88,77 @@ class DataStep(BaseWorkflowStep):
                     )
                     continue
 
-            # Registry empty or force_rerun enabled - handle bloomberg vs file/synthetic sources
-            if self.config.data_source == "bloomberg":
-                # Bloomberg source: fetch fresh data or update current day
-                logger.info(
-                    "No cached data for %s - fetching from Bloomberg",
-                    security_id,
-                )
-
-                from aponyx.data import fetch_cdx, fetch_vix, fetch_etf, BloombergSource
-                from aponyx.data.bloomberg_config import get_security_spec
-
-                source = BloombergSource()
-
-                # Get instrument type for this security
-                spec = get_security_spec(security_id)
-                instrument_type = spec.instrument_type
-
-                # Determine which fetch function to use based on instrument type
-                if instrument_type == "vix":
-                    df = fetch_vix(
-                        source,
-                        update_current_day=self.config.force_rerun,
-                    )
-                elif instrument_type == "etf":
-                    df = fetch_etf(
-                        source,
-                        security=security_id,
-                        update_current_day=self.config.force_rerun,
-                    )
-                elif instrument_type == "cdx":
-                    df = fetch_cdx(
-                        source,
-                        security=security_id,
-                        update_current_day=self.config.force_rerun,
-                    )
-                else:
-                    raise ValueError(f"Unknown instrument type: {instrument_type}")
-
-                market_data[security_id] = df
-                logger.info(
-                    "Fetched %s from Bloomberg: %d rows",
-                    security_id,
-                    len(df),
-                )
-                continue
-
-            # For file/synthetic sources, try to load from raw directory
-            raw_data_dir = RAW_DIR / self.config.data_source
-
-            if not raw_data_dir.exists():
-                raise ValueError(
-                    f"No datasets found for security '{security_id}'. "
-                    f"Raw data directory does not exist: {raw_data_dir}"
-                )
-
-            logger.info(
-                "No cached data for %s - attempting to load from %s",
-                security_id,
-                raw_data_dir,
-            )
-
-            # Get instrument type for this security
-            from aponyx.data.bloomberg_config import get_security_spec
-
-            spec = get_security_spec(security_id)
-            instrument_type = spec.instrument_type
-
-            # Get fetch specification from registry
-            fetch_spec = get_fetch_spec(instrument_type)
-
-            # Load instrument data using generic loader with specific security
-            # VIX doesn't require security parameter (single instrument)
-            securities = [security_id] if fetch_spec.requires_security else None
-            df = load_instrument_from_raw(
-                raw_data_dir,
-                instrument_type,
-                fetch_spec.fetch_fn,
-                securities,
-            )
-
+            # Registry empty or force_rerun enabled - use unified fetch_security_data
+            df = self._fetch_security(security_id)
             market_data[security_id] = df
 
         output = {"market_data": market_data}
         self._log_complete(output)
         return output
+
+    def _fetch_security(self, security_id: str) -> pd.DataFrame:
+        """
+        Fetch security data using the unified fetch_security_data interface.
+
+        Fetches ALL available channels for the security to support
+        different downstream purposes (indicator, P&L, display).
+
+        Parameters
+        ----------
+        security_id : str
+            Security identifier (e.g., "cdx_ig_5y", "hyg", "vix").
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame with all available channels as columns.
+        """
+        from aponyx.data.fetch import fetch_security_data, list_security_channels
+        from aponyx.data.sources import FileSource, BloombergSource
+
+        if self.config.data_source == "bloomberg":
+            # Bloomberg source
+            source = BloombergSource()
+            logger.info(
+                "Fetching %s from Bloomberg (all channels)",
+                security_id,
+            )
+        else:
+            # File/synthetic source
+            raw_data_dir = RAW_DIR / self.config.data_source
+
+            if not raw_data_dir.exists():
+                raise ValueError(
+                    f"Raw data directory does not exist: {raw_data_dir}"
+                )
+
+            source = FileSource(raw_data_dir)
+            logger.info(
+                "Loading %s from %s (all channels)",
+                security_id,
+                raw_data_dir,
+            )
+
+        # Fetch ALL available channels for this security
+        # This allows downstream consumers (indicator, backtest, visualization)
+        # to select the appropriate channel for their purpose
+        all_channels = list_security_channels(security_id)
+
+        df = fetch_security_data(
+            source=source,
+            security_id=security_id,
+            channels=all_channels,  # Fetch all available channels
+            use_cache=True,
+        )
+
+        logger.info(
+            "Fetched %s: %d rows, channels: %s",
+            security_id,
+            len(df),
+            [c.value for c in all_channels],
+        )
+
+        return df
 
     def output_exists(self) -> bool:
         # Data step doesn't cache (always loads from registry)
@@ -764,9 +752,28 @@ class VisualizationStep(BaseWorkflowStep):
         score = context["signal"]["score"]
         signal = context["signal"]["signal"]
 
-        # Get traded product spread from market data
+        # T029: Resolve display channel from config or use default
+        from aponyx.data.channels import DataChannel, UsagePurpose
+        from aponyx.data.fetch import resolve_channel_for_purpose
+
+        if self.config.display_channel is not None:
+            # Use explicit display_channel from config
+            display_channel = DataChannel(self.config.display_channel)
+        else:
+            # Use default for instrument type via UsagePurpose.DISPLAY
+            display_channel = resolve_channel_for_purpose(
+                self.config.product, UsagePurpose.DISPLAY
+            )
+
+        # Get traded product data using the resolved display channel
         market_data = context["data"]["market_data"]
-        traded_product = market_data[self.config.product]["spread"]
+        product_data = market_data[self.config.product]
+        display_data = product_data[display_channel.value]
+        logger.debug(
+            "Using display channel '%s' for product '%s'",
+            display_channel.value,
+            self.config.product,
+        )
 
         # Generate charts with descriptive titles
         title_prefix = f"{self.config.signal_name} ({self.config.strategy_name})"
@@ -786,7 +793,7 @@ class VisualizationStep(BaseWorkflowStep):
 
         # Generate research dashboard with all pipeline stages
         research_dashboard_fig = plot_research_dashboard(
-            traded_product=traded_product,
+            traded_product=display_data,
             indicator=indicator,
             score=score,
             signal=signal,
