@@ -1,6 +1,35 @@
+# =============================================================================
+# SIGNAL CATALOGS
+# =============================================================================
+# This file defines the four-stage signal composition pipeline:
+#
+#   1. Indicator Transformations - Compute raw economic metrics from securities
+#   2. Score Transformations     - Normalize indicators to common scale
+#   3. Signal Transformations    - Apply trading rules (bounds, neutral zones)
+#   4. Signals                   - Compose complete signals from the above
+#
+# Plus strategy configurations for backtesting.
+#
+# Signal Convention:
+#   Positive signal → Long credit risk (buy CDX = sell protection)
+#   Negative signal → Short credit risk (sell CDX = buy protection)
+# =============================================================================
+
+
+# =============================================================================
+# STAGE 1: INDICATOR TRANSFORMATIONS
+# =============================================================================
+# Raw economic metrics computed from security data.
+# Output values in natural units (basis points, ratios, percentages).
+# No normalization at this stage - that's handled by score transformations.
+# =============================================================================
+
 indicator_transformations:
+
+  # CDX vs ETF spread basis
   - name: cdx_etf_spread_diff
-    description: CDX spread minus ETF spread in basis points (raw basis without 
+    description: >-
+      CDX spread minus ETF spread in basis points (raw basis without 
       normalization)
     compute_function_name: compute_cdx_etf_spread_diff
     data_requirements:
@@ -12,8 +41,11 @@ indicator_transformations:
     output_units: basis_points
     parameters: {}
     enabled: true
+
+  # Short-term momentum
   - name: spread_momentum_5d
-    description: 5-day spread change in basis points (short-term momentum 
+    description: >-
+      5-day spread change in basis points (short-term momentum 
       without volatility adjustment)
     compute_function_name: compute_spread_momentum
     data_requirements:
@@ -24,8 +56,11 @@ indicator_transformations:
     parameters:
       lookback: 5
     enabled: true
+
+  # Cross-asset risk sentiment
   - name: cdx_vix_deviation_gap_20d
-    description: Gap between CDX and VIX deviations from 20-day means 
+    description: >-
+      Gap between CDX and VIX deviations from 20-day means 
       (cross-asset risk sentiment)
     compute_function_name: compute_cdx_vix_deviation_gap
     data_requirements:
@@ -38,23 +73,45 @@ indicator_transformations:
     parameters:
       lookback: 20
     enabled: true
+
+
+# =============================================================================
+# STAGE 2: SCORE TRANSFORMATIONS
+# =============================================================================
+# Normalize indicator values to a common scale for comparison.
+# Enables combining signals with different natural units.
+#
+# Transform Types:
+#   - z_score:           (value - mean) / std over rolling window
+#   - normalized_change: Change normalized by rolling volatility
+#   - diff:              Simple first difference
+# =============================================================================
+
 score_transformations:
+
+  # Z-score with 20-day window (responsive)
   - name: z_score_20d
-    description: Z-score normalization over 20-day rolling window with minimum 
+    description: >-
+      Z-score normalization over 20-day rolling window with minimum 
       10 periods
     transform_type: z_score
     parameters:
       window: 20
       min_periods: 10
     enabled: true
+
+  # Z-score with 60-day window (smoother)
   - name: z_score_60d
-    description: Z-score normalization over 60-day rolling window with minimum 
+    description: >-
+      Z-score normalization over 60-day rolling window with minimum 
       30 periods
     transform_type: z_score
     parameters:
       window: 60
       min_periods: 30
     enabled: true
+
+  # Volatility-adjusted change
   - name: volatility_adjust_20d
     description: Change normalized by 20-day rolling volatility
     transform_type: normalized_change
@@ -63,20 +120,39 @@ score_transformations:
       min_periods: 10
       periods: 1
     enabled: true
+
+  # Simple difference
   - name: diff_5d
     description: 5-day first difference (absolute change)
     transform_type: diff
     parameters:
       periods: 5
     enabled: true
+
+
+# =============================================================================
+# STAGE 3: SIGNAL TRANSFORMATIONS
+# =============================================================================
+# Apply trading rules to convert scores into actionable signals.
+#
+# Parameters:
+#   - scaling:       Multiplier applied to score
+#   - floor/cap:     Hard bounds on signal values
+#   - neutral_range: Values within this range are set to zero (no position)
+# =============================================================================
+
 signal_transformations:
+
+  # No transformation (research/debugging)
   - name: passthrough
     description: No trading rule transformation (raw score as signal)
     scaling: 1.0
-    floor:
-    cap:
-    neutral_range:
+    floor: null
+    cap: null
+    neutral_range: null
     enabled: true
+
+  # Conservative bounds with neutral zone
   - name: bounded_1_5
     description: Signal bounded to [-1.5, 1.5] with neutral zone [-0.25, 0.25]
     scaling: 1.0
@@ -86,14 +162,31 @@ signal_transformations:
       - -0.25
       - 0.25
     enabled: true
+
+  # Wider bounds without neutral zone
   - name: bounded_2_0
     description: Signal bounded to [-2.0, 2.0] without neutral zone
     scaling: 1.0
     floor: -2.0
     cap: 2.0
-    neutral_range:
+    neutral_range: null
     enabled: true
+
+
+# =============================================================================
+# SIGNALS
+# =============================================================================
+# Complete signal definitions composing the three transformation stages.
+# Each signal references exactly one transformation from each stage.
+#
+# sign_multiplier: Adjusts signal direction to match convention
+#   +1 = Use score directly
+#   -1 = Invert score (e.g., for mean-reversion)
+# =============================================================================
+
 signals:
+
+  # Flow-driven basis trade
   - name: cdx_etf_basis
     description: Flow-driven mispricing signal from CDX-ETF basis divergence
     indicator_transformation: cdx_etf_spread_diff
@@ -101,57 +194,89 @@ signals:
     signal_transformation: passthrough
     sign_multiplier: 1
     enabled: true
+
+  # Cross-asset divergence
   - name: cdx_vix_gap
-    description: Cross-asset risk sentiment divergence between credit and equity
+    description: >-
+      Cross-asset risk sentiment divergence between credit and equity
       volatility
     indicator_transformation: cdx_vix_deviation_gap_20d
     score_transformation: z_score_60d
     signal_transformation: passthrough
     sign_multiplier: 1
     enabled: true
+
+  # Trend-following momentum
   - name: spread_momentum
-    description: 'Trend-following signal: go long after tightening, short after widening'
+    description: >-
+      Trend-following signal: go long after tightening, short after widening
     indicator_transformation: spread_momentum_5d
     score_transformation: z_score_20d
     signal_transformation: passthrough
-    sign_multiplier: -1
+    sign_multiplier: -1              # Invert: tightening = positive
     enabled: true
+
+
+# =============================================================================
+# BACKTEST STRATEGIES
+# =============================================================================
+# Risk management and position sizing configurations.
+#
+# Parameters:
+#   - position_size_mm:   Notional in millions USD
+#   - sizing_mode:        "proportional" (scale by signal) or "binary" (full position)
+#   - stop_loss_pct:      Exit if cumulative loss exceeds this %
+#   - take_profit_pct:    Exit if cumulative profit exceeds this %
+#   - max_holding_days:   Force exit after N days (null = no limit)
+#   - entry_threshold:    Minimum |signal| to enter position
+# =============================================================================
+
 strategies:
+
+  # Low-risk, patient approach
   - name: conservative
-    description: Conservative sizing with tight risk management for low-turnover
+    description: >-
+      Conservative sizing with tight risk management for low-turnover
       trades
     position_size_mm: 5.0
     sizing_mode: proportional
     stop_loss_pct: 3.0
     take_profit_pct: 8.0
     max_holding_days: 20
-    entry_threshold: 1.8
+    entry_threshold: 1.8            # Require strong signal conviction
     enabled: true
+
+  # Standard production config
   - name: balanced
     description: Balanced position sizing with moderate risk management
     position_size_mm: 10.0
     sizing_mode: proportional
     stop_loss_pct: 5.0
     take_profit_pct: 10.0
-    max_holding_days:
+    max_holding_days: null           # No time limit
     entry_threshold: 1.5
     enabled: true
+
+  # High-conviction, frequent trading
   - name: aggressive
-    description: Aggressive sizing with wide risk bands for high-turnover 
+    description: >-
+      Aggressive sizing with wide risk bands for high-turnover 
       trading
     position_size_mm: 15.0
     sizing_mode: proportional
     stop_loss_pct: 10.0
-    take_profit_pct:
-    max_holding_days:
-    entry_threshold: 1.0
+    take_profit_pct: null            # Let winners run
+    max_holding_days: null
+    entry_threshold: 1.0             # Trade on weaker signals
     enabled: true
+
+  # Research sandbox (disabled by default)
   - name: experimental
     description: Experimental configuration for research and testing
     position_size_mm: 10.0
     sizing_mode: proportional
-    stop_loss_pct:
-    take_profit_pct:
-    max_holding_days:
-    entry_threshold:
+    stop_loss_pct: null
+    take_profit_pct: null
+    max_holding_days: null
+    entry_threshold: null
     enabled: false

@@ -1,4 +1,23 @@
+# =============================================================================
+# SECURITIES CATALOG
+# =============================================================================
+# Security definitions for credit indices, ETFs, and volatility products.
+# Each security specifies Bloomberg tickers, data channels, and trading params.
+#
+# Channel Types:
+#   - spread: Credit spread in basis points (CDX)
+#   - price:  Dollar price (CDX, ETFs, bonds)
+#   - level:  Index level (VIX)
+# =============================================================================
+
 securities:
+
+  # ---------------------------------------------------------------------------
+  # CDX INDICES (North America)
+  # ---------------------------------------------------------------------------
+  # CDX = Credit Default Swap Index
+  # Synthetic credit portfolios traded OTC via dealers
+  
   cdx_ig_5y:
     description: CDX North America Investment Grade 5Y
     instrument_type: cdx
@@ -7,8 +26,9 @@ securities:
       spread:
         bloomberg_ticker: CDX IG CDSI GEN 5Y Corp
         field: PX_LAST
-    dv01_per_million: 475.0
-    transaction_cost_bps: 1.5
+    dv01_per_million: 475.0        # Dollar duration per $1MM notional
+    transaction_cost_bps: 1.5      # Bid-ask spread estimate
+
   cdx_ig_10y:
     description: CDX North America Investment Grade 10Y
     instrument_type: cdx
@@ -17,12 +37,13 @@ securities:
       spread:
         bloomberg_ticker: CDX IG CDSI GEN 10Y Corp
         field: PX_LAST
-    dv01_per_million: 875.0
+    dv01_per_million: 875.0        # Higher duration for 10Y tenor
     transaction_cost_bps: 2.0
+
   cdx_hy_5y:
     description: CDX North America High Yield 5Y
     instrument_type: cdx
-    quote_type: spread
+    quote_type: price
     channels:
       spread:
         bloomberg_ticker: CDX HY CDSI GEN 5Y SPRD Corp
@@ -30,8 +51,14 @@ securities:
       price:
         bloomberg_ticker: CDX HY CDSI GEN 5Y Corp
         field: PX_LAST
-    dv01_per_million: 425.0
-    transaction_cost_bps: 8.0
+    dv01_per_million: 425.0        # Lower duration due to higher spreads
+    transaction_cost_bps: 8.0      # Wider bid-ask for HY
+
+  # ---------------------------------------------------------------------------
+  # iTRAXX INDICES (Europe)
+  # ---------------------------------------------------------------------------
+  # European equivalent of CDX indices
+
   itrx_xover_5y:
     description: iTraxx Europe Crossover 5Y
     instrument_type: cdx
@@ -41,7 +68,8 @@ securities:
         bloomberg_ticker: ITRX XOVER CDSI GEN 5Y Corp
         field: PX_LAST
     dv01_per_million: 425.0
-    transaction_cost_bps: 7.0
+    transaction_cost_bps: 7.0      # Sub-IG names, wider spread
+
   itrx_eur_5y:
     description: iTraxx Europe Main 5Y
     instrument_type: cdx
@@ -52,6 +80,13 @@ securities:
         field: PX_LAST
     dv01_per_million: 475.0
     transaction_cost_bps: 1.5
+
+  # ---------------------------------------------------------------------------
+  # CREDIT ETFs
+  # ---------------------------------------------------------------------------
+  # Exchange-traded funds tracking corporate bond indices
+  # Support both price and spread (OAS) channels
+
   hyg:
     description: iShares iBoxx High Yield Corporate Bond ETF
     instrument_type: etf
@@ -62,7 +97,8 @@ securities:
         field: PX_LAST
       spread:
         bloomberg_ticker: HYG US Equity
-        field: YAS_ISPREAD
+        field: YAS_ISPREAD            # Option-adjusted spread
+
   lqd:
     description: iShares iBoxx Investment Grade Corporate Bond ETF
     instrument_type: etf
@@ -74,6 +110,11 @@ securities:
       spread:
         bloomberg_ticker: LQD US Equity
         field: YAS_ISPREAD
+
+  # ---------------------------------------------------------------------------
+  # VOLATILITY INDICES
+  # ---------------------------------------------------------------------------
+
   vix:
     description: CBOE Volatility Index
     instrument_type: vix
@@ -82,21 +123,25 @@ securities:
       level:
         bloomberg_ticker: VIX Index
         field: PX_LAST
+
+
+# =============================================================================
+# INSTRUMENT TYPES
+# =============================================================================
+# Defines how each instrument type maps Bloomberg fields to internal columns.
+# Used by data providers to normalize raw data into consistent schema.
+# =============================================================================
+
 instruments:
+
   cdx:
     description: CDX credit default swap indices
     bloomberg_fields:
       - PX_LAST
     field_mapping:
       PX_LAST: spread
-    requires_security_metadata: true
-  vix:
-    description: CBOE Volatility Index
-    bloomberg_fields:
-      - PX_LAST
-    field_mapping:
-      PX_LAST: level
-    requires_security_metadata: false
+    requires_security_metadata: true   # Needs DV01, transaction costs
+
   etf:
     description: Credit ETFs (high yield and investment grade)
     bloomberg_fields:
@@ -104,3 +149,11 @@ instruments:
     field_mapping:
       YAS_ISPREAD: spread
     requires_security_metadata: true
+
+  vix:
+    description: CBOE Volatility Index
+    bloomberg_fields:
+      - PX_LAST
+    field_mapping:
+      PX_LAST: level
+    requires_security_metadata: false  # No trading metadata needed
