@@ -263,6 +263,113 @@ def _add_security_metadata(
     return df
 
 
+def fetch_multi_ticker_from_bloomberg(
+    ticker_field_map: dict[str, list[str]],
+    start_date: str | None = None,
+    end_date: str | None = None,
+    **params: Any,
+) -> dict[str, pd.DataFrame]:
+    """
+    Fetch historical data for multiple tickers/fields in batch from Bloomberg.
+
+    This function enables efficient multi-ticker fetching for securities that
+    require data from multiple Bloomberg tickers (e.g., CDX HY with separate
+    spread and price tickers).
+
+    Parameters
+    ----------
+    ticker_field_map : dict[str, list[str]]
+        Mapping of Bloomberg tickers to their fields to fetch.
+        Example: {"CDX HY CDSI GEN 5Y SPRD Corp": ["PX_LAST"],
+                  "CDX HY CDSI GEN 5Y Corp": ["PX_LAST"]}
+    start_date : str or None
+        Start date in YYYY-MM-DD format.
+    end_date : str or None
+        End date in YYYY-MM-DD format.
+    **params : Any
+        Additional Bloomberg request parameters.
+
+    Returns
+    -------
+    dict[str, pd.DataFrame]
+        Mapping of ticker to DataFrame with DatetimeIndex.
+        Each DataFrame has columns matching the requested fields.
+
+    Raises
+    ------
+    ImportError
+        If xbbg is not installed.
+    RuntimeError
+        If Bloomberg request fails.
+
+    Notes
+    -----
+    Uses xbbg's batch fetching capability for efficiency.
+    Each ticker's DataFrame is returned separately for flexible merging.
+    """
+    if end_date is None:
+        end_date = datetime.now().strftime("%Y-%m-%d")
+    if start_date is None:
+        start_dt = datetime.now() - timedelta(days=5 * 365)
+        start_date = start_dt.strftime("%Y-%m-%d")
+
+    bbg_start = start_date.replace("-", "")
+    bbg_end = end_date.replace("-", "")
+
+    logger.info(
+        "Fetching %d tickers from Bloomberg: dates=%s to %s",
+        len(ticker_field_map),
+        start_date,
+        end_date,
+    )
+
+    try:
+        from xbbg import blp
+    except BaseException as e:
+        error_msg = str(e)
+        if "blpapi" in error_msg.lower():
+            raise ImportError(
+                "Bloomberg API (blpapi) not installed. "
+                "Install with: uv pip install blpapi"
+            ) from e
+        elif isinstance(e, ImportError):
+            raise ImportError(f"xbbg not installed: {error_msg}") from e
+        else:
+            raise
+
+    results: dict[str, pd.DataFrame] = {}
+
+    for ticker, fields in ticker_field_map.items():
+        try:
+            df = blp.bdh(
+                tickers=ticker,
+                flds=fields,
+                start_date=bbg_start,
+                end_date=bbg_end,
+                **params,
+            )
+
+            if df is None or df.empty:
+                logger.warning("Bloomberg returned empty data for ticker: %s", ticker)
+                continue
+
+            # Convert index to DatetimeIndex
+            df.index = pd.to_datetime(df.index)
+
+            # Flatten multi-index columns if present
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(1)
+
+            results[ticker] = df
+            logger.debug("Fetched %d rows for ticker: %s", len(df), ticker)
+
+        except Exception as e:
+            logger.error("Failed to fetch ticker %s: %s", ticker, e)
+            raise RuntimeError(f"Failed to fetch {ticker} from Bloomberg: {e}") from e
+
+    return results
+
+
 def fetch_current_from_bloomberg(
     ticker: str,
     instrument: str,

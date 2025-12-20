@@ -12,17 +12,32 @@ Supports multiple data providers: local files, Bloomberg Terminal, APIs.
 Provides dataset registry for tracking and managing available market data files.
 Time series transformations (diff, pct_change, log_return, z_score, normalized_change)
 available for signal generation and analysis.
+
+Channel-aware data fetching: Use fetch_security_data() for automatic channel resolution
+based on instrument type and usage purpose.
 """
 
 import logging
 
 from ..config import RAW_DIR
-from .fetch import fetch_cdx, fetch_vix, fetch_etf
+from .channels import DataChannel, UsagePurpose, ChannelConfig, ChannelFetchError, INSTRUMENT_DEFAULTS
+from .security_catalog import SecuritySpec, SecurityCatalog
+from .fetch import (
+    fetch_cdx,
+    fetch_vix,
+    fetch_etf,
+    fetch_security_data,
+    get_security_spec,
+    resolve_channel_for_purpose,
+    list_security_channels,
+)
 from .sources import FileSource, BloombergSource, APISource, DataSource
 from .validation import (
     validate_cdx_schema,
     validate_vix_schema,
     validate_etf_schema,
+    validate_channel_data,
+    validate_channel_columns_exist,
     handle_duplicate_index,
 )
 from .bloomberg_config import validate_bloomberg_registry, get_product_microstructure
@@ -67,10 +82,23 @@ def get_available_sources() -> list[str]:
 
 
 __all__ = [
+    # Channels (new)
+    "DataChannel",
+    "UsagePurpose",
+    "ChannelConfig",
+    "ChannelFetchError",
+    "INSTRUMENT_DEFAULTS",
+    # Security catalog (new)
+    "SecuritySpec",
+    "SecurityCatalog",
     # Fetch functions
     "fetch_cdx",
     "fetch_vix",
     "fetch_etf",
+    "fetch_security_data",
+    "get_security_spec",
+    "resolve_channel_for_purpose",
+    "list_security_channels",
     # Data sources
     "FileSource",
     "BloombergSource",
@@ -81,6 +109,8 @@ __all__ = [
     "validate_cdx_schema",
     "validate_vix_schema",
     "validate_etf_schema",
+    "validate_channel_data",
+    "validate_channel_columns_exist",
     "validate_bloomberg_registry",
     "get_product_microstructure",
     "handle_duplicate_index",

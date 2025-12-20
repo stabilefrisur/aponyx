@@ -2418,3 +2418,195 @@ def test_entry_threshold_in_metadata() -> None:
 
     assert "entry_threshold" in result.metadata["config"]
     assert result.metadata["config"]["entry_threshold"] == 1.8
+
+
+# ============================================================================
+# Data Channel Integration Tests (010-data-channel-separation Phase 4)
+# ============================================================================
+
+
+class TestBacktestChannelDataIntegration:
+    """Tests for backtest receiving correct channel data based on quote_type (T025)."""
+
+    def test_spread_quoted_product_uses_spread_channel(self, tmp_path) -> None:
+        """Test spread-quoted product (CDX) receives spread channel data for P&L."""
+        import json
+        from pathlib import Path
+        from aponyx.data.channels import UsagePurpose, DataChannel
+        from aponyx.data.fetch import fetch_security_data, resolve_channel_for_purpose
+        from aponyx.data.sources import FileSource
+
+        # Create synthetic data with spread column
+        data_dir = tmp_path / "raw" / "synthetic"
+        data_dir.mkdir(parents=True)
+
+        dates = pd.date_range("2024-01-01", periods=20, freq="B")
+        cdx_df = pd.DataFrame({"spread": [100.0 + i * 0.5 for i in range(20)]}, index=dates)
+        cdx_df.to_parquet(data_dir / "cdx_ig_5y_abc123.parquet")
+
+        registry = {"cdx_ig_5y": "cdx_ig_5y_abc123.parquet"}
+        with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
+            json.dump(registry, f)
+
+        source = FileSource(data_dir)
+
+        # Verify channel resolution for P&L purpose
+        channel = resolve_channel_for_purpose("cdx_ig_5y", UsagePurpose.PNL)
+        assert channel == DataChannel.SPREAD, "CDX should use spread channel for P&L"
+
+        # Fetch data with P&L purpose
+        df = fetch_security_data(
+            source=source,
+            security_id="cdx_ig_5y",
+            purpose=UsagePurpose.PNL,
+            use_cache=False,
+        )
+
+        assert "spread" in df.columns, "P&L data should have spread column"
+        assert len(df) == 20
+
+        # Run backtest with fetched spread data
+        signal = pd.Series([0.0] * 5 + [0.8] * 10 + [0.0] * 5, index=dates)
+        spread = df["spread"]
+
+        config = make_test_config(signal_lag=0, transaction_cost_bps=0.0)
+        result = run_backtest(signal, spread, config, make_test_calculator())
+
+        # Should have valid positions and P&L
+        assert len(result.positions) == 20
+        assert len(result.pnl) == 20
+        assert result.metadata["summary"]["n_trades"] >= 1
+
+    def test_price_quoted_product_uses_price_channel(self, tmp_path) -> None:
+        """Test price-quoted product (ETF) receives price channel data for P&L."""
+        import json
+        from aponyx.data.channels import UsagePurpose, DataChannel
+        from aponyx.data.fetch import fetch_security_data, resolve_channel_for_purpose
+        from aponyx.data.sources import FileSource
+
+        # Create synthetic data with both price and spread columns
+        data_dir = tmp_path / "raw" / "synthetic"
+        data_dir.mkdir(parents=True)
+
+        dates = pd.date_range("2024-01-01", periods=20, freq="B")
+        hyg_df = pd.DataFrame(
+            {
+                "price": [75.0 + i * 0.1 for i in range(20)],
+                "spread": [350.0 + i for i in range(20)],
+            },
+            index=dates,
+        )
+        hyg_df.to_parquet(data_dir / "hyg_abc123.parquet")
+
+        registry = {"hyg": "hyg_abc123.parquet"}
+        with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
+            json.dump(registry, f)
+
+        source = FileSource(data_dir)
+
+        # Verify channel resolution for P&L purpose - ETF is price-quoted
+        channel = resolve_channel_for_purpose("hyg", UsagePurpose.PNL)
+        assert channel == DataChannel.PRICE, "ETF should use price channel for P&L"
+
+        # Fetch data with P&L purpose
+        df = fetch_security_data(
+            source=source,
+            security_id="hyg",
+            purpose=UsagePurpose.PNL,
+            use_cache=False,
+        )
+
+        assert "price" in df.columns, "P&L data should have price column"
+        assert "spread" not in df.columns, "P&L data should NOT include spread for price-quoted"
+        assert len(df) == 20
+
+    def test_quote_type_not_spread_availability_drives_pnl_channel(self, tmp_path) -> None:
+        """Test that quote_type field (not spread availability) determines P&L channel.
+
+        This is a key requirement: ETF has both price and spread channels, but
+        quote_type='price' means P&L should use PRICE channel, not SPREAD.
+        """
+        import json
+        from aponyx.data.channels import UsagePurpose, DataChannel
+        from aponyx.data.fetch import resolve_channel_for_purpose, get_security_spec
+
+        # Get HYG spec - it has both spread and price channels
+        spec = get_security_spec("hyg")
+        assert spec.has_channel(DataChannel.SPREAD), "HYG should have spread channel"
+        assert spec.has_channel(DataChannel.PRICE), "HYG should have price channel"
+        assert spec.quote_type == "price", "HYG quote_type should be price"
+
+        # P&L channel should be determined by quote_type, not by spread availability
+        pnl_channel = resolve_channel_for_purpose("hyg", UsagePurpose.PNL)
+        assert pnl_channel == DataChannel.PRICE, (
+            "P&L channel should be PRICE (from quote_type), not SPREAD (even though available)"
+        )
+
+        # Indicator channel uses instrument_type defaults (spread for ETF)
+        indicator_channel = resolve_channel_for_purpose("hyg", UsagePurpose.INDICATOR)
+        assert indicator_channel == DataChannel.SPREAD, (
+            "Indicator channel should be SPREAD for ETF (instrument_type default)"
+        )
+
+    def test_cdx_hy_has_both_channels_pnl_uses_spread(self) -> None:
+        """Test CDX HY 5Y with both spread and price channels uses spread for P&L."""
+        from aponyx.data.channels import UsagePurpose, DataChannel
+        from aponyx.data.fetch import resolve_channel_for_purpose, get_security_spec
+
+        # CDX HY has both channels (for convertible bond-like trading)
+        spec = get_security_spec("cdx_hy_5y")
+        assert spec.has_channel(DataChannel.SPREAD), "CDX HY should have spread channel"
+        assert spec.has_channel(DataChannel.PRICE), "CDX HY should have price channel"
+        assert spec.quote_type == "spread", "CDX HY quote_type should be spread"
+
+        # P&L uses spread (quote_type=spread)
+        pnl_channel = resolve_channel_for_purpose("cdx_hy_5y", UsagePurpose.PNL)
+        assert pnl_channel == DataChannel.SPREAD, "CDX HY P&L should use SPREAD"
+
+        # Indicator also uses spread (CDX instrument_type default)
+        indicator_channel = resolve_channel_for_purpose("cdx_hy_5y", UsagePurpose.INDICATOR)
+        assert indicator_channel == DataChannel.SPREAD, "CDX HY indicator should use SPREAD"
+
+    def test_backtest_spread_pnl_calculation_with_channel_data(self, tmp_path) -> None:
+        """Test backtest P&L calculation uses correct spread data from channel."""
+        import json
+        from aponyx.data.channels import UsagePurpose
+        from aponyx.data.fetch import fetch_security_data
+        from aponyx.data.sources import FileSource
+
+        # Create synthetic CDX spread data with known values
+        data_dir = tmp_path / "raw" / "synthetic"
+        data_dir.mkdir(parents=True)
+
+        dates = pd.date_range("2024-01-01", periods=10, freq="B")
+        # Spread tightens from 100 to 90 (profit for long position)
+        spread_values = [100.0, 99.0, 98.0, 97.0, 96.0, 95.0, 94.0, 93.0, 92.0, 91.0]
+        cdx_df = pd.DataFrame({"spread": spread_values}, index=dates)
+        cdx_df.to_parquet(data_dir / "cdx_ig_5y_test.parquet")
+
+        registry = {"cdx_ig_5y": "cdx_ig_5y_test.parquet"}
+        with open(data_dir / "registry.json", "w", encoding="utf-8") as f:
+            json.dump(registry, f)
+
+        source = FileSource(data_dir)
+
+        # Fetch spread data for backtest P&L
+        df = fetch_security_data(
+            source=source,
+            security_id="cdx_ig_5y",
+            purpose=UsagePurpose.PNL,
+            use_cache=False,
+        )
+
+        # Constant long signal (position = 1)
+        signal = pd.Series([0.8] * 10, index=dates)
+        spread = df["spread"]
+
+        config = make_test_config(signal_lag=0, transaction_cost_bps=0.0, sizing_mode="binary")
+        result = run_backtest(signal, spread, config, make_test_calculator())
+
+        # Spread tightened by 9 bps total (100 → 91), long position profits
+        # With binary sizing (position=1), DV01=475, position_size=10MM
+        # P&L should be positive (long profits from spread tightening)
+        total_pnl = result.pnl["cumulative_pnl"].iloc[-1]
+        assert total_pnl > 0, "Long position should profit from spread tightening"

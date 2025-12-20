@@ -70,6 +70,11 @@ class WorkflowConfig:
         Mutually exclusive with transaction_cost_bps_override.
         When set, transaction costs are calculated as a percentage of the current spread.
         Value should be in decimal form (e.g., 0.025 for 2.5%).
+    display_channel : str | None
+        Override display channel for visualization output.
+        Must be a valid DataChannel value ("spread", "price", "level") and
+        must be available for the product security.
+        If None, uses instrument-type defaults from INSTRUMENT_DEFAULTS.
     steps : list[StepName] | None
         Specific steps to execute (None = all steps in order).
     force_rerun : bool
@@ -96,6 +101,7 @@ class WorkflowConfig:
     - dv01_per_million_override: Override product's DV01 for sensitivity analysis
     - transaction_cost_bps_override: Override fixed transaction costs
     - transaction_cost_pct_override: Use percentage-based transaction costs (mutually exclusive with bps)
+    - display_channel: Override display channel for visualization (spread, price, level)
     """
 
     label: str
@@ -110,6 +116,7 @@ class WorkflowConfig:
     dv01_per_million_override: float | None = None
     transaction_cost_bps_override: float | None = None
     transaction_cost_pct_override: float | None = None
+    display_channel: str | None = None
     steps: list[StepName] | None = None
     force_rerun: bool = False
     output_dir: Path = field(default_factory=lambda: DATA_WORKFLOWS_DIR)
@@ -149,3 +156,12 @@ class WorkflowConfig:
                 "transaction_cost_pct_override. Use either fixed basis points "
                 "(bps) or percentage-based (pct), not both."
             )
+
+        # T028: Validate display_channel is a valid channel name
+        if self.display_channel is not None:
+            valid_channels = {"spread", "price", "level"}
+            if self.display_channel not in valid_channels:
+                raise ValueError(
+                    f"Invalid display_channel '{self.display_channel}'. "
+                    f"Must be one of: {sorted(valid_channels)}"
+                )

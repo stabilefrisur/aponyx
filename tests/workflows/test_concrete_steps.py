@@ -192,26 +192,32 @@ class TestDataStep:
         step = DataStep(bloomberg_config)
 
         # Bloomberg source will try to fetch fresh data when registry is empty
-        # Mock fetch_cdx from data module
-        with patch("aponyx.data.fetch_cdx") as mock_fetch:
-            mock_fetch.side_effect = RuntimeError("Bloomberg returned empty data")
-            with pytest.raises(RuntimeError, match="Bloomberg returned empty data"):
+        # Mock fetch_security_data from the data.fetch module (used internally)
+        with patch("aponyx.data.fetch.fetch_security_data") as mock_fetch:
+            from aponyx.data.channels import ChannelFetchError, DataChannel
+            mock_fetch.side_effect = ChannelFetchError(
+                "cdx_ig_5y",
+                {DataChannel.SPREAD: "Bloomberg returned empty data"}
+            )
+            with pytest.raises(ChannelFetchError, match="cdx_ig_5y"):
                 step.execute({})
 
     @patch("aponyx.data.bloomberg_config.list_securities")
     @patch("aponyx.workflows.concrete_steps.DataRegistry")
-    @patch("aponyx.data.fetch_cdx")
-    @patch("aponyx.data.fetch_vix")
+    @patch("aponyx.data.fetch.fetch_security_data")
+    @patch("aponyx.data.fetch.list_security_channels")
     def test_data_step_bypasses_registry_with_force_rerun(
         self,
-        mock_fetch_vix,
-        mock_fetch_cdx,
+        mock_list_channels,
+        mock_fetch_security_data,
         mock_data_registry_class,
         mock_list_securities,
         tmp_path,
         sample_market_data,
     ):
         """Test DataStep bypasses registry and fetches fresh data when force_rerun=True."""
+        from aponyx.data.channels import DataChannel
+
         # Mock securities list
         mock_list_securities.return_value = ["cdx_ig_5y", "vix"]
 
@@ -223,9 +229,23 @@ class TestDataStep:
         }
         mock_data_registry_class.return_value = mock_registry
 
-        # Mock fetch functions to return fresh data
-        mock_fetch_cdx.return_value = sample_market_data["cdx"]
-        mock_fetch_vix.return_value = sample_market_data["vix"]
+        # Mock list_security_channels to return appropriate channels
+        def mock_channels(security_id):
+            if security_id == "vix":
+                return [DataChannel.LEVEL]
+            return [DataChannel.SPREAD]
+
+        mock_list_channels.side_effect = mock_channels
+
+        # Mock fetch_security_data to return appropriate data based on security_id
+        def mock_fetch(source, security_id, channels, use_cache):
+            if security_id == "cdx_ig_5y":
+                return sample_market_data["cdx"]
+            elif security_id == "vix":
+                return sample_market_data["vix"]
+            raise ValueError(f"Unknown security: {security_id}")
+
+        mock_fetch_security_data.side_effect = mock_fetch
 
         # Create config with force_rerun=True and bloomberg source
         config = WorkflowConfig(
@@ -244,13 +264,8 @@ class TestDataStep:
         # Verify registry was NOT queried (bypassed due to force_rerun)
         mock_registry.list_datasets.assert_not_called()
 
-        # Verify fetch functions were called instead
-        mock_fetch_cdx.assert_called_once()
-        mock_fetch_vix.assert_called_once()
-
-        # Verify update_current_day was passed correctly
-        assert mock_fetch_cdx.call_args.kwargs["update_current_day"] is True
-        assert mock_fetch_vix.call_args.kwargs["update_current_day"] is True
+        # Verify fetch_security_data was called for each security
+        assert mock_fetch_security_data.call_count == 2
 
         # Verify data was loaded
         assert "market_data" in result
