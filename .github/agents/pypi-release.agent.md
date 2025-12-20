@@ -137,7 +137,7 @@ git diff v{previous_version}..HEAD --stat
 
 **2.1 Remove Python bytecode**
 ```bash
-uv run python scripts/clean_pycache.py
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 ```
 
 **2.2 Clean runtime data**
@@ -157,31 +157,40 @@ uv run aponyx clean --all
 
 ### Step 3: Quality Checks and Fixes
 
-**3.1 Run tests**
+**3.1 Ensure synthetic data exists**
+```bash
+uv run python scripts/generate_synthetic.py
+```
+
+**Note:** Tests require synthetic data in `data/raw/synthetic/`. Generate it before running tests (Step 2.2 removes it during cleanup).
+
+**3.2 Run tests**
 ```bash
 uv run pytest tests/ --ignore=tests/data/test_bloomberg.py -v
 ```
 
-**Expected:** All tests should pass. Check actual test count from output (documented as 755 as of v0.1.16).
+**Expected:** All tests should pass. Check actual test count from output (1130 tests as of v0.1.21).
 
 If ANY tests fail, **STOP** and report to user which tests failed and why.
 
-**3.2 Auto-fix linting**
+**3.3 Auto-fix linting**
 ```bash
-uv run ruff check --fix src/aponyx
+uv run ruff check --fix --unsafe-fixes src/aponyx
 ```
 
-**3.3 Auto-format code**
+**Note:** Some F821 errors (undefined names in forward references) are false positives and can be ignored.
+
+**3.4 Auto-format code**
 ```bash
 uv run ruff format src/ tests/
 ```
 
 **Validation:**
 - All tests passed
-- No ruff violations remain
+- Ruff auto-fixes applied (ignore F821 forward reference warnings)
 - Code formatting applied
 
-**3.4 Single atomic commit**
+**3.5 Single atomic commit**
 
 After all quality checks pass, create ONE commit with all changes:
 
@@ -239,7 +248,7 @@ Expected output: `X.Y.Z`
 
 **5.4 Test basic functionality**
 ```bash
-test-env/Scripts/python -c "from aponyx.models import compute_cdx_etf_basis; print('Import successful')"
+test-env/Scripts/python -c "from aponyx.models import compute_registered_signals; print('Import successful')"
 ```
 
 Expected output: `Import successful`
@@ -343,10 +352,10 @@ uv venv verify-env --python 3.12
 
 **9.2 Install from PyPI**
 ```bash
-uv pip install aponyx==X.Y.Z --python verify-env
+uv pip install aponyx==X.Y.Z --python verify-env --refresh
 ```
 
-If this fails with "No matching distribution", wait 60 seconds and retry up to 3 times.
+**Note:** Use `--refresh` flag to bypass cache and force PyPI check. If this fails with "No matching distribution", wait 60 seconds and retry up to 3 times total.
 
 **9.3 Verify version**
 ```bash
@@ -431,10 +440,20 @@ Report to user: "Version published to PyPI - cannot rollback. Consider hotfix re
 
 ## Common Issues
 
+**Tests fail due to missing synthetic data:**
+- Run `uv run python scripts/generate_synthetic.py` before tests
+- Tests require `data/raw/synthetic/registry.json` and parquet files
+- Step 2.2 (`clean_runtime_data.py`) removes synthetic data, so Step 3.1 regenerates it
+
 **Tests fail:**
 - Do NOT proceed with release
 - Report which tests failed
 - Instruct user to fix tests and restart workflow
+
+**Ruff F821 errors (undefined names):**
+- These are false positives from forward references in string quotes
+- Safe to ignore - not actual code issues
+- Use `--unsafe-fixes` flag for auto-fixable issues
 
 **Ruff violations can't be auto-fixed:**
 - Report violations
@@ -452,9 +471,11 @@ Report to user: "Version published to PyPI - cannot rollback. Consider hotfix re
 - Ensure remote URL is correct
 
 **PyPI package not found after publish:**
-- Normal - indexing takes 2-3 minutes
-- Retry verification up to 3 times with delays
+- Normal - indexing takes 2-5 minutes
+- Use `--refresh` flag to bypass uv cache
+- Retry verification up to 3 times with 60-second delays
 - Check https://pypi.org/project/aponyx/ manually
+- Check PyPI JSON API: `curl -s https://pypi.org/pypi/aponyx/json | grep "X.Y.Z"`
 
 ## Notes
 
