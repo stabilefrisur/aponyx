@@ -1,0 +1,17 @@
+name: "strategy_optimization"
+description: "Find optimal entry threshold and position sizing"
+mode: "backtest"
+
+base:
+  signal: "cdx_etf_basis"
+  strategy: "balanced"
+
+parameters:
+  - path: "strategy.position_size_mm"
+    values: [5.0, 10.0, 20.0]
+  - path: "signal_transformation.parameters.floor"
+    values: [-1.0, -1.5, -2.0]
+  - path: "signal_transformation.parameters.cap"
+    values: [1.0, 1.5, 2.0]
+
+max_combinations: 27  # 3×3×3 = 27 combinations
