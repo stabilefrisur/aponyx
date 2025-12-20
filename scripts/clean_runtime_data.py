@@ -41,6 +41,7 @@ CLEAN_DIRS = [
     PROJECT_ROOT / "data" / "raw",
     PROJECT_ROOT / "data" / "workflows",
     PROJECT_ROOT / "data" / "cache",
+    PROJECT_ROOT / "data" / "sweeps",
     PROJECT_ROOT / "data" / ".registries",
     PROJECT_ROOT / "logs",
 ]

@@ -98,6 +98,9 @@ def compose_signal(
     indicator_transformation_override: str | None = None,
     score_transformation_override: str | None = None,
     signal_transformation_override: str | None = None,
+    indicator_params_override: dict[str, Any] | None = None,
+    score_params_override: dict[str, Any] | None = None,
+    signal_transformation_params_override: dict[str, Any] | None = None,
     include_intermediates: bool = False,
 ) -> pd.Series | dict[str, pd.Series]:
     """
@@ -133,6 +136,15 @@ def compose_signal(
     signal_transformation_override : str or None, optional
         Override the signal transformation from signal catalog.
         Must exist in signal_transformation_registry.
+    indicator_params_override : dict[str, Any] or None, optional
+        Override specific indicator parameters (e.g., {"lookback": 10}).
+        Merged with catalog parameters, overrides take precedence.
+    score_params_override : dict[str, Any] or None, optional
+        Override specific score transformation parameters (e.g., {"window": 30}).
+        Merged with catalog parameters, overrides take precedence.
+    signal_transformation_params_override : dict[str, Any] or None, optional
+        Override specific signal transformation parameters (e.g., {"floor": -2.0, "cap": 2.0}).
+        Merged with catalog parameters, overrides take precedence.
     include_intermediates : bool, default False
         If True, return dict with intermediate stages.
         If False, return final signal series only.
@@ -255,11 +267,36 @@ def compose_signal(
     # Compute economic metric from raw securities (e.g., spread difference in bps)
     indicator_metadata = indicator_registry.get_metadata(indicator_name)
 
+    # Apply indicator parameter overrides if provided
+    effective_indicator_params = dict(indicator_metadata.parameters)
+    if indicator_params_override:
+        effective_indicator_params.update(indicator_params_override)
+        logger.info(
+            "Override: indicator_params=%s",
+            indicator_params_override,
+        )
+
+    # Create a proxy object with overridden parameters
+    # This works with both real dataclasses and mock objects in tests
+    class _IndicatorMetadataProxy:
+        """Lightweight proxy for indicator metadata with parameter overrides."""
+        def __init__(self, original: Any, params: dict[str, Any]) -> None:
+            self._original = original
+            self.parameters = params
+
+        def __getattr__(self, name: str) -> Any:
+            return getattr(self._original, name)
+
+    indicator_metadata_with_overrides = _IndicatorMetadataProxy(
+        indicator_metadata,
+        effective_indicator_params,
+    )
+
     logger.debug("Stage 1: Computing indicator transformation: %s", indicator_name)
     indicator_series = compute_indicator(
         indicator_name=indicator_name,
         market_data=market_data,
-        indicator_metadata=indicator_metadata,
+        indicator_metadata=indicator_metadata_with_overrides,
     )
     logger.debug(
         "Indicator output: %d values, unit=%s",
@@ -274,12 +311,24 @@ def compose_signal(
         score_transformation_name
     )
 
+    # Apply score parameter overrides if provided
+    effective_score_metadata = vars(score_transformation_metadata).copy()
+    if score_params_override:
+        effective_score_metadata["parameters"] = {
+            **effective_score_metadata["parameters"],
+            **score_params_override,
+        }
+        logger.info(
+            "Override: score_params=%s",
+            score_params_override,
+        )
+
     logger.debug(
         "Stage 2: Applying score transformation: %s", score_transformation_name
     )
     score_series = apply_score_transformation(
         indicator_series,
-        vars(score_transformation_metadata),
+        effective_score_metadata,
     )
     logger.debug("Score output: %d values", score_series.notna().sum())
 
@@ -290,15 +339,35 @@ def compose_signal(
         signal_transformation_name
     )
 
+    # Apply signal transformation parameter overrides if provided
+    effective_scaling = signal_transformation_metadata.scaling
+    effective_floor = signal_transformation_metadata.floor
+    effective_cap = signal_transformation_metadata.cap
+    effective_neutral_range = signal_transformation_metadata.neutral_range
+
+    if signal_transformation_params_override:
+        if "scaling" in signal_transformation_params_override:
+            effective_scaling = signal_transformation_params_override["scaling"]
+        if "floor" in signal_transformation_params_override:
+            effective_floor = signal_transformation_params_override["floor"]
+        if "cap" in signal_transformation_params_override:
+            effective_cap = signal_transformation_params_override["cap"]
+        if "neutral_range" in signal_transformation_params_override:
+            effective_neutral_range = signal_transformation_params_override["neutral_range"]
+        logger.info(
+            "Override: signal_transformation_params=%s",
+            signal_transformation_params_override,
+        )
+
     logger.debug(
         "Stage 3: Applying signal transformation: %s", signal_transformation_name
     )
     signal_series = apply_signal_transformation(
         score_series,
-        scaling=signal_transformation_metadata.scaling,
-        floor=signal_transformation_metadata.floor,
-        cap=signal_transformation_metadata.cap,
-        neutral_range=signal_transformation_metadata.neutral_range,
+        scaling=effective_scaling,
+        floor=effective_floor,
+        cap=effective_cap,
+        neutral_range=effective_neutral_range,
     )
     logger.debug("Signal output: %d values", signal_series.notna().sum())
 

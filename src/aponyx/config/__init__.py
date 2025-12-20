@@ -32,6 +32,7 @@ INDICATOR_CACHE_DIR: Final[Path] = CACHE_DIR / "indicators"
 RAW_DIR: Final[Path] = DATA_DIR / "raw"
 DATA_WORKFLOWS_DIR: Final[Path] = DATA_DIR / "workflows"
 DATA_REGISTRIES_DIR: Final[Path] = DATA_DIR / ".registries"
+SWEEPS_DIR: Final[Path] = DATA_DIR / "sweeps"
 
 # YAML source catalog directory (project-level, human-edited)
 YAML_CONFIG_DIR: Final[Path] = PROJECT_ROOT / "config"
@@ -81,6 +82,7 @@ def ensure_directories() -> None:
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     DATA_WORKFLOWS_DIR.mkdir(parents=True, exist_ok=True)
     DATA_REGISTRIES_DIR.mkdir(parents=True, exist_ok=True)
+    SWEEPS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # Initialize directories on module import

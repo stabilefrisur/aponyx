@@ -9,6 +9,7 @@ import click
 from aponyx import __version__
 from aponyx.cli.commands import run, report, list_items, clean
 from aponyx.cli.commands.catalog import catalog
+from aponyx.cli.commands.sweep import sweep
 from aponyx.config import LOGS_DIR
 
 
@@ -113,6 +114,7 @@ cli.add_command(report)
 cli.add_command(list_items)
 cli.add_command(clean)
 cli.add_command(catalog)
+cli.add_command(sweep)
 
 
 def main() -> None:
