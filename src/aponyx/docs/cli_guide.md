@@ -22,6 +22,10 @@ uv run aponyx report --workflow my_test
 # List available items
 uv run aponyx list signals
 uv run aponyx list workflows
+
+# Manage catalog configurations (edit YAML files first)
+uv run aponyx catalog validate     # Check for errors
+uv run aponyx catalog sync         # Regenerate JSON files
 ```
 
 **Logging:** Default is WARNING. Use `-v` for DEBUG. Logs saved to `logs/aponyx_{timestamp}.log`.
@@ -31,6 +35,7 @@ uv run aponyx list workflows
 - **`run`** — Execute research workflow (data → signal → suitability → backtest → performance → visualization)
 - **`report`** — Generate multi-format reports from workflow results
 - **`list`** — Show available signals, products, indicators, transformations, securities, strategies, datasets, steps, or workflows
+- **`catalog`** — Manage YAML catalog files (validate, sync, migrate)
 - **`clean`** — Remove cached workflow results and indicator cache
 
 ---
@@ -240,6 +245,115 @@ Displays table with IDX (ephemeral index), LABEL, SIGNAL, STRATEGY, PRODUCT, STA
 
 ---
 
+### `catalog` — Manage YAML Catalog Files
+
+Manage unified YAML catalog files for signals, strategies, and securities.
+
+**Purpose**: The catalog system provides a single source of truth for all configuration metadata. Researchers edit human-friendly YAML files with inline comments, which are automatically synced to JSON files consumed by the codebase.
+
+**Usage:**
+```bash
+uv run aponyx catalog {validate|sync|migrate} [OPTIONS]
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| `validate` | Check catalog YAML files for errors and cross-reference integrity |
+| `sync` | Regenerate all JSON catalog files from YAML sources |
+| `migrate` | One-time migration to bootstrap YAML files from existing JSON catalogs |
+
+---
+
+#### `catalog validate` — Validate Catalog Integrity
+
+Check catalog YAML files for errors, duplicates, and cross-reference integrity before committing changes.
+
+**Usage:**
+```bash
+uv run aponyx catalog validate
+```
+
+**Validation checks:**
+- Duplicate entry names within each catalog
+- Cross-references between signals and transformations
+- Security references in indicator transformations
+- Field constraints (sign_multiplier, sizing_mode, position_size_mm, etc.)
+
+**Example:**
+```bash
+uv run aponyx catalog validate
+# ✓ signals: 3 entries ... All catalog references valid.
+# OR: Validation failed with 2 error(s): [signals] cdx_etf_basis: Invalid reference...
+```
+
+---
+
+#### `catalog sync` — Sync YAML to JSON
+
+Regenerate all JSON catalog files from YAML sources. Always validates before syncing.
+
+**Usage:**
+```bash
+uv run aponyx catalog sync [OPTIONS]
+```
+
+**Options:**
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `--dry-run` | FLAG | Preview changes without writing files |
+
+**Generated JSON files:**
+- `src/aponyx/models/indicator_transformation.json`
+- `src/aponyx/models/score_transformation.json`
+- `src/aponyx/models/signal_transformation.json`
+- `src/aponyx/models/signal_catalog.json`
+- `src/aponyx/backtest/strategy_catalog.json`
+- `src/aponyx/data/bloomberg_securities.json`
+- `src/aponyx/data/bloomberg_instruments.json`
+
+**Example:**
+```bash
+uv run aponyx catalog sync --dry-run   # Preview
+uv run aponyx catalog sync             # Apply
+# Output: Sync complete. 1 files updated, 6 unchanged.
+```
+
+**Workflow:** Edit YAML → `validate` → `sync --dry-run` → `sync` → git commit
+
+---
+
+#### `catalog migrate` — Migrate JSON to YAML
+
+One-time migration to bootstrap YAML source files from existing JSON catalogs.
+
+**Usage:**
+```bash
+uv run aponyx catalog migrate [OPTIONS]
+```
+
+**Options:**
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `--force` | FLAG | Overwrite existing YAML files |
+
+**Generated YAML files:**
+- `config/catalogs.yaml` - Signals, strategies, and transformations
+- `config/securities.yaml` - Securities and instruments
+
+**Example:**
+```bash
+uv run aponyx catalog migrate          # One-time migration
+uv run aponyx catalog migrate --force  # Overwrite existing
+```
+
+**Note:** One-time operation with automatic round-trip verification. After migration, edit YAML only.
+
+---
+
 ### `clean` — Clear Cached Results
 
 Remove cached workflow results with age-based filtering.
@@ -406,285 +520,84 @@ uv run aponyx run examples/workflow_minimal.yaml
 
 ## Product Microstructure
 
-Each CDX product has specific DV01 and transaction cost parameters defined in `bloomberg_securities.json`. These are automatically applied during backtesting based on the `product` field.
+Each product has DV01 and transaction cost parameters in `bloomberg_securities.json`, applied automatically during backtesting.
 
-### Default Product Parameters
-
-| Product | DV01 per Million | Transaction Cost (bps) | Description |
-|---------|-----------------|----------------------|-------------|
-| `cdx_ig_5y` | 475.0 | 1.5 | CDX IG 5Y (investment grade) |
-| `cdx_ig_10y` | 875.0 | 2.0 | CDX IG 10Y (longer duration) |
-| `cdx_hy_5y` | 425.0 | 8.0 | CDX HY 5Y (high yield, wider spreads) |
-| `itrx_eur_5y` | 475.0 | 1.5 | iTraxx Europe Main 5Y |
-| `itrx_xover_5y` | 425.0 | 7.0 | iTraxx Europe Crossover 5Y |
+| Product | DV01/MM | TCost (bps) |
+|---------|---------|-------------|
+| `cdx_ig_5y` | 475.0 | 1.5 |
+| `cdx_ig_10y` | 875.0 | 2.0 |
+| `cdx_hy_5y` | 425.0 | 8.0 |
+| `itrx_eur_5y` | 475.0 | 1.5 |
+| `itrx_xover_5y` | 425.0 | 7.0 |
 
 ### Runtime Overrides
 
-Override product defaults for sensitivity analysis or scenario testing:
-
-**Override DV01**:
 ```yaml
-label: dv01_sensitivity
-signal: spread_momentum
-product: cdx_ig_5y
-strategy: balanced
-dv01_per_million_override: 500.0    # Test with higher DV01
+# Override for sensitivity analysis
+dv01_per_million_override: 500.0         # Override DV01
+transaction_cost_bps_override: 5.0        # Fixed bps mode
+# OR
+transaction_cost_pct_override: 0.025      # Percentage mode (mutually exclusive)
 ```
-
-**Override transaction cost (fixed bps)**:
-```yaml
-label: high_cost_scenario
-signal: spread_momentum
-product: cdx_ig_5y
-strategy: balanced
-transaction_cost_bps_override: 5.0   # Test with higher costs
-```
-
-**Percentage-based transaction cost**:
-```yaml
-label: pct_cost_mode
-signal: spread_momentum
-product: cdx_ig_5y
-strategy: balanced
-transaction_cost_pct_override: 0.025  # 2.5% of spread
-```
-
-**Note:** `transaction_cost_bps_override` and `transaction_cost_pct_override` are mutually exclusive. Use either fixed basis points OR percentage-based mode, not both.
-
-### P&L Calculation
-
-Transaction costs affect P&L on position changes:
-- **Fixed bps mode**: Cost = `|position_change| × transaction_cost_bps / 10000 × notional`
-- **Percentage mode**: Cost = `|position_change| × spread × transaction_cost_pct × notional`
 
 ---
 
 ## Position Sizing Modes
 
-Strategies support two sizing modes that determine how signal values translate to position sizes:
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| `proportional` (default) | Position = signal × `position_size_mm` | Signal strength = conviction |
+| `binary` | Full size regardless of magnitude | Only direction matters |
 
-### Proportional Sizing (Default)
+All default strategies use proportional sizing. Configure `sizing_mode: "binary"` in `strategy_catalog.json` to change.
 
-**Mode:** `sizing_mode: "proportional"`
+### Entry Threshold
 
-Position scales with signal magnitude:
-- Position = signal × `position_size_mm`
-- Higher conviction signals → Larger positions
-- Rebalancing occurs when signal magnitude changes (with transaction costs)
-- Position values recorded as actual notional in MM (e.g., 5.0, -3.5)
+For mean-reversion strategies, `entry_threshold` requires extreme signals to enter:
 
-**Strategies:** `conservative`, `balanced`, `aggressive`, `experimental` (all default to proportional)
-
-**Use case:** When signal strength indicates conviction and you want position size to reflect that.
-
-### Binary Sizing (Strategy Configuration)
-
-**Mode:** `sizing_mode: "binary"` (set in strategy_catalog.json)
-
-Position is full size regardless of signal magnitude:
-- Non-zero signal → Full `position_size_mm` (direction from sign)
-- Signal magnitude is ignored (only sign matters)
-- Position values recorded as ±1 (direction indicator)
-
-**Configuration:** Set `sizing_mode: "binary"` in strategy_catalog.json for the strategy.
-
-**Use case:** When you want consistent position sizes and only care about signal direction.
-
-### Risk Management Differences
-
-| Feature | Binary | Proportional (Default) |
-|---------|--------|------------------------|
-| Stop loss check | vs entry notional × DV01 | vs current notional |
-| Take profit check | vs entry notional × DV01 | vs current notional |
-| Rebalancing | None (position is fixed) | On signal magnitude change |
-| Transaction costs | Entry/exit only | Entry/exit + rebalancing |
-| Cooldown release | Signal returns to zero | Signal returns to zero OR sign change |
-
-**Note:** All default strategies use proportional sizing. To use binary sizing, modify the strategy's `sizing_mode` in `strategy_catalog.json`.
-
-### Entry Threshold for Mean-Reversion
-
-The `entry_threshold` parameter enables asymmetric entry/exit, ideal for mean-reversion strategies:
-
-| Parameter | Description | Effect |
-|-----------|-------------|--------|
-| `entry_threshold` | Min |signal| to enter | Only enter when signal is at extreme values |
-| Signal's `neutral_range` | Values that become zero | Exit when signal reverts to neutral zone |
-
-**Example:** With `entry_threshold=1.8` and signal `neutral_range=[-0.5, 0.5]`:
-- Entry: Signal must exceed ±1.8 to enter a position
-- Exit: Position closes when signal enters [-0.5, 0.5] (becomes zero)
-- This allows the reversion to run before exiting
-
-**Strategy Values:**
-- `conservative`: entry_threshold=1.8 (most selective entry)
-- `balanced`: entry_threshold=1.5
-- `aggressive`: entry_threshold=1.0 (most entries)
-- `experimental`: entry_threshold=null (legacy behavior - any non-zero signal enters)
-
-### Example Comparison
-
-```yaml
-# Proportional (default): Position = signal × 10MM
-# Signal 0.5 → 5MM position, Signal 1.5 → 15MM position
-label: proportional_test
-signal: spread_momentum
-strategy: balanced              # sizing_mode: proportional (default), position_size_mm: 10.0
-
-# Binary sizing requires a strategy with sizing_mode: "binary" in strategy_catalog.json
-# All default strategies use proportional sizing
-```
+| Strategy | entry_threshold |
+|----------|----------------|
+| `conservative` | 1.8 |
+| `balanced` | 1.5 |
+| `aggressive` | 1.0 |
+| `experimental` | null |
 
 ---
 
 ## Common Workflows
 
-### Production Research
-
 ```bash
-# Create Bloomberg workflow config
-cat > workflow_bloomberg.yaml << EOF
-label: bloomberg_run
-signal: spread_momentum
-product: cdx_ig_5y
-strategy: balanced
-data: bloomberg
-force: true
-EOF
-
-# 1. Run workflow with Bloomberg data
+# Production: Bloomberg data + HTML report
 uv run aponyx run workflow_bloomberg.yaml
-
-# 2. Generate HTML report (saved to workflow's reports/ folder)
 uv run aponyx report --workflow bloomberg_run --format html
-```
 
-### Batch Processing
+# Batch processing
+for config in configs/*.yaml; do uv run aponyx run "$config"; done
 
-```bash
-# Process multiple configs in sequence
-for config in configs/*.yaml; do
-  uv run aponyx run "$config"
-done
+# Catalog management: validate → preview → sync → commit
+uv run aponyx catalog validate
+uv run aponyx catalog sync --dry-run
+uv run aponyx catalog sync
+git add config/ src/ && git commit -m "Update catalogs"
 
-# Generate consolidated reports (using labels from configs)
-uv run aponyx report --workflow run1 --format markdown
-uv run aponyx report --workflow run2 --format markdown
-```
-
-### Maintenance
-
-```bash
-# Preview what will be deleted
-uv run aponyx clean --workflows --all --dry-run
-
-# Fresh start (clear all cached results)
-uv run aponyx clean --workflows --all
-
-# Remove old workflows (older than 30 days)
+# Maintenance
 uv run aponyx clean --workflows --older-than 30d
-
-# Clean specific signal's old workflows
-uv run aponyx clean --workflows --signal old_signal --older-than 7d
+uv run aponyx clean --workflows --all --dry-run   # Preview before delete
 ```
 
 ---
 
 ## Troubleshooting
 
-### Installation & Setup
-
-**Command not found:**
-```bash
-uv pip install -e .     # Install package
-uv pip show aponyx      # Verify installation
-uv run aponyx --help    # Test command
-```
-
-### Configuration Issues
-
-**YAML parsing errors:**
-```bash
-# Validate syntax
-python -c "import yaml; yaml.safe_load(open('workflow.yaml'))"
-
-# Common issues:
-# - Use spaces, not tabs for indentation
-# - Colons require space after (key: value, not key:value)
-# - List items use brackets: steps: [data, signal]
-# - Dict items use colons: securities: {cdx: cdx_ig_5y}
-# - Strings with special chars need quotes
-
-# Reference valid configs
-ls examples/*.yaml
-cat examples/workflow_minimal.yaml
-```
-
-**Missing required fields:**
-```bash
-# Error: "Missing required field: label"
-# Solution: Add all required fields to YAML
-
-cat > workflow.yaml << EOF
-label: my_test
-signal: spread_momentum
-product: cdx_ig_5y
-strategy: balanced
-EOF
-```
-
-**Invalid catalog references:**
-```bash
-# Error: "Signal 'invalid_signal' not found in catalog"
-# Solution: List available items
-
-uv run aponyx list signals
-uv run aponyx list indicators
-uv run aponyx list score-transformations
-uv run aponyx list signal-transformations
-uv run aponyx list securities
-uv run aponyx list products
-uv run aponyx list strategies
-
-# Check catalog files directly
-cat src/aponyx/models/signal_catalog.json
-cat src/aponyx/models/indicator_transformation.json
-cat src/aponyx/models/score_transformation.json
-cat src/aponyx/models/signal_transformation.json
-cat src/aponyx/data/bloomberg_securities.json
-cat src/aponyx/backtest/strategy_catalog.json
-```
-
-**Permission errors:**
-```bash
-# Check directory permissions
-ls -la data/workflows/ reports/ logs/
-
-# Create directories if missing
-mkdir -p data/workflows reports logs
-
-# Fix permissions if needed
-chmod -R u+w data/ reports/ logs/
-```
-
-### Performance & Debugging
-
-**Enable verbose logging:**
-```bash
-uv run aponyx -v run examples/workflow_minimal.yaml
-
-# Check log file for details
-tail -f logs/aponyx_*.log
-```
-
-**Cache issues:**
-```bash
-# Clear workflow cache and re-run
-uv run aponyx clean --workflows --all
-
-# Clear indicator cache
-uv run aponyx clean --indicators
-```
+| Problem | Solution |
+|---------|----------|
+| Command not found | `uv pip install -e .` then `uv run aponyx --help` |
+| YAML parsing errors | Check indentation (spaces, not tabs), colons need space after |
+| Missing required fields | Ensure `label`, `signal`, `product`, `strategy` are set |
+| Invalid catalog reference | Run `uv run aponyx list signals` (or other item types) |
+| Catalog validation errors | `uv run aponyx catalog validate`, fix YAML, re-validate |
+| Cache issues | `uv run aponyx clean --workflows --all` |
+| Debugging | `uv run aponyx -v run ...` for verbose logging |
 
 ---
 
@@ -692,6 +605,7 @@ uv run aponyx clean --indicators
 
 - **Main Documentation:** [README.md](../../README.md)
 - **Architecture:** [governance_design.md](governance_design.md)
+- **YAML Catalog Sources:** [../../config/catalogs.yaml](../../config/catalogs.yaml), [../../config/securities.yaml](../../config/securities.yaml)
 - **Signal Catalog:** [../models/signal_catalog.json](../models/signal_catalog.json)
 - **Indicator Transformation Catalog:** [../models/indicator_transformation.json](../models/indicator_transformation.json)
 - **Score Transformation Catalog:** [../models/score_transformation.json](../models/score_transformation.json)

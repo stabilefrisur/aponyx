@@ -1,6 +1,6 @@
 # Project Status — aponyx
 
-**Last Updated:** December 15, 2025  
+**Last Updated:** December 20, 2025  
 **Version:** 0.1.19 (Interactive Research Dashboard)
 
 ## Quick Reference
@@ -14,7 +14,7 @@
 | **Maturity Level** | Early-stage research framework |
 | **Breaking Changes** | May occur without deprecation warnings |
 | **License** | MIT |
-| **Test Coverage** | 900+ tests across all layers (verified Dec 2025) |
+| **Test Coverage** | 977 tests across all layers (verified Dec 2025) |
 
 **Project Management:**
 - `uv` - Package installer, environment manager, and task runner
@@ -92,6 +92,19 @@ src/aponyx/
       report.py       # Report generation command
       list.py         # Catalog browsing command
       clean.py        # Cache management command
+      catalog.py      # Catalog validation, sync, migrate commands
+  
+  catalog/            # YAML catalog management (development-time utility)
+    __init__.py       # Exports: CatalogManager, entry classes, ValidationResult
+    entries.py        # Typed entry classes (SignalEntry, StrategyEntry, etc.)
+    loader.py         # YAML file loading with comment preservation
+    manager.py        # CatalogManager with CRUD operations
+    validator.py      # Cross-reference validation
+    sync.py           # YAML → JSON synchronization
+    migration.py      # JSON → YAML one-time migration
+    sync_types.py     # SyncResult dataclass
+    validation_types.py  # ValidationResult, ValidationError classes
+    data.py           # CatalogData container for in-memory state
   
   workflows/          # Workflow orchestration engine
     __init__.py       # Workflow exports
@@ -206,8 +219,9 @@ src/aponyx/
 
 | Layer | Purpose | Can Import From | Cannot Import From |
 |-------|---------|-----------------|-------------------|
-| **cli/** | Command-line interface | `workflows`, `reporting`, `config` | Core layers (uses via workflows) |
-| **workflows/** | Pipeline orchestration | `data`, `models`, `backtest`, `evaluation`, `visualization`, `reporting`, `persistence`, `config` | `cli` |
+| **cli/** | Command-line interface | `workflows`, `reporting`, `catalog`, `config` | Core layers (uses via workflows) |
+| **catalog/** | YAML catalog management (dev-time utility) | `config` | All runtime layers |
+| **workflows/** | Pipeline orchestration | `data`, `models`, `backtest`, `evaluation`, `visualization`, `reporting`, `persistence`, `config` | `cli`, `catalog` |
 | **reporting/** | Report generation | `evaluation`, `persistence`, `config` | `data`, `models`, `backtest`, `visualization` |
 | **data/** | Data loading, cleaning, validation | `config`, `persistence` | `models`, `backtest`, `evaluation`, `visualization` |
 | **models/** | Signal computation | `config`, `data` (schemas only) | `backtest`, `evaluation`, `visualization` |
@@ -519,6 +533,7 @@ src/aponyx/
   - `aponyx run` - Execute complete or partial research workflows
   - `aponyx report` - Generate multi-format analysis reports
   - `aponyx list` - Browse signals, strategies, and datasets
+  - `aponyx catalog` - Manage YAML catalog files (validate, sync, migrate)
   - `aponyx clean` - Manage workflow cache
 - **Configuration:**
   - YAML configuration file support for reproducible workflows
@@ -542,6 +557,7 @@ src/aponyx/
 - `commands/report.py` - Report generation command
 - `commands/list.py` - Catalog browsing command
 - `commands/clean.py` - Cache management command
+- `commands/catalog.py` - Catalog management commands
 
 **CLI Options:**
 - Signal/strategy/product selection
@@ -553,6 +569,69 @@ src/aponyx/
 **Documentation:**
 - Complete CLI user guide (`docs/cli_guide.md`)
 - Example YAML configurations in `examples/`
+
+### ✅ Catalog Layer (`src/aponyx/catalog/`)
+
+**Implemented:**
+- **Unified YAML Catalog Management:**
+  - `CatalogManager` class - Unified CRUD operations for all catalog files
+  - Two YAML source files: `catalogs.yaml` (signals, transformations, strategies) and `securities.yaml` (securities, instruments)
+  - Comment preservation during round-trip editing via ruamel.yaml
+  - Generation marker in JSON files indicating auto-generation source
+- **Typed Entry Classes:**
+  - `SignalEntry` - Signal definitions with transformation references
+  - `StrategyEntry` - Strategy configurations with sizing and risk parameters
+  - `IndicatorTransformationEntry` - Indicator computation metadata
+  - `ScoreTransformationEntry` - Score normalization parameters
+  - `SignalTransformationEntry` - Signal trading rules (floor, cap, neutral_range)
+  - `SecurityEntry` - Security definitions with channel configurations
+  - `InstrumentEntry` - Instrument type configurations
+- **Cross-Reference Validation:**
+  - Signal → transformation references validated
+  - Indicator → security references validated
+  - Duplicate entry detection
+  - Field constraint validation (sign_multiplier, sizing_mode, etc.)
+- **YAML ↔ JSON Synchronization:**
+  - `sync()` method regenerates all 7 JSON files from YAML sources
+  - `migrate()` bootstraps YAML files from existing JSON catalogs
+  - Round-trip verification ensures data integrity
+
+**Key Features:**
+- Single source of truth in YAML with inline comments
+- Fail-fast validation before sync
+- Dry-run mode for previewing changes
+- Structured error reporting with category, entry name, and message
+- 77 tests covering all functionality
+
+**Key Files:**
+- `entries.py` - Typed entry classes with validation
+- `loader.py` - YAML loading with comment preservation
+- `manager.py` - CatalogManager with CRUD operations
+- `validator.py` - Cross-reference validation logic
+- `sync.py` - YAML → JSON synchronization
+- `migration.py` - JSON → YAML one-time migration
+- `validation_types.py` - ValidationResult, ValidationError classes
+- `sync_types.py` - SyncResult dataclass
+
+**CLI Commands:**
+- `aponyx catalog validate` - Check for errors and cross-reference integrity
+- `aponyx catalog sync` - Regenerate JSON from YAML (validates first)
+- `aponyx catalog sync --dry-run` - Preview changes without writing
+- `aponyx catalog migrate` - One-time JSON → YAML bootstrap
+
+**Generated JSON Files:**
+- `src/aponyx/models/indicator_transformation.json`
+- `src/aponyx/models/score_transformation.json`
+- `src/aponyx/models/signal_transformation.json`
+- `src/aponyx/models/signal_catalog.json`
+- `src/aponyx/backtest/strategy_catalog.json`
+- `src/aponyx/data/bloomberg_securities.json`
+- `src/aponyx/data/bloomberg_instruments.json`
+
+**Implementation Notes:**
+- Development-time utility only (runtime loads JSON)
+- Registries continue loading JSON unchanged
+- Requires ruamel.yaml>=0.18.0 dependency
 
 ### ✅ Workflows Layer (`src/aponyx/workflows/`)
 
@@ -887,9 +966,10 @@ src/aponyx/
 ### ✅ Testing (`tests/`)
 
 **Implemented:**
-- Comprehensive test coverage across all layers (755 tests total):
+- Comprehensive test coverage across all layers (977 tests total):
   - `tests/backtest/` - 36 tests (engine, P&L, protocols)
-  - `tests/cli/` - 83 tests (commands, error handling, integration)
+  - `tests/catalog/` - 77 tests (entries, loader, manager, sync, migration, validator)
+  - `tests/cli/` - 100 tests (commands, error handling, integration, catalog commands)
   - `tests/data/` - 223 tests (validation, loading, caching, providers)
   - `tests/evaluation/` - 154 tests (suitability and performance)
   - `tests/governance/` - 19 tests (registry integration)
@@ -1062,6 +1142,10 @@ registry.register_dataset(
 
 ```
 aponyx/
+├── config/                  # YAML catalog sources (human-edited)
+│   ├── catalogs.yaml        # Signals, transformations, strategies
+│   └── securities.yaml      # Securities, instruments
+│
 ├── src/aponyx/              # Main package
 │   ├── __init__.py          # Package initialization with version
 │   ├── main.py              # CLI entry point (placeholder)
@@ -1073,7 +1157,16 @@ aponyx/
 │   │       ├── run.py       # Workflow execution
 │   │       ├── report.py    # Report generation
 │   │       ├── list.py      # Catalog browsing
-│   │       └── clean.py     # Cache management
+│   │       ├── clean.py     # Cache management
+│   │       └── catalog.py   # Catalog validate/sync/migrate
+│   ├── catalog/             # YAML catalog management (dev-time utility)
+│   │   ├── __init__.py
+│   │   ├── entries.py       # Typed entry classes
+│   │   ├── loader.py        # YAML loading with comment preservation
+│   │   ├── manager.py       # CatalogManager with CRUD operations
+│   │   ├── validator.py     # Cross-reference validation
+│   │   ├── sync.py          # YAML → JSON synchronization
+│   │   └── migration.py     # JSON → YAML one-time migration
 │   ├── workflows/           # Workflow orchestration
 │   │   ├── __init__.py
 │   │   ├── engine.py        # WorkflowEngine
@@ -1171,22 +1264,23 @@ aponyx/
 │       ├── cli_guide.md
 │       └── adding_data_providers.md
 │
-├── tests/                   # Unit tests (680 tests total)
+├── tests/                   # Unit tests (977 tests total)
 │   ├── backtest/            # 36 tests
-│   ├── cli/                 # 83 tests
+│   ├── catalog/             # 77 tests
+│   ├── cli/                 # 100 tests
 │   ├── data/                # 223 tests
 │   ├── evaluation/          # 154 tests
 │   ├── governance/          # 19 tests
-│   ├── models/              # 74 tests
+│   ├── models/              # 98 tests
 │   ├── persistence/         # 27 tests
 │   ├── reporting/           # 18 tests
 │   ├── visualization/       # 19 tests
 │   └── workflows/           # 27 tests
 │
 ├── examples/                # YAML workflow configurations
-│   ├── workflow_basic.yaml
-│   ├── workflow_bloomberg.yaml
-│   └── workflow_custom_steps.yaml
+│   ├── workflow_minimal.yaml
+│   ├── workflow_complete.yaml
+│   └── workflow_etf.yaml
 │
 ├── data/                    # Data storage (not in git)
 │   ├── registry.json        # Dataset registry (runtime)

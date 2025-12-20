@@ -14,7 +14,10 @@
     "scaling": 1.0,
     "floor": -1.5,
     "cap": 1.5,
-    "neutral_range": [-0.25, 0.25],
+    "neutral_range": [
+      -0.25,
+      0.25
+    ],
     "enabled": true
   },
   {

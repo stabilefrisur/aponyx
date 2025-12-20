@@ -33,6 +33,11 @@ RAW_DIR: Final[Path] = DATA_DIR / "raw"
 DATA_WORKFLOWS_DIR: Final[Path] = DATA_DIR / "workflows"
 DATA_REGISTRIES_DIR: Final[Path] = DATA_DIR / ".registries"
 
+# YAML source catalog directory (project-level, human-edited)
+YAML_CONFIG_DIR: Final[Path] = PROJECT_ROOT / "config"
+CATALOGS_YAML_PATH: Final[Path] = YAML_CONFIG_DIR / "catalogs.yaml"
+SECURITIES_YAML_PATH: Final[Path] = YAML_CONFIG_DIR / "securities.yaml"
+
 # Registry paths (project-level, mutable)
 REGISTRY_PATH: Final[Path] = DATA_REGISTRIES_DIR / "registry.json"
 

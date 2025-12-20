@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Unified YAML Catalog Management** (spec 011-catalog-orchestration)
+  - `CatalogManager` class for unified CRUD operations across all catalog files
+  - Two YAML source files: `config/catalogs.yaml` (signals, strategies, transformations) and `config/securities.yaml` (securities, instruments)
+  - Cross-reference validation between signals, transformations, and securities
+  - Bidirectional sync: YAML → JSON for runtime registries (7 JSON files generated)
+  - CLI commands: `aponyx catalog validate`, `aponyx catalog sync`, `aponyx catalog migrate`
+  - One-time migration tool to bootstrap YAML from existing JSON catalogs
+  - Comment preservation during round-trip editing via ruamel.yaml
+  - Generation marker (`_generated` field) in JSON files indicating auto-generation
+  - Typed entry classes: `SignalEntry`, `StrategyEntry`, `IndicatorTransformationEntry`, `ScoreTransformationEntry`, `SignalTransformationEntry`, `SecurityEntry`, `InstrumentEntry`
+  - `ValidationResult` with structured error reporting (category, entry name, message)
+  - 77 new tests for catalog module across 6 test files
+
 - **Data Channel Separation** (spec 010)
   - `DataChannel` enum (SPREAD, PRICE, LEVEL) for typed channel access
   - `UsagePurpose` enum (INDICATOR, PNL, DISPLAY) for context-aware resolution
@@ -35,6 +48,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated 08_visualize_results.py with generate_from_workflow() function
 
 ### Changed
+- **New Dependency**
+  - Added `ruamel.yaml>=0.18.0` for YAML parsing with comment preservation
+- **CLI Guide Rationalization**
+  - Condensed cli_guide.md from 900 to 620 lines (31% reduction)
+  - Compact table formats for Product Microstructure, Position Sizing, Troubleshooting
+  - Consolidated Common Workflows section
+  - Preserved all essential information and command documentation
+
 - **BREAKING: Bloomberg Securities Catalog Structure**
   - Updated to multi-channel structure with `available_channels` and `channel_config`
   - CDX: spread channel only (spread column, 0-10000 bps validation)
@@ -75,6 +96,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VIX exempt from P&L validation (non-tradeable index)
 
 ### Documentation
+- Updated copilot-instructions.md with CatalogManager usage patterns
+- Updated cli_guide.md with catalog commands (validate, sync, migrate)
+- Added YAML catalog file locations to See Also section
 - Updated copilot-instructions.md with data channel patterns
 - Updated cli_guide.md with display_channel parameter and product microstructure
 - Updated adding_data_providers.md with channel architecture
@@ -87,7 +111,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Product microstructure fields moved from strategy catalog to bloomberg_securities.json
 
 ### Test Coverage
-- All tests passing (updated count pending)
+- All tests passing (977 tests total)
+- Catalog module tests: 77 tests across 6 test files
 - Channel separation tests: 861 lines across 3 test modules
 - Zero regression on existing spread-based backtests
 
