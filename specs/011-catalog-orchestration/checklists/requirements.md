@@ -32,6 +32,9 @@
 ## Notes
 
 - Spec is ready for `/speckit.clarify` or `/speckit.plan`
-- All 5 existing JSON catalogs identified and documented
+- All 7 existing JSON catalogs identified and documented:
+  - 5 signal/strategy catalogs → `config/catalogs.yaml`
+  - 2 security/instrument catalogs → `config/securities.yaml`
 - Migration path included (JSON → YAML → JSON round-trip)
-- Backward compatibility explicitly addressed in FR-005 and SC-004
+- Backward compatibility explicitly addressed in FR-006 and SC-004
+- Nested channel structure in securities.yaml addressed in FR-012

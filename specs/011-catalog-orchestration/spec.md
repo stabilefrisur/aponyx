@@ -7,12 +7,18 @@
 
 ## Problem Statement
 
-The aponyx framework currently has **5+ JSON catalogs scattered across layers**:
+The aponyx framework currently has **7 JSON catalogs scattered across layers**:
+
+**Signal & Strategy Catalogs** (`catalogs.yaml`):
 - `src/aponyx/models/signal_catalog.json`
 - `src/aponyx/models/indicator_transformation.json`
 - `src/aponyx/models/score_transformation.json`
 - `src/aponyx/models/signal_transformation.json`
 - `src/aponyx/backtest/strategy_catalog.json`
+
+**Security & Instrument Catalogs** (`securities.yaml`):
+- `src/aponyx/data/bloomberg_securities.json` - Security definitions with channels, tickers, DV01
+- `src/aponyx/data/bloomberg_instruments.json` - Instrument type configurations
 
 **Pain Points**:
 1. JSON lacks comments, making catalogs hard to document and maintain
@@ -27,13 +33,15 @@ The aponyx framework currently has **5+ JSON catalogs scattered across layers**:
 
 ```
 config/
-└── catalogs.yaml    # Human-edited source (with comments)
+├── catalogs.yaml    # Signal/strategy definitions (human-edited)
+└── securities.yaml  # Security/instrument definitions (human-edited)
 
 src/aponyx/models/   # Generated JSON (runtime)
 src/aponyx/backtest/ # Generated JSON (runtime)
+src/aponyx/data/     # Generated JSON (runtime)
 ```
 
-A `CatalogManager` class provides a unified API for CRUD operations, validation, and synchronization.
+A `CatalogManager` class provides a unified API for CRUD operations, validation, and synchronization across both YAML sources.
 
 ---
 
@@ -77,19 +85,21 @@ A developer wants to ensure all catalog references are valid before committing c
 
 ### User Story 3 - Sync YAML to JSON (Priority: P2)
 
-After editing `catalogs.yaml`, a user needs to regenerate the JSON files that the runtime uses. They run a sync command that generates all JSON catalogs from the YAML source.
+After editing `catalogs.yaml` or `securities.yaml`, a user needs to regenerate the JSON files that the runtime uses. They run a sync command that generates all JSON catalogs from both YAML sources.
 
 **Why this priority**: Sync is the bridge between editing and runtime—critical but happens after editing.
 
-**Independent Test**: Can be tested by modifying YAML, running sync, and comparing JSON output byte-for-byte with expected output.
+**Independent Test**: Can be tested by modifying either YAML file, running sync, and comparing JSON output byte-for-byte with expected output.
 
 **Acceptance Scenarios**:
 
-1. **Given** `catalogs.yaml` has been modified, **When** user runs `aponyx catalog sync`, **Then** all JSON files are regenerated at their original locations.
+1. **Given** `catalogs.yaml` has been modified, **When** user runs `aponyx catalog sync`, **Then** all signal/strategy JSON files are regenerated at their original locations.
 
-2. **Given** sync completes successfully, **When** user runs existing workflows, **Then** the registries load the new JSON files without errors.
+2. **Given** `securities.yaml` has been modified, **When** user runs `aponyx catalog sync`, **Then** `bloomberg_securities.json` and `bloomberg_instruments.json` are regenerated.
 
-3. **Given** `catalogs.yaml` has syntax errors, **When** user runs sync, **Then** sync fails with clear error message and no JSON files are modified.
+3. **Given** sync completes successfully, **When** user runs existing workflows, **Then** all registries load the new JSON files without errors.
+
+4. **Given** either YAML file has syntax errors, **When** user runs sync, **Then** sync fails with clear error message and no JSON files are modified.
 
 ---
 
@@ -111,7 +121,7 @@ A researcher wants to see all available signals, strategies, or transformations 
 
 ### User Story 5 - Migrate Existing JSON to YAML (Priority: P3)
 
-An administrator needs to bootstrap the new YAML catalog from existing JSON files. They run a migration command that consolidates all JSON catalogs into a single YAML file.
+An administrator needs to bootstrap the new YAML catalogs from existing JSON files. They run a migration command that consolidates JSON catalogs into the appropriate YAML files.
 
 **Why this priority**: One-time migration—essential for adoption but only runs once per project.
 
@@ -119,19 +129,23 @@ An administrator needs to bootstrap the new YAML catalog from existing JSON file
 
 **Acceptance Scenarios**:
 
-1. **Given** existing JSON catalogs contain valid entries, **When** migration runs, **Then** `catalogs.yaml` is created with all entries properly categorized.
+1. **Given** existing signal/strategy JSON catalogs contain valid entries, **When** migration runs, **Then** `catalogs.yaml` is created with all entries properly categorized.
 
-2. **Given** migration completes, **When** user runs sync, **Then** regenerated JSON files match original JSON files.
+2. **Given** existing `bloomberg_securities.json` and `bloomberg_instruments.json` contain valid entries, **When** migration runs, **Then** `securities.yaml` is created with securities and instruments sections.
+
+3. **Given** migration completes, **When** user runs sync, **Then** regenerated JSON files match original JSON files for all 7 catalogs.
 
 ---
 
 ### Edge Cases
 
-- What happens when `catalogs.yaml` doesn't exist? → Error with instructions to run migration or create file.
+- What happens when `catalogs.yaml` or `securities.yaml` doesn't exist? → Error with instructions to run migration or create file.
 - How does system handle duplicate entry names within a category? → Validation error identifying duplicates.
 - What happens if JSON files are manually edited after sync? → Next sync overwrites changes (YAML is source of truth).
 - How are entries with special characters in names handled? → YAML escaping rules apply; validation ensures compatibility.
 - What happens during sync if a JSON file is locked/read-only? → Sync fails with clear error identifying the file.
+- What happens if a signal references a security not in `securities.yaml`? → Validation warning (not error, since signals use `default_securities` which may reference dynamic data).
+- How are nested structures like security channels handled in YAML? → Nested YAML maps with inline comments for each channel.
 
 ---
 
@@ -139,35 +153,49 @@ An administrator needs to bootstrap the new YAML catalog from existing JSON file
 
 ### Functional Requirements
 
-- **FR-001**: System MUST support a single `config/catalogs.yaml` file as the source of truth for all catalog entries.
+- **FR-001**: System MUST support `config/catalogs.yaml` as the source of truth for signal and strategy catalog entries.
 
-- **FR-002**: System MUST preserve YAML comments when loading and saving the catalog file.
+- **FR-002**: System MUST support `config/securities.yaml` as the source of truth for security and instrument definitions.
 
-- **FR-003**: System MUST provide a `CatalogManager` class with methods: `load()`, `save()`, `sync()`, `get(category, name)`, `list_items(category)`, `add(category, entry)`, `remove(category, name)`, `validate()`.
+- **FR-003**: System MUST preserve YAML comments when loading and saving both catalog files.
 
-- **FR-004**: System MUST validate cross-references between catalog categories (e.g., signals referencing indicator_transformations).
+- **FR-004**: System MUST provide a `CatalogManager` class with methods: `load()`, `save()`, `sync()`, `get(category, name)`, `list_items(category)`, `add(category, entry)`, `remove(category, name)`, `validate()`.
 
-- **FR-005**: System MUST generate JSON catalog files at their existing locations during sync to maintain backward compatibility.
+- **FR-005**: System MUST validate cross-references between catalog categories (e.g., signals referencing indicator_transformations).
 
-- **FR-006**: System MUST provide CLI commands: `aponyx catalog sync` and `aponyx catalog validate`.
+- **FR-006**: System MUST generate JSON catalog files at their existing locations during sync to maintain backward compatibility:
+  - `catalogs.yaml` → 5 JSON files in `src/aponyx/models/` and `src/aponyx/backtest/`
+  - `securities.yaml` → 2 JSON files in `src/aponyx/data/`
 
-- **FR-007**: System MUST provide a migration utility to generate initial `catalogs.yaml` from existing JSON files.
+- **FR-007**: System MUST provide CLI commands: `aponyx catalog sync` and `aponyx catalog validate`.
 
-- **FR-008**: System MUST fail sync if YAML validation fails, leaving existing JSON files unchanged.
+- **FR-008**: System MUST provide a migration utility to generate initial YAML files from existing JSON files.
 
-- **FR-009**: System MUST support all existing catalog categories: `indicator_transformations`, `score_transformations`, `signal_transformations`, `signals`, `strategies`.
+- **FR-009**: System MUST fail sync if YAML validation fails, leaving existing JSON files unchanged.
 
-- **FR-010**: System MUST maintain the exact JSON structure expected by existing registries (array of objects format).
+- **FR-010**: System MUST support all existing catalog categories:
+  - In `catalogs.yaml`: `indicator_transformations`, `score_transformations`, `signal_transformations`, `signals`, `strategies`
+  - In `securities.yaml`: `securities`, `instruments`
+
+- **FR-011**: System MUST maintain the exact JSON structure expected by existing registries (array format for catalogs.yaml categories, object format for securities.yaml).
+
+- **FR-012**: System MUST support nested channel definitions in `securities.yaml` matching the existing `bloomberg_securities.json` structure.
 
 ### Key Entities
 
-- **CatalogManager**: Central class for all catalog operations; holds in-memory catalog state and manages file I/O.
+- **CatalogManager**: Central class for all catalog operations; holds in-memory catalog state and manages file I/O for both YAML sources.
 
 - **CatalogEntry**: Generic representation of a catalog item with category, name, and category-specific attributes.
 
+- **SecurityEntry**: Security definition with instrument type, quote type, channels (each with bloomberg_ticker and field), and optional microstructure fields (dv01_per_million, transaction_cost_bps).
+
+- **InstrumentEntry**: Instrument type configuration with bloomberg_fields, field_mapping, and metadata requirements.
+
 - **ValidationResult**: Contains validation status (pass/fail), list of errors, and summary statistics.
 
-- **Catalog Categories**: Logical groupings within the YAML file—`indicator_transformations`, `score_transformations`, `signal_transformations`, `signals`, `strategies`.
+- **Catalog Categories**:
+  - `catalogs.yaml`: `indicator_transformations`, `score_transformations`, `signal_transformations`, `signals`, `strategies`
+  - `securities.yaml`: `securities`, `instruments`
 
 ---
 
@@ -175,19 +203,21 @@ An administrator needs to bootstrap the new YAML catalog from existing JSON file
 
 ### Measurable Outcomes
 
-- **SC-001**: Users can add a new signal entry in under 2 minutes using YAML with inline documentation comments.
+- **SC-001**: Users can add a new signal or security entry in under 2 minutes using YAML with inline documentation comments.
 
 - **SC-002**: Validation catches 100% of cross-reference errors before runtime (broken references between signals and transformations).
 
-- **SC-003**: Sync command regenerates all 5 JSON catalog files in under 5 seconds.
+- **SC-003**: Sync command regenerates all 7 JSON catalog files in under 5 seconds.
 
 - **SC-004**: Existing workflows continue to function without modification after migration (backward compatibility).
 
-- **SC-005**: Developers can discover all available signals/strategies via a single command or API call.
+- **SC-005**: Developers can discover all available signals, strategies, or securities via a single command or API call.
 
 - **SC-006**: CI pipeline can validate catalog integrity, failing builds on reference errors.
 
-- **SC-007**: Round-trip migration (JSON → YAML → JSON) produces identical output to original JSON files.
+- **SC-007**: Round-trip migration (JSON → YAML → JSON) produces identical output to original JSON files for all 7 catalogs.
+
+- **SC-008**: Users can add a new security with multiple channels (spread, price) and inline comments explaining each channel.
 
 ---
 
@@ -195,13 +225,15 @@ An administrator needs to bootstrap the new YAML catalog from existing JSON file
 
 1. **YAML library choice**: A YAML library that preserves comments will be used (e.g., `ruamel.yaml`).
 
-2. **File location**: The canonical `catalogs.yaml` file lives at `config/catalogs.yaml` relative to project root.
+2. **File locations**: The canonical YAML files live at `config/catalogs.yaml` and `config/securities.yaml` relative to project root.
 
-3. **Git workflow**: Generated JSON files remain in version control for runtime compatibility; YAML is the edited source.
+3. **Git workflow**: Generated JSON files remain in version control for runtime compatibility; YAML files are the edited sources.
 
 4. **No runtime YAML parsing**: Runtime code continues to load JSON files; YAML is only used at development/build time.
 
 5. **Entry schemas**: Existing JSON schemas remain unchanged; YAML entries map 1:1 to JSON structures.
+
+6. **Security channel structure**: The nested channel structure in `bloomberg_securities.json` maps naturally to YAML nested maps.
 
 ---
 
