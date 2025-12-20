@@ -183,6 +183,8 @@ An administrator needs to bootstrap the new YAML catalogs from existing JSON fil
 
 - **FR-012**: System MUST support nested channel definitions in `securities.yaml` matching the existing `bloomberg_securities.json` structure.
 
+- **FR-013**: System MUST include a generation marker in JSON files (e.g., `_generated` field) indicating they are auto-generated and should not be edited directly.
+
 ### Key Entities
 
 - **CatalogManager**: Central class for all catalog operations; holds in-memory catalog state and manages file I/O for both YAML sources.
@@ -246,3 +248,11 @@ An administrator needs to bootstrap the new YAML catalogs from existing JSON fil
 - Automatic schema migration between catalog versions
 - Real-time catalog reloading (restart required)
 - Multi-file YAML support (splitting catalogs across files)
+- Refactoring existing registries to use CatalogManager (registries continue loading JSON)
+
+## Clarifications
+
+### Session 2025-12-20
+
+- Q: Should existing registry classes be refactored to use CatalogManager, or continue loading JSON files unchanged? → A: Registries continue loading JSON files unchanged; CatalogManager is a separate development-time utility.
+- Q: Should generated JSON files include a header/marker indicating they are auto-generated? → A: Yes, include a generation marker (e.g., `_generated` field) to discourage direct editing.
