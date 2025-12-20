@@ -179,6 +179,18 @@ def evaluate_indicator(
     # Extract potential transformation overrides from combination
     # (This is a simplified approach - full implementation would
     # dynamically create transformation entries with modified parameters)
+
+    # Extract parameter overrides for each transformation stage
+    indicator_params_override = _apply_parameter_overrides(
+        {}, combination, "indicator_transformation.parameters."
+    )
+    score_params_override = _apply_parameter_overrides(
+        {}, combination, "score_transformation.parameters."
+    )
+    signal_transformation_params_override = _apply_parameter_overrides(
+        {}, combination, "signal_transformation.parameters."
+    )
+
     result = compose_signal(
         signal_name=config.base.signal,
         market_data=market_data,
@@ -186,6 +198,9 @@ def evaluate_indicator(
         score_registry=score_registry,
         signal_transformation_registry=signal_transformation_registry,
         signal_registry=signal_registry,
+        indicator_params_override=indicator_params_override or None,
+        score_params_override=score_params_override or None,
+        signal_transformation_params_override=signal_transformation_params_override or None,
         include_intermediates=True,
     )
 
@@ -296,7 +311,18 @@ def evaluate_backtest(
         signal_registry,
     )
 
-    # Compose signal
+    # Extract parameter overrides for each transformation stage
+    indicator_params_override = _apply_parameter_overrides(
+        {}, combination, "indicator_transformation.parameters."
+    )
+    score_params_override = _apply_parameter_overrides(
+        {}, combination, "score_transformation.parameters."
+    )
+    signal_transformation_params_override = _apply_parameter_overrides(
+        {}, combination, "signal_transformation.parameters."
+    )
+
+    # Compose signal with parameter overrides
     signal_result = compose_signal(
         signal_name=config.base.signal,
         market_data=market_data,
@@ -304,6 +330,9 @@ def evaluate_backtest(
         score_registry=score_registry,
         signal_transformation_registry=signal_transformation_registry,
         signal_registry=signal_registry,
+        indicator_params_override=indicator_params_override or None,
+        score_params_override=score_params_override or None,
+        signal_transformation_params_override=signal_transformation_params_override or None,
         include_intermediates=False,
     )
     

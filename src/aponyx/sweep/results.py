@@ -193,6 +193,11 @@ def save_sweep_results(
         json.dump(result.summary.to_dict(), f, indent=2)
     logger.debug("Saved summary.json")
 
+    # Generate and save analysis report
+    from .reports import save_sweep_report
+
+    save_sweep_report(result, output_dir)
+
     return output_dir
 
 

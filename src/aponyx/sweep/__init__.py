@@ -37,6 +37,7 @@ from .config import (
 )
 from .engine import generate_combinations, run_sweep
 from .evaluators import evaluate_backtest, evaluate_indicator
+from .reports import generate_sweep_report, save_sweep_report
 from .results import (
     SweepResult,
     SweepSummary,
@@ -64,6 +65,9 @@ __all__ = [
     # Metrics (re-exported from evaluation modules)
     "PerformanceMetrics",
     "SuitabilityResult",
+    # Reports
+    "generate_sweep_report",
+    "save_sweep_report",
     # Results
     "SweepResult",
     "SweepSummary",

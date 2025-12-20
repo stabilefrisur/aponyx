@@ -26,6 +26,10 @@ uv run aponyx list workflows
 # Manage catalog configurations (edit YAML files first)
 uv run aponyx catalog validate     # Check for errors
 uv run aponyx catalog sync         # Regenerate JSON files
+
+# Run parameter sweeps
+uv run aponyx sweep examples/sweep_indicator.yaml --dry-run  # Preview
+uv run aponyx sweep examples/sweep_backtest.yaml             # Execute
 ```
 
 **Logging:** Default is WARNING. Use `-v` for DEBUG. Logs saved to `logs/aponyx_{timestamp}.log`.
@@ -33,6 +37,7 @@ uv run aponyx catalog sync         # Regenerate JSON files
 ## Command Reference
 
 - **`run`** — Execute research workflow (data → signal → suitability → backtest → performance → visualization)
+- **`sweep`** — Run parameter sweeps for sensitivity analysis (indicator or backtest mode)
 - **`report`** — Generate multi-format reports from workflow results
 - **`list`** — Show available signals, products, indicators, transformations, securities, strategies, datasets, steps, or workflows
 - **`catalog`** — Manage YAML catalog files (validate, sync, migrate)
@@ -147,6 +152,140 @@ TCost BPS Override:       3.0 [config]
 - `[from signal]` — Resolved from signal metadata
 - `[from indicator]` — Resolved from indicator metadata
 - `[default]` — System default value
+
+---
+
+### `sweep` — Run Parameter Sweeps
+
+Execute parameter sensitivity analysis across indicator or backtest configurations using Cartesian product of parameter values.
+
+**Usage:**
+```bash
+uv run aponyx sweep <config_path> [OPTIONS]
+```
+
+**Options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--dry-run` | FLAG | false | Preview combinations without executing evaluations |
+
+**YAML Configuration Schema:**
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `name` | string | ✓ | - | Sweep experiment identifier (used in output directory) |
+| `description` | string | ✓ | - | Human-readable description of the experiment |
+| `mode` | string | ✓ | - | Evaluation mode: `indicator` or `backtest` |
+| `base.signal` | string | ✓ | - | Signal name from signal catalog |
+| `base.strategy` | string | backtest only | - | Strategy name (required for backtest mode) |
+| `parameters` | list | ✓ | - | Parameter overrides to sweep |
+| `max_combinations` | integer | | null | Maximum combinations to test (null = unlimited) |
+
+**Parameter Path Format:**
+
+Parameters use dot notation paths:
+- `indicator_transformation.parameters.<param>` — Indicator parameters (e.g., lookback)
+- `score_transformation.parameters.<param>` — Score parameters (e.g., window)
+- `signal_transformation.parameters.<param>` — Signal transformation parameters (e.g., floor, cap)
+- `strategy.<param>` — Strategy parameters (backtest mode only, e.g., position_size_mm)
+
+**Examples:**
+
+**Indicator mode** (`sweep_indicator.yaml`):
+```yaml
+name: "lookback_sensitivity"
+description: "Analyze impact of lookback window on indicator statistics"
+mode: "indicator"
+
+base:
+  signal: "cdx_etf_basis"
+  strategy: null
+
+parameters:
+  - path: "indicator_transformation.parameters.lookback"
+    values: [10, 20, 40, 60]
+  - path: "score_transformation.parameters.window"
+    values: [20, 40]
+
+max_combinations: null  # Test all 8 combinations
+```
+
+**Backtest mode** (`sweep_backtest.yaml`):
+```yaml
+name: "strategy_optimization"
+description: "Find optimal entry threshold and position sizing"
+mode: "backtest"
+
+base:
+  signal: "cdx_etf_basis"
+  strategy: "balanced"
+
+parameters:
+  - path: "strategy.position_size_mm"
+    values: [5.0, 10.0, 20.0]
+  - path: "signal_transformation.parameters.floor"
+    values: [-1.0, -1.5, -2.0]
+  - path: "signal_transformation.parameters.cap"
+    values: [1.0, 1.5, 2.0]
+
+max_combinations: 27  # 3×3×3 = 27 combinations
+```
+
+**Run sweeps:**
+```bash
+# Preview combinations (no evaluation)
+uv run aponyx sweep examples/sweep_indicator.yaml --dry-run
+
+# Run full sweep
+uv run aponyx sweep examples/sweep_indicator.yaml
+
+# Run backtest sweep
+uv run aponyx sweep examples/sweep_backtest.yaml
+```
+
+**Terminal Output:**
+```
+=== Sweep Configuration ===
+Name:        lookback_sensitivity
+Description: Analyze impact of lookback window on indicator statistics
+Mode:        indicator
+Signal:      cdx_etf_basis
+Combinations: 8
+
+Parameters:
+  - indicator_transformation.parameters.lookback: [10, 20, 40, 60]
+  - score_transformation.parameters.window: [20, 40]
+===========================
+
+Sweep: lookback_sensitivity: 100%|████████| 8/8 [00:02<00:00, 3.45combo/s]
+
+=== Sweep Summary ===
+Total combinations: 8
+Successful:         8
+Failed:             0
+Success rate:       100.0%
+Duration:           2.3s
+Results saved:      data/sweeps/lookback_sensitivity_20251220_174958/
+=====================
+```
+
+**Output Structure:**
+
+Results saved to: `data/sweeps/{name}_{timestamp}/`
+
+```
+├── config.json      # Copy of sweep configuration
+├── summary.json     # Execution metadata (timing, success/fail counts)
+└── results.parquet  # Parameter combinations and metrics DataFrame
+```
+
+**Available Metrics by Mode:**
+
+| Mode | Key Metrics |
+|------|-------------|
+| `indicator` | `composite_score`, `decision`, `correlation_lag_1`, `beta_lag_1`, `tstat_lag_1`, `data_health_score`, `predictive_score`, `economic_score`, `stability_score` |
+| `backtest` | `sharpe_ratio`, `max_drawdown`, `hit_rate`, `n_trades`, `annualized_return`, `sortino_ratio`, `calmar_ratio`, `win_rate` |
 
 ---
 
@@ -574,6 +713,10 @@ uv run aponyx report --workflow bloomberg_run --format html
 # Batch processing
 for config in configs/*.yaml; do uv run aponyx run "$config"; done
 
+# Parameter sensitivity analysis
+uv run aponyx sweep examples/sweep_indicator.yaml
+uv run aponyx sweep examples/sweep_backtest.yaml
+
 # Catalog management: validate → preview → sync → commit
 uv run aponyx catalog validate
 uv run aponyx catalog sync --dry-run
@@ -598,6 +741,8 @@ uv run aponyx clean --workflows --all --dry-run   # Preview before delete
 | Catalog validation errors | `uv run aponyx catalog validate`, fix YAML, re-validate |
 | Cache issues | `uv run aponyx clean --workflows --all` |
 | Debugging | `uv run aponyx -v run ...` for verbose logging |
+| Sweep: strategy required | For backtest mode, `base.strategy` must be specified in config |
+| Sweep: invalid parameter path | Path must start with `indicator_transformation.`, `score_transformation.`, `signal_transformation.`, or `strategy.` |
 
 ---
 
