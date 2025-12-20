@@ -14,6 +14,7 @@ dependencies = [
     { name = "pyarrow" },
     { name = "pyyaml" },
     { name = "quantstats" },
+    { name = "ruamel-yaml" },
     { name = "scipy" },
     { name = "statsmodels" },
 ]
@@ -45,6 +46,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "quantstats", specifier = ">=0.0.77" },
+    { name = "ruamel-yaml", specifier = ">=0.18.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
     { name = "scipy", specifier = ">=1.7.0" },
     { name = "statsmodels", specifier = ">=0.14.0" },

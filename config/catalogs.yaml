@@ -1,0 +1,157 @@
+indicator_transformations:
+  - name: cdx_etf_spread_diff
+    description: CDX spread minus ETF spread in basis points (raw basis without 
+      normalization)
+    compute_function_name: compute_cdx_etf_spread_diff
+    data_requirements:
+      cdx: spread
+      etf: spread
+    default_securities:
+      cdx: cdx_ig_5y
+      etf: lqd
+    output_units: basis_points
+    parameters: {}
+    enabled: true
+  - name: spread_momentum_5d
+    description: 5-day spread change in basis points (short-term momentum 
+      without volatility adjustment)
+    compute_function_name: compute_spread_momentum
+    data_requirements:
+      cdx: spread
+    default_securities:
+      cdx: cdx_ig_5y
+    output_units: basis_points
+    parameters:
+      lookback: 5
+    enabled: true
+  - name: cdx_vix_deviation_gap_20d
+    description: Gap between CDX and VIX deviations from 20-day means 
+      (cross-asset risk sentiment)
+    compute_function_name: compute_cdx_vix_deviation_gap
+    data_requirements:
+      cdx: spread
+      vix: level
+    default_securities:
+      cdx: cdx_ig_5y
+      vix: vix
+    output_units: basis_points
+    parameters:
+      lookback: 20
+    enabled: true
+score_transformations:
+  - name: z_score_20d
+    description: Z-score normalization over 20-day rolling window with minimum 
+      10 periods
+    transform_type: z_score
+    parameters:
+      window: 20
+      min_periods: 10
+    enabled: true
+  - name: z_score_60d
+    description: Z-score normalization over 60-day rolling window with minimum 
+      30 periods
+    transform_type: z_score
+    parameters:
+      window: 60
+      min_periods: 30
+    enabled: true
+  - name: volatility_adjust_20d
+    description: Change normalized by 20-day rolling volatility
+    transform_type: normalized_change
+    parameters:
+      window: 20
+      min_periods: 10
+      periods: 1
+    enabled: true
+  - name: diff_5d
+    description: 5-day first difference (absolute change)
+    transform_type: diff
+    parameters:
+      periods: 5
+    enabled: true
+signal_transformations:
+  - name: passthrough
+    description: No trading rule transformation (raw score as signal)
+    scaling: 1.0
+    floor:
+    cap:
+    neutral_range:
+    enabled: true
+  - name: bounded_1_5
+    description: Signal bounded to [-1.5, 1.5] with neutral zone [-0.25, 0.25]
+    scaling: 1.0
+    floor: -1.5
+    cap: 1.5
+    neutral_range:
+      - -0.25
+      - 0.25
+    enabled: true
+  - name: bounded_2_0
+    description: Signal bounded to [-2.0, 2.0] without neutral zone
+    scaling: 1.0
+    floor: -2.0
+    cap: 2.0
+    neutral_range:
+    enabled: true
+signals:
+  - name: cdx_etf_basis
+    description: Flow-driven mispricing signal from CDX-ETF basis divergence
+    indicator_transformation: cdx_etf_spread_diff
+    score_transformation: z_score_20d
+    signal_transformation: passthrough
+    sign_multiplier: 1
+    enabled: true
+  - name: cdx_vix_gap
+    description: Cross-asset risk sentiment divergence between credit and equity
+      volatility
+    indicator_transformation: cdx_vix_deviation_gap_20d
+    score_transformation: z_score_60d
+    signal_transformation: passthrough
+    sign_multiplier: 1
+    enabled: true
+  - name: spread_momentum
+    description: 'Trend-following signal: go long after tightening, short after widening'
+    indicator_transformation: spread_momentum_5d
+    score_transformation: z_score_20d
+    signal_transformation: passthrough
+    sign_multiplier: -1
+    enabled: true
+strategies:
+  - name: conservative
+    description: Conservative sizing with tight risk management for low-turnover
+      trades
+    position_size_mm: 5.0
+    sizing_mode: proportional
+    stop_loss_pct: 3.0
+    take_profit_pct: 8.0
+    max_holding_days: 20
+    entry_threshold: 1.8
+    enabled: true
+  - name: balanced
+    description: Balanced position sizing with moderate risk management
+    position_size_mm: 10.0
+    sizing_mode: proportional
+    stop_loss_pct: 5.0
+    take_profit_pct: 10.0
+    max_holding_days:
+    entry_threshold: 1.5
+    enabled: true
+  - name: aggressive
+    description: Aggressive sizing with wide risk bands for high-turnover 
+      trading
+    position_size_mm: 15.0
+    sizing_mode: proportional
+    stop_loss_pct: 10.0
+    take_profit_pct:
+    max_holding_days:
+    entry_threshold: 1.0
+    enabled: true
+  - name: experimental
+    description: Experimental configuration for research and testing
+    position_size_mm: 10.0
+    sizing_mode: proportional
+    stop_loss_pct:
+    take_profit_pct:
+    max_holding_days:
+    entry_threshold:
+    enabled: false

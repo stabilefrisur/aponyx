@@ -1055,7 +1055,82 @@ except ValueError as e:
     pass
 ```
 
-### 5. Workflow Context Sharing
+### 5. Catalog Management Pattern (New in 0.1.21)
+
+**REQUIRED**: Use CatalogManager for editing catalog configurations:
+
+```python
+from pathlib import Path
+from aponyx.catalog import CatalogManager, SignalEntry
+
+# Load catalogs from YAML
+manager = CatalogManager(Path("config"))
+manager.load()
+
+# Validate cross-references
+result = manager.validate()
+if not result.passed:
+    for error in result.errors:
+        print(f"Error: [{error.category}] {error.entry_name}: {error.message}")
+
+# Get specific entry
+signal = manager.get("signals", "cdx_etf_basis")
+print(signal.description)
+
+# List all items in category
+signals = manager.list_items("signals")
+print(f"Available signals: {signals}")
+
+# Add new entry
+new_signal = SignalEntry(
+    name="my_new_signal",
+    description="My new trading signal",
+    indicator_transformation="cdx_etf_spread_diff",
+    score_transformation="z_score_20d",
+    signal_transformation="passthrough",
+    sign_multiplier=1,
+    enabled=True,
+)
+manager.add("signals", new_signal)
+
+# Save changes (preserves YAML comments)
+manager.save()
+
+# Sync YAML to JSON (after validation passes)
+if manager.validate().passed:
+    sync_result = manager.sync()
+    print(f"Updated {len(sync_result.files_written)} JSON files")
+```
+
+**CLI Commands**:
+```bash
+# Validate catalog cross-references
+aponyx catalog validate
+
+# Sync YAML to JSON (validates first)
+aponyx catalog sync
+
+# Preview changes without writing
+aponyx catalog sync --dry-run
+
+# One-time migration from JSON to YAML
+aponyx catalog migrate
+```
+
+**YAML Source Files** (in `config/`):
+- `catalogs.yaml` - signals, transformations, strategies
+- `securities.yaml` - securities, instruments
+
+**Generated JSON** (in `src/aponyx/`):
+- `models/indicator_transformation.json`
+- `models/score_transformation.json`
+- `models/signal_transformation.json`
+- `models/signal_catalog.json`
+- `backtest/strategy_catalog.json`
+- `data/bloomberg_securities.json`
+- `data/bloomberg_instruments.json`
+
+### 6. Workflow Context Sharing
 
 **REQUIRED**: Steps communicate via context dict:
 
@@ -1087,7 +1162,7 @@ def execute(self, context: dict[str, Any]) -> dict[str, Any]:
     fig.write_html(output_dir / "research_dashboard.html")
 ```
 
-### 6. Frozen Dataclass Configs
+### 7. Frozen Dataclass Configs
 
 **REQUIRED**: All configs use frozen dataclasses:
 
@@ -1103,7 +1178,7 @@ class MyConfig:
             raise ValueError("param1 must be non-negative")
 ```
 
-### 7. Return Figures, Never Display
+### 8. Return Figures, Never Display
 
 **REQUIRED**: Visualization functions return figures:
 
@@ -1118,7 +1193,7 @@ fig = plot_my_chart(data)
 fig.show()  # OR st.plotly_chart(fig)  OR fig.write_html("chart.html")
 ```
 
-### 8. Module-Level Loggers
+### 9. Module-Level Loggers
 
 **REQUIRED**: Use module-level loggers, never basicConfig:
 
@@ -1139,7 +1214,7 @@ logger.debug("Cache hit: key=%s", cache_key)
 logging.basicConfig(level=logging.INFO)
 ```
 
-### 9. Modern Type Hints
+### 10. Modern Type Hints
 
 **REQUIRED**: Use PEP 604 union syntax and built-in generics:
 

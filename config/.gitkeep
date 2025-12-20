@@ -1,0 +1,6 @@
+# This directory holds YAML source files for catalogs
+# - catalogs.yaml: signals, transformations, strategies
+# - securities.yaml: securities, instruments
+#
+# Run `aponyx catalog migrate` to generate initial files from existing JSON
+# Run `aponyx catalog sync` to regenerate JSON files after editing YAML

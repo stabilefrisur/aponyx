@@ -183,7 +183,9 @@ An administrator needs to bootstrap the new YAML catalogs from existing JSON fil
 
 - **FR-012**: System MUST support nested channel definitions in `securities.yaml` matching the existing `bloomberg_securities.json` structure.
 
-- **FR-013**: System MUST include a generation marker in JSON files (e.g., `_generated` field) indicating they are auto-generated and should not be edited directly.
+- **FR-013**: System MUST include a generation marker in JSON files (e.g., `_generated` field) indicating they are auto-generated and should not be edited directly. The marker MUST be an object with fields: `source` (YAML file path), `timestamp` (ISO 8601 format), and `generator` (command name).
+
+- **FR-014**: System MUST provide CLI command: `aponyx catalog migrate` to generate initial YAML files from existing JSON catalogs.
 
 ### Key Entities
 
