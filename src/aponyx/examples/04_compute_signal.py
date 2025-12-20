@@ -62,7 +62,9 @@ def main() -> dict[str, pd.Series]:
 
     print(f"Computed {len(signals)} signals:")
     for name, signal in signals.items():
-        print(f"  {name}: {len(signal)} values, range [{signal.min():.2f}, {signal.max():.2f}]")
+        print(
+            f"  {name}: {len(signal)} values, range [{signal.min():.2f}, {signal.max():.2f}]"
+        )
 
     return signals
 

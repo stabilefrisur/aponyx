@@ -34,7 +34,12 @@ from aponyx.config import (
     STRATEGY_CATALOG_PATH,
 )
 from aponyx.data.registry import DataRegistry
-from aponyx.backtest import BacktestResult, run_backtest, StrategyRegistry, resolve_calculator
+from aponyx.backtest import (
+    BacktestResult,
+    run_backtest,
+    StrategyRegistry,
+    resolve_calculator,
+)
 from aponyx.persistence import load_parquet, save_parquet
 
 

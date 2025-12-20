@@ -37,13 +37,19 @@ def main() -> None:
 
     # Load various instrument types (returns validated DataFrames)
     cdx_ig = fetch_cdx(source, security="cdx_ig_5y")
-    print(f"CDX IG 5Y: {len(cdx_ig)} rows, spread range [{cdx_ig['spread'].min():.1f}, {cdx_ig['spread'].max():.1f}] bps")
+    print(
+        f"CDX IG 5Y: {len(cdx_ig)} rows, spread range [{cdx_ig['spread'].min():.1f}, {cdx_ig['spread'].max():.1f}] bps"
+    )
 
     vix = fetch_vix(source, security="vix")
-    print(f"VIX: {len(vix)} rows, level range [{vix['level'].min():.1f}, {vix['level'].max():.1f}]")
+    print(
+        f"VIX: {len(vix)} rows, level range [{vix['level'].min():.1f}, {vix['level'].max():.1f}]"
+    )
 
     etf = fetch_etf(source, security="hyg")
-    print(f"HYG ETF: {len(etf)} rows, price range [{etf['price'].min():.2f}, {etf['price'].max():.2f}]")
+    print(
+        f"HYG ETF: {len(etf)} rows, price range [{etf['price'].min():.2f}, {etf['price'].max():.2f}]"
+    )
 
 
 if __name__ == "__main__":

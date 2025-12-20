@@ -37,14 +37,22 @@ def main() -> None:
     source = BloombergSource()
 
     # Fetch different instrument types (auto-cached and validated)
-    cdx_ig = fetch_cdx(source, security="cdx_ig_5y", start_date=start_date, end_date=end_date)
-    print(f"CDX IG 5Y: {len(cdx_ig)} rows, spread range [{cdx_ig['spread'].min():.1f}, {cdx_ig['spread'].max():.1f}] bps")
+    cdx_ig = fetch_cdx(
+        source, security="cdx_ig_5y", start_date=start_date, end_date=end_date
+    )
+    print(
+        f"CDX IG 5Y: {len(cdx_ig)} rows, spread range [{cdx_ig['spread'].min():.1f}, {cdx_ig['spread'].max():.1f}] bps"
+    )
 
     vix = fetch_vix(source, start_date=start_date, end_date=end_date)
-    print(f"VIX: {len(vix)} rows, level range [{vix['level'].min():.1f}, {vix['level'].max():.1f}]")
+    print(
+        f"VIX: {len(vix)} rows, level range [{vix['level'].min():.1f}, {vix['level'].max():.1f}]"
+    )
 
     hyg = fetch_etf(source, security="hyg", start_date=start_date, end_date=end_date)
-    print(f"HYG ETF: {len(hyg)} rows, price range [{hyg['price'].min():.2f}, {hyg['price'].max():.2f}]")
+    print(
+        f"HYG ETF: {len(hyg)} rows, price range [{hyg['price'].min():.2f}, {hyg['price'].max():.2f}]"
+    )
 
 
 if __name__ == "__main__":

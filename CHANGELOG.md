@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.21] - 2025-12-20
+
+### Changed
+- **Example Configuration Organization**
+  - Migrated example configs from `examples/` to `src/aponyx/examples/configs/` for proper PyPI distribution
+  - Renamed to numbered format (01-06) for better organization and discoverability:
+    * `01_workflow_minimal.yaml` (replaces `workflow_minimal.yaml`)
+    * `02_workflow_complete.yaml` (replaces `workflow_complete.yaml`)
+    * `03_workflow_etf_price_backtest.yaml` (replaces `workflow_etf.yaml`)
+    * `04_sweep_indicator_lookback.yaml` (replaces `sweep_indicator.yaml`)
+    * `05_sweep_strategy_optimization.yaml` (replaces `sweep_backtest.yaml`)
+    * `06_sweep_comprehensive.yaml` (replaces `sweep_comprehensive.yaml`)
+  - Added comprehensive `src/aponyx/examples/configs/README.md` with runtime estimates and usage guide
+  - Updated all references across documentation: README, CONTRIBUTING, PROJECT_STATUS, CHANGELOG, CLI guide, all agent/prompt files, and Copilot instructions
+
+- **Data Fetching Cache Management**
+  - Replaced hash-based cache keys with timestamp-based keys in `fetch.py` for more intuitive time-based data invalidation
+  - Updated all related tests to use timestamp-based cache validation
+
+### Added
+- **Testing Automation**
+  - New `run-all-examples.prompt.md` for automated testing of all 6 example configs
+  - Documents actual measured runtimes (~29s total for all examples)
+  - Supports dry-run and validation modes for CI/CD integration
+
+### Improved
+- **Documentation**
+  - Streamlined README feature list and installation sections (reduced from ~480 to ~387 lines, 19% reduction)
+  - Updated Python API examples to use Bloomberg/FileSource pattern with tested synthetic data alternatives
+  - Improved Architecture section with cleaner table formatting
+  - Updated Research Workflow diagram with actual step class names
+  - Fixed year references from 2024 to 2025 in README, PROJECT_STATUS, and CHANGELOG
+  - Removed redundant descriptions throughout documentation
+  - All code examples tested and verified working
+
 ## [0.1.20] - 2025-12-20
 
 ### Added
@@ -1132,6 +1167,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.21]: https://github.com/stabilefrisur/aponyx/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/stabilefrisur/aponyx/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/stabilefrisur/aponyx/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/stabilefrisur/aponyx/compare/v0.1.17...v0.1.18

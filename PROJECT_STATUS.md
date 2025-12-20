@@ -1,10 +1,7 @@
 # Project Status — aponyx
 
 **Last Updated:** December 20, 2025  
-**Version:** 0.1.20 (Parameter Sweeps & Catalog Management)
-
-## Quick Reference
-
+**Version:** 0.1.21 (Examples Reorganization & Documentation Refresh)
 | Property | Value |
 |----------|-------|
 | **Project Type** | Systematic fixed-income research framework |

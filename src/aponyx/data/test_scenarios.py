@@ -716,7 +716,7 @@ def make_high_hit_rate(n_days: int = 200) -> TestScenario:
     dates = _make_dates(n_days)
 
     # 5 trades: 4 wins, 1 loss
-    segment_len = n_days // 10
+    n_days // 10
     signal_values = np.zeros(n_days)
 
     # 5 trades of ~20 days each with gaps
