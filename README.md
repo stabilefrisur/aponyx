@@ -6,26 +6,22 @@
 
 > **Early-stage research framework** — Not for production use
 
-**A modular Python framework for developing and backtesting systematic credit strategies.**
-
-Type-safe, reproducible research environment for tactical fixed-income strategies with clean separation between strategy logic, data infrastructure, and backtesting workflows.
+Modular Python framework for developing and backtesting systematic credit strategies with type-safe data loading, four-stage signal composition, and deterministic backtesting.
 
 ## Key Features
 
-- **CLI orchestrator** for automated end-to-end research workflows (run, sweep, report, list, clean)
-- **Parameter sweep engine** for systematic sensitivity analysis (indicator and backtest modes)
-- **Workflow engine** with smart caching and dependency tracking across pipeline steps
-- **Type-safe data loading** with schema validation (Parquet, CSV, Bloomberg Terminal)
-- **Modular signal framework** with composable transformations and registry management
-- **Deterministic backtesting** with transaction cost modeling and comprehensive metrics
-- **Interactive visualization** with Plotly charts (equity curves, signals, drawdown)
-- **File-based persistence** with metadata tracking and versioning
-- **Strategy governance** with centralized registry and configuration management
-- **Multi-format reporting** with console, markdown, and HTML output
+- **CLI orchestrator** — Automated end-to-end workflows (run, sweep, report, list, catalog, clean)
+- **Parameter sweeps** — Systematic sensitivity analysis with indicator and backtest modes
+- **YAML catalog management** — Single source of truth with JSON generation for runtime
+- **Four-stage signal pipeline** — Indicator → Score → Signal → Position with composable transformations
+- **Type-safe data loading** — Schema validation for Parquet/CSV/Bloomberg Terminal
+- **Deterministic backtesting** — Transaction costs, risk controls, comprehensive metrics
+- **Interactive visualization** — Plotly charts (equity curves, signals, drawdowns, dashboards)
+- **File-based persistence** — Metadata tracking with versioning
 
 ## Installation
 
-### From PyPI (Recommended)
+### From PyPI
 
 ```bash
 pip install aponyx
@@ -34,14 +30,9 @@ pip install aponyx
 **Optional dependencies:**
 
 ```bash
-# Visualization (Plotly)
-pip install aponyx[viz]
-
-# Bloomberg Terminal support (requires manual blpapi install)
-pip install aponyx[bloomberg]
-
-# Development tools
-pip install aponyx[dev]
+pip install aponyx[viz]         # Plotly visualization
+pip install aponyx[bloomberg]   # Bloomberg Terminal (requires manual blpapi install)
+pip install aponyx[dev]         # Development tools
 ```
 
 ### From Source
@@ -51,26 +42,24 @@ Requires **Python 3.12** and [`uv`](https://docs.astral.sh/uv/):
 ```bash
 git clone https://github.com/stabilefrisur/aponyx.git
 cd aponyx
-uv sync                    # Install dependencies
-uv sync --extra viz        # Include visualization
+uv sync                         # Install dependencies
+uv sync --extra viz             # Include visualization
 ```
 
 ### Bloomberg Terminal Setup (Optional)
 
-> **Note:** Bloomberg data loading requires an active Terminal session and manual `blpapi` installation.
+Bloomberg data loading requires active Terminal session and manual `blpapi` installation:
 
-1. Install `blpapi` by following the instructions here: [Bloomberg API Library](https://www.bloomberg.com/professional/support/api-library/)
-2. Install Bloomberg extra: `pip install aponyx[bloomberg]`
+1. Install `blpapi`: [Bloomberg API Library](https://www.bloomberg.com/professional/support/api-library/)
+2. Install extra: `pip install aponyx[bloomberg]`
 
 File-based data loading (`FileSource`) works without Bloomberg dependencies.
 
 ## Quick Start
 
-### 1. Run Analysis
+### Run Analysis with YAML Config
 
-**Option A: Use CLI with YAML Config (Recommended)**
-
-Create a workflow configuration file:
+Create a workflow configuration:
 
 ```yaml
 # workflow.yaml
@@ -85,116 +74,97 @@ Run the workflow:
 ```bash
 aponyx run workflow.yaml
 # Or use example configs
-aponyx run examples/workflow_minimal.yaml
+aponyx run src/aponyx/examples/configs/01_workflow_minimal.yaml
 ```
 
-**Option B: Python API**
+### Python API
 
 ```python
-from aponyx.data import fetch_cdx, fetch_etf, FileSource
-from aponyx.models import (
-    IndicatorTransformationRegistry, ScoreTransformationRegistry,
-    SignalTransformationRegistry, SignalRegistry, compose_signal
+from datetime import datetime, timedelta
+from aponyx.data import (
+    fetch_cdx, fetch_vix, fetch_etf,
+    BloombergSource,
+    get_product_microstructure
 )
-from aponyx.backtest import run_backtest, BacktestConfig
+from aponyx.models import SignalRegistry, compute_registered_signals
+from aponyx.backtest import run_backtest, BacktestConfig, resolve_calculator
 from aponyx.evaluation.performance import compute_all_metrics
-from aponyx.evaluation.suitability import evaluate_signal_suitability, SuitabilityConfig
-from aponyx.config import (
-    INDICATOR_TRANSFORMATION_PATH, SCORE_TRANSFORMATION_PATH,
-    SIGNAL_TRANSFORMATION_PATH, SIGNAL_CATALOG_PATH
-)
-from pathlib import Path
+from aponyx.config import SIGNAL_CATALOG_PATH
 
-# Load validated market data
-# FileSource uses registry.json for security-to-file mapping
-source = FileSource(Path("data/raw/synthetic"))
-cdx_df = fetch_cdx(source, security="cdx_ig_5y")
-etf_df = fetch_etf(source, security="lqd")
+# Fetch market data from Bloomberg Terminal
+source = BloombergSource()
+end_date = datetime.now().strftime("%Y-%m-%d")
+start_date = (datetime.now() - timedelta(days=5 * 365)).strftime("%Y-%m-%d")
 
-# FOUR-STAGE SIGNAL COMPOSITION PIPELINE:
-#   Stage 1: Indicator Transformation - Raw metric from securities (bps, ratios)
-#   Stage 2: Score Transformation     - Normalization (z-score, volatility adjustment)
-#   Stage 3: Signal Transformation    - Trading rules (floor, cap, neutral_range)
-#   Stage 4: Position Calculation     - Handled by backtest layer
+cdx_df = fetch_cdx(source, security="cdx_ig_5y", start_date=start_date, end_date=end_date)
+etf_df = fetch_etf(source, security="lqd", start_date=start_date, end_date=end_date)
+vix_df = fetch_vix(source, start_date=start_date, end_date=end_date)
 
-# Load all four registries
-indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
-score_registry = ScoreTransformationRegistry(SCORE_TRANSFORMATION_PATH)
-signal_trans_registry = SignalTransformationRegistry(SIGNAL_TRANSFORMATION_PATH)
+# Compute signals from catalog
 signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+market_data = {"cdx": cdx_df, "etf": etf_df, "vix": vix_df}
+signals = compute_registered_signals(signal_registry, market_data)
+signal = signals["spread_momentum"]
 
-# Compose signal via four-stage pipeline
-market_data = {"cdx": cdx_df, "etf": etf_df}
-result = compose_signal(
-    signal_name="cdx_etf_basis",
-    market_data=market_data,
-    indicator_registry=indicator_registry,
-    score_registry=score_registry,
-    signal_transformation_registry=signal_trans_registry,
-    signal_registry=signal_registry,
-    include_intermediates=True,  # Optional: inspect intermediate stages
+# Get product microstructure and calculator
+microstructure = get_product_microstructure("cdx_ig_5y")
+calculator = resolve_calculator(
+    quote_type=microstructure.quote_type,
+    dv01_per_million=microstructure.dv01_per_million,
 )
-signal = result["signal"]
-# result also contains: result["indicator"], result["score"] for debugging
 
-# Evaluate signal-product suitability (optional pre-backtest assessment)
-suitability_config = SuitabilityConfig(rolling_window=252)  # ~1 year daily data
-suitability = evaluate_signal_suitability(signal, cdx_df["spread"], suitability_config)
-print(f"Suitability: {suitability.composite_score:.2f} ({suitability.decision})")
-
-# Run backtest with transaction costs and risk management
+# Run backtest
 backtest_config = BacktestConfig(
-    position_size_mm=10.0,          # $10MM notional
-    sizing_mode="proportional",     # Position scales with signal (default)
-    stop_loss_pct=5.0,              # Exit if PnL falls 5% below entry value
-    take_profit_pct=10.0,           # Exit if PnL rises 10% above entry value
-    transaction_cost_bps=1.0
+    position_size_mm=10.0,
+    sizing_mode="proportional",
+    stop_loss_pct=5.0,
+    take_profit_pct=10.0,
+    max_holding_days=20,
+    transaction_cost_bps=microstructure.transaction_cost_bps
 )
-results = run_backtest(signal, cdx_df["spread"], backtest_config)
+results = run_backtest(signal, cdx_df["spread"], backtest_config, calculator)
 
-# Compute comprehensive performance metrics
+# Compute performance metrics
 metrics = compute_all_metrics(results.pnl, results.positions)
-
-# Analyze results
 print(f"Sharpe Ratio: {metrics.sharpe_ratio:.2f}")
 print(f"Total Return: ${metrics.total_return:,.0f}")
 print(f"Win Rate: {metrics.hit_rate:.1%}")
 ```
 
-**Bloomberg Terminal alternative:**
+**Alternative: Using synthetic data (no Bloomberg required)**
 
 ```python
-from aponyx.data import BloombergSource
-from pathlib import Path
+from aponyx.data import fetch_cdx, fetch_vix, fetch_etf, FileSource
+from aponyx.config import RAW_DIR
 
-# Both sources use identical interface
-source = BloombergSource()
+# Load from synthetic data
+source = FileSource(RAW_DIR / "synthetic")
 cdx_df = fetch_cdx(source, security="cdx_ig_5y")
+etf_df = fetch_etf(source, security="lqd")
+vix_df = fetch_vix(source, security="vix")
+
+# ... rest of code identical
 ```
 
 ## Command-Line Interface
 
-Aponyx provides a **complete CLI orchestrator** for running research workflows from data loading through performance analysis.
-
-**Get started:**
-
 ```bash
-aponyx --help  # or aponyx -h
+aponyx --help  # View all commands
 ```
 
 **Core commands:**
 - `run` — Execute complete workflow from YAML config
-- `sweep` — Run parameter sensitivity analysis experiments
+- `sweep` — Run parameter sensitivity analysis
 - `report` — Generate multi-format analysis reports
 - `list` — Browse signals, strategies, datasets, workflows
-- `catalog` — Manage YAML catalog files (validate, sync, migrate)
+- `catalog` — Manage YAML catalogs (validate, sync, migrate)
 - `clean` — Remove cached workflow results
 
-### Run Complete Workflow
+### Run Workflow
 
-All workflows are configured via YAML files. Create a config file with required fields:
+All workflows configured via YAML:
 
-**Minimal configuration** (`workflow.yaml`):
+**Minimal** (`workflow.yaml`):
 ```yaml
 label: minimal_test
 signal: spread_momentum
@@ -202,70 +172,62 @@ product: cdx_ig_5y
 strategy: balanced
 ```
 
-**Complete configuration with all options**:
+**Complete with overrides**:
 ```yaml
 label: complete_test
 signal: cdx_etf_basis
 product: cdx_ig_5y
 strategy: balanced
 
-# Optional: Override any transformation stage
+# Override transformation stages
 indicator: cdx_etf_spread_diff
 score_transformation: z_score_20d
 signal_transformation: bounded_1_5
 
-# Optional: Override default securities
+# Override securities
 securities:
   cdx: cdx_ig_5y
   etf: lqd
+
 data: synthetic
 steps: [data, signal, suitability, backtest, performance, visualization]
 force: true
 ```
 
-**Run workflows:**
+**Run:**
 
 ```bash
-# Execute full 6-step workflow with minimal config
 aponyx run workflow.yaml
-
-# Use example configs
+# Or use examples
 aponyx run src/aponyx/examples/configs/01_workflow_minimal.yaml
-aponyx run src/aponyx/examples/configs/02_workflow_complete.yaml
 ```
 
-**Available YAML fields:**
+**YAML fields:**
 
-| Field | Type | Required | Default | Description |
-|-------|------|----------|---------|-------------|
-| `label` | string | ✓ | - | Workflow label (lowercase letters, numbers, underscores; must start with letter) |
-| `signal` | string | ✓ | - | Signal name from signal_catalog.json |
-| `product` | string | ✓ | - | Product identifier (e.g., "cdx_ig_5y") |
-| `strategy` | string | ✓ | - | Strategy name from strategy_catalog.json |
-| `indicator` | string | | from signal | Override indicator transformation |
-| `score_transformation` | string | | from signal | Override score transformation (normalization) |
-| `signal_transformation` | string | | from signal | Override signal transformation (trading rules) |
-| `securities` | dict | | from indicator | Custom security mapping |
-| `data` | string | | "synthetic" | Data source (synthetic, file, bloomberg) |
-| `steps` | list | | all | Specific steps to execute |
-| `force` | boolean | | false | Force re-run (skip cache) |
+| Field | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `label` | ✓ | - | Workflow identifier (lowercase, letters/numbers/underscores) |
+| `signal` | ✓ | - | Signal name from catalog |
+| `product` | ✓ | - | Product identifier (e.g., "cdx_ig_5y") |
+| `strategy` | ✓ | - | Strategy name from catalog |
+| `indicator` | | from signal | Override indicator transformation |
+| `score_transformation` | | from signal | Override normalization |
+| `signal_transformation` | | from signal | Override trading rules |
+| `securities` | | from indicator | Custom security mapping |
+| `data` | | "synthetic" | Data source (synthetic/file/bloomberg) |
+| `steps` | | all | Specific steps to execute |
+| `force` | | false | Bypass cache |
 
-### Run Parameter Sweep Experiments
+### Run Parameter Sweeps
 
-Systematically test parameter combinations for sensitivity analysis:
+Test parameter combinations systematically:
 
 ```bash
-# Execute parameter sweep experiment
-aponyx sweep examples/sweep_comprehensive.yaml
-
-# Preview combinations without execution
-aponyx sweep examples/sweep_indicator.yaml --dry-run
-
-# Backtest mode: test strategy parameters
-aponyx sweep examples/sweep_backtest.yaml
+aponyx sweep src/aponyx/examples/configs/04_sweep_indicator_lookback.yaml
+aponyx sweep src/aponyx/examples/configs/05_sweep_strategy_optimization.yaml --dry-run
 ```
 
-**Sweep configuration example**:
+**Sweep configuration:**
 
 ```yaml
 name: indicator_lookback_sweep
@@ -279,127 +241,67 @@ parameter_overrides:
 max_combinations: 50
 ```
 
-**Output structure**:
-```
-data/sweeps/indicator_lookback_sweep_20251220_143045/
-├── results.parquet              # All metrics for each combination
-├── config.yaml                  # Configuration copy
-└── summary.json                 # Metadata and statistics
-```
+**Output:** `data/sweeps/indicator_lookback_sweep_YYYYMMDD_HHMMSS/`
+- `results.parquet` — Metrics for each combination
+- `config.yaml` — Configuration copy
+- `summary.json` — Metadata and statistics
 
-### Generate Reports
+### Other Commands
 
+**Generate reports:**
 ```bash
-# Console output with formatted tables (by label)
-aponyx report --workflow minimal_test
-
-# By numeric index (0 = most recent, ephemeral)
-aponyx report --workflow 0
-
-# Markdown file (default location: reports/)
-aponyx report --workflow minimal_test --format markdown
-
-# HTML file with styled formatting
-aponyx report --workflow minimal_test --format html --output custom_report.html
+aponyx report --workflow minimal_test                    # Console output
+aponyx report --workflow 0 --format markdown             # Most recent, markdown
+aponyx report --workflow minimal_test --format html      # HTML with styling
 ```
 
-Reports aggregate suitability evaluation and performance analysis with comprehensive metrics and visualizations.
-
-### List Available Items
-
+**List available items:**
 ```bash
-aponyx list signals      # View signal catalog
-aponyx list strategies   # View strategy catalog
-aponyx list datasets     # View data registry
-aponyx list workflows    # View workflow results (sorted by timestamp, newest first)
-aponyx list workflows --label minimal_test  # Filter workflows by label
+aponyx list signals      # Signal catalog
+aponyx list strategies   # Strategy catalog
+aponyx list workflows    # Workflow results (newest first)
 ```
 
-### Manage Catalog Configurations
-
-YAML files are the single source of truth for all catalogs. JSON files are generated for runtime.
-
+**Manage catalogs:**
 ```bash
-# Validate catalog cross-references
-aponyx catalog validate
-
-# Preview JSON regeneration
-aponyx catalog sync --dry-run
-
-# Regenerate all JSON files from YAML
-aponyx catalog sync
-
-# One-time migration from existing JSON to YAML
-aponyx catalog migrate
+aponyx catalog validate  # Validate cross-references
+aponyx catalog sync      # Regenerate JSON from YAML
 ```
 
-**YAML Source Files** (in `config/`):
-- `catalogs.yaml` - signals, transformations, strategies
-- `securities.yaml` - securities, instruments
-
-### Clean Workflow Cache
-
+**Clean cache:**
 ```bash
-# Preview workflow cleanup
-aponyx clean --workflows --all --dry-run
-
-# Clean workflows older than 30 days
-aponyx clean --workflows --older-than 30d
-
-# Clean specific label's workflows
+aponyx clean --workflows --all --dry-run              # Preview cleanup
+aponyx clean --workflows --older-than 30d             # Remove old workflows
 aponyx clean --workflows --label minimal_test --older-than 7d
 ```
 
-**Output format:**
-```
-=== Workflow Configuration ===
-Label:                    minimal_test [config]
-Product:                  cdx_ig_5y [config]
-Signal:                   spread_momentum [config]
-Indicator Transform:      spread_momentum_5d [from signal]
-Securities:               cdx:cdx_ig_5y [from indicator]
-Score Transform:          volatility_adjust_20d [from signal]
-Signal Transform:         passthrough [from signal]
-Strategy:                 balanced [config]
-Data:                     synthetic [default]
-Steps:                    all [default]
-Force re-run:             False [default]
-===============================
-
-Completed 6 steps in 15.2s
-Skipped 0 cached steps
-Results: data/workflows/minimal_test_20251202_143230/
-```
-
-**See [CLI Guide](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/cli_guide.md) for complete documentation and advanced usage.**
+See [CLI Guide](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/cli_guide.md) for complete documentation.
 
 ## Architecture
 
-Aponyx follows a **layered architecture** with clean separation of concerns:
-
-| Layer | Purpose | Key Modules |
-|-------|---------|-------------|
-| **CLI** | Command-line orchestration and user interface | `aponyx run`, `aponyx report`, `aponyx list`, `aponyx clean` |
-| **Workflows** | Pipeline orchestration with dependency tracking | `WorkflowEngine`, `WorkflowConfig`, `StepRegistry`, concrete steps |
-| **Reporting** | Multi-format report generation | `generate_report`, console/markdown/HTML formatters |
-| **Data** | Load, validate, transform market data | `fetch_cdx`, `fetch_vix`, `fetch_etf`, `apply_transform`, `FileSource`, `BloombergSource` |
-| **Models** | Four-stage signal composition pipeline | `IndicatorTransformationRegistry`, `ScoreTransformationRegistry`, `SignalTransformationRegistry`, `compose_signal` |
-| **Evaluation** | Pre-backtest screening (rolling window stability) and post-backtest analysis | `evaluate_signal_suitability`, `analyze_backtest_performance`, `PerformanceRegistry` |
-| **Backtest** | Simulate execution and generate P&L | `run_backtest`, `BacktestConfig`, `StrategyRegistry` |
-| **Visualization** | Interactive charts and dashboards | `plot_equity_curve`, `plot_signal`, `plot_drawdown`, `plot_research_dashboard` |
-| **Persistence** | Save/load data with metadata registry | `save_parquet`, `load_parquet`, `DataRegistry` |
+| Layer | Purpose | Key Components |
+|-------|---------|----------------|
+| **CLI** | Command orchestration | `run`, `sweep`, `report`, `list`, `catalog`, `clean` |
+| **Workflows** | Pipeline execution with caching | `WorkflowEngine`, step registry |
+| **Sweep** | Parameter sensitivity analysis | `SweepEngine`, evaluators |
+| **Reporting** | Multi-format output | Console/markdown/HTML formatters |
+| **Data** | Load and validate market data | `FileSource`, `BloombergSource`, `DataRegistry` |
+| **Models** | Four-stage signal composition | Indicator/Score/Signal transformations |
+| **Evaluation** | Pre/post-backtest analysis | Suitability, performance metrics |
+| **Backtest** | Execution simulation | `run_backtest`, `BacktestConfig` |
+| **Visualization** | Charts and dashboards | `plot_equity_curve`, `plot_research_dashboard` |
+| **Persistence** | File I/O with metadata | Parquet/JSON save/load |
 
 ### Data Storage
 
 ```
 data/
-  raw/              # Original source data (permanent)
-    bloomberg/      # Bloomberg Terminal downloads
-      registry.json # Security-to-file mapping
-    synthetic/      # Synthetic test data
-      registry.json # Security-to-file mapping
-  cache/            # Temporary performance cache (security-based naming: {security}_{hash}.parquet)
-  workflows/        # Timestamped workflow results ({label}_{timestamp}/)
+  raw/              # Source data (permanent)
+    bloomberg/
+    synthetic/
+  cache/            # Temporary cache (TTL-based)
+  workflows/        # Timestamped workflow results
+  sweeps/           # Parameter sweep experiments
   .registries/      # Runtime metadata (not in git)
 ```
 
@@ -412,17 +314,17 @@ CLI Command (aponyx run)
     ↓
 Workflow Engine (dependency tracking + caching)
     ↓
-[Step 1] Data Layer (load, validate, transform)
+[Step 1] DataStep (load, validate, transform)
     ↓
-[Step 2] Models Layer (indicator computation + signal composition)
+[Step 2] SignalStep (indicator computation + signal composition)
     ↓
-[Step 3] Evaluation Layer (signal-product suitability)
+[Step 3] SuitabilityStep (signal-product suitability evaluation)
     ↓
-[Step 4] Backtest Layer (execution simulation)
+[Step 4] BacktestStep (execution simulation)
     ↓
-[Step 5] Evaluation Layer (performance metrics & analysis)
+[Step 5] PerformanceStep (performance metrics & analysis)
     ↓
-[Step 6] Visualization Layer (charts)
+[Step 6] VisualizationStep (charts + research dashboard)
     ↓
 Reporting Layer (multi-format output)
     ↓
@@ -431,116 +333,81 @@ Persistence Layer (results + metadata)
 
 ## Documentation
 
-Documentation is **included with the package** and available after installation:
+Documentation is included in the package and available on [GitHub](https://github.com/stabilefrisur/aponyx/tree/master/src/aponyx/docs).
 
-```python
-# Access docs programmatically
-from aponyx.docs import get_docs_dir
-docs_path = get_docs_dir()
-print(docs_path)  # Path to installed documentation
-```
+### Core Guides
 
-### Getting Started
+- [**CLI Guide**](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/cli_guide.md) — Complete CLI reference
+- [**CDX Overlay Strategy**](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/cdx_overlay_strategy.md) — Investment thesis
+- [**Signal Registry Usage**](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/signal_registry_usage.md) — Catalog workflow
 
-| Document | Description |
-|----------|-------------|
-| [`cli_guide.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/cli_guide.md) | Complete CLI orchestrator reference and advanced usage |
-| [`cdx_overlay_strategy.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/cdx_overlay_strategy.md) | Investment thesis and pilot signal implementations |
+### Design Docs
 
-### Research Workflow
-
-| Document | Description |
-|----------|-------------|
-| [`signal_registry_usage.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/signal_registry_usage.md) | Signal management and catalog workflow |
-| [`signal_suitability_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/signal_suitability_design.md) | Pre-backtest signal-product evaluation framework |
-| [`performance_evaluation_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/performance_evaluation_design.md) | Post-backtest performance analysis framework |
-
-### System Architecture
-
-| Document | Description |
-|----------|-------------|
-| [`governance_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/governance_design.md) | Registry, catalog, and config governance patterns |
-| [`visualization_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/visualization_design.md) | Chart architecture and Plotly/Streamlit patterns |
-| [`logging_design.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/logging_design.md) | Logging conventions and metadata tracking |
-
-### Development Reference
-
-| Document | Description |
-|----------|-------------|
-| [`python_guidelines.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/python_guidelines.md) | Code standards, type hints, and best practices |
-| [`adding_data_providers.md`](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/adding_data_providers.md) | Data provider extension guide |
-
-**All documentation** is included in the package and available on [GitHub](https://github.com/stabilefrisur/aponyx/tree/master/src/aponyx/docs).
+- [Signal Suitability](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/signal_suitability_design.md) — Pre-backtest evaluation
+- [Performance Evaluation](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/performance_evaluation_design.md) — Post-backtest analysis
+- [Governance](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/governance_design.md) — Registry patterns
+- [Visualization](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/visualization_design.md) — Chart architecture
+- [Python Guidelines](https://github.com/stabilefrisur/aponyx/blob/master/src/aponyx/docs/python_guidelines.md) — Code standards
 
 ## What's Included
 
-**Three pilot signals for CDX overlay strategies (via four-stage composition):**
-1. **CDX-ETF Basis** - Flow-driven mispricing from cash-derivative basis
-2. **CDX-VIX Gap** - Cross-asset risk sentiment divergence
-3. **Spread Momentum** - Short-term continuation in credit spreads
+**Three pilot signals via four-stage composition:**
+1. **CDX-ETF Basis** — Cash-derivative basis mispricing
+2. **CDX-VIX Gap** — Risk sentiment divergence
+3. **Spread Momentum** — Short-term credit continuation
 
-**Four-stage transformation pipeline:**
-- Stage 1: Indicator Transformation (raw metric in interpretable units)
-- Stage 2: Score Transformation (z-score, volatility adjustment)
-- Stage 3: Signal Transformation (floor, cap, neutral range)
-- Stage 4: Position Calculation (backtest layer)
+**Four-stage pipeline:**
+1. Indicator → Raw metric (bps, ratios)
+2. Score → Normalization (z-score, volatility adjustment)
+3. Signal → Trading rules (floor, cap, neutral range)
+4. Position → Backtest layer
 
-**Core capabilities:** Type-safe data loading • Signal registry • Pre/post-backtest evaluation • Deterministic backtesting • Interactive visualizations
+**Core capabilities:** Type-safe data loading • Signal composition • Pre/post-backtest evaluation • Deterministic backtesting • Interactive charts
 
 ## Development
 
-### Running Tests
+### Testing
 
 ```bash
-pytest                              # All tests
-pytest --cov=aponyx                # With coverage
-pytest tests/models/                # Specific module
+pytest                    # All tests
+pytest --cov=aponyx      # With coverage
+pytest tests/models/     # Specific module
 ```
 
 ### Code Quality
 
 ```bash
-ruff format src/ tests/             # Format code
-ruff check src/ tests/              # Lint
-mypy src/                          # Type check
+uv run ruff format src/ tests/    # Format code
+uv run ruff check src/ tests/     # Lint
+uv run mypy src/                  # Type check
 ```
-
-All tools are configured in `pyproject.toml` with project-specific settings.
 
 ## Design Philosophy
 
-### Core Principles
+1. **Modularity** — Clean layer separation
+2. **Reproducibility** — Deterministic outputs with metadata
+3. **Type Safety** — Strict type hints and validation
+4. **Simplicity** — Functions over classes
+5. **No Legacy Support** — Breaking changes without deprecation
 
-1. **Modularity** - Clean separation between data, models, backtest, and infrastructure
-2. **Reproducibility** - Deterministic outputs with seed control and metadata logging
-3. **Type Safety** - Strict type hints and runtime validation throughout
-4. **Simplicity** - Prefer functions over classes, explicit over implicit
-5. **Transparency** - Clear separation between strategy logic and execution
-6. **No Legacy Support** - Breaking changes without deprecation warnings; always use latest patterns
-
-### Signal Convention
-
-All signals follow a **consistent sign convention** for interpretability:
-- **Positive values** → Long credit risk (buy CDX = sell protection)
-- **Negative values** → Short credit risk (sell CDX = buy protection)
-
-This ensures clarity when evaluating signals independently or combining them in future research.
+**Signal convention:**
+- **Positive** → Long credit risk (buy CDX = sell protection)
+- **Negative** → Short credit risk (sell CDX = buy protection)
 
 ## Requirements
 
-- **Python 3.12** (no backward compatibility with 3.11 or earlier)
-- Modern type syntax (`str | None`, not `Optional[str]`)
+- **Python 3.12** (modern type syntax: `str | None`, not `Optional[str]`)
 - Optional: Bloomberg Terminal with `blpapi` for live data
 
-**Breaking changes:** This is an early-stage project under active development. Breaking changes may occur between versions without deprecation warnings or backward compatibility.
+Early-stage project under active development. Breaking changes may occur between versions.
 
 ## Contributing
 
-This is an early-stage personal research project. See [CONTRIBUTING.md](CONTRIBUTING.md) for technical guidelines if you'd like to contribute.
+Early-stage personal research project. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## Security
 
-Security issues addressed on a best-effort basis. See [SECURITY.md](SECURITY.md) for reporting guidelines and scope.
+Best-effort security support. See [SECURITY.md](SECURITY.md) for reporting guidelines.
 
 ## License
 
@@ -556,4 +423,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 **Maintained by stabilefrisur**  
-**Version**: 0.1.20 | **Last Updated**: December 20, 2024
+**Version**: 0.1.20 | **Last Updated**: December 20, 2025

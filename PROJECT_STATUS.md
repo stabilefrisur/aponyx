@@ -1,6 +1,6 @@
 # Project Status — aponyx
 
-**Last Updated:** December 20, 2024  
+**Last Updated:** December 20, 2025  
 **Version:** 0.1.20 (Parameter Sweeps & Catalog Management)
 
 ## Quick Reference

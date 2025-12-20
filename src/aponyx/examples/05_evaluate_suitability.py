@@ -62,6 +62,15 @@ def main() -> SuitabilityResult:
     config = define_evaluation_config()
     result = evaluate_suitability(signal, target_change, config)
     save_and_register_evaluation(result, signal_name, product)
+
+    print(f"\nSuitability evaluation for {signal_name} on {product}:")
+    print(f"  Decision: {result.decision}")
+    print(f"  Composite score: {result.composite_score:.2f}")
+    print(f"  Data health: {result.data_health_score:.2f}")
+    print(f"  Predictive: {result.predictive_score:.2f}")
+    print(f"  Economic: {result.economic_score:.2f}")
+    print(f"  Stability: {result.stability_score:.2f}")
+
     return result
 
 

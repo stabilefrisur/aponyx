@@ -34,7 +34,7 @@ from aponyx.config import (
     STRATEGY_CATALOG_PATH,
 )
 from aponyx.data.registry import DataRegistry
-from aponyx.backtest import BacktestResult, run_backtest, StrategyRegistry
+from aponyx.backtest import BacktestResult, run_backtest, StrategyRegistry, resolve_calculator
 from aponyx.persistence import load_parquet, save_parquet
 
 
@@ -52,10 +52,10 @@ def main() -> BacktestResult:
     """
     signal_name, product, strategy_name = define_backtest_parameters()
     signal, spread = load_backtest_data(signal_name, product)
-    config = load_strategy_config(
+    config, calculator = load_strategy_config(
         strategy_name, product
     )  # Pass product for microstructure
-    result = execute_backtest(signal, spread, config)
+    result = execute_backtest(signal, spread, config, calculator)
     save_backtest_result(result, signal_name, strategy_name)
     return result
 
@@ -170,14 +170,14 @@ def load_strategy_config(strategy_name: str, product: str):
 
     Returns
     -------
-    BacktestConfig
-        Backtest configuration with strategy parameters and product microstructure.
+    tuple[BacktestConfig, ReturnCalculator]
+        Backtest configuration and calculator for P&L computation.
 
     Notes
     -----
     Reads strategy metadata from catalog (trading behavior) and product microstructure
-    from bloomberg_securities.json (DV01, transaction costs), then merges both into
-    BacktestConfig. This separation allows strategies to be reused across products.
+    from bloomberg_securities.json (DV01, transaction costs). Creates appropriate
+    calculator based on product quote_type (spread vs price).
     """
     from aponyx.data import get_product_microstructure
 
@@ -187,16 +187,25 @@ def load_strategy_config(strategy_name: str, product: str):
     # Load product-specific microstructure (DV01, transaction costs)
     microstructure = get_product_microstructure(product)
 
-    return metadata.to_config(
-        dv01_per_million=microstructure.dv01_per_million,
+    # Create config with transaction costs only (no DV01)
+    config = metadata.to_config(
         transaction_cost_bps=microstructure.transaction_cost_bps,
     )
+
+    # Resolve calculator based on product quote type
+    calculator = resolve_calculator(
+        quote_type=microstructure.quote_type,
+        dv01_per_million=microstructure.dv01_per_million,
+    )
+
+    return config, calculator
 
 
 def execute_backtest(
     signal: pd.Series,
     spread: pd.Series,
     config,
+    calculator,
 ) -> BacktestResult:
     """
     Run backtest with signal and spread data.
@@ -209,13 +218,15 @@ def execute_backtest(
         Spread series with DatetimeIndex.
     config : BacktestConfig
         Backtest configuration.
+    calculator : ReturnCalculator
+        Calculator for P&L computation (spread or price-based).
 
     Returns
     -------
     BacktestResult
         Backtest result with positions and P&L.
     """
-    return run_backtest(signal, spread, config)
+    return run_backtest(signal, spread, config, calculator)
 
 
 def save_backtest_result(

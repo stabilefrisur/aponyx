@@ -54,6 +54,13 @@ def main() -> PerformanceResult:
     config = define_performance_config()
     performance = compute_performance_metrics(backtest_result, config)
     save_performance_report(performance, signal_name, strategy_name)
+
+    print(f"\nPerformance analysis for {signal_name} ({strategy_name}):")
+    print(f"  Sharpe ratio: {performance.metrics.sharpe_ratio:.2f}")
+    print(f"  Max drawdown: {performance.metrics.max_drawdown:.0f}")
+    print(f"  Total trades: {performance.metrics.n_trades:.0f}")
+    print(f"  Hit rate: {performance.metrics.hit_rate:.1%}")
+
     return performance
 
 

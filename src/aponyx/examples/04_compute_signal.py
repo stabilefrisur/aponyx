@@ -1,32 +1,23 @@
 """
-Compute all enabled signals from catalog using market data.
+Compute signals using the four-stage transformation pipeline.
 
 Prerequisites
 -------------
-Data fetched from previous step (02_fetch_data_file.py or 03_fetch_data_bloomberg.py):
-- Cached data in data/cache/{provider}/ for required instruments
-- Data registry populated with dataset entries
+Market data available from data registry or raw files.
+Run 01_generate_synthetic_data.py to create sample data.
 
-Workflow
---------
-1. Determine required data keys from ALL enabled signals
-2. Load all required market data once from registry
-3. Compute all enabled signals via four-stage transformation pipeline
-4. Individual signals then used separately for evaluation/backtesting
-
-Four-Stage Transformation Pipeline
-----------------------------------
+Four-Stage Pipeline
+-------------------
 Security → Indicator → Score → Signal → Position
 
-1. Indicator Transformation: Compute economic metric (e.g., spread difference in bps)
-2. Score Transformation: Normalize indicator (e.g., z-score)
-3. Signal Transformation: Apply trading rules (floor, cap, neutral_range)
-4. Position Calculation: Backtest layer (out of scope for this script)
+1. Indicator: Economic metric (e.g., spread difference in bps)
+2. Score: Normalized value (e.g., z-score)
+3. Signal: Trading signal with rules (floor, cap, neutral_range)
+4. Position: Backtest layer (not in this script)
 
 Outputs
 -------
-Dict of computed signals (one pd.Series per enabled signal).
-Saved to data/workflows/signals/{signal_name}.parquet for next steps.
+Computed signals saved to data/workflows/signals/{signal_name}.parquet.
 
 Examples
 --------
@@ -34,7 +25,6 @@ Run from project root:
     python -m aponyx.examples.04_compute_signal
 
 Returns dict with signal names as keys and pd.Series as values.
-Expected: 3 signals (cdx_etf_basis, cdx_vix_gap, spread_momentum).
 """
 
 import pandas as pd
@@ -56,10 +46,10 @@ from aponyx.persistence import save_parquet
 
 def main() -> dict[str, pd.Series]:
     """
-    Execute batch signal computation workflow.
+    Compute all enabled signals from catalog.
 
-    Loads all required market data from registry, then computes
-    all enabled signals via the four-stage transformation pipeline.
+    Loads required market data and computes signals via
+    the four-stage transformation pipeline.
 
     Returns
     -------
@@ -69,33 +59,28 @@ def main() -> dict[str, pd.Series]:
     market_data = load_all_required_data()
     signals = compute_all_signals(market_data)
     save_all_signals(signals)
+
+    print(f"Computed {len(signals)} signals:")
+    for name, signal in signals.items():
+        print(f"  {name}: {len(signal)} values, range [{signal.min():.2f}, {signal.max():.2f}]")
+
     return signals
 
 
 def load_all_required_data() -> dict[str, pd.DataFrame]:
     """
-    Load all market data required by enabled signals.
-
-    Uses default_securities from each indicator's metadata to determine
-    which specific securities to load for each instrument type.
+    Load market data required by enabled signals.
 
     Returns
     -------
     dict[str, pd.DataFrame]
-        Market data mapping with all required instruments.
-        Keys are generic identifiers (e.g., "cdx", "etf", "vix").
-
-    Notes
-    -----
-    Collects data requirements from indicator_transformation.json
-    based on which indicators are referenced by enabled signals.
+        Market data mapping (e.g., "cdx", "etf", "vix").
     """
     data_registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
     signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
     indicator_registry = IndicatorTransformationRegistry(INDICATOR_TRANSFORMATION_PATH)
 
-    # Build mapping from instrument type to security ID
-    # by collecting default_securities from indicators used by enabled signals
+    # Collect required securities from signal definitions
     instrument_to_security: dict[str, str] = {}
     for signal_name, signal_meta in signal_registry.get_enabled().items():
         indicator_meta = indicator_registry.get_metadata(
@@ -104,7 +89,7 @@ def load_all_required_data() -> dict[str, pd.DataFrame]:
         for inst_type, security_id in indicator_meta.default_securities.items():
             instrument_to_security[inst_type] = security_id
 
-    # Load data for each instrument type using the mapped security
+    # Load data for each required instrument
     market_data: dict[str, pd.DataFrame] = {}
     for inst_type, security_id in sorted(instrument_to_security.items()):
         df = data_registry.load_dataset_by_security(security_id)
@@ -117,22 +102,17 @@ def compute_all_signals(
     market_data: dict[str, pd.DataFrame],
 ) -> dict[str, pd.Series]:
     """
-    Compute all enabled signals using four-stage transformation pipeline.
+    Compute all enabled signals via four-stage pipeline.
 
     Parameters
     ----------
     market_data : dict[str, pd.DataFrame]
-        Complete market data with all required instruments.
+        Market data with all required instruments.
 
     Returns
     -------
     dict[str, pd.Series]
         Mapping from signal name to computed signal series.
-
-    Notes
-    -----
-    Orchestrator computes ALL enabled signals in one pass via compose_signal().
-    Individual signals are then selected for evaluation/backtesting.
     """
     signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
     return compute_registered_signals(signal_registry, market_data)
@@ -146,10 +126,6 @@ def save_all_signals(signals: dict[str, pd.Series]) -> None:
     ----------
     signals : dict[str, pd.Series]
         Mapping from signal name to computed signal series.
-
-    Notes
-    -----
-    Saves each signal as data/workflows/signals/{signal_name}.parquet.
     """
     signals_dir = DATA_WORKFLOWS_DIR / "signals"
     signals_dir.mkdir(parents=True, exist_ok=True)
