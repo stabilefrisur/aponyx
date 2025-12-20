@@ -230,8 +230,8 @@ force: true
 aponyx run workflow.yaml
 
 # Use example configs
-aponyx run examples/workflow_minimal.yaml
-aponyx run examples/workflow_complete.yaml
+aponyx run src/aponyx/examples/configs/01_workflow_minimal.yaml
+aponyx run src/aponyx/examples/configs/02_workflow_complete.yaml
 ```
 
 **Available YAML fields:**

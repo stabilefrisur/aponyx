@@ -92,7 +92,7 @@ Add to `strategy_catalog.json`:
 ## CLI
 
 ```bash
-aponyx run examples/workflow_minimal.yaml
+aponyx run src/aponyx/examples/configs/01_workflow_minimal.yaml
 aponyx report 0 --format md
 aponyx list signals
 aponyx clean --all

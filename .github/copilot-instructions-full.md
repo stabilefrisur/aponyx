@@ -22,7 +22,7 @@ uv run mypy src/           # Type checking
 uv run ruff check src/     # Linting
 
 # CLI workflows
-uv run aponyx run examples/workflow_minimal.yaml
+uv run aponyx run src/aponyx/examples/configs/01_workflow_minimal.yaml
 uv run aponyx report --workflow minimal_test
 uv run aponyx list signals
 ```
@@ -117,7 +117,7 @@ Aponyx is a **Python 3.12 systematic fixed-income research framework** for devel
 | **YAML (Catalog)** | ruamel.yaml | 0.18+ | Comment-preserving round-trip editing |
 | **YAML (CLI)** | PyYAML | 6.0+ | Simple config reading |
 
-**YAML Library Choice**: Dual libraries serve distinct purposes—ruamel.yaml preserves comments in editable catalogs (`config/*.yaml`), PyYAML provides faster read-only parsing for workflow configs (`examples/*.yaml`). Both dependencies justified (~350KB total overhead).
+**YAML Library Choice**: Dual libraries serve distinct purposes—ruamel.yaml preserves comments in editable catalogs (`config/*.yaml`), PyYAML provides faster read-only parsing for workflow configs (`src/aponyx/examples/configs/*.yaml`). Both dependencies justified (~350KB total overhead).
 
 ### Build & Package Management
 
@@ -208,7 +208,7 @@ src/aponyx/
 │   └── json_io.py         # Metadata storage
 ├── config/                # Constants & paths
 │   └── __init__.py        # PROJECT_ROOT, DATA_DIR, catalog paths
-├── examples/              # Standalone workflow scripts
+├── src/aponyx/examples/   # Example configs (included in distribution)
 │   ├── 01_generate_synthetic_data.py
 │   ├── 02_fetch_data_file.py
 │   ├── 04_compute_signal.py

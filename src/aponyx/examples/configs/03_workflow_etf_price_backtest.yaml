@@ -1,0 +1,46 @@
+# ==============================================================================
+# 03. ETF PRICE BACKTEST - Price-Quoted Products
+# ==============================================================================
+# Purpose: Demonstrate backtesting price-quoted securities (ETFs)
+# Use Case: ETF strategies, cross-asset signals, price return analysis
+#
+# This example shows:
+# - Automatic PriceReturnCalculator selection for ETFs
+# - Price-based P&L calculation (not spread-based)
+# - Display channel override for visualization
+#
+# Product: LQD (iShares Investment Grade Corporate Bond ETF)
+# Quote Type: price (auto-detected from bloomberg_securities.json)
+# P&L Formula: Position × (Price[t]/Price[t-1] - 1) × Notional
+#
+# Data Channels:
+#   - INDICATOR: Uses spread by default for ETF instrument_type
+#   - PNL: Uses price (from quote_type in security spec)
+#   - DISPLAY: Overridable below to show price in charts
+# ==============================================================================
+
+label: etf_backtest
+
+signal: cdx_etf_basis        # Uses both CDX and ETF data
+product: lqd                 # LQD ETF (price-quoted)
+strategy: balanced
+data: synthetic
+
+# ---- Display Override ----
+# Show price channel in charts instead of default spread
+# display_channel: price
+
+# ---- Security Mapping ----
+# Override default securities if needed
+# securities:
+#   cdx: cdx_ig_5y
+#   etf: lqd
+
+# ---- Cost Overrides ----
+# Note: DV01 not used for price products, but transaction costs apply
+# transaction_cost_bps_override: 0.5       # Fixed cost in bps
+# transaction_cost_pct_override: 0.025     # Industry standard: 2.5%
+
+# ---- Execution Control ----
+# skip_steps: [suitability, visualization]
+# force: true

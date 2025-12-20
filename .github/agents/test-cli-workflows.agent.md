@@ -11,17 +11,31 @@ description: 'Test CLI workflows and update documentation'
 ## Testing Scope
 
 ### 1. Example Workflows
-Test all YAML configs in `examples/`:
-- [ ] `workflow_minimal.yaml` - Required fields only
-- [ ] `workflow_complete.yaml` - All explicit fields
+Test all YAML configs in `src/aponyx/examples/configs/`:
+
+**Workflows (01-03):**
+- [ ] `01_workflow_minimal.yaml` - Quick start with minimal required fields
+- [ ] `02_workflow_complete.yaml` - Full configuration reference with all overrides
+- [ ] `03_workflow_etf_price_backtest.yaml` - Price-quoted product backtest
+
+**Sweeps (04-06):**
+- [ ] `04_sweep_indicator_lookback.yaml` - Indicator mode (8 combinations)
+- [ ] `05_sweep_strategy_optimization.yaml` - Backtest mode (27 combinations)
+- [ ] `06_sweep_comprehensive.yaml` - Full pipeline (200 combinations)
 
 ### 2. CLI Commands
 
 **Core commands:**
 - [ ] `aponyx run <config>` - Execute workflow
+- [ ] `aponyx sweep <config> [--dry-run]` - Run parameter sweeps
 - [ ] `aponyx report --workflow <label|index> [--format console|markdown|html]`
 - [ ] `aponyx clean --workflows [--all|--older-than Nd] [--dry-run]`
 - [ ] `aponyx clean --indicators [--dry-run]`
+
+**Catalog management:**
+- [ ] `aponyx catalog validate` - Check YAML catalog integrity
+- [ ] `aponyx catalog sync [--dry-run]` - Regenerate JSON from YAML
+- [ ] `aponyx catalog migrate [--force]` - One-time JSON to YAML migration
 
 **List subcommands:**
 - [ ] `aponyx list signals`
@@ -48,16 +62,41 @@ Sync with actual implementation:
 ### Step 1: Run Example Workflows
 ```bash
 cd c:/Users/ROG3003/PythonProjects/aponyx
-uv run aponyx run examples/workflow_minimal.yaml
-uv run aponyx run examples/workflow_complete.yaml
+
+# Phase 1: Workflows
+uv run aponyx run src/aponyx/examples/configs/01_workflow_minimal.yaml
+uv run aponyx run src/aponyx/examples/configs/02_workflow_complete.yaml
+uv run aponyx run src/aponyx/examples/configs/03_workflow_etf_price_backtest.yaml
 ```
 
 **Verify output includes:**
 - Configuration display with source tags (`[config]`, `[from signal]`, `[from indicator]`, `[default]`)
-- Step completion count and duration
-- Output directory path
+- Step completion count and duration (~5s per workflow)
+- Output directory path in `data/workflows/<label>_<timestamp>/`
 
-### Step 2: Test All List Commands
+### Step 2: Run Parameter Sweeps
+```bash
+# Phase 2: Indicator sweep (fast)
+uv run aponyx sweep src/aponyx/examples/configs/04_sweep_indicator_lookback.yaml --dry-run
+uv run aponyx sweep src/aponyx/examples/configs/04_sweep_indicator_lookback.yaml
+
+# Phase 3: Backtest sweeps
+uv run aponyx sweep src/aponyx/examples/configs/05_sweep_strategy_optimization.yaml --dry-run
+uv run aponyx sweep src/aponyx/examples/configs/05_sweep_strategy_optimization.yaml
+
+# Comprehensive sweep (takes ~18s)
+uv run aponyx sweep src/aponyx/examples/configs/06_sweep_comprehensive.yaml
+```
+
+**Verify output includes:**
+- Sweep configuration display (name, mode, signal, combinations)
+- Parameter list with values
+- Progress bar with combo/s rate
+- Summary with success rate and duration
+- Output directory path in `data/sweeps/<name>_<timestamp>/`
+- Files: `config.json`, `summary.json`, `results.parquet`
+
+### Step 3: Test All List Commands
 ```bash
 uv run aponyx list signals
 uv run aponyx list products
@@ -72,7 +111,7 @@ uv run aponyx list workflows
 uv run aponyx list workflows --signal spread_momentum
 ```
 
-### Step 3: Test Report Command
+### Step 4: Test Report Command
 ```bash
 # By label (stable reference)
 uv run aponyx report --workflow minimal_test
@@ -85,7 +124,7 @@ uv run aponyx report --workflow minimal_test --format markdown
 uv run aponyx report --workflow minimal_test --format html
 ```
 
-### Step 4: Test Clean Command (Dry Run)
+### Step 5: Test Clean Command (Dry Run)
 ```bash
 # Preview workflow cleanup
 uv run aponyx clean --workflows --all --dry-run
@@ -95,12 +134,34 @@ uv run aponyx clean --workflows --older-than 30d --dry-run
 uv run aponyx clean --indicators --dry-run
 ```
 
-### Step 5: Verify Command Help
+### Step 6: Test Catalog Commands
+```bash
+# Validate YAML catalogs
+uv run aponyx catalog validate
+
+# Preview sync (no changes)
+uv run aponyx catalog sync --dry-run
+
+# Actual sync (if needed)
+# uv run aponyx catalog sync
+```
+
+**Verify output includes:**
+- Validation status for each catalog (signals, strategies, securities)
+- Cross-reference validation results
+- Sync preview showing changed/unchanged file counts
+
+### Step 7: Verify Command Help
 ```bash
 uv run aponyx --help
 uv run aponyx run --help
+uv run aponyx sweep --help
 uv run aponyx report --help
 uv run aponyx list --help
+uv run aponyx catalog --help
+uv run aponyx catalog validate --help
+uv run aponyx catalog sync --help
+uv run aponyx catalog migrate --help
 uv run aponyx clean --help
 ```
 
@@ -146,18 +207,28 @@ Common discrepancies:
 ```markdown
 ## CLI Test Results
 
-### Workflows Tested
-| Workflow | Status | Notes |
-|----------|--------|-------|
-| workflow_minimal.yaml | ✅ Pass | 6 steps, 1.8s |
-| workflow_complete.yaml | ✅ Pass | 6 steps, 2.1s |
+### Examples Tested
+| Example | Type | Status | Notes |
+|---------|------|--------|-------|
+| 01_workflow_minimal.yaml | Workflow | ✅ Pass | 6 steps, ~5s |
+| 02_workflow_complete.yaml | Workflow | ✅ Pass | 6 steps, ~5s |
+| 03_workflow_etf_price_backtest.yaml | Workflow | ✅ Pass | 6 steps, ~5s |
+| 04_sweep_indicator_lookback.yaml | Sweep | ✅ Pass | 8 combos, ~5s |
+| 05_sweep_strategy_optimization.yaml | Sweep | ✅ Pass | 27 combos, ~6s |
+| 06_sweep_comprehensive.yaml | Sweep | ✅ Pass | 200 combos, ~18s |
 
 ### Commands Tested
 | Command | Status | Notes |
 |---------|--------|-------|
+| `run` | ✅ Pass | 3 workflows executed |
+| `sweep` | ✅ Pass | 3 sweeps executed |
+| `report` | ✅ Pass | console/markdown/html |
+| `catalog validate` | ✅ Pass | All catalogs valid |
+| `catalog sync --dry-run` | ✅ Pass | Preview mode works |
 | `list signals` | ✅ Pass | 3 signals |
 | `list products` | ✅ Pass | 5 products |
-| ... | ... | ... |
+| `list workflows` | ✅ Pass | Filtering works |
+| `clean --workflows --dry-run` | ✅ Pass | Preview mode works |
 
 ### Documentation Issues Found
 | File | Issue | Fix Applied |
@@ -208,8 +279,15 @@ Options that were removed but still documented:
 Add to CI/CD or run manually before releases:
 ```bash
 # Verify example workflows execute
-uv run aponyx run examples/workflow_minimal.yaml
-uv run aponyx run examples/workflow_complete.yaml
+uv run aponyx run src/aponyx/examples/configs/01_workflow_minimal.yaml
+uv run aponyx run src/aponyx/examples/configs/02_workflow_complete.yaml
+uv run aponyx run src/aponyx/examples/configs/03_workflow_etf_price_backtest.yaml
+
+# Verify sweeps execute (quick ones only)
+uv run aponyx sweep src/aponyx/examples/configs/04_sweep_indicator_lookback.yaml
+
+# Verify catalog validation
+uv run aponyx catalog validate
 
 # Verify all list commands work
 for item in signals products indicators score-transformations signal-transformations securities strategies datasets steps workflows; do
@@ -238,6 +316,6 @@ Run complete CLI workflow tests per test-cli-workflows.prompt.md
 
 ---
 
-> **Version:** 1.0  
-> **Optimized for:** Claude Opus 4.5 (Preview) Agent Mode  
-> **Last Updated:** December 13, 2025
+> **Version:** 1.1  
+> **Optimized for:** Claude Sonnet 4.5 Agent Mode  
+> **Last Updated:** December 20, 2025

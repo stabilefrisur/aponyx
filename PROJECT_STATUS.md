@@ -201,7 +201,7 @@ src/aponyx/
     parquet_io.py     # Parquet read/write
     json_io.py        # JSON read/write
   
-  examples/           # Standalone workflow scripts (included in distribution)
+  src/aponyx/examples/ # Example configs (included in distribution)
     01_generate_synthetic_data.py  # Synthetic data generation
     02_fetch_data_file.py          # File-based data loading
     03_fetch_data_bloomberg.py     # Bloomberg Terminal fetch
@@ -613,7 +613,7 @@ max_combinations: 50  # optional limit
 - **Configuration:**
   - YAML configuration file support for reproducible workflows
   - CLI argument parsing with click framework
-  - Example config files in `examples/` directory
+  - Example config files in `src/aponyx/examples/configs/` directory
 - **Error Handling:**
   - Graceful error messages with exit codes
   - Validation of signal/strategy/product combinations
@@ -643,7 +643,7 @@ max_combinations: 50  # optional limit
 
 **Documentation:**
 - Complete CLI user guide (`docs/cli_guide.md`)
-- Example YAML configurations in `examples/`
+- Example YAML configurations in `src/aponyx/examples/configs/`
 
 ### ✅ Catalog Layer (`src/aponyx/catalog/`)
 
@@ -1319,7 +1319,8 @@ aponyx/
 │   │   ├── __init__.py
 │   │   ├── parquet_io.py    # Parquet read/write
 │   │   └── json_io.py       # JSON read/write
-│   ├── examples/            # Standalone workflow scripts (in distribution)
+│   ├── examples/            # Example configs (in distribution)
+│   │   └── configs/         # Numbered workflow and sweep YAML files
 │   │   ├── 01_generate_synthetic_data.py
 │   │   ├── 02_fetch_data_file.py
 │   │   ├── 03_fetch_data_bloomberg.py
@@ -1354,13 +1355,15 @@ aponyx/
 │   ├── visualization/       # 19 tests
 │   └── workflows/           # 27 tests
 │
-├── examples/                # YAML workflow and sweep configurations
-│   ├── workflow_minimal.yaml
-│   ├── workflow_complete.yaml
-│   ├── workflow_etf.yaml
-│   ├── sweep_indicator.yaml
-│   ├── sweep_backtest.yaml
-│   └── sweep_comprehensive.yaml
+├── src/aponyx/examples/     # Example configs (included in distribution)
+│   └── configs/             # Numbered workflow and sweep YAML files
+│       ├── 01_workflow_minimal.yaml
+│       ├── 02_workflow_complete.yaml
+│       ├── 03_workflow_etf_price_backtest.yaml
+│       ├── 04_sweep_indicator_lookback.yaml
+│       ├── 05_sweep_strategy_optimization.yaml
+│       ├── 06_sweep_comprehensive.yaml
+│       └── README.md
 │
 ├── data/                    # Data storage (not in git)
 │   ├── registry.json        # Dataset registry (runtime)

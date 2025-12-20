@@ -621,7 +621,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Smart caching with automatic skip of completed steps
   - Force re-run option for invalidating cache
   - Subset execution for running specific workflow steps
-  - Example workflow YAML files in `examples/` directory
+  - Example workflow YAML files in `src/aponyx/examples/configs/` directory
   - Comprehensive CLI user guide (`src/aponyx/docs/cli_user_guide.md`)
   - Help text shorthand (`-h`) for all commands
   - Comprehensive CLI layer test suite with 28 tests

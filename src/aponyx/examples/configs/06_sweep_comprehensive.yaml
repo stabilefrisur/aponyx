@@ -1,0 +1,74 @@
+# ==============================================================================
+# 06. COMPREHENSIVE SWEEP - Full Pipeline Optimization
+# ==============================================================================
+# Purpose: Optimize all four transformation stages simultaneously
+# Use Case: Exhaustive search, production tuning, research exploration
+#
+# Mode: backtest (full P&L simulation)
+# Combinations: 2^11 = 2,048 total (limited to 200 for runtime)
+#
+# This sweep demonstrates:
+# - Stage 1: Indicator parameters (lookback)
+# - Stage 2: Score parameters (window, min_periods)
+# - Stage 3: Signal parameters (scaling, floor, cap)
+# - Stage 4: Strategy parameters (size, thresholds, risk controls)
+#
+# Warning: Computationally expensive. Use max_combinations limit.
+#
+# To run:
+#   uv run aponyx sweep examples/06_sweep_comprehensive.yaml
+# ==============================================================================
+
+name: "comprehensive_sweep"
+description: "Optimize all pipeline stages for spread_momentum signal"
+mode: "backtest"                 # Full backtest mode
+
+base:
+  signal: "spread_momentum"      # Momentum signal with parametric indicator
+  strategy: "balanced"           # Base strategy configuration
+
+# ---- Four-Stage Pipeline Parameters ----
+parameters:
+  # ---- STAGE 1: INDICATOR TRANSFORMATION ----
+  # Raw metric computation (bps, ratios, levels)
+  - path: "indicator_transformation.parameters.lookback"
+    values: [5, 10]              # Momentum lookback period (days)
+
+  # ---- STAGE 2: SCORE TRANSFORMATION ----
+  # Normalization and standardization
+  - path: "score_transformation.parameters.window"
+    values: [20, 40]             # Z-score rolling window (days)
+  
+  - path: "score_transformation.parameters.min_periods"
+    values: [10, 20]             # Minimum data points for z-score
+
+  # ---- STAGE 3: SIGNAL TRANSFORMATION ----
+  # Trading rule bounds and scaling
+  - path: "signal_transformation.parameters.scaling"
+    values: [1.0, 2.0]           # Signal multiplier
+  
+  - path: "signal_transformation.parameters.floor"
+    values: [-1.5, -2.0]         # Signal lower bound (short)
+  
+  - path: "signal_transformation.parameters.cap"
+    values: [1.5, 2.0]           # Signal upper bound (long)
+
+  # ---- STAGE 4: STRATEGY / BACKTEST ----
+  # Position sizing and risk controls
+  - path: "strategy.position_size_mm"
+    values: [5.0, 10.0]          # Notional in millions
+  
+  - path: "strategy.entry_threshold"
+    values: [1.0, 1.5]           # Minimum signal strength
+  
+  - path: "strategy.stop_loss_pct"
+    values: [5.0, 10.0]          # Stop loss percentage
+  
+  - path: "strategy.take_profit_pct"
+    values: [10.0, 15.0]         # Take profit percentage
+  
+  - path: "strategy.max_holding_days"
+    values: [20, 30]             # Maximum holding period
+
+# ---- Execution Control ----
+max_combinations: 200            # Limit runtime (total: 2^11 = 2,048)

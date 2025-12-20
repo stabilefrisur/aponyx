@@ -5,7 +5,6 @@ Fetch functions handle data acquisition from any source (file, Bloomberg, API)
 with automatic validation and optional caching.
 """
 
-import hashlib
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -38,7 +37,7 @@ def save_to_raw(
 
     Unlike cache, raw data is never deleted automatically.
     Raw storage represents the original data as fetched from external sources.
-    Uses hash-based naming for uniqueness and permanence.
+    Uses timestamp-based naming to track when data was fetched.
 
     Parameters
     ----------
@@ -63,28 +62,18 @@ def save_to_raw(
     Notes
     -----
     Creates provider subdirectory if it doesn't exist.
-    Files are named: {security}_{hash}.parquet
-    Metadata is saved as: {security}_{hash}.json
-    Hash ensures uniqueness across different date ranges and parameters.
+    Files are named: {security}_{YYYYMMDD_HHMMSS}.parquet
+    Metadata is saved as: {security}_{YYYYMMDD_HHMMSS}.json
+    Timestamp ensures each fetch creates a separate archive file.
     """
     provider_dir = raw_dir / provider
     provider_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate hash from content and metadata for uniqueness
+    # Generate timestamp for filename
     safe_security = security.replace(".", "_").replace("/", "_")
-    hash_input = "|".join(
-        [
-            provider,
-            security,
-            str(df.index.min()),
-            str(df.index.max()),
-            str(len(df)),
-            str(sorted(metadata_params.items())),
-        ]
-    )
-    file_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:12]
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    filename = f"{safe_security}_{file_hash}.parquet"
+    filename = f"{safe_security}_{timestamp}.parquet"
     raw_path = provider_dir / filename
 
     # Save data
@@ -102,17 +91,17 @@ def save_to_raw(
         },
         "row_count": len(df),
         "columns": list(df.columns),
-        "hash": file_hash,
+        "timestamp": timestamp,
         **metadata_params,
     }
-    metadata_path = provider_dir / f"{safe_security}_{file_hash}.json"
+    metadata_path = provider_dir / f"{safe_security}_{timestamp}.json"
     save_json(metadata, metadata_path)
     logger.debug("Saved metadata: %s", metadata_path)
 
     # Register in data registry
     if registry is not None:
         registry.register_dataset(
-            name=f"raw_{provider}_{security}_{file_hash}",
+            name=f"raw_{provider}_{security}_{timestamp}",
             file_path=raw_path,
             instrument=security,
             metadata=metadata,

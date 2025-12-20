@@ -28,8 +28,8 @@ uv run aponyx catalog validate     # Check for errors
 uv run aponyx catalog sync         # Regenerate JSON files
 
 # Run parameter sweeps
-uv run aponyx sweep examples/sweep_indicator.yaml --dry-run  # Preview
-uv run aponyx sweep examples/sweep_backtest.yaml             # Execute
+uv run aponyx sweep src/aponyx/examples/configs/04_sweep_indicator_lookback.yaml --dry-run  # Preview
+uv run aponyx sweep src/aponyx/examples/configs/05_sweep_strategy_optimization.yaml             # Execute
 ```
 
 **Logging:** Default is WARNING. Use `-v` for DEBUG. Logs saved to `logs/aponyx_{timestamp}.log`.
@@ -111,8 +111,8 @@ force: true
 **Run workflows:**
 ```bash
 # Use example configs
-uv run aponyx run examples/workflow_minimal.yaml
-uv run aponyx run examples/workflow_complete.yaml
+uv run aponyx run src/aponyx/examples/configs/01_workflow_minimal.yaml
+uv run aponyx run src/aponyx/examples/configs/02_workflow_complete.yaml
 ```
 
 **Terminal Output:**
@@ -235,13 +235,13 @@ max_combinations: 27  # 3×3×3 = 27 combinations
 **Run sweeps:**
 ```bash
 # Preview combinations (no evaluation)
-uv run aponyx sweep examples/sweep_indicator.yaml --dry-run
+uv run aponyx sweep src/aponyx/examples/configs/04_sweep_indicator_lookback.yaml --dry-run
 
 # Run full sweep
-uv run aponyx sweep examples/sweep_indicator.yaml
+uv run aponyx sweep src/aponyx/examples/configs/04_sweep_indicator_lookback.yaml
 
 # Run backtest sweep
-uv run aponyx sweep examples/sweep_backtest.yaml
+uv run aponyx sweep src/aponyx/examples/configs/05_sweep_strategy_optimization.yaml
 ```
 
 **Terminal Output:**
@@ -645,7 +645,7 @@ strategy: balanced      # Uses proportional sizing mode by default
 
 **Usage:**
 ```bash
-uv run aponyx run examples/workflow_minimal.yaml
+uv run aponyx run src/aponyx/examples/configs/01_workflow_minimal.yaml
 ```
 
 **Default Resolution Priority:**
@@ -714,8 +714,8 @@ uv run aponyx report --workflow bloomberg_run --format html
 for config in configs/*.yaml; do uv run aponyx run "$config"; done
 
 # Parameter sensitivity analysis
-uv run aponyx sweep examples/sweep_indicator.yaml
-uv run aponyx sweep examples/sweep_backtest.yaml
+uv run aponyx sweep src/aponyx/examples/configs/04_sweep_indicator_lookback.yaml
+uv run aponyx sweep src/aponyx/examples/configs/05_sweep_strategy_optimization.yaml
 
 # Catalog management: validate → preview → sync → commit
 uv run aponyx catalog validate

@@ -102,7 +102,9 @@ def test_save_to_raw_multiple_providers(tmp_path):
 
 
 def test_save_to_raw_overwrites_existing(tmp_path):
-    """Test that save_to_raw creates separate files for different content."""
+    """Test that save_to_raw creates separate files for each save."""
+    import time
+
     df1 = pd.DataFrame(
         {"value": [1, 2, 3]},
         index=pd.date_range("2024-01-01", periods=3),
@@ -113,9 +115,11 @@ def test_save_to_raw_overwrites_existing(tmp_path):
     )
 
     path1 = save_to_raw(df1, "bloomberg", "test", tmp_path)
+    # Small delay to ensure different timestamp
+    time.sleep(1.1)
     path2 = save_to_raw(df2, "bloomberg", "test", tmp_path)
 
-    # Different data creates different hash, so different files
+    # Different timestamps create different files
     assert path1 != path2
     assert path1.parent == path2.parent
 

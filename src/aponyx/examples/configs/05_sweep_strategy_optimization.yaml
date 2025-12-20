@@ -1,0 +1,41 @@
+# ==============================================================================
+# 05. STRATEGY OPTIMIZATION - Backtest Parameter Sweep
+# ==============================================================================
+# Purpose: Find optimal signal bounds and position sizing
+# Use Case: Strategy tuning, risk-return optimization, production deployment prep
+#
+# Mode: backtest (runs full P&L simulation)
+# Output: Performance metrics for each parameter combination
+# Combinations: 3 × 3 × 3 = 27 (position size × floor × cap)
+#
+# This sweep focuses on:
+# - Position sizing (risk control)
+# - Signal transformation bounds (entry/exit levels)
+#
+# To run:
+#   uv run aponyx sweep examples/05_sweep_strategy_optimization.yaml
+# ==============================================================================
+
+name: "strategy_optimization"
+description: "Optimize signal bounds and position sizing for cdx_etf_basis"
+mode: "backtest"                 # Full backtest with P&L
+
+base:
+  signal: "cdx_etf_basis"        # Basis signal to optimize
+  strategy: "balanced"           # Base strategy config
+
+# ---- Parameters to Sweep ----
+parameters:
+  # Position sizing (notional in millions)
+  - path: "strategy.position_size_mm"
+    values: [5.0, 10.0, 20.0]
+  
+  # Signal floor (minimum for short positions)
+  - path: "signal_transformation.parameters.floor"
+    values: [-1.0, -1.5, -2.0]
+  
+  # Signal cap (maximum for long positions)
+  - path: "signal_transformation.parameters.cap"
+    values: [1.0, 1.5, 2.0]
+
+max_combinations: 27             # Test all combinations

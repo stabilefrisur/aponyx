@@ -111,4 +111,4 @@ def execute(self, context: dict[str, Any]) -> dict[str, Any]:
 After implementation:
 1. Run `uv run pytest tests/workflows/`
 2. Run `uv run mypy src/aponyx/workflows/`
-3. Test with workflow: `uv run aponyx run examples/workflow_minimal.yaml`
+3. Test with workflow: `uv run aponyx run src/aponyx/examples/configs/01_workflow_minimal.yaml`

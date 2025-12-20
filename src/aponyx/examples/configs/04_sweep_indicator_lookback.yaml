@@ -1,0 +1,33 @@
+# ==============================================================================
+# 04. INDICATOR SWEEP - Lookback Sensitivity Analysis
+# ==============================================================================
+# Purpose: Optimize indicator parameters without running backtest
+# Use Case: Fast parameter tuning, indicator research, pre-backtest analysis
+#
+# Mode: indicator (no strategy/backtest)
+# Output: Statistical summaries for each parameter combination
+# Combinations: 4 × 2 = 8 (lookback × z-score window)
+#
+# To run:
+#   uv run aponyx sweep examples/04_sweep_indicator_lookback.yaml
+# ==============================================================================
+
+name: "lookback_sensitivity"
+description: "Optimize lookback windows for indicator and score transformations"
+mode: "indicator"                # Fast mode - no backtest
+
+base:
+  signal: "cdx_etf_basis"        # Signal to analyze
+  strategy: null                 # Not used in indicator mode
+
+# ---- Parameters to Sweep ----
+parameters:
+  # Stage 1: Indicator lookback window (days)
+  - path: "indicator_transformation.parameters.lookback"
+    values: [10, 20, 40, 60]
+  
+  # Stage 2: Score normalization window (days)
+  - path: "score_transformation.parameters.window"
+    values: [20, 40]
+
+max_combinations: null           # Run all 8 combinations

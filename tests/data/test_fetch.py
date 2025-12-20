@@ -143,7 +143,9 @@ class TestSaveToRaw:
         assert metadata["fetch_method"] == "historical"
 
     def test_save_to_raw_hash_uniqueness(self, sample_df, raw_dir):
-        """Test different date ranges produce different hashes."""
+        """Test sequential saves produce unique timestamped files."""
+        import time
+
         # Save first dataset
         path1 = save_to_raw(
             sample_df,
@@ -151,6 +153,9 @@ class TestSaveToRaw:
             security="cdx_ig_5y",
             raw_dir=raw_dir,
         )
+
+        # Small delay to ensure different timestamp
+        time.sleep(1.1)
 
         # Save dataset with different date range
         different_dates = pd.date_range("2024-02-01", periods=10, freq="D")
@@ -166,7 +171,7 @@ class TestSaveToRaw:
             raw_dir=raw_dir,
         )
 
-        # Paths should be different due to different date ranges
+        # Paths should be different due to different timestamps
         assert path1 != path2
 
     def test_save_to_raw_roundtrip(self, sample_df, raw_dir):

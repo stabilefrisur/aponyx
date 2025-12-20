@@ -1,0 +1,24 @@
+# ==============================================================================
+# 01. MINIMAL WORKFLOW - Quick Start Example
+# ==============================================================================
+# Purpose: Minimal configuration to run a complete backtest
+# Use Case: Getting started, quick testing, CI/CD validation
+# 
+# This example uses only required fields. All transformations use catalog defaults.
+# Perfect for validating the pipeline works end-to-end.
+#
+# Four-Stage Pipeline (automatic from signal_catalog.json):
+#   Security → Indicator → Score → Signal → Position
+#
+# To run:
+#   uv run aponyx run examples/01_workflow_minimal.yaml
+#
+# Available signals: cdx_etf_basis, spread_momentum, cdx_vix_gap
+# Available strategies: aggressive, balanced, conservative, experimental
+# ==============================================================================
+
+label: minimal_test
+signal: spread_momentum       # Momentum-based credit signal
+product: cdx_ig_5y           # CDX IG 5Y index
+strategy: balanced           # Medium risk/return profile
+data: synthetic              # Use synthetic test data

@@ -19,8 +19,8 @@ uv run mypy src/           # Type checking
 uv run ruff check src/     # Linting
 
 # Workflows
-uv run aponyx run examples/workflow_minimal.yaml
-uv run aponyx sweep examples/sweep_comprehensive.yaml
+uv run aponyx run src/aponyx/examples/configs/01_workflow_minimal.yaml
+uv run aponyx sweep src/aponyx/examples/configs/06_sweep_comprehensive.yaml
 uv run aponyx list signals
 ```
 

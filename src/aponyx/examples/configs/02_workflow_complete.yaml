@@ -1,0 +1,52 @@
+# ==============================================================================
+# 02. COMPLETE WORKFLOW - Full Configuration Reference
+# ==============================================================================
+# Purpose: Comprehensive example showing all available overrides
+# Use Case: Custom strategy development, research, parameter tuning
+#
+# This example demonstrates:
+# - Explicit transformation overrides at each stage
+# - Custom security mappings
+# - Product microstructure overrides (DV01, transaction costs)
+# - Display channel customization
+# - Selective step execution
+#
+# Four-Stage Pipeline (all explicit):
+#   1. Indicator Transform  → Raw metric (bps, ratios)
+#   2. Score Transform      → Normalization (z-score, vol-adjusted)
+#   3. Signal Transform     → Trading rules (bounds, neutral zones)
+#   4. Position Calculation → Backtest with microstructure
+# ==============================================================================
+
+# ---- Core Configuration ----
+label: complete_test
+signal: cdx_etf_basis        # Basis signal between CDX and ETF
+product: cdx_ig_5y           # Product to backtest
+strategy: balanced           # Strategy configuration
+data: synthetic              # Data source
+
+# ---- Transformation Overrides ----
+# Override any stage of the four-stage pipeline
+indicator: cdx_etf_spread_diff           # Stage 1: Indicator computation
+score_transformation: z_score_20d        # Stage 2: Normalization method
+signal_transformation: bounded_1_5       # Stage 3: Trading rule bounds
+
+# ---- Security Mapping ----
+# Override which securities to use for indicator inputs
+securities:
+  cdx: cdx_ig_5y
+  etf: lqd
+
+# ---- Product Microstructure Overrides ----
+# Customize DV01 and transaction costs for sensitivity analysis
+# dv01_per_million_override: 500.0         # Override default DV01
+# transaction_cost_bps_override: 2.5       # Fixed cost in bps (OR)
+# transaction_cost_pct_override: 0.025     # Percentage of spread (mutually exclusive)
+
+# ---- Visualization Overrides ----
+# Control which data channel appears in charts
+# display_channel: price                   # Options: spread, price, level
+
+# ---- Execution Control ----
+steps: [data, signal, suitability, backtest, performance, visualization]
+force: true                              # Bypass cache, re-run everything
