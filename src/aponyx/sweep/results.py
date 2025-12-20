@@ -3,16 +3,22 @@ Sweep result dataclasses and persistence utilities.
 
 Provides containers for sweep execution results and functions
 for saving/loading results to/from disk (Parquet + JSON).
+Includes utilities for flattening nested evaluation results into
+DataFrame columns suitable for parameter sensitivity analysis.
 """
 
 import json
 import logging
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+import numpy as np
 import pandas as pd
+
+from aponyx.evaluation.performance.config import PerformanceMetrics
+from aponyx.evaluation.suitability.evaluator import SuitabilityResult
 
 if TYPE_CHECKING:
     from .config import SweepConfig
@@ -329,3 +335,153 @@ def get_top_results(
 
     sorted_df = success_df.sort_values(sort_by, ascending=ascending)
     return sorted_df.head(limit)
+
+
+def flatten_suitability_result(result: SuitabilityResult) -> dict[str, float | int | str]:
+    """
+    Flatten a SuitabilityResult into a dict suitable for DataFrame columns.
+
+    Converts nested dict fields (correlations, betas, t_stats) into separate
+    columns with lag-based suffixes (e.g., correlation_lag_1, beta_lag_5).
+
+    Parameters
+    ----------
+    result : SuitabilityResult
+        Suitability evaluation result to flatten.
+
+    Returns
+    -------
+    dict[str, float | int | str]
+        Flattened key-value pairs for DataFrame row construction.
+
+    Examples
+    --------
+    >>> flat = flatten_suitability_result(suitability_result)
+    >>> df = pd.DataFrame([flat])
+    >>> print(df.columns.tolist())
+    ['decision', 'composite_score', 'correlation_lag_1', ...]
+    """
+    flat: dict[str, Any] = {
+        "decision": result.decision,
+        "composite_score": result.composite_score,
+        "data_health_score": result.data_health_score,
+        "predictive_score": result.predictive_score,
+        "economic_score": result.economic_score,
+        "stability_score": result.stability_score,
+        "valid_obs": result.valid_obs,
+        "missing_pct": result.missing_pct,
+        "effect_size_bps": result.effect_size_bps,
+        "sign_consistency_ratio": result.sign_consistency_ratio,
+        "beta_cv": result.beta_cv,
+        "n_windows": result.n_windows,
+    }
+
+    # Flatten lag-indexed dicts
+    for lag, corr in result.correlations.items():
+        flat[f"correlation_lag_{lag}"] = corr
+    for lag, beta in result.betas.items():
+        flat[f"beta_lag_{lag}"] = beta
+    for lag, tstat in result.t_stats.items():
+        flat[f"tstat_lag_{lag}"] = tstat
+
+    return flat
+
+
+def flatten_performance_metrics(metrics: PerformanceMetrics) -> dict[str, float | int]:
+    """
+    Flatten a PerformanceMetrics dataclass into a dict for DataFrame columns.
+
+    Parameters
+    ----------
+    metrics : PerformanceMetrics
+        Performance metrics from backtest evaluation.
+
+    Returns
+    -------
+    dict[str, float | int]
+        All metrics as key-value pairs (already flat structure).
+
+    Examples
+    --------
+    >>> flat = flatten_performance_metrics(perf_metrics)
+    >>> df = pd.DataFrame([flat])
+    >>> print(f"Sharpe: {df['sharpe_ratio'].iloc[0]:.2f}")
+    """
+    return asdict(metrics)
+
+
+def summarize_sweep_results(
+    results_df: pd.DataFrame,
+    metric_columns: list[str] | None = None,
+) -> pd.DataFrame:
+    """
+    Compute summary statistics across all sweep runs.
+
+    Calculates mean, std, min, max, and best values for each metric column,
+    providing a compact overview of parameter sensitivity.
+
+    Parameters
+    ----------
+    results_df : pd.DataFrame
+        Sweep results DataFrame with metric columns.
+    metric_columns : list[str] | None
+        Columns to summarize. If None, auto-detects numeric columns
+        excluding parameter and metadata columns.
+
+    Returns
+    -------
+    pd.DataFrame
+        Summary statistics with metrics as rows and stats as columns.
+        Columns: mean, std, min, max, count.
+
+    Examples
+    --------
+    >>> summary = summarize_sweep_results(result.results_df)
+    >>> print(summary.loc['sharpe_ratio'])
+    mean     1.45
+    std      0.23
+    min      0.95
+    max      1.98
+    count   12.00
+    Name: sharpe_ratio, dtype: float64
+    """
+    # Filter to successful results
+    if "status" in results_df.columns:
+        df = results_df[results_df["status"] == "success"].copy()
+    else:
+        df = results_df.copy()
+
+    # Auto-detect metric columns if not specified
+    if metric_columns is None:
+        # Exclude known non-metric columns
+        exclude_cols = {
+            "combination_id",
+            "status",
+            "error",
+            "timestamp",
+            "decision",  # categorical
+        }
+        # Also exclude parameter columns (contain dots or known prefixes)
+        metric_columns = [
+            col
+            for col in df.columns
+            if col not in exclude_cols
+            and df[col].dtype in [np.float64, np.int64, float, int]
+            and "." not in col  # parameter paths contain dots
+        ]
+
+    if not metric_columns:
+        logger.warning("No numeric metric columns found for summarization")
+        return pd.DataFrame()
+
+    # Compute statistics
+    stats = df[metric_columns].agg(["mean", "std", "min", "max", "count"]).T
+    stats.columns = ["mean", "std", "min", "max", "count"]
+
+    logger.debug(
+        "Summarized %d metrics across %d successful runs",
+        len(metric_columns),
+        len(df),
+    )
+
+    return stats

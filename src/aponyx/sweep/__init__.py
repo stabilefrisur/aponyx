@@ -11,8 +11,11 @@ Core Components
 - config: SweepConfig, ParameterOverride, BaseConfig dataclasses
 - engine: run_sweep(), generate_combinations()
 - evaluators: evaluate_indicator(), evaluate_backtest()
-- metrics: IndicatorMetrics, BacktestMetrics, compute_indicator_statistics()
-- results: SweepResult, SweepSummary, save/load functions
+- results: SweepResult, SweepSummary, save/load functions, flattening utilities
+
+Metrics are sourced from existing evaluation modules for consistency:
+- Indicator sweeps: Use `aponyx.evaluation.suitability.SuitabilityResult`
+- Backtest sweeps: Use `aponyx.evaluation.performance.PerformanceMetrics`
 
 Example
 -------
@@ -21,6 +24,9 @@ Example
 >>> result = run_sweep(config)
 >>> print(result.results_df.sort_values("sharpe_ratio", ascending=False).head())
 """
+
+from aponyx.evaluation.performance.config import PerformanceMetrics
+from aponyx.evaluation.suitability.evaluator import SuitabilityResult
 
 from .config import (
     BaseConfig,
@@ -31,13 +37,15 @@ from .config import (
 )
 from .engine import generate_combinations, run_sweep
 from .evaluators import evaluate_backtest, evaluate_indicator
-from .metrics import BacktestMetrics, IndicatorMetrics, compute_indicator_statistics
 from .results import (
     SweepResult,
     SweepSummary,
+    flatten_performance_metrics,
+    flatten_suitability_result,
     get_top_results,
     load_sweep_results,
     save_sweep_results,
+    summarize_sweep_results,
 )
 
 __all__ = [
@@ -53,14 +61,16 @@ __all__ = [
     # Evaluators
     "evaluate_backtest",
     "evaluate_indicator",
-    # Metrics
-    "BacktestMetrics",
-    "IndicatorMetrics",
-    "compute_indicator_statistics",
+    # Metrics (re-exported from evaluation modules)
+    "PerformanceMetrics",
+    "SuitabilityResult",
     # Results
     "SweepResult",
     "SweepSummary",
+    "flatten_performance_metrics",
+    "flatten_suitability_result",
     "get_top_results",
     "load_sweep_results",
     "save_sweep_results",
+    "summarize_sweep_results",
 ]

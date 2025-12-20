@@ -15,7 +15,13 @@ import pandas as pd
 from tqdm import tqdm
 
 from .config import ParameterOverride, SweepConfig
-from .results import SweepResult, SweepSummary, save_sweep_results
+from .results import (
+    SweepResult,
+    SweepSummary,
+    flatten_performance_metrics,
+    flatten_suitability_result,
+    save_sweep_results,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -213,11 +219,11 @@ def run_sweep(
 
                 try:
                     if config.mode == "indicator":
-                        indicator_metrics = evaluate_indicator(config, combo)
-                        row.update(indicator_metrics.to_dict())
+                        suitability_result = evaluate_indicator(config, combo)
+                        row.update(flatten_suitability_result(suitability_result))
                     else:  # backtest mode
-                        backtest_metrics = evaluate_backtest(config, combo)
-                        row.update(backtest_metrics.to_dict())
+                        perf_metrics = evaluate_backtest(config, combo)
+                        row.update(flatten_performance_metrics(perf_metrics))
                     row["status"] = "success"
                     row["error"] = None
                     successful += 1

@@ -3,13 +3,19 @@ Evaluation functions for parameter sweeps.
 
 Provides evaluate_indicator() and evaluate_backtest() functions that
 integrate with the four-stage signal pipeline and backtest infrastructure.
+Reuses evaluation modules (suitability, performance) for consistent metrics.
 """
 
 import logging
 from typing import Any
 
+from aponyx.evaluation.performance.config import PerformanceMetrics
+from aponyx.evaluation.suitability.evaluator import (
+    SuitabilityResult,
+    evaluate_signal_suitability,
+)
+
 from .config import SweepConfig
-from .metrics import BacktestMetrics, IndicatorMetrics, compute_indicator_statistics
 
 logger = logging.getLogger(__name__)
 
@@ -102,12 +108,12 @@ def _load_market_data_for_signal(
 def evaluate_indicator(
     config: SweepConfig,
     combination: dict[str, Any],
-) -> IndicatorMetrics:
+) -> SuitabilityResult:
     """
     Evaluate a single parameter combination in indicator mode.
 
     Computes indicator via four-stage pipeline with parameter overrides,
-    then calculates comprehensive statistics.
+    then evaluates signal-product suitability using the evaluation module.
 
     Parameters
     ----------
@@ -119,8 +125,8 @@ def evaluate_indicator(
 
     Returns
     -------
-    IndicatorMetrics
-        Statistics for the computed indicator.
+    SuitabilityResult
+        Comprehensive suitability evaluation with decision, scores, and diagnostics.
 
     Raises
     ------
@@ -129,11 +135,11 @@ def evaluate_indicator(
 
     Examples
     --------
-    >>> metrics = evaluate_indicator(
+    >>> result = evaluate_indicator(
     ...     config,
     ...     {"indicator_transformation.parameters.lookback": 20},
     ... )
-    >>> print(f"Mean: {metrics.mean:.2f}, Autocorr: {metrics.autocorr_1:.2f}")
+    >>> print(f"Decision: {result.decision}, Score: {result.composite_score:.2f}")
     """
     from aponyx.config import (
         INDICATOR_TRANSFORMATION_PATH,
@@ -185,41 +191,45 @@ def evaluate_indicator(
 
     indicator = result["indicator"]
 
-    # Get product prices for correlation calculation
-    # Use the first CDX or primary instrument as product reference
+    # Get product spread/price for suitability evaluation
+    # Use the first CDX or primary instrument as target reference
     product_inst = list(market_data.keys())[0]
     product_df = market_data[product_inst]
     if "spread" in product_df.columns:
-        product_prices = product_df["spread"]
+        target_series = product_df["spread"]
     elif "price" in product_df.columns:
-        product_prices = product_df["price"]
+        target_series = product_df["price"]
     elif "level" in product_df.columns:
-        product_prices = product_df["level"]
+        target_series = product_df["level"]
     else:
-        product_prices = product_df.iloc[:, 0]
+        target_series = product_df.iloc[:, 0]
 
-    # Compute indicator statistics
-    metrics = compute_indicator_statistics(indicator, product_prices)
-
-    logger.debug(
-        "Indicator metrics: mean=%.2f, std=%.2f, autocorr=%.2f",
-        metrics.mean,
-        metrics.std,
-        metrics.autocorr_1,
+    # Evaluate signal-product suitability using evaluation module
+    # Uses default SuitabilityConfig for consistent evaluation
+    suitability_result = evaluate_signal_suitability(
+        signal=indicator,
+        target_change=target_series,
     )
 
-    return metrics
+    logger.debug(
+        "Suitability result: decision=%s, score=%.2f, t_stat=%.2f",
+        suitability_result.decision,
+        suitability_result.composite_score,
+        list(suitability_result.t_stats.values())[0] if suitability_result.t_stats else 0.0,
+    )
+
+    return suitability_result
 
 
 def evaluate_backtest(
     config: SweepConfig,
     combination: dict[str, Any],
-) -> BacktestMetrics:
+) -> PerformanceMetrics:
     """
     Evaluate a single parameter combination in backtest mode.
 
     Computes signal via four-stage pipeline with parameter overrides,
-    runs backtest, then extracts performance metrics.
+    runs backtest, then computes full performance metrics.
 
     Parameters
     ----------
@@ -231,8 +241,8 @@ def evaluate_backtest(
 
     Returns
     -------
-    BacktestMetrics
-        Performance metrics from backtest.
+    PerformanceMetrics
+        Comprehensive performance metrics (21+ fields) from backtest.
 
     Raises
     ------
@@ -371,19 +381,10 @@ def evaluate_backtest(
     # Run backtest
     result = run_backtest(signal, price_series, backtest_config, calculator)
 
-    # Compute performance metrics
-    perf_metrics = compute_all_metrics(
+    # Compute comprehensive performance metrics using evaluation module
+    metrics = compute_all_metrics(
         result.pnl,
         result.positions,
-    )
-
-    # Extract relevant metrics for BacktestMetrics
-    metrics = BacktestMetrics(
-        sharpe_ratio=perf_metrics.sharpe_ratio,
-        max_drawdown=perf_metrics.max_drawdown,
-        hit_rate=perf_metrics.hit_rate,
-        n_trades=perf_metrics.n_trades,
-        annualized_return=perf_metrics.annualized_return,
     )
 
     logger.debug(
