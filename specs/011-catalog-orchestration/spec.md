@@ -105,17 +105,19 @@ After editing `catalogs.yaml` or `securities.yaml`, a user needs to regenerate t
 
 ### User Story 4 - List Available Catalog Items (Priority: P2)
 
-A researcher wants to see all available signals, strategies, or transformations without opening files. They use the CLI or CatalogManager API to query available items.
+A researcher wants to see all available signals, strategies, securities, or transformations without opening files. The existing `aponyx list` CLI command and CatalogManager API should query items from the YAML sources.
 
 **Why this priority**: Discovery improves usability but isn't essential for core functionality.
 
-**Independent Test**: Can be tested by calling `list_items()` API and verifying returned items match YAML content.
+**Independent Test**: Can be tested by calling `list_items()` API or `aponyx list signals` and verifying returned items match YAML content.
 
 **Acceptance Scenarios**:
 
-1. **Given** `catalogs.yaml` contains 3 signals, **When** user runs `catalog.list_items("signals")`, **Then** all 3 signal names are returned.
+1. **Given** `catalogs.yaml` contains 3 signals, **When** user runs `aponyx list signals`, **Then** all 3 signal names are displayed (existing CLI behavior preserved).
 
-2. **Given** some entries have `enabled: false`, **When** user lists items with filter, **Then** disabled items can be included or excluded based on filter.
+2. **Given** `securities.yaml` contains 8 securities, **When** user runs `aponyx list securities`, **Then** all 8 security names are displayed.
+
+3. **Given** some entries have `enabled: false`, **When** user lists items with filter, **Then** disabled items can be included or excluded based on filter.
 
 ---
 
