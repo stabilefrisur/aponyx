@@ -14,7 +14,7 @@
 | **Maturity Level** | Early-stage research framework |
 | **Breaking Changes** | May occur without deprecation warnings |
 | **License** | MIT |
-| **Test Coverage** | 276 tests across all layers (verified Dec 2025) |
+| **Test Coverage** | 900+ tests across all layers (verified Dec 2025) |
 
 **Project Management:**
 - `uv` - Package installer, environment manager, and task runner
@@ -228,7 +228,14 @@ src/aponyx/
   - `FileSource` - Local Parquet/CSV files (frozen dataclass for configuration)
   - `BloombergSource` - Bloomberg Terminal via xbbg (frozen dataclass for configuration)
   - Provider logic implemented as functions in `providers/` directory
-- **Unified Fetch Interface:** Three fetch functions with provider abstraction
+- **Data Channel Separation:** Multi-channel architecture with purpose-based resolution
+  - `DataChannel` enum (SPREAD, PRICE, LEVEL) for typed channel access
+  - `UsagePurpose` enum (INDICATOR, PNL, DISPLAY) for context-aware resolution
+  - `SecuritySpec` and `SecurityCatalog` for channel configuration management
+  - `fetch_security_data()` - Unified channel-aware fetch function
+  - Multi-ticker support with automatic date alignment (inner join)
+  - Channel resolution rules: INDICATOR→instrument defaults, PNL→quote_type, DISPLAY→instrument defaults with override
+- **Unified Fetch Interface:** Legacy fetch functions (deprecated, use fetch_security_data)
   - `fetch_cdx` - CDX index spreads with security filtering
   - `fetch_vix` - VIX volatility index
   - `fetch_etf` - Credit ETF prices with security filtering
@@ -741,11 +748,12 @@ src/aponyx/
   - Comprehensive INFO and DEBUG logging
 - **Configuration:**
   - `BacktestConfig` dataclass with validation
-  - Entry/exit threshold hysteresis to reduce turnover
-  - Binary position sizing (on/off) for pilot
-  - Transaction cost modeling (bps-based)
+  - Asymmetric entry/exit thresholds (`entry_threshold` for entry, zero signal for exit)
+  - Binary and proportional position sizing modes
+  - Transaction cost modeling (bps-based and spread-percentage-based)
   - Optional max holding period constraint
-  - DV01-based P&L calculation
+  - Stop-loss and take-profit PnL-based exits with cooldown
+  - ReturnCalculator protocol for spread-based (DV01) and price-based products
 - **Strategy Registry Pattern:**
   - `StrategyRegistry` class - JSON catalog management for backtest strategies
   - `StrategyMetadata` dataclass - Strategy metadata container (frozen)
