@@ -14,7 +14,7 @@
 | **Maturity Level** | Early-stage research framework |
 | **Breaking Changes** | May occur without deprecation warnings |
 | **License** | MIT |
-| **Test Coverage** | 977 tests across all layers (verified Dec 2025) |
+| **Test Coverage** | 1,711 tests across all layers (verified Dec 2025) |
 
 **Project Management:**
 - `uv` - Package installer, environment manager, and task runner
@@ -89,10 +89,19 @@ src/aponyx/
     main.py           # CLI entry point with click
     commands/         # Command implementations
       run.py          # Workflow execution command
+      sweep.py        # Parameter sweep command
       report.py       # Report generation command
       list.py         # Catalog browsing command
       clean.py        # Cache management command
       catalog.py      # Catalog validation, sync, migrate commands
+  
+  sweep/              # Parameter sensitivity analysis engine
+    __init__.py       # Sweep exports
+    config.py         # SweepConfig dataclass and validation
+    engine.py         # SweepEngine orchestration
+    evaluators.py     # Indicator and backtest evaluators
+    results.py        # Result collection and persistence
+    reports.py        # Console and summary reporting
   
   catalog/            # YAML catalog management (development-time utility)
     __init__.py       # Exports: CatalogManager, entry classes, ValidationResult
@@ -219,7 +228,8 @@ src/aponyx/
 
 | Layer | Purpose | Can Import From | Cannot Import From |
 |-------|---------|-----------------|-------------------|
-| **cli/** | Command-line interface | `workflows`, `reporting`, `catalog`, `config` | Core layers (uses via workflows) |
+| **cli/** | Command-line interface | `workflows`, `sweep`, `reporting`, `catalog`, `config` | Core layers (uses via workflows) |
+| **sweep/** | Parameter sensitivity analysis | `workflows`, `data`, `models`, `backtest`, `evaluation`, `config` | `cli`, `catalog`, `reporting`, `visualization` |
 | **catalog/** | YAML catalog management (dev-time utility) | `config` | All runtime layers |
 | **workflows/** | Pipeline orchestration | `data`, `models`, `backtest`, `evaluation`, `visualization`, `reporting`, `persistence`, `config` | `cli`, `catalog` |
 | **reporting/** | Report generation | `evaluation`, `persistence`, `config` | `data`, `models`, `backtest`, `visualization` |
@@ -526,11 +536,76 @@ src/aponyx/
 - Comprehensive test coverage (154 tests in evaluation layer)
 - Reports saved to workflow-specific directories: `data/workflows/{signal}_{strategy}_{timestamp}/reports/`
 
+### ✅ Sweep Layer (`src/aponyx/sweep/`)
+
+**Implemented:**
+- **Parameter Sweep Engine:**
+  - `SweepEngine` - Orchestrates parameter generation and evaluation
+  - Grid mode parameter generation (all combinations)
+  - Two evaluation modes: indicator (statistics) and backtest (performance)
+  - Runtime parameter override mechanism using dot notation paths
+  - Progress tracking with ETA and current parameter display
+  - Dry-run mode for previewing combinations
+  - Max combinations limit for exploratory sweeps
+- **Configuration:**
+  - `SweepConfig` dataclass with validation
+  - `ParameterOverride` for path-based parameter ranges
+  - YAML configuration file support
+- **Evaluators:**
+  - `IndicatorEvaluator` - Computes indicator statistics without backtests
+  - `BacktestEvaluator` - Runs full backtest with performance metrics
+  - Unified evaluation interface with consistent result structure
+- **Results Management:**
+  - Timestamped output directories (`data/sweeps/<name>_<timestamp>/`)
+  - Parquet results file with metrics for each combination
+  - Configuration copy and JSON summary metadata
+  - Queryable results by any collected metric
+- **Reporting:**
+  - Console reports with top performers ranked by metric
+  - Summary statistics and execution metadata
+  - Parameter combination display in table format
+
+**Key Features:**
+- Self-contained sweep configurations independent from catalogs
+- Integrates with catalog orchestration (Spec 011) for runtime overrides
+- Reuses existing backtest and indicator evaluation modules
+- Comprehensive test coverage (734 tests)
+
+**Sweep Configuration Structure:**
+```yaml
+name: sweep_name
+description: Experiment description
+evaluation_mode: indicator  # or 'backtest'
+base_signal: signal_name
+base_product: cdx_ig_5y
+parameter_overrides:
+  - path: indicator_transformation.parameters.lookback
+    values: [10, 20, 40]
+max_combinations: 50  # optional limit
+```
+
+**Output Structure:**
+- `data/sweeps/<name>_<timestamp>/results.parquet` - All metrics
+- `data/sweeps/<name>_<timestamp>/config.yaml` - Configuration copy
+- `data/sweeps/<name>_<timestamp>/summary.json` - Metadata
+
+**CLI Commands:**
+- `aponyx sweep <config.yaml>` - Execute sweep experiment
+- `aponyx sweep <config.yaml> --dry-run` - Preview combinations
+
+**Key Files:**
+- `config.py` - SweepConfig and ParameterOverride dataclasses
+- `engine.py` - Core sweep orchestration
+- `evaluators.py` - Indicator and backtest evaluators
+- `results.py` - Result collection and persistence
+- `reports.py` - Console and summary reporting
+
 ### ✅ CLI Layer (`src/aponyx/cli/`)
 
 **Implemented:**
 - **Command-Line Interface:**
   - `aponyx run` - Execute complete or partial research workflows
+  - `aponyx sweep` - Run parameter sensitivity analysis experiments
   - `aponyx report` - Generate multi-format analysis reports
   - `aponyx list` - Browse signals, strategies, and datasets
   - `aponyx catalog` - Manage YAML catalog files (validate, sync, migrate)
@@ -966,7 +1041,7 @@ src/aponyx/
 ### ✅ Testing (`tests/`)
 
 **Implemented:**
-- Comprehensive test coverage across all layers (977 tests total):
+- Comprehensive test coverage across all layers (1,711 tests total):
   - `tests/backtest/` - 36 tests (engine, P&L, protocols)
   - `tests/catalog/` - 77 tests (entries, loader, manager, sync, migration, validator)
   - `tests/cli/` - 100 tests (commands, error handling, integration, catalog commands)
@@ -976,6 +1051,7 @@ src/aponyx/
   - `tests/models/` - 98 tests (four-stage pipeline, registries, composition)
   - `tests/persistence/` - 27 tests (I/O operations)
   - `tests/reporting/` - 18 tests (report generation)
+  - `tests/sweep/` - 734 tests (evaluators, reports, config, engine)
   - `tests/visualization/` - 19 tests (plotting functions)
   - `tests/workflows/` - 27 tests (engine, steps)
 - Deterministic test data with fixed seeds
@@ -1264,7 +1340,7 @@ aponyx/
 │       ├── cli_guide.md
 │       └── adding_data_providers.md
 │
-├── tests/                   # Unit tests (977 tests total)
+├── tests/                   # Unit tests (1,711 tests total)
 │   ├── backtest/            # 36 tests
 │   ├── catalog/             # 77 tests
 │   ├── cli/                 # 100 tests
@@ -1274,13 +1350,17 @@ aponyx/
 │   ├── models/              # 98 tests
 │   ├── persistence/         # 27 tests
 │   ├── reporting/           # 18 tests
+│   ├── sweep/               # 734 tests
 │   ├── visualization/       # 19 tests
 │   └── workflows/           # 27 tests
 │
-├── examples/                # YAML workflow configurations
+├── examples/                # YAML workflow and sweep configurations
 │   ├── workflow_minimal.yaml
 │   ├── workflow_complete.yaml
-│   └── workflow_etf.yaml
+│   ├── workflow_etf.yaml
+│   ├── sweep_indicator.yaml
+│   ├── sweep_backtest.yaml
+│   └── sweep_comprehensive.yaml
 │
 ├── data/                    # Data storage (not in git)
 │   ├── registry.json        # Dataset registry (runtime)

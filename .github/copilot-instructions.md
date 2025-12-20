@@ -1,6 +1,6 @@
 # Copilot Instructions for Aponyx
 
-> Last Updated: December 20, 2025 | Version 0.1.21
+> Last Updated: December 20, 2025 | Version 0.1.19
 
 **Aponyx** is a Python 3.12 systematic fixed-income research framework for developing and backtesting tactical credit overlay strategies on CDX indices.
 
@@ -14,12 +14,13 @@ uv sync                    # Install dependencies
 uv sync --extra dev        # Include dev tools
 
 # Quality
-uv run pytest              # Run tests (900+)
+uv run pytest              # Run tests (1,700+)
 uv run mypy src/           # Type checking
 uv run ruff check src/     # Linting
 
 # Workflows
 uv run aponyx run examples/workflow_minimal.yaml
+uv run aponyx sweep examples/sweep_comprehensive.yaml
 uv run aponyx list signals
 ```
 
@@ -92,6 +93,7 @@ logger = logging.getLogger(__name__)  # Module-level, never basicConfig()
 ```
 src/aponyx/
 ├── cli/          # Command-line interface (zero business logic)
+├── sweep/        # Parameter sensitivity analysis engine
 ├── workflows/    # Pipeline orchestration with caching
 ├── data/         # Provider pattern (File, Bloomberg) with validation
 ├── models/       # Four-stage signal composition
@@ -104,6 +106,7 @@ data/
 ├── raw/          # Source data (synthetic/, bloomberg/)
 ├── cache/        # TTL cache (1 day default)
 ├── workflows/    # Timestamped workflow outputs
+├── sweeps/       # Parameter sweep results
 └── .registries/  # Runtime metadata (not in git)
 ```
 

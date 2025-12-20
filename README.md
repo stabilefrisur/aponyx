@@ -12,7 +12,8 @@ Type-safe, reproducible research environment for tactical fixed-income strategie
 
 ## Key Features
 
-- **CLI orchestrator** for automated end-to-end research workflows (run, report, list, clean)
+- **CLI orchestrator** for automated end-to-end research workflows (run, sweep, report, list, clean)
+- **Parameter sweep engine** for systematic sensitivity analysis (indicator and backtest modes)
 - **Workflow engine** with smart caching and dependency tracking across pipeline steps
 - **Type-safe data loading** with schema validation (Parquet, CSV, Bloomberg Terminal)
 - **Modular signal framework** with composable transformations and registry management
@@ -183,6 +184,7 @@ aponyx --help  # or aponyx -h
 
 **Core commands:**
 - `run` — Execute complete workflow from YAML config
+- `sweep` — Run parameter sensitivity analysis experiments
 - `report` — Generate multi-format analysis reports
 - `list` — Browse signals, strategies, datasets, workflows
 - `catalog` — Manage YAML catalog files (validate, sync, migrate)
@@ -247,6 +249,43 @@ aponyx run examples/workflow_complete.yaml
 | `data` | string | | "synthetic" | Data source (synthetic, file, bloomberg) |
 | `steps` | list | | all | Specific steps to execute |
 | `force` | boolean | | false | Force re-run (skip cache) |
+
+### Run Parameter Sweep Experiments
+
+Systematically test parameter combinations for sensitivity analysis:
+
+```bash
+# Execute parameter sweep experiment
+aponyx sweep examples/sweep_comprehensive.yaml
+
+# Preview combinations without execution
+aponyx sweep examples/sweep_indicator.yaml --dry-run
+
+# Backtest mode: test strategy parameters
+aponyx sweep examples/sweep_backtest.yaml
+```
+
+**Sweep configuration example**:
+
+```yaml
+name: indicator_lookback_sweep
+description: Test indicator lookback windows
+evaluation_mode: indicator  # or 'backtest'
+base_signal: spread_momentum
+base_product: cdx_ig_5y
+parameter_overrides:
+  - path: indicator_transformation.parameters.lookback
+    values: [5, 10, 20, 40]
+max_combinations: 50
+```
+
+**Output structure**:
+```
+data/sweeps/indicator_lookback_sweep_20251220_143045/
+├── results.parquet              # All metrics for each combination
+├── config.yaml                  # Configuration copy
+└── summary.json                 # Metadata and statistics
+```
 
 ### Generate Reports
 

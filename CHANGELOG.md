@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Parameter Sweep Engine** (spec 012-parameter-sweeps)
+  - Self-contained sweep configuration files (YAML) defining parameter experiments independently from catalogs
+  - Two evaluation modes:
+    * Indicator mode: Analyze indicator characteristics (distribution, correlation, stationarity) without running backtests
+    * Backtest mode: Run full backtests measuring Sharpe ratio, drawdown, hit rate, total trades, and annualized return
+  - Grid mode parameter generation testing all combinations of specified parameter values
+  - Runtime parameter override mechanism using dot notation paths (e.g., `indicator_transformation.parameters.lookback`)
+  - Progress tracking with ETA and current parameter display during execution
+  - Dry-run mode for previewing combinations before execution
+  - Configurable max combinations limit for exploratory sweeps
+  - Timestamped output directories (`data/sweeps/<name>_<timestamp>/`)
+  - Parquet results file with metrics for each parameter combination
+  - Configuration copy and JSON summary metadata for reproducibility
+  - Queryable results by any collected metric
+  - CLI command: `aponyx sweep <config.yaml>` with `--dry-run` flag
+  - Three example configurations: `sweep_indicator.yaml`, `sweep_backtest.yaml`, `sweep_comprehensive.yaml`
+  - Complete specification in `specs/012-parameter-sweeps/`
+  - 734 tests for sweep module (evaluators, reports, config, engine)
 - **Unified YAML Catalog Management** (spec 011-catalog-orchestration)
   - `CatalogManager` class for unified CRUD operations across all catalog files
   - Two YAML source files: `config/catalogs.yaml` (signals, strategies, transformations) and `config/securities.yaml` (securities, instruments)
@@ -20,7 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Typed entry classes: `SignalEntry`, `StrategyEntry`, `IndicatorTransformationEntry`, `ScoreTransformationEntry`, `SignalTransformationEntry`, `SecurityEntry`, `InstrumentEntry`
   - `ValidationResult` with structured error reporting (category, entry name, message)
   - 77 new tests for catalog module across 6 test files
-
 - **Data Channel Separation** (spec 010)
   - `DataChannel` enum (SPREAD, PRICE, LEVEL) for typed channel access
   - `UsagePurpose` enum (INDICATOR, PNL, DISPLAY) for context-aware resolution
@@ -55,7 +72,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Compact table formats for Product Microstructure, Position Sizing, Troubleshooting
   - Consolidated Common Workflows section
   - Preserved all essential information and command documentation
-
 - **BREAKING: Bloomberg Securities Catalog Structure**
   - Updated to multi-channel structure with `available_channels` and `channel_config`
   - CDX: spread channel only (spread column, 0-10000 bps validation)
@@ -78,6 +94,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `workflow_etf.yaml` demonstrating price-based product backtesting
 
 ### Fixed
+- **Parameter Override Application** in signal composition
+  - Fixed bug where runtime overrides were not correctly applied to signal computation
+  - Enhanced signal_composer.py to properly merge runtime overrides with catalog parameters
+  - All sweep evaluations now use correct parameter values from configuration
 - **Signal Strength Attribution**
   - Fixed `pd.qcut` error when signal values cluster at boundaries (e.g., bounded signals at ±1.5)
   - Now uses `labels=False` and dynamic bin count to handle duplicate quantile edges
@@ -96,6 +116,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VIX exempt from P&L validation (non-tradeable index)
 
 ### Documentation
+- Updated README.md with parameter sweep section and CLI commands
+- Updated PROJECT_STATUS.md with sweep layer implementation details
+- Updated copilot-instructions.md with sweep usage patterns
+- Complete specification document in `specs/012-parameter-sweeps/spec.md`
 - Updated copilot-instructions.md with CatalogManager usage patterns
 - Updated cli_guide.md with catalog commands (validate, sync, migrate)
 - Added YAML catalog file locations to See Also section
@@ -111,7 +135,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Product microstructure fields moved from strategy catalog to bloomberg_securities.json
 
 ### Test Coverage
-- All tests passing (977 tests total)
+- 1,711 total tests passing (increased from 977)
+- 734 new sweep tests across evaluators, reports, config validation
 - Catalog module tests: 77 tests across 6 test files
 - Channel separation tests: 861 lines across 3 test modules
 - Zero regression on existing spread-based backtests
