@@ -69,6 +69,8 @@ class BaseConfig:
         Signal name from signal catalog.
     strategy : str | None
         Strategy name from strategy catalog (required for backtest mode).
+    data_source : str
+        Data source type ("synthetic", "bloomberg", or custom sources).
 
     Raises
     ------
@@ -78,10 +80,12 @@ class BaseConfig:
     Examples
     --------
     >>> base = BaseConfig(signal="cdx_etf_basis", strategy="balanced")
+    >>> base = BaseConfig(signal="cdx_etf_basis", strategy="balanced", data_source="bloomberg")
     """
 
     signal: str
     strategy: str | None = None
+    data_source: str = "synthetic"
 
     def __post_init__(self) -> None:
         if not self.signal:
@@ -272,6 +276,7 @@ def load_sweep_config(config_path: str | Path) -> SweepConfig:
     base = BaseConfig(
         signal=base_dict["signal"],
         strategy=base_dict.get("strategy"),
+        data_source=base_dict.get("data_source", "synthetic"),
     )
 
     # Parse parameters

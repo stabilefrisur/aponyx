@@ -23,6 +23,7 @@ mode: "backtest"                 # Full backtest with P&L
 base:
   signal: "cdx_etf_basis"        # Basis signal to optimize
   strategy: "balanced"           # Base strategy config
+  data_source: "synthetic"       # Data source: "synthetic", "bloomberg", or custom path
 
 # ---- Parameters to Sweep ----
 parameters:

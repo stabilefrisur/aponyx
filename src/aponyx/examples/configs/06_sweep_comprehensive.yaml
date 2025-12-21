@@ -26,6 +26,7 @@ mode: "backtest"                 # Full backtest mode
 base:
   signal: "spread_momentum"      # Momentum signal with parametric indicator
   strategy: "balanced"           # Base strategy configuration
+  data_source: "synthetic"       # Data source: "synthetic", "bloomberg", or custom path
 
 # ---- Four-Stage Pipeline Parameters ----
 parameters:

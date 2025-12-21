@@ -55,6 +55,7 @@ def _load_market_data_for_signal(
     signal_name: str,
     indicator_registry: Any,
     signal_registry: Any,
+    data_source: str = "synthetic",
 ) -> tuple[dict[str, Any], dict[str, str]]:
     """
     Load market data required for signal computation.
@@ -67,6 +68,8 @@ def _load_market_data_for_signal(
         Registry for indicator metadata.
     signal_registry : SignalRegistry
         Registry for signal metadata.
+    data_source : str
+        Data source type ("synthetic", "bloomberg", or custom sources).
 
     Returns
     -------
@@ -74,7 +77,8 @@ def _load_market_data_for_signal(
         Market data dict and securities mapping.
     """
     from aponyx.config import RAW_DIR
-    from aponyx.data import FileSource, fetch_security_data, list_security_channels
+    from aponyx.data import fetch_security_data, list_security_channels
+    from aponyx.data.sources import FileSource, BloombergSource
 
     # Get signal and indicator metadata
     signal_metadata = signal_registry.get_metadata(signal_name)
@@ -82,8 +86,18 @@ def _load_market_data_for_signal(
     indicator_metadata = indicator_registry.get_metadata(indicator_name)
     securities_mapping = indicator_metadata.default_securities
 
+    # Create appropriate data source
+    source: FileSource | BloombergSource
+    if data_source == "bloomberg":
+        source = BloombergSource()
+        logger.info("Using Bloomberg data source")
+    else:
+        # File-based source (synthetic or custom directory)
+        raw_data_dir = RAW_DIR / data_source
+        source = FileSource(raw_data_dir)
+        logger.info("Using file data source: %s", raw_data_dir)
+
     # Load market data for each required security
-    source = FileSource(RAW_DIR / "synthetic")
     market_data: dict[str, Any] = {}
 
     for inst_type, security_id in securities_mapping.items():
@@ -172,6 +186,7 @@ def evaluate_indicator(
         config.base.signal,
         indicator_registry,
         signal_registry,
+        data_source=config.base.data_source,
     )
 
     # Compose signal with parameter overrides
@@ -318,6 +333,7 @@ def evaluate_backtest(
         config.base.signal,
         indicator_registry,
         signal_registry,
+        data_source=config.base.data_source,
     )
 
     # Extract parameter overrides for each transformation stage
