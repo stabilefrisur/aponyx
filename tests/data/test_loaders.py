@@ -66,8 +66,10 @@ def test_load_instrument_from_raw_single_security(
     def fetch_vix_wrapper(source, security=None, **kwargs):
         """Wrapper to match old function signature."""
         # Ignore security param, always use "vix"
-        kwargs.pop('security', None)
-        return fetch_security_data(source, "vix", purpose=UsagePurpose.INDICATOR, **kwargs)
+        kwargs.pop("security", None)
+        return fetch_security_data(
+            source, "vix", purpose=UsagePurpose.INDICATOR, **kwargs
+        )
 
     result = load_instrument_from_raw(
         sample_data_dir,
@@ -89,7 +91,9 @@ def test_load_instrument_from_raw_multi_security(
 
     def fetch_cdx_wrapper(source, security=None, **kwargs):
         """Wrapper to match old function signature."""
-        return fetch_security_data(source, security, purpose=UsagePurpose.INDICATOR, **kwargs)
+        return fetch_security_data(
+            source, security, purpose=UsagePurpose.INDICATOR, **kwargs
+        )
 
     result = load_instrument_from_raw(
         sample_data_dir,
@@ -109,7 +113,9 @@ def test_load_instrument_from_raw_file_not_found(tmp_path: Path) -> None:
 
     def fetch_vix_wrapper(source, **kwargs):
         """Wrapper to match old function signature."""
-        return fetch_security_data(source, "vix", purpose=UsagePurpose.INDICATOR, **kwargs)
+        return fetch_security_data(
+            source, "vix", purpose=UsagePurpose.INDICATOR, **kwargs
+        )
 
     empty_dir = tmp_path / "empty"
     empty_dir.mkdir()

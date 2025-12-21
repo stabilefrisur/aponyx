@@ -424,4 +424,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 **Maintained by stabilefrisur**  
-**Version**: 0.1.21 | **Last Updated**: December 20, 2025
+**Version**: 0.1.22 | **Last Updated**: December 21, 2025

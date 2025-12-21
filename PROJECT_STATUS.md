@@ -1,7 +1,7 @@
 # Project Status — aponyx
 
-**Last Updated:** December 20, 2025  
-**Version:** 0.1.21 (Examples Reorganization & Documentation Refresh)
+**Last Updated:** December 21, 2025  
+**Version:** 0.1.22 (Data API Simplification & Sweep Data Source Support)
 | Property | Value |
 |----------|-------|
 | **Project Type** | Systematic fixed-income research framework |

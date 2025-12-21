@@ -39,24 +39,33 @@ def main() -> None:
 
     # Fetch different instrument types (auto-cached and validated)
     cdx_ig = fetch_security_data(
-        source, "cdx_ig_5y", purpose=UsagePurpose.INDICATOR,
-        start_date=start_date, end_date=end_date
+        source,
+        "cdx_ig_5y",
+        purpose=UsagePurpose.INDICATOR,
+        start_date=start_date,
+        end_date=end_date,
     )
     print(
         f"CDX IG 5Y: {len(cdx_ig)} rows, spread range [{cdx_ig['spread'].min():.1f}, {cdx_ig['spread'].max():.1f}] bps"
     )
 
     vix = fetch_security_data(
-        source, "vix", purpose=UsagePurpose.INDICATOR,
-        start_date=start_date, end_date=end_date
+        source,
+        "vix",
+        purpose=UsagePurpose.INDICATOR,
+        start_date=start_date,
+        end_date=end_date,
     )
     print(
         f"VIX: {len(vix)} rows, level range [{vix['level'].min():.1f}, {vix['level'].max():.1f}]"
     )
 
     hyg = fetch_security_data(
-        source, "hyg", purpose=UsagePurpose.PNL,
-        start_date=start_date, end_date=end_date
+        source,
+        "hyg",
+        purpose=UsagePurpose.PNL,
+        start_date=start_date,
+        end_date=end_date,
     )
     print(
         f"HYG ETF: {len(hyg)} rows, price range [{hyg['price'].min():.2f}, {hyg['price'].max():.2f}]"

@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.22] - 2025-12-21
+
+### Changed
+- **Data Fetching API Simplification**
+  - Removed deprecated fetch functions: `fetch_cdx()`, `fetch_vix()`, `fetch_etf()` (496 lines removed)
+  - Removed deprecated `fetch_registry` module and all related tests (209 lines removed)
+  - Migrated all examples and tests to unified `fetch_security_data()` API with `UsagePurpose` enum
+  - Updated documentation (README, examples) to reflect unified data fetching pattern
+  - All 396 data tests passing with new API
+
+### Added
+- **Sweep Data Source Configuration**
+  - Added `data_source` field to sweep `BaseConfig` (defaults to 'synthetic')
+  - Sweep evaluators now support Bloomberg and custom data sources
+  - Example sweep configs demonstrate data source usage in `05_sweep_strategy_optimization.yaml` and `06_sweep_comprehensive.yaml`
+  - Maintains backward compatibility with existing configs
+
+### Fixed
+- **Bloomberg Data Storage**
+  - Fixed missing `save_to_raw()` call in `_fetch_security_from_bloomberg()` to properly populate raw storage
+  - Ensures Bloomberg-fetched data is available for subsequent cached loads
+
+- **Package Distribution**
+  - Include YAML config catalog files (`config/*.yaml`) in source distribution
+  - Ensures `catalogs.yaml` and `securities.yaml` available in installed package
+
+### Documentation
+- Updated PyPI release workflow documentation with v0.1.21 learnings
+  - Clarified synthetic data regeneration requirement after cleanup
+  - Added `--unsafe-fixes` flag guidance for ruff
+  - Enhanced PyPI indexing delay troubleshooting
+
+### Test Coverage
+- Removed 3 deprecated test classes: `TestFetchCDXIntegration`, `TestFetchVIXIntegration`, `TestFetchETFIntegration`
+- Updated 30 test references in `test_loaders.py` to use `fetch_security_data` wrappers
+- Net change: -196 lines of test code (improved API simplicity)
+
 ## [0.1.21] - 2025-12-20
 
 ### Changed
@@ -1167,6 +1204,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No multi-asset portfolio backtesting yet
 - Binary position sizing only (on/off)
 
+[0.1.22]: https://github.com/stabilefrisur/aponyx/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/stabilefrisur/aponyx/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/stabilefrisur/aponyx/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/stabilefrisur/aponyx/compare/v0.1.18...v0.1.19
