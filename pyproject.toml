@@ -58,6 +58,7 @@ packages = ["src/aponyx"]
 include = [
     "src/aponyx/**/*.py",
     "src/aponyx/**/*.json",
+    "src/aponyx/**/*.yaml",
     "src/aponyx/**/*.md",
     "src/aponyx/py.typed",
 ]
