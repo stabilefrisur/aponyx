@@ -29,9 +29,6 @@ from .channels import (
 )
 from .security_catalog import SecuritySpec, SecurityCatalog
 from .fetch import (
-    fetch_cdx,
-    fetch_vix,
-    fetch_etf,
     fetch_security_data,
     get_security_spec,
     resolve_channel_for_purpose,
@@ -50,7 +47,6 @@ from .bloomberg_config import validate_bloomberg_registry, get_product_microstru
 from .registry import DataRegistry, DatasetEntry
 from .transforms import apply_transform, TransformType
 from .requirements import get_required_data_keys
-from .fetch_registry import get_fetch_spec, list_instruments
 from .loaders import load_instrument_from_raw, load_signal_required_data
 from .test_scenarios import (
     TestScenario,
@@ -103,9 +99,6 @@ __all__ = [
     "SecuritySpec",
     "SecurityCatalog",
     # Fetch functions
-    "fetch_cdx",
-    "fetch_vix",
-    "fetch_etf",
     "fetch_security_data",
     "get_security_spec",
     "resolve_channel_for_purpose",
@@ -133,9 +126,6 @@ __all__ = [
     "TransformType",
     # Requirements
     "get_required_data_keys",
-    # Fetch registry
-    "get_fetch_spec",
-    "list_instruments",
     # Loaders
     "load_instrument_from_raw",
     "load_signal_required_data",

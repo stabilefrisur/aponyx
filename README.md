@@ -82,8 +82,9 @@ aponyx run src/aponyx/examples/configs/01_workflow_minimal.yaml
 ```python
 from datetime import datetime, timedelta
 from aponyx.data import (
-    fetch_cdx, fetch_vix, fetch_etf,
+    fetch_security_data,
     BloombergSource,
+    UsagePurpose,
     get_product_microstructure
 )
 from aponyx.models import SignalRegistry, compute_registered_signals
@@ -96,9 +97,9 @@ source = BloombergSource()
 end_date = datetime.now().strftime("%Y-%m-%d")
 start_date = (datetime.now() - timedelta(days=5 * 365)).strftime("%Y-%m-%d")
 
-cdx_df = fetch_cdx(source, security="cdx_ig_5y", start_date=start_date, end_date=end_date)
-etf_df = fetch_etf(source, security="lqd", start_date=start_date, end_date=end_date)
-vix_df = fetch_vix(source, start_date=start_date, end_date=end_date)
+cdx_df = fetch_security_data(source, "cdx_ig_5y", purpose=UsagePurpose.INDICATOR, start_date=start_date, end_date=end_date)
+etf_df = fetch_security_data(source, "lqd", purpose=UsagePurpose.PNL, start_date=start_date, end_date=end_date)
+vix_df = fetch_security_data(source, "vix", purpose=UsagePurpose.INDICATOR, start_date=start_date, end_date=end_date)
 
 # Compute signals from catalog
 signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
@@ -134,14 +135,14 @@ print(f"Win Rate: {metrics.hit_rate:.1%}")
 **Alternative: Using synthetic data (no Bloomberg required)**
 
 ```python
-from aponyx.data import fetch_cdx, fetch_vix, fetch_etf, FileSource
+from aponyx.data import fetch_security_data, FileSource, UsagePurpose
 from aponyx.config import RAW_DIR
 
-# Load from synthetic data
+# Load from synthetic data (unified interface)
 source = FileSource(RAW_DIR / "synthetic")
-cdx_df = fetch_cdx(source, security="cdx_ig_5y")
-etf_df = fetch_etf(source, security="lqd")
-vix_df = fetch_vix(source, security="vix")
+cdx_df = fetch_security_data(source, "cdx_ig_5y", purpose=UsagePurpose.INDICATOR)
+etf_df = fetch_security_data(source, "lqd", purpose=UsagePurpose.PNL)
+vix_df = fetch_security_data(source, "vix", purpose=UsagePurpose.INDICATOR)
 
 # ... rest of code identical
 ```

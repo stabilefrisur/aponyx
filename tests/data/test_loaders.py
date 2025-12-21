@@ -61,41 +61,55 @@ def test_load_instrument_from_raw_single_security(
     sample_data_dir: Path,
 ) -> None:
     """Test loading single-security instrument from raw files."""
-    from aponyx.data import fetch_vix
+    from aponyx.data import fetch_security_data, UsagePurpose
+
+    def fetch_vix_wrapper(source, security=None, **kwargs):
+        """Wrapper to match old function signature."""
+        # Ignore security param, always use "vix"
+        kwargs.pop('security', None)
+        return fetch_security_data(source, "vix", purpose=UsagePurpose.INDICATOR, **kwargs)
 
     result = load_instrument_from_raw(
         sample_data_dir,
         "vix",
-        fetch_vix,
+        fetch_vix_wrapper,
         securities=None,
     )
 
     assert len(result) > 0  # Validation fills in data
     assert "level" in result.columns
-    assert result.index.name == "date"
+    assert isinstance(result.index, pd.DatetimeIndex)
 
 
 def test_load_instrument_from_raw_multi_security(
     sample_data_dir: Path,
 ) -> None:
     """Test loading multi-security instrument from raw files."""
-    from aponyx.data import fetch_cdx
+    from aponyx.data import fetch_security_data, UsagePurpose
+
+    def fetch_cdx_wrapper(source, security=None, **kwargs):
+        """Wrapper to match old function signature."""
+        return fetch_security_data(source, security, purpose=UsagePurpose.INDICATOR, **kwargs)
 
     result = load_instrument_from_raw(
         sample_data_dir,
         "cdx",
-        fetch_cdx,
+        fetch_cdx_wrapper,
         securities=["cdx_ig_5y", "cdx_hy_5y"],
     )
 
     assert len(result) > 0  # Validation fills in data
     assert "spread" in result.columns
-    assert result.index.name == "date"
+    assert isinstance(result.index, pd.DatetimeIndex)
 
 
 def test_load_instrument_from_raw_file_not_found(tmp_path: Path) -> None:
     """Test loading raises error when registry doesn't exist."""
-    from aponyx.data import fetch_vix
+    from aponyx.data import fetch_security_data, UsagePurpose
+
+    def fetch_vix_wrapper(source, **kwargs):
+        """Wrapper to match old function signature."""
+        return fetch_security_data(source, "vix", purpose=UsagePurpose.INDICATOR, **kwargs)
 
     empty_dir = tmp_path / "empty"
     empty_dir.mkdir()
@@ -104,7 +118,7 @@ def test_load_instrument_from_raw_file_not_found(tmp_path: Path) -> None:
         load_instrument_from_raw(
             empty_dir,
             "vix",
-            fetch_vix,
+            fetch_vix_wrapper,
             securities=None,
         )
 

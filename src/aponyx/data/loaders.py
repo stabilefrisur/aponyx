@@ -58,19 +58,23 @@ def load_instrument_from_raw(
 
     Examples
     --------
-    >>> from aponyx.data import fetch_vix, fetch_cdx, FileSource
+    >>> from aponyx.data import fetch_security_data, UsagePurpose, FileSource
     >>> # Single security (VIX)
+    >>> def fetch_vix_wrapper(source, **kwargs):
+    ...     return fetch_security_data(source, "vix", purpose=UsagePurpose.INDICATOR, **kwargs)
     >>> df = load_instrument_from_raw(
     ...     Path("data/raw/synthetic"),
     ...     "vix",
-    ...     fetch_vix,
+    ...     fetch_vix_wrapper,
     ...     securities=None
     ... )
     >>> # Multi-security (CDX)
+    >>> def fetch_cdx_wrapper(source, security=None, **kwargs):
+    ...     return fetch_security_data(source, security, purpose=UsagePurpose.INDICATOR, **kwargs)
     >>> df = load_instrument_from_raw(
     ...     Path("data/raw/synthetic"),
     ...     "cdx",
-    ...     fetch_cdx,
+    ...     fetch_cdx_wrapper,
     ...     securities=["cdx_ig_5y", "cdx_hy_5y"]
     ... )
     """

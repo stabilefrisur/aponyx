@@ -21,7 +21,7 @@ Expected output: Summary stats for 3 instruments with 5 years of data.
 
 from datetime import datetime, timedelta
 
-from aponyx.data import fetch_cdx, fetch_vix, fetch_etf, BloombergSource
+from aponyx.data import fetch_security_data, BloombergSource, UsagePurpose
 
 
 def main() -> None:
@@ -30,6 +30,7 @@ def main() -> None:
 
     Demonstrates BloombergSource provider pattern with date range.
     Data is automatically cached and saved to raw/bloomberg/.
+    Uses the unified fetch_security_data() interface.
     """
     end_date = datetime.now().strftime("%Y-%m-%d")
     start_date = (datetime.now() - timedelta(days=5 * 365)).strftime("%Y-%m-%d")
@@ -37,19 +38,26 @@ def main() -> None:
     source = BloombergSource()
 
     # Fetch different instrument types (auto-cached and validated)
-    cdx_ig = fetch_cdx(
-        source, security="cdx_ig_5y", start_date=start_date, end_date=end_date
+    cdx_ig = fetch_security_data(
+        source, "cdx_ig_5y", purpose=UsagePurpose.INDICATOR,
+        start_date=start_date, end_date=end_date
     )
     print(
         f"CDX IG 5Y: {len(cdx_ig)} rows, spread range [{cdx_ig['spread'].min():.1f}, {cdx_ig['spread'].max():.1f}] bps"
     )
 
-    vix = fetch_vix(source, start_date=start_date, end_date=end_date)
+    vix = fetch_security_data(
+        source, "vix", purpose=UsagePurpose.INDICATOR,
+        start_date=start_date, end_date=end_date
+    )
     print(
         f"VIX: {len(vix)} rows, level range [{vix['level'].min():.1f}, {vix['level'].max():.1f}]"
     )
 
-    hyg = fetch_etf(source, security="hyg", start_date=start_date, end_date=end_date)
+    hyg = fetch_security_data(
+        source, "hyg", purpose=UsagePurpose.PNL,
+        start_date=start_date, end_date=end_date
+    )
     print(
         f"HYG ETF: {len(hyg)} rows, price range [{hyg['price'].min():.2f}, {hyg['price'].max():.2f}]"
     )
