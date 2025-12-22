@@ -370,8 +370,8 @@ class SuitabilityStep(BaseWorkflowStep):
     def execute(self, context: dict[str, Any]) -> dict[str, Any]:
         self._log_start()
 
-        # Get signal from previous step
-        signal = context["signal"]["signal"]
+        # Get indicator from previous step (stage 1 - raw economic metric)
+        indicator = context["signal"]["indicator"]
 
         # Get product from workflow config
         product = self.config.product
@@ -386,7 +386,7 @@ class SuitabilityStep(BaseWorkflowStep):
 
         # Run suitability evaluation
         config = SuitabilityConfig()
-        result = evaluate_signal_suitability(signal, target_change, config)
+        result = evaluate_signal_suitability(indicator, target_change, config)
 
         logger.debug(
             "Suitability: %s, score=%.2f",
