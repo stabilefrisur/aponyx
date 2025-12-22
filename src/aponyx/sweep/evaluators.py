@@ -60,6 +60,10 @@ def _load_market_data_for_signal(
     """
     Load market data required for signal computation.
 
+    When using Bloomberg data source, ALL securities in the catalog are fetched
+    to ensure they stay synced together. This prevents partial updates where only
+    some securities are refreshed. For file sources, only required securities are loaded.
+
     Parameters
     ----------
     signal_name : str
@@ -74,7 +78,13 @@ def _load_market_data_for_signal(
     Returns
     -------
     tuple[dict[str, Any], dict[str, str]]
-        Market data dict and securities mapping.
+        Market data dict (keyed by instrument type for required securities) and securities mapping.
+
+    Notes
+    -----
+    Bloomberg behavior: Fetches ALL securities from bloomberg_securities.json
+    to keep them synced, then returns only the subset required for the indicator.
+    File behavior: Fetches only the securities required for the indicator.
     """
     from aponyx.config import RAW_DIR
     from aponyx.data import fetch_security_data, list_security_channels
@@ -90,14 +100,38 @@ def _load_market_data_for_signal(
     source: FileSource | BloombergSource
     if data_source == "bloomberg":
         source = BloombergSource()
-        logger.info("Using Bloomberg data source")
+        logger.info("Using Bloomberg data source - fetching ALL securities")
     else:
         # File-based source (synthetic or custom directory)
         raw_data_dir = RAW_DIR / data_source
         source = FileSource(raw_data_dir)
         logger.info("Using file data source: %s", raw_data_dir)
 
-    # Load market data for each required security
+    # When using Bloomberg, fetch ALL securities to keep them synced
+    # For file sources, only fetch required securities
+    from aponyx.data.bloomberg_config import list_securities
+
+    if data_source == "bloomberg":
+        all_securities = list_securities()
+        logger.info("Fetching all %d securities from Bloomberg", len(all_securities))
+
+        # Fetch all securities (this updates cache/raw storage for all)
+        for security_id in sorted(all_securities):
+            all_channels = list_security_channels(security_id)
+            df = fetch_security_data(
+                source=source,
+                security_id=security_id,
+                channels=all_channels,
+                use_cache=True,
+            )
+            logger.debug(
+                "Fetched %s: %d rows, channels: %s",
+                security_id,
+                len(df),
+                [c.value for c in all_channels],
+            )
+
+    # Load market data for securities required by this indicator
     market_data: dict[str, Any] = {}
 
     for inst_type, security_id in securities_mapping.items():
@@ -110,7 +144,7 @@ def _load_market_data_for_signal(
         )
         market_data[inst_type] = df
         logger.debug(
-            "Loaded %s (%s): %d rows",
+            "Loaded %s (%s) for indicator: %d rows",
             security_id,
             inst_type,
             len(df),

@@ -642,7 +642,7 @@ def _fetch_security_from_bloomberg(
 
             registry = DataRegistry(REGISTRY_PATH, DATA_DIR)
             # Use ticker as key to avoid overwriting when multiple channels use different tickers
-            save_to_raw(df, "bloomberg", config.bloomberg_ticker, RAW_DIR, registry)
+            save_to_raw(df, "bloomberg", security_id, RAW_DIR, registry)
 
             # Map Bloomberg field to channel name
             # Bloomberg provider returns columns like 'spread', 'level', 'close'

@@ -355,3 +355,126 @@ class TestEvaluateBacktestWithOverrides:
 
         # Larger position size should produce different (scaled) returns
         assert metrics_small.total_return != metrics_large.total_return
+
+
+class TestBloombergDataSync:
+    """Tests for Bloomberg data syncing behavior."""
+
+    def test_bloomberg_fetches_all_securities(self, monkeypatch) -> None:
+        """
+        When using Bloomberg data source, ALL securities should be fetched
+        regardless of which ones are required for the specific indicator.
+        """
+        from aponyx.sweep.evaluators import _load_market_data_for_signal
+        from aponyx.models.registry import (
+            IndicatorTransformationRegistry,
+            SignalRegistry,
+        )
+        from aponyx.config import (
+            INDICATOR_TRANSFORMATION_PATH,
+            SIGNAL_CATALOG_PATH,
+        )
+
+        # Track fetch calls
+        fetch_calls = []
+        
+        def mock_fetch(source, security_id, channels, use_cache):
+            fetch_calls.append(security_id)
+            return pd.DataFrame(
+                {"spread": [100, 101, 102]},
+                index=pd.date_range("2024-01-01", periods=3),
+            )
+
+        def mock_list_channels(security_id):
+            return []  # Simplified for test
+
+        def mock_list_securities(instrument_type=None):
+            return ["cdx_ig_5y", "cdx_hy_5y", "hyg", "lqd", "vix"]
+
+        # Patch in the aponyx.data module where they're imported from
+        import aponyx.data
+        import aponyx.data.bloomberg_config
+        monkeypatch.setattr(
+            aponyx.data, "fetch_security_data", mock_fetch
+        )
+        monkeypatch.setattr(
+            aponyx.data, "list_security_channels", mock_list_channels
+        )
+        monkeypatch.setattr(
+            aponyx.data.bloomberg_config, "list_securities", mock_list_securities
+        )
+
+        # Load registries
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
+        signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+
+        # Call with Bloomberg source
+        _load_market_data_for_signal(
+            signal_name="cdx_etf_basis",  # This indicator only needs cdx and etf
+            indicator_registry=indicator_registry,
+            signal_registry=signal_registry,
+            data_source="bloomberg",
+        )
+
+        # Verify that ALL 5 securities were fetched (not just cdx and etf)
+        # We expect: 5 from all_securities loop + 2 from required securities
+        assert len(fetch_calls) == 7  # 5 all securities + 2 required
+        
+        # Verify all securities were fetched in the initial sync
+        all_fetched_ids = set(fetch_calls[:5])
+        assert all_fetched_ids == {"cdx_ig_5y", "cdx_hy_5y", "hyg", "lqd", "vix"}
+
+    def test_file_source_only_fetches_required_securities(self, monkeypatch) -> None:
+        """
+        When using file data source, only required securities should be fetched.
+        """
+        from aponyx.sweep.evaluators import _load_market_data_for_signal
+        from aponyx.models.registry import (
+            IndicatorTransformationRegistry,
+            SignalRegistry,
+        )
+        from aponyx.config import (
+            INDICATOR_TRANSFORMATION_PATH,
+            SIGNAL_CATALOG_PATH,
+        )
+
+        # Track fetch calls
+        fetch_calls = []
+        
+        def mock_fetch(source, security_id, channels, use_cache):
+            fetch_calls.append(security_id)
+            return pd.DataFrame(
+                {"spread": [100, 101, 102]},
+                index=pd.date_range("2024-01-01", periods=3),
+            )
+
+        def mock_list_channels(security_id):
+            return []  # Simplified for test
+
+        # Patch in the aponyx.data module
+        import aponyx.data
+        monkeypatch.setattr(
+            aponyx.data, "fetch_security_data", mock_fetch
+        )
+        monkeypatch.setattr(
+            aponyx.data, "list_security_channels", mock_list_channels
+        )
+
+        # Load registries
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
+        signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+
+        # Call with file source
+        _load_market_data_for_signal(
+            signal_name="cdx_etf_basis",  # This indicator only needs cdx and etf
+            indicator_registry=indicator_registry,
+            signal_registry=signal_registry,
+            data_source="synthetic",
+        )
+
+        # Verify that only 2 securities were fetched (cdx and etf for the indicator)
+        assert len(fetch_calls) == 2
