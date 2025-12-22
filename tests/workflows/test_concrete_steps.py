@@ -442,7 +442,7 @@ class TestSuitabilityStep:
         # Pass market_data with security_id keys (e.g., "cdx_ig_5y")
         # The step expects the product ID as the key
         context = {
-            "signal": {"signal": sample_signal},
+            "signal": {"indicator": sample_signal, "score": sample_signal, "signal": sample_signal},
             "data": {"market_data": {"cdx_ig_5y": sample_market_data["cdx"]}},
             "output_dir": mock_output_dir,
         }
