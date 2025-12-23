@@ -70,6 +70,7 @@ TODO.md
 specs/
 # GitHub internal files (only ignore speckit-generated .md files)
 .github/**/speckit*.md
+.github/skills
 
 # Top-level docs folder (generated documentation, not version controlled)
 # Note: src/aponyx/docs/ is NOT ignored (internal package docs)
