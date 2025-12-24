@@ -134,6 +134,15 @@ class TestGenerateSuitabilityReport:
         assert "HOLD" in report
         assert "FAIL" in report
 
+    def test_predictive_table_includes_pvalue(self, sample_pass_result):
+        """Test that predictive association table includes p-value column."""
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
+
+        # Check for p-value column header
+        assert "P-Value" in report
+
 
 class TestSaveReport:
     """Test report file saving."""
@@ -186,3 +195,31 @@ class TestSaveReport:
         assert path2.exists()
         assert "suitability_evaluation_" in path1.name
         assert "suitability_evaluation_" in path2.name
+
+
+class TestComputePvalue:
+    """Test p-value computation helper."""
+
+    def test_compute_pvalue_significant(self):
+        """Test p-value for significant t-statistic."""
+        from aponyx.evaluation.suitability.report import _compute_pvalue
+
+        # t=2.0 with n=102 (df=100) should give ~0.048 (significant at 0.05)
+        pval = _compute_pvalue(2.0, 102)
+        assert 0.04 < pval < 0.05
+
+    def test_compute_pvalue_not_significant(self):
+        """Test p-value for non-significant t-statistic."""
+        from aponyx.evaluation.suitability.report import _compute_pvalue
+
+        # t=1.0 with n=102 (df=100) should give ~0.32 (not significant)
+        pval = _compute_pvalue(1.0, 102)
+        assert 0.30 < pval < 0.35
+
+    def test_compute_pvalue_zero_tstat(self):
+        """Test p-value for zero t-statistic."""
+        from aponyx.evaluation.suitability.report import _compute_pvalue
+
+        # t=0.0 should give p=1.0 (no effect)
+        pval = _compute_pvalue(0.0, 102)
+        assert pval == 1.0

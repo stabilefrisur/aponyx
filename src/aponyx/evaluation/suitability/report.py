@@ -9,9 +9,17 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
+from scipy import stats
+
 from aponyx.evaluation.suitability.evaluator import SuitabilityResult
 
 logger = logging.getLogger(__name__)
+
+
+def _compute_pvalue(t_stat: float, n_obs: int) -> float:
+    """Compute two-tailed p-value from t-statistic."""
+    df = max(n_obs - 2, 1)  # Degrees of freedom for simple regression
+    return 2 * (1 - stats.t.cdf(abs(t_stat), df))
 
 
 def generate_suitability_report(
@@ -120,8 +128,8 @@ def generate_suitability_report(
 
 **Metrics:**
 
-| Lag | Correlation | Beta | T-Statistic |
-|-----|-------------|------|-------------|
+| Lag | Correlation | Beta | T-Statistic | P-Value |
+|-----|-------------|------|-------------|---------|
 """
 
     # Add stats for each lag
@@ -129,7 +137,8 @@ def generate_suitability_report(
         corr = result.correlations.get(lag, 0.0)
         beta = result.betas.get(lag, 0.0)
         tstat = result.t_stats.get(lag, 0.0)
-        report += f"| {lag} | {corr:.4f} | {beta:.4f} | {tstat:.4f} |\n"
+        pval = _compute_pvalue(tstat, result.valid_obs)
+        report += f"| {lag} | {corr:.4f} | {beta:.4f} | {tstat:.4f} | {pval:.4f} |\n"
 
     report += f"""
 **Interpretation:**  
