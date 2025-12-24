@@ -394,8 +394,24 @@ class SuitabilityStep(BaseWorkflowStep):
             result.composite_score,
         )
 
+        # Build indicator metadata for report
+        indicator_metadata = self._get_indicator_metadata(context)
+
+        # Build date range from indicator index
+        date_range = None
+        if len(indicator) > 0:
+            start_date = indicator.index.min().strftime("%Y-%m-%d")
+            end_date = indicator.index.max().strftime("%Y-%m-%d")
+            date_range = (start_date, end_date)
+
         # Generate and save report
-        report = generate_suitability_report(result, self.config.signal_name, product)
+        report = generate_suitability_report(
+            result,
+            self.config.signal_name,
+            product,
+            indicator_metadata=indicator_metadata,
+            date_range=date_range,
+        )
 
         # Get workflow output directory from context (timestamped folder)
         workflow_output_dir = context.get("output_dir", self.config.output_dir)
@@ -415,6 +431,44 @@ class SuitabilityStep(BaseWorkflowStep):
         output = {"suitability_result": result, "product": product}
         self._log_complete(output)
         return output
+
+    def _get_indicator_metadata(self, context: dict[str, Any]) -> dict[str, Any]:
+        """
+        Build indicator metadata dict for report.
+
+        Extracts metadata from the indicator transformation registry
+        for the signal being evaluated.
+        """
+        from aponyx.config import INDICATOR_TRANSFORMATION_PATH, SIGNAL_CATALOG_PATH
+        from aponyx.models.registry import (
+            IndicatorTransformationRegistry,
+            SignalRegistry,
+        )
+
+        # Get signal metadata to find indicator transformation name
+        signal_registry = SignalRegistry(SIGNAL_CATALOG_PATH)
+        signal_metadata = signal_registry.get_metadata(self.config.signal_name)
+
+        # Get indicator transformation metadata
+        indicator_registry = IndicatorTransformationRegistry(
+            INDICATOR_TRANSFORMATION_PATH
+        )
+        indicator_name = signal_metadata.indicator_transformation
+        indicator_meta = indicator_registry.get_metadata(indicator_name)
+
+        # Get securities used from context (may have been overridden)
+        securities_used = context.get("signal", {}).get("securities_used", {})
+        securities_list = list(securities_used.values()) if securities_used else []
+
+        # Build metadata dict for report
+        return {
+            "name": indicator_name,
+            "description": indicator_meta.description,
+            "output_units": indicator_meta.output_units,
+            "lookback": indicator_meta.parameters.get("lookback"),
+            "compute_function_name": indicator_meta.compute_function_name,
+            "securities": securities_list,
+        }
 
     def output_exists(self) -> bool:
         # Check for suitability report markdown file
