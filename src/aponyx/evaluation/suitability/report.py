@@ -346,8 +346,6 @@ def _interpret_stability(result: SuitabilityResult) -> str:
 
 def save_report(
     report: str,
-    signal_id: str,
-    product_id: str,
     output_dir: Path,
     timestamp: str | None = None,
 ) -> Path:
@@ -358,10 +356,6 @@ def save_report(
     ----------
     report : str
         Markdown report text.
-    signal_id : str
-        Signal identifier (for filename).
-    product_id : str
-        Product identifier matching security_id format (e.g., 'cdx_ig_5y').
     output_dir : Path
         Directory to save report.
     timestamp : str or None, optional
@@ -380,7 +374,7 @@ def save_report(
     Examples
     --------
     >>> from aponyx.config import EVALUATION_DIR
-    >>> path = save_report(report, "cdx_etf_basis", "cdx_ig_5y", EVALUATION_DIR)
+    >>> path = save_report(report, EVALUATION_DIR)
     >>> print(path)
     """
     # Create output directory

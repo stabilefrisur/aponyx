@@ -222,7 +222,7 @@ class TestSaveReport:
             sample_pass_result, "test_signal", "CDX_IG"
         )
 
-        returned_path = save_report(report, "test_signal", "CDX_IG", tmp_path)
+        returned_path = save_report(report, tmp_path)
 
         assert returned_path.exists()
         assert returned_path.parent == tmp_path
@@ -235,7 +235,7 @@ class TestSaveReport:
         )
 
         output_dir = tmp_path / "subdir" / "nested"
-        returned_path = save_report(report, "test_signal", "CDX_IG", output_dir)
+        returned_path = save_report(report, output_dir)
 
         assert returned_path.exists()
         assert returned_path.parent.exists()
@@ -246,7 +246,7 @@ class TestSaveReport:
             sample_pass_result, "test_signal", "CDX_IG"
         )
 
-        returned_path = save_report(report, "test_signal", "CDX_IG", tmp_path)
+        returned_path = save_report(report, tmp_path)
 
         saved_content = returned_path.read_text(encoding="utf-8")
         assert saved_content == report
@@ -256,8 +256,8 @@ class TestSaveReport:
         report1 = generate_suitability_report(sample_pass_result, "signal1", "PROD1")
         report2 = generate_suitability_report(sample_pass_result, "signal2", "PROD2")
 
-        path1 = save_report(report1, "signal1", "PROD1", tmp_path)
-        path2 = save_report(report2, "signal2", "PROD2", tmp_path)
+        path1 = save_report(report1, tmp_path)
+        path2 = save_report(report2, tmp_path)
 
         # Both files should exist with different names
         assert path1.exists()

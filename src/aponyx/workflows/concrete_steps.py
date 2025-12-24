@@ -424,9 +424,7 @@ class SuitabilityStep(BaseWorkflowStep):
         parts = workflow_dir_name.split("_")
         timestamp = f"{parts[-2]}_{parts[-1]}"  # YYYYMMDD_HHMMSS
 
-        save_suitability_report(
-            report, self.config.signal_name, product, output_dir, timestamp
-        )
+        save_suitability_report(report, output_dir, timestamp)
 
         output = {"suitability_result": result, "product": product}
         self._log_complete(output)
