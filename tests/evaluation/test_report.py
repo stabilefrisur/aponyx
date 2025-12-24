@@ -154,6 +154,53 @@ class TestGenerateSuitabilityReport:
         # Check for interpretation labels (at least one should appear)
         assert any(label in report for label in ["Excellent", "Strong", "Moderate", "Weak", "Low"])
 
+    def test_report_includes_indicator_metadata_when_provided(self, sample_pass_result):
+        """Test that indicator metadata section appears when provided."""
+        indicator_metadata = {
+            "name": "cdx_etf_basis",
+            "description": "Spread differential between CDX IG 5Y and LQD ETF",
+            "output_units": "basis_points",
+            "lookback": 20,
+            "compute_function_name": "compute_cdx_etf_spread_diff",
+            "securities": ["cdx_ig_5y", "lqd"],
+        }
+
+        report = generate_suitability_report(
+            sample_pass_result,
+            "cdx_etf_basis",
+            "CDX_IG",
+            indicator_metadata=indicator_metadata,
+        )
+
+        assert "## Configuration Summary" in report
+        assert "### Indicator Parameters" in report
+        assert "cdx_etf_basis" in report
+        assert "basis_points" in report
+
+    def test_report_works_without_indicator_metadata(self, sample_pass_result):
+        """Test that report generates without indicator metadata (backward compat)."""
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
+
+        # Should still generate valid report
+        assert "Suitability Evaluation Report" in report
+        # Configuration Summary should not appear when no metadata provided
+        assert "### Indicator Parameters" not in report
+
+    def test_report_includes_date_range_when_provided(self, sample_pass_result):
+        """Test that data summary section appears when date_range provided."""
+        report = generate_suitability_report(
+            sample_pass_result,
+            "test_signal",
+            "CDX_IG",
+            date_range=("2020-01-01", "2024-12-24"),
+        )
+
+        assert "### Data Summary" in report
+        assert "2020-01-01" in report
+        assert "2024-12-24" in report
+
 
 class TestSaveReport:
     """Test report file saving."""

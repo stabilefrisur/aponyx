@@ -8,6 +8,7 @@ and interpretation guidance.
 import logging
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from scipy import stats
 
@@ -40,6 +41,8 @@ def generate_suitability_report(
     result: SuitabilityResult,
     signal_id: str,
     product_id: str,
+    indicator_metadata: dict[str, Any] | None = None,
+    date_range: tuple[str, str] | None = None,
 ) -> str:
     """
     Generate Markdown report from evaluation result.
@@ -52,6 +55,11 @@ def generate_suitability_report(
         Signal identifier (for header).
     product_id : str
         Product identifier matching security_id format (e.g., 'cdx_ig_5y').
+    indicator_metadata : dict[str, Any] or None, optional
+        Indicator configuration metadata to include in report.
+        Keys: name, description, output_units, lookback, compute_function_name, securities.
+    date_range : tuple[str, str] or None, optional
+        Date range tuple (start_date, end_date) for data summary section.
 
     Returns
     -------
@@ -105,6 +113,41 @@ def generate_suitability_report(
     economic_interp = _interpret_economic(result)
     stability_interp = _interpret_stability(result)
 
+    # Build optional Configuration Summary section
+    config_section = ""
+    if indicator_metadata:
+        securities_str = ", ".join(indicator_metadata.get("securities", []))
+        config_section = f"""
+---
+
+## Configuration Summary
+
+### Indicator Parameters
+
+| Parameter | Value |
+|-----------|-------|
+| Name | {indicator_metadata.get('name', signal_id)} |
+| Description | {indicator_metadata.get('description', 'N/A')} |
+| Output Units | {indicator_metadata.get('output_units', 'N/A')} |
+| Lookback Period | {indicator_metadata.get('lookback', 'N/A')} days |
+| Computation Method | {indicator_metadata.get('compute_function_name', 'N/A')} |
+| Securities Used | {securities_str} |
+
+"""
+
+    if date_range:
+        if not config_section:
+            config_section = "\n---\n\n## Configuration Summary\n\n"
+        config_section += f"""### Data Summary
+
+| Metric | Value |
+|--------|-------|
+| Valid Observations | {result.valid_obs:,} |
+| Date Range | {date_range[0]} to {date_range[1]} |
+| Missing Data | {result.missing_pct:.2f}% |
+
+"""
+
     # Build report
     report = f"""# Signal-Product Suitability Evaluation Report
 
@@ -112,7 +155,7 @@ def generate_suitability_report(
 **Product:** `{product_id}`  
 **Evaluation Date:** {result.timestamp}  
 **Evaluator Version:** 0.1.0
-
+{config_section}
 ---
 
 ## Executive Summary
