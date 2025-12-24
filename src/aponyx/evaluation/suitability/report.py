@@ -22,6 +22,20 @@ def _compute_pvalue(t_stat: float, n_obs: int) -> float:
     return 2 * (1 - stats.t.cdf(abs(t_stat), df))
 
 
+def _score_to_label(score: float) -> str:
+    """Convert numeric score to interpretation label."""
+    if score >= 0.8:
+        return "Excellent"
+    elif score >= 0.7:
+        return "Strong"
+    elif score >= 0.5:
+        return "Moderate"
+    elif score >= 0.3:
+        return "Weak"
+    else:
+        return "Low"
+
+
 def generate_suitability_report(
     result: SuitabilityResult,
     signal_id: str,
@@ -170,13 +184,13 @@ def generate_suitability_report(
 
 ## Composite Scoring
 
-| Component | Weight | Score | Contribution |
-|-----------|--------|-------|--------------|
-| Data Health | {result.config.data_health_weight:.2f} | {result.data_health_score:.3f} | {result.config.data_health_weight * result.data_health_score:.3f} |
-| Predictive | {result.config.predictive_weight:.2f} | {result.predictive_score:.3f} | {result.config.predictive_weight * result.predictive_score:.3f} |
-| Economic | {result.config.economic_weight:.2f} | {result.economic_score:.3f} | {result.config.economic_weight * result.economic_score:.3f} |
-| Stability | {result.config.stability_weight:.2f} | {result.stability_score:.3f} | {result.config.stability_weight * result.stability_score:.3f} |
-| **Total** | **1.00** | — | **{result.composite_score:.3f}** |
+| Component | Weight | Score | Contribution | Interpretation |
+|-----------|--------|-------|--------------|----------------|
+| Data Health | {result.config.data_health_weight:.2f} | {result.data_health_score:.3f} | {result.config.data_health_weight * result.data_health_score:.3f} | {_score_to_label(result.data_health_score)} |
+| Predictive | {result.config.predictive_weight:.2f} | {result.predictive_score:.3f} | {result.config.predictive_weight * result.predictive_score:.3f} | {_score_to_label(result.predictive_score)} |
+| Economic | {result.config.economic_weight:.2f} | {result.economic_score:.3f} | {result.config.economic_weight * result.economic_score:.3f} | {_score_to_label(result.economic_score)} |
+| Stability | {result.config.stability_weight:.2f} | {result.stability_score:.3f} | {result.config.stability_weight * result.stability_score:.3f} | {_score_to_label(result.stability_score)} |
+| **Composite** | **1.00** | **—** | **{result.composite_score:.3f}** | **{_score_to_label(result.composite_score)}** |
 
 ---
 

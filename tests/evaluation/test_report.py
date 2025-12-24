@@ -143,6 +143,17 @@ class TestGenerateSuitabilityReport:
         # Check for p-value column header
         assert "P-Value" in report
 
+    def test_component_table_includes_interpretation(self, sample_pass_result):
+        """Test that component scores table includes interpretation column."""
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
+
+        # Check for interpretation column in Composite Scoring section
+        assert "| Interpretation |" in report
+        # Check for interpretation labels (at least one should appear)
+        assert any(label in report for label in ["Excellent", "Strong", "Moderate", "Weak", "Low"])
+
 
 class TestSaveReport:
     """Test report file saving."""
