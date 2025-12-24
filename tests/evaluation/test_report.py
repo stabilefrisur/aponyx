@@ -201,6 +201,17 @@ class TestGenerateSuitabilityReport:
         assert "2020-01-01" in report
         assert "2024-12-24" in report
 
+    def test_report_footer_links_to_correct_docs(self, sample_pass_result):
+        """Test that footer links to correct documentation file."""
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
+
+        # Should link to the actual design doc
+        assert "signal_suitability_design.md" in report
+        # Should NOT have the old incorrect path
+        assert "docs/suitability_evaluation.md" not in report
+
 
 class TestSaveReport:
     """Test report file saving."""

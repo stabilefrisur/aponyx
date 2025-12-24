@@ -278,7 +278,7 @@ def generate_suitability_report(
 
 ---
 
-*This report was auto-generated from suitability evaluation results. For questions about methodology, see `docs/suitability_evaluation.md`.*
+*This report was auto-generated from suitability evaluation results. For questions about methodology, see [signal_suitability_design.md](../../../../src/aponyx/docs/signal_suitability_design.md).*
 """
 
     logger.debug(
