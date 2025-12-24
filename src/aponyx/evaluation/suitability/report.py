@@ -149,9 +149,9 @@ def generate_suitability_report(
 """
 
     # Build report
-    report = f"""# Signal-Product Suitability Evaluation Report
+    report = f"""# Indicator Suitability Evaluation Report
 
-**Signal:** `{signal_id}`  
+**Indicator:** `{signal_id}`  
 **Product:** `{product_id}`  
 **Evaluation Date:** {result.timestamp}  
 **Evaluator Version:** 0.1.0

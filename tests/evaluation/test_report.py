@@ -51,7 +51,7 @@ class TestGenerateSuitabilityReport:
         )
 
         # Check main sections
-        assert "# Signal-Product Suitability Evaluation Report" in report
+        assert "# Indicator Suitability Evaluation Report" in report
         assert "## Executive Summary" in report
         assert "## Component Analysis" in report
         assert "Data Health Score" in report
