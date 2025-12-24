@@ -50,33 +50,18 @@ class TestGenerateSuitabilityReport:
             sample_pass_result, "test_signal", "CDX_IG"
         )
 
-        # Check main sections
+        # Check main sections per template
         assert "# Indicator Suitability Evaluation Report" in report
-        assert "## Executive Summary" in report
-        assert "## Component Analysis" in report
+        assert "## Configuration Summary" in report
+        assert "### Indicator Parameters" in report
+        assert "### Data Summary" in report
+        assert "## Evaluation Results" in report
+        assert "### Component Scores" in report
+        assert "## Detailed Component Analysis" in report
         assert "Data Health Score" in report
         assert "Predictive Association Score" in report
         assert "Economic Relevance Score" in report
         assert "Temporal Stability Score" in report
-        assert "## Composite Scoring" in report
-        assert "## Decision Criteria" in report
-
-    def test_pass_decision_indicator(self, sample_pass_result):
-        """Test PASS decision shows correct indicator."""
-        report = generate_suitability_report(
-            sample_pass_result, "test_signal", "CDX_IG"
-        )
-
-        assert "[PASS]" in report
-
-    def test_fail_decision_indicator(self, sample_fail_result):
-        """Test FAIL decision shows correct indicator."""
-        report = generate_suitability_report(
-            sample_fail_result, "random_signal", "CDX_IG"
-        )
-
-        # Should be HOLD or FAIL
-        assert any(marker in report for marker in ["[HOLD]", "[FAIL]"])
 
     def test_metrics_table_included(self, sample_pass_result):
         """Test that metrics are included."""
@@ -87,7 +72,7 @@ class TestGenerateSuitabilityReport:
         # Check for key metrics
         assert "Valid Observations" in report
         assert "Missing Data" in report
-        assert "Composite Score" in report
+        assert "Date Range" in report
 
     def test_component_scores_table(self, sample_pass_result):
         """Test that component scores table is included."""
@@ -95,12 +80,12 @@ class TestGenerateSuitabilityReport:
             sample_pass_result, "test_signal", "CDX_IG"
         )
 
-        # Check for component scores in Composite Scoring section
-        assert "Composite Scoring" in report
+        # Check for component scores in Evaluation Results section
+        assert "### Component Scores" in report
         assert "Data Health" in report
-        assert "Predictive" in report
-        assert "Economic" in report
-        assert "Stability" in report
+        assert "Predictive Association" in report
+        assert "Economic Relevance" in report
+        assert "Temporal Stability" in report
 
     def test_correlation_table(self, sample_pass_result):
         """Test that correlation values are shown."""
@@ -110,8 +95,7 @@ class TestGenerateSuitabilityReport:
 
         # Check for correlation section
         assert "Correlation" in report
-        # Correlations should be present for configured lags
-        assert "1-day" in report or "Lag" in report
+        assert "Lag" in report
 
     def test_report_includes_timestamp(self, sample_pass_result):
         """Test that report includes evaluation timestamp."""
@@ -121,18 +105,6 @@ class TestGenerateSuitabilityReport:
 
         assert "Evaluation Date" in report
         assert sample_pass_result.timestamp[:10] in report  # Date portion
-
-    def test_report_includes_config_details(self, sample_pass_result):
-        """Test that configuration parameters are documented."""
-        report = generate_suitability_report(
-            sample_pass_result, "test_signal", "CDX_IG"
-        )
-
-        # Should include decision criteria info
-        assert "Decision Criteria" in report
-        assert "PASS" in report
-        assert "HOLD" in report
-        assert "FAIL" in report
 
     def test_predictive_table_includes_pvalue(self, sample_pass_result):
         """Test that predictive association table includes p-value column."""
@@ -149,10 +121,19 @@ class TestGenerateSuitabilityReport:
             sample_pass_result, "test_signal", "CDX_IG"
         )
 
-        # Check for interpretation column in Composite Scoring section
+        # Check for interpretation column in Component Scores section
         assert "| Interpretation |" in report
         # Check for interpretation labels (at least one should appear)
         assert any(label in report for label in ["Excellent", "Strong", "Moderate", "Weak", "Low"])
+
+    def test_weights_shown_as_percentage(self, sample_pass_result):
+        """Test that weights are displayed as percentages."""
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
+
+        # Check for percentage format (e.g., "20%", "40%")
+        assert "20%" in report or "40%" in report
 
     def test_report_includes_indicator_metadata_when_provided(self, sample_pass_result):
         """Test that indicator metadata section appears when provided."""
@@ -178,18 +159,19 @@ class TestGenerateSuitabilityReport:
         assert "basis_points" in report
 
     def test_report_works_without_indicator_metadata(self, sample_pass_result):
-        """Test that report generates without indicator metadata (backward compat)."""
+        """Test that report generates without indicator metadata (uses defaults)."""
         report = generate_suitability_report(
             sample_pass_result, "test_signal", "CDX_IG"
         )
 
-        # Should still generate valid report
+        # Should still generate valid report with Configuration Summary
         assert "Suitability Evaluation Report" in report
-        # Configuration Summary should not appear when no metadata provided
-        assert "### Indicator Parameters" not in report
+        assert "### Indicator Parameters" in report
+        # Should show N/A for missing metadata
+        assert "N/A" in report
 
     def test_report_includes_date_range_when_provided(self, sample_pass_result):
-        """Test that data summary section appears when date_range provided."""
+        """Test that data summary section includes date_range when provided."""
         report = generate_suitability_report(
             sample_pass_result,
             "test_signal",
@@ -211,6 +193,24 @@ class TestGenerateSuitabilityReport:
         assert "signal_suitability_design.md" in report
         # Should NOT have the old incorrect path
         assert "docs/suitability_evaluation.md" not in report
+
+    def test_no_executive_summary_section(self, sample_pass_result):
+        """Test that report does not have Executive Summary (per template)."""
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
+
+        # Template does not include Executive Summary
+        assert "## Executive Summary" not in report
+
+    def test_no_decision_criteria_section(self, sample_pass_result):
+        """Test that report does not have Decision Criteria (per template)."""
+        report = generate_suitability_report(
+            sample_pass_result, "test_signal", "CDX_IG"
+        )
+
+        # Template does not include Decision Criteria section
+        assert "## Decision Criteria" not in report
 
 
 class TestSaveReport:

@@ -68,57 +68,29 @@ def generate_suitability_report(
 
     Notes
     -----
-    Report includes:
-    - Header with identifiers and overall decision
-    - Executive summary with composite score
-    - Four component sections with metrics and interpretation
-    - Composite scoring breakdown
-    - Decision explanation and next steps
-    - Footer with metadata
+    Report structure:
+    - Header with indicator, product, evaluation date
+    - Configuration Summary (indicator parameters, data summary)
+    - Evaluation Results (component scores table)
+    - Detailed Component Analysis (4 components with metrics)
+    - Footer with methodology link
 
     Examples
     --------
     >>> report = generate_suitability_report(result, "cdx_etf_basis", "cdx_ig_5y")
     >>> print(report[:100])
     """
-    # Decision indicator
-    if result.decision == "PASS":
-        indicator = "[PASS]"
-    elif result.decision == "HOLD":
-        indicator = "[HOLD]"
-    else:
-        indicator = "[FAIL]"
-
-    # Interpretation text for composite score
-    if result.composite_score >= 0.7:
-        interpretation = (
-            "The signal demonstrates strong predictive content with good data quality. "
-            "Proceed to strategy design and backtesting."
-        )
-    elif result.composite_score >= 0.4:
-        interpretation = (
-            "The signal shows marginal predictive content. "
-            "Consider refining signal construction or gathering more data before backtesting. "
-            "Manual review recommended."
-        )
-    else:
-        interpretation = (
-            "The signal lacks sufficient predictive content for this product. "
-            "Do not proceed to backtesting. Consider alternative signal specifications."
-        )
-
     # Component interpretations
     data_health_interp = _interpret_data_health(result)
     predictive_interp = _interpret_predictive(result)
     economic_interp = _interpret_economic(result)
     stability_interp = _interpret_stability(result)
 
-    # Build optional Configuration Summary section
-    config_section = ""
-    if indicator_metadata:
-        securities_str = ", ".join(indicator_metadata.get("securities", []))
-        config_section = f"""
----
+    # Format timestamp for display (just date portion)
+    eval_date = result.timestamp.split("T")[0] if "T" in result.timestamp else result.timestamp
+
+    # Build Configuration Summary section
+    config_section = """---
 
 ## Configuration Summary
 
@@ -126,51 +98,69 @@ def generate_suitability_report(
 
 | Parameter | Value |
 |-----------|-------|
-| Name | {indicator_metadata.get('name', signal_id)} |
+"""
+    if indicator_metadata:
+        securities = indicator_metadata.get("securities", [])
+        securities_str = ", ".join(securities) if securities else "N/A"
+        config_section += f"""| Name | {indicator_metadata.get('name', signal_id)} |
 | Description | {indicator_metadata.get('description', 'N/A')} |
 | Output Units | {indicator_metadata.get('output_units', 'N/A')} |
 | Lookback Period | {indicator_metadata.get('lookback', 'N/A')} days |
 | Computation Method | {indicator_metadata.get('compute_function_name', 'N/A')} |
 | Securities Used | {securities_str} |
-
+"""
+    else:
+        config_section += f"""| Name | {signal_id} |
+| Description | N/A |
+| Output Units | N/A |
+| Lookback Period | N/A |
+| Computation Method | N/A |
+| Securities Used | N/A |
 """
 
+    # Data Summary section
     if date_range:
-        if not config_section:
-            config_section = "\n---\n\n## Configuration Summary\n\n"
-        config_section += f"""### Data Summary
+        date_range_str = f"{date_range[0]} to {date_range[1]}"
+    else:
+        date_range_str = "N/A"
+
+    config_section += f"""
+### Data Summary
 
 | Metric | Value |
 |--------|-------|
 | Valid Observations | {result.valid_obs:,} |
-| Date Range | {date_range[0]} to {date_range[1]} |
+| Date Range | {date_range_str} |
 | Missing Data | {result.missing_pct:.2f}% |
 
 """
 
-    # Build report
+    # Build report header
     report = f"""# Indicator Suitability Evaluation Report
 
 **Indicator:** `{signal_id}`  
 **Product:** `{product_id}`  
-**Evaluation Date:** {result.timestamp}  
-**Evaluator Version:** 0.1.0
-{config_section}
+**Evaluation Date:** {eval_date}
+
+{config_section}---
+
+## Evaluation Results
+
+### Component Scores
+
+| Component | Weight | Score | Contribution | Interpretation |
+|-----------|--------|-------|--------------|----------------|
+| Data Health | {result.config.data_health_weight * 100:.0f}% | {result.data_health_score:.2f} | {result.config.data_health_weight * result.data_health_score:.2f} | {_score_to_label(result.data_health_score)} |
+| Predictive Association | {result.config.predictive_weight * 100:.0f}% | {result.predictive_score:.2f} | {result.config.predictive_weight * result.predictive_score:.2f} | {_score_to_label(result.predictive_score)} |
+| Economic Relevance | {result.config.economic_weight * 100:.0f}% | {result.economic_score:.2f} | {result.config.economic_weight * result.economic_score:.2f} | {_score_to_label(result.economic_score)} |
+| Temporal Stability | {result.config.stability_weight * 100:.0f}% | {result.stability_score:.2f} | {result.config.stability_weight * result.stability_score:.2f} | {_score_to_label(result.stability_score)} |
+| **Composite** | **100%** | **—** | **{result.composite_score:.2f}** | **{_score_to_label(result.composite_score)}** |
+
 ---
 
-## Executive Summary
+## Detailed Component Analysis
 
-### Overall Decision: {indicator}
-
-**Composite Score:** {result.composite_score:.3f}
-
-{interpretation}
-
----
-
-## Component Analysis
-
-### 1. Data Health Score: {result.data_health_score:.3f}
+### 1. Data Health Score: {result.data_health_score:.2f}
 
 **Metrics:**
 - Valid Observations: {result.valid_obs:,}
@@ -181,7 +171,7 @@ def generate_suitability_report(
 
 ---
 
-### 2. Predictive Association Score: {result.predictive_score:.3f}
+### 2. Predictive Association Score: {result.predictive_score:.2f}
 
 **Metrics:**
 
@@ -195,7 +185,7 @@ def generate_suitability_report(
         beta = result.betas.get(lag, 0.0)
         tstat = result.t_stats.get(lag, 0.0)
         pval = _compute_pvalue(tstat, result.valid_obs)
-        report += f"| {lag} | {corr:.4f} | {beta:.4f} | {tstat:.4f} | {pval:.4f} |\n"
+        report += f"| {lag} | {corr:.2f} | {beta:.2f} | {tstat:.2f} | {pval:.2f} |\n"
 
     report += f"""
 **Interpretation:**  
@@ -203,78 +193,25 @@ def generate_suitability_report(
 
 ---
 
-### 3. Economic Relevance Score: {result.economic_score:.3f}
+### 3. Economic Relevance Score: {result.economic_score:.2f}
 
 **Metrics:**
-- Effect Size: {result.effect_size_bps:.3f} bps per 1σ signal change
+- Effect Size: {result.effect_size_bps:.2f} bps per 1σ signal change
 
 **Interpretation:**  
 {economic_interp}
 
 ---
 
-### 4. Temporal Stability Score: {result.stability_score:.3f}
+### 4. Temporal Stability Score: {result.stability_score:.2f}
 
 **Metrics:**
 - Rolling Windows: {result.n_windows} windows ({result.config.rolling_window} observations each)
-- Sign Consistency Ratio: {result.sign_consistency_ratio:.1%}
-- Beta Coefficient of Variation: {result.beta_cv:.3f}
+- Sign Consistency Ratio: {result.sign_consistency_ratio * 100:.2f}%
+- Beta Coefficient of Variation: {result.beta_cv:.2f}
 
 **Interpretation:**  
 {stability_interp}
-
----
-
-## Composite Scoring
-
-| Component | Weight | Score | Contribution | Interpretation |
-|-----------|--------|-------|--------------|----------------|
-| Data Health | {result.config.data_health_weight:.2f} | {result.data_health_score:.3f} | {result.config.data_health_weight * result.data_health_score:.3f} | {_score_to_label(result.data_health_score)} |
-| Predictive | {result.config.predictive_weight:.2f} | {result.predictive_score:.3f} | {result.config.predictive_weight * result.predictive_score:.3f} | {_score_to_label(result.predictive_score)} |
-| Economic | {result.config.economic_weight:.2f} | {result.economic_score:.3f} | {result.config.economic_weight * result.economic_score:.3f} | {_score_to_label(result.economic_score)} |
-| Stability | {result.config.stability_weight:.2f} | {result.stability_score:.3f} | {result.config.stability_weight * result.stability_score:.3f} | {_score_to_label(result.stability_score)} |
-| **Composite** | **1.00** | **—** | **{result.composite_score:.3f}** | **{_score_to_label(result.composite_score)}** |
-
----
-
-## Decision Criteria
-
-- **PASS** (≥ {result.config.pass_threshold:.2f}): Proceed to backtest
-- **HOLD** ({result.config.hold_threshold:.2f} - {result.config.pass_threshold:.2f}): Marginal, requires judgment
-- **FAIL** (< {result.config.hold_threshold:.2f}): Do not backtest
-
-### Recommended Next Steps
-
-"""
-
-    if result.decision == "PASS":
-        report += """1. Design trading strategy with entry/exit rules
-2. Configure backtest parameters (position sizing, costs)
-3. Run historical backtest with proper risk controls
-4. Analyze performance metrics and risk-adjusted returns
-"""
-    elif result.decision == "HOLD":
-        report += """1. Review component scores to identify weaknesses
-2. Consider signal refinements (lookback periods, normalization)
-3. Gather additional data if sample size is limited
-4. Consult with senior researchers before proceeding
-5. Document rationale for proceed/stop decision
-"""
-    else:
-        report += """1. Archive evaluation for reference
-2. Document why signal failed (data, predictive, economic, or stability)
-3. Consider alternative signal specifications
-4. Do NOT proceed to backtesting with current signal
-"""
-
-    report += f"""
----
-
-## Report Metadata
-
-**Generated:** {datetime.now().isoformat()}  
-**Evaluator:** aponyx.evaluation.suitability v0.1.0  
-**Reproducibility:** All metrics computed from aligned signal-target pairs with deterministic methods.
 
 ---
 
