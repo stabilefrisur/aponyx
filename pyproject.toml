@@ -8,12 +8,6 @@ authors = [
     { name = "Stabile Frisur", email = "26568863+stabilefrisur@users.noreply.github.com" }
 ]
 requires-python = ">=3.12,<3.13"
-keywords = [
-    "finance",
-    "investing",
-    "research",
-    "backtesting",
-]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
@@ -65,7 +59,7 @@ include = [
 
 [project.optional-dependencies]
 bloomberg = [
-    "xbbg>=0.7.0",
+    "xbbg==0.7.10",
 ]
 dev = [
     "pytest>=8.0.0",
